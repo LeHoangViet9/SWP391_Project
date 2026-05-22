@@ -49,7 +49,7 @@ public class UserServiceImpl implements IUserService {
         }
 
         String defaultRole = "CUSTOMER";
-        Role role = roleRepository.findById(defaultRole)
+        Role role = roleRepository.findByRoleName(defaultRole)
                 .orElseThrow(() -> new RuntimeException(
                         messageSource.getMessage("error.role.invalid", new Object[]{defaultRole}, locale)
                 ));

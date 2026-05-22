@@ -16,7 +16,10 @@ import java.util.List;
 @Builder
 public class Role {
     @Id
-    @Column(name="role_name",length =  50)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name="role_name", unique = true, nullable = false, length = 50)
     private String roleName;
     @Column(name="permissions" ,columnDefinition = "NVARCHAR(MAX)")
     private String permissions;
