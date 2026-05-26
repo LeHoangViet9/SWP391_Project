@@ -1,4 +1,4 @@
-package com.hms.model;
+package com.hms.entity.auth;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

@@ -1,6 +1,6 @@
-package com.hms.repository;
+package com.hms.repository.auth;
 
-import com.hms.model.User;
+import com.hms.entity.auth.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 

@@ -1,14 +1,11 @@
-package com.hms.controller;
+package com.hms.controller.auth;
 
 import com.hms.dto.register.UserLoginRequest;
 import com.hms.dto.register.UserRegisterRequest;
 import com.hms.dto.response.ApiResponse;
 import com.hms.dto.response.UserResponse;
-import com.hms.model.User;
-import com.hms.service.IRoleService;
-import com.hms.service.IUserService;
+import com.hms.service.auth.IUserService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;

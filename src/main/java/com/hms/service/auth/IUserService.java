@@ -1,4 +1,4 @@
-package com.hms.service;
+package com.hms.service.auth;
 
 import com.hms.dto.register.UserLoginRequest;
 import com.hms.dto.register.UserRegisterRequest;

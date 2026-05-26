@@ -1,5 +1,6 @@
-package com.hms.model;
+package com.hms.entity.auth;
 
+import com.hms.enums.AccountStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,14 +31,17 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "account_status", nullable = false, length = 20)
+    @Column(name = "account_status", nullable = false, length = 20,columnDefinition = "VARCHAR(20) DEFAULT 'ACTIVE'")
     @Builder.Default
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
-
+    @Column(name = "banned_reason",length = 100)
+    private String bannedReason;
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id",nullable = false)
     private Role role;

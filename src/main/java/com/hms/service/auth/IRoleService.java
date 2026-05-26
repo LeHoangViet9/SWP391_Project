@@ -1,4 +1,4 @@
-package com.hms.service;
+package com.hms.service.auth;
 
 public interface IRoleService {
 }

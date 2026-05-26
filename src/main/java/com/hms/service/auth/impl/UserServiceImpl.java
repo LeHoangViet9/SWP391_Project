@@ -1,20 +1,23 @@
-package com.hms.service.impl;
+package com.hms.service.auth.impl;
 
 import com.hms.config.JwtTokenProvider;
 import com.hms.dto.register.UserLoginRequest;
 import com.hms.dto.register.UserRegisterRequest;
 import com.hms.dto.response.UserResponse;
-import com.hms.model.Role;
-import com.hms.model.User;
-import com.hms.repository.RoleRepository;
-import com.hms.repository.UserRepository;
-import com.hms.service.IUserService;
+import com.hms.enums.AccountStatus;
+import com.hms.entity.auth.Role;
+import com.hms.entity.auth.User;
+import com.hms.repository.auth.RoleRepository;
+import com.hms.repository.auth.UserRepository;
+import com.hms.service.auth.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Locale;
 
 @Service
@@ -54,27 +57,22 @@ public class UserServiceImpl implements IUserService {
                         messageSource.getMessage("error.role.invalid", new Object[]{defaultRole}, locale)
                 ));
 
-        User user = new User();
-        user.setUserName(registerRequest.getUsername());
-        user.setEmail(registerRequest.getEmail());
-        user.setFullName(registerRequest.getFullName());
-        user.setPhone(registerRequest.getPhone());
-        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        user.setRole(role);
+        User user = User.builder()
+                .userName(registerRequest.getUsername())
+                .email(registerRequest.getEmail())
+                .fullName(registerRequest.getFullName())
+                .phone(registerRequest.getPhone())
+                .password(passwordEncoder.encode(registerRequest.getPassword()))
+                .accountStatus(AccountStatus.ACTIVE)
+                .role(role)
+                .build();
         User savedUser = userRepository.save(user);
 
-        return new UserResponse(
-                savedUser.getId(),
-                savedUser.getFullName(),
-                savedUser.getUserName(),
-                savedUser.getEmail(),
-                savedUser.getPhone(),
-                savedUser.getRole().getRoleName(),
-                null
-        );
+        return toUserResponse(savedUser, null);
     }
 
     @Override
+    @Transactional
     public UserResponse login(UserLoginRequest loginRequest) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -85,8 +83,30 @@ public class UserServiceImpl implements IUserService {
             throw new RuntimeException(messageSource.getMessage("error.login.failed", null, locale));
         }
 
-        String accessToken = jwtTokenProvider.generateToken(user.getUserName(), user.getRole().getRoleName());
+        validateAccountStatus(user, locale);
 
+        user.setLastLoginAt(LocalDateTime.now());
+        User updatedUser = userRepository.save(user);
+
+        String accessToken = jwtTokenProvider.generateToken(
+                updatedUser.getUserName(),
+                updatedUser.getRole().getRoleName()
+        );
+
+        return toUserResponse(updatedUser, accessToken);
+    }
+
+    private void validateAccountStatus(User user, Locale locale) {
+        AccountStatus status = user.getAccountStatus();
+        if (status == AccountStatus.BANNED) {
+            throw new RuntimeException(messageSource.getMessage("error.account.banned", null, locale));
+        }
+        if (status == AccountStatus.INACTIVE) {
+            throw new RuntimeException(messageSource.getMessage("error.account.inactive", null, locale));
+        }
+    }
+
+    private UserResponse toUserResponse(User user, String token) {
         return new UserResponse(
                 user.getId(),
                 user.getFullName(),
@@ -94,7 +114,9 @@ public class UserServiceImpl implements IUserService {
                 user.getEmail(),
                 user.getPhone(),
                 user.getRole().getRoleName(),
-                accessToken
+                token,
+                user.getAccountStatus().name(),
+                user.getLastLoginAt()
         );
     }
 }
