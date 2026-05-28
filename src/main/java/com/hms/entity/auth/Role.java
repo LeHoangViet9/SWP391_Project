@@ -21,7 +21,7 @@ public class Role {
 
     @Column(name="role_name", unique = true, nullable = false, length = 50)
     private String roleName;
-    @Column(name="permissions" ,columnDefinition = "NVARCHAR(MAX)")
+    @Column(name="permissions" ,columnDefinition = "TEXT")
     private String permissions;
 
     @OneToMany(mappedBy = "role",cascade = CascadeType.ALL)
