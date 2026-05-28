@@ -1,4 +1,4 @@
-package com.hms.exception;
+package com.hms.advise;
 
 import com.hms.dto.response.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,9 +35,18 @@ public class GlobalExceptionHandler {
         Locale locale = LocaleContextHolder.getLocale();
 
         Map<String, String> errors = new HashMap<>();
-        exception.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
+        exception.getBindingResult().getAllErrors().forEach(error -> {
+
             String errorMessage = error.getDefaultMessage();
+
+            String fieldName;
+
+            if (error instanceof FieldError fieldError) {
+                fieldName = fieldError.getField();
+            } else {
+                fieldName = error.getObjectName();
+            }
+
             errors.put(fieldName, errorMessage);
         });
         String validationFailedMessage = messageSource.getMessage("error.validation.failed", null, locale);

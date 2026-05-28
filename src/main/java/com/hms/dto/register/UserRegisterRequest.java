@@ -1,11 +1,14 @@
 package com.hms.dto.register;
 
+import com.hms.custom_validator.RePasswordMatch;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+
+@RePasswordMatch
 @Data
 public class UserRegisterRequest {
     @NotBlank(message = "{user.fullname.notblank}")
@@ -18,6 +21,8 @@ public class UserRegisterRequest {
     @NotBlank(message = "{user.password.notblank}")
     @Size(min = 6, message = "{user.password.size}")
     private String password;
+    @NotBlank(message = "{user.repassword.message}")
+    private String rePassword;
 
     @NotBlank(message = "{user.email.notblank}")
     @Email(message = "{user.email.invalid}")
