@@ -51,6 +51,7 @@ dependencies {
     implementation 'com.google.zxing:javase:3.5.3'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 }
 
 tasks.named('test') {
