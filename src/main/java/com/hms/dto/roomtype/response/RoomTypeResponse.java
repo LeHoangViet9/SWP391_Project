@@ -1,4 +1,4 @@
-package com.hms.dto.response;
+package com.hms.dto.roomtype.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

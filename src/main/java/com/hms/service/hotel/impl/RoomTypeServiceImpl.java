@@ -4,13 +4,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hms.service.hotel.mapper.RoomTypeMapper;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 
-import com.hms.dto.response.RoomTypeResponse;
-import com.hms.dto.roomtype.RoomTypeRequest;
+import com.hms.dto.roomtype.response.RoomTypeResponse;
+import com.hms.dto.roomtype.request.RoomTypeRequest;
 import com.hms.entity.hotel.RoomType;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.hotel.IRoomTypeService;
@@ -21,17 +21,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RoomTypeServiceImpl implements IRoomTypeService {
 
-    @Autowired
-    private RoomTypeRepository roomTypeRepository;
 
-    @Autowired
-    private MessageSource messageSource;
+    private final RoomTypeRepository roomTypeRepository;
+
+    private final RoomTypeMapper roomTypeMapper;
+
+    private final MessageSource messageSource;
 
     @Override
     public List<RoomTypeResponse> getAllRoomType(){
-        return roomTypeRepository.findAll().stream()
-                .map(this::toRoomTypeResponse)
-                .collect(Collectors.toList());
+        List<RoomType> roomTypes = roomTypeRepository.findAll();
+        return roomTypeMapper.toResponseList(roomTypes);
+
     }
 
     @Override
@@ -39,7 +40,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
         Locale locale = LocaleContextHolder.getLocale();
         RoomType roomType = roomTypeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
-        return toRoomTypeResponse(roomType);
+        return roomTypeMapper.toResponse(roomType);
     }
 
     @Override
@@ -48,14 +49,9 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
         if(roomTypeRepository.existsByTypeName(request.getTypeName())){
             throw new RuntimeException(messageSource.getMessage("error.roomtype.exists",null,locale));
         }
-        RoomType roomType = RoomType.builder()
-                .typeName(request.getTypeName())
-                .description(request.getDescription())
-                .basePrice(request.getBasePrice())
-                .maxGuests(request.getMaxGuests())
-                .build();
+        RoomType roomType = roomTypeMapper.toEntity(request);
         RoomType saved = roomTypeRepository.save(roomType);
-        return toRoomTypeResponse(saved);
+        return roomTypeMapper.toResponse(saved);
     }
 
     @Override
@@ -70,13 +66,9 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
         if(roomTypeRepository.existsByTypeNameAndIdNot(newTypeName, id)){
             throw new RuntimeException(messageSource.getMessage("error.roomtype.exists",null,locale));
         }
-        roomType.setTypeName(request.getTypeName());
-        roomType.setDescription(request.getDescription());
-        roomType.setBasePrice(request.getBasePrice());
-        roomType.setMaxGuests(request.getMaxGuests());
-
+        roomTypeMapper.updateRoomTypeFromRequest(request, roomType);
         RoomType updated = roomTypeRepository.save(roomType);
-        return toRoomTypeResponse(updated);
+        return roomTypeMapper.toResponse(updated);
     }
 
     @Override
@@ -87,12 +79,4 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
         roomTypeRepository.delete(roomType);
     }
 
-    private RoomTypeResponse toRoomTypeResponse(RoomType roomType){
-        return new RoomTypeResponse(
-                roomType.getId(),
-                roomType.getTypeName(),
-                roomType.getDescription(),
-                roomType.getBasePrice(),
-                roomType.getMaxGuests());
-    }
 }

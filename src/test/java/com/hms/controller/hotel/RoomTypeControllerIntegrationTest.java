@@ -1,6 +1,6 @@
 package com.hms.controller.hotel;
 
-import com.hms.dto.roomtype.RoomTypeRequest;
+import com.hms.dto.roomtype.request.RoomTypeRequest;
 import com.hms.entity.hotel.RoomType;
 import com.hms.repository.hotel.RoomTypeRepository;
 import org.junit.jupiter.api.BeforeEach;

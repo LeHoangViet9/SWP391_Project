@@ -3,8 +3,8 @@ package com.hms.controller.hotel;
 import java.util.List;
 import java.util.Locale;
 
-import com.hms.dto.response.RoomTypeResponse;
-import com.hms.dto.roomtype.RoomTypeRequest;
+import com.hms.dto.roomtype.response.RoomTypeResponse;
+import com.hms.dto.roomtype.request.RoomTypeRequest;
 import jakarta.validation.Valid;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
