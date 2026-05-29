@@ -1,6 +1,7 @@
 package com.hms.advise;
 
-import com.hms.dto.response.ApiResponse;
+import com.hms.common.dto.ApiResponse;
+import com.hms.common.exception.AppException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -19,15 +20,20 @@ import java.util.Map;
 public class GlobalExceptionHandler {
     @Autowired
     private MessageSource messageSource;
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<Object>> handleRuntimeException(RuntimeException exception) {
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAppException(
+            AppException exception
+    ) {
+
         ApiResponse<Object> response = ApiResponse.builder()
                 .success(false)
                 .message(exception.getMessage())
-                .status(HttpStatus.BAD_REQUEST)
+                .status(exception.getStatus())
                 .build();
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        return ResponseEntity
+                .status(exception.getStatus())
+                .body(response);
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException exception) {
@@ -59,5 +65,23 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Object>> handleException(
+            Exception exception
+    ) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        String message = messageSource.getMessage("error.internal.server", null, "Internal Server Error", locale);
+
+        ApiResponse<Object> response = ApiResponse.builder()
+                .success(false)
+                .message(message)
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(response);
     }
 }

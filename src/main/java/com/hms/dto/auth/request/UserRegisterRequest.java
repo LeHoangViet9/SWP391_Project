@@ -1,4 +1,4 @@
-package com.hms.dto.register;
+package com.hms.dto.auth.request;
 
 import com.hms.custom_validator.RePasswordMatch;
 import jakarta.validation.constraints.Email;
@@ -16,10 +16,18 @@ public class UserRegisterRequest {
 
     @NotBlank(message = "{user.username.notblank}")
     @Size(min = 4, max = 50, message = "{user.username.size}")
-    private String username;
+    @Pattern(
+            regexp = "^[a-zA-Z0-9_]+$",
+            message = "{user.username.invalid}"
+    )
+    private String userName;
 
     @NotBlank(message = "{user.password.notblank}")
     @Size(min = 6, message = "{user.password.size}")
+    @Pattern(
+            regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@#$%^&+=!]{6,}$",
+            message = "{user.password.invalid}"
+    )
     private String password;
     @NotBlank(message = "{user.repassword.message}")
     private String rePassword;
@@ -32,5 +40,4 @@ public class UserRegisterRequest {
     @Pattern(regexp = "^(0|\\+84)[0-9]{9}$", message = "{user.phone.invalid}")
     private String phone;
 
-    private String roleName;
 }
