@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 public class RoomType {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
     @Column(name = "type_name",nullable = false, unique = true, length = 100)
     private String typeName;
     @Column(name = "description")
@@ -31,5 +31,5 @@ public class RoomType {
     @Column(name ="base_price", nullable = false)
     private BigDecimal basePrice;
     @Column(name ="max_guests", nullable = false)
-    private int maxGuests;
+    private Integer maxGuests;
 }
