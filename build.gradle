@@ -1,11 +1,12 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.5'
+    id 'org.springframework.boot' version '4.0.6'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'com.hms'
 version = '0.0.1-SNAPSHOT'
+description = 'Hotel_Management_System_SWP'
 
 java {
     toolchain {
@@ -18,7 +19,7 @@ repositories {
 }
 
 dependencies {
-
+    // --- SPRING BOOT CORE ---
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -26,30 +27,31 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
-    // Lombok
+    // --- LOMBOK ---
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // MapStruct
+    // --- MAPSTRUCT (Cấu hình chuẩn để đi kèm Lombok) ---
     implementation 'org.mapstruct:mapstruct:1.5.5.Final'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
+    // Binding bắt buộc phải có để MapStruct đọc được Getter/Setter từ Lombok sinh ra
     annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 
-    // Devtools
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
-    // PostgreSQL
-    runtimeOnly 'org.postgresql:postgresql'
-
-    // JWT
+    // --- SECURITY & JWT ---
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
-    // QR
+    // --- DATABASE (PostgreSQL) ---
+    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.postgresql:postgresql:42.7.7'
+
+    // --- QR CODE GENERATOR (ZXing) ---
     implementation 'com.google.zxing:core:3.5.3'
     implementation 'com.google.zxing:javase:3.5.3'
 
+    // --- DEV TOOLS & TESTING ---
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
