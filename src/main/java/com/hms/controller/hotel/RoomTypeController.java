@@ -23,7 +23,6 @@ import com.hms.dto.response.ApiResponse;
 import com.hms.service.hotel.IRoomTypeService;
 
 import lombok.RequiredArgsConstructor;
-import tools.jackson.databind.json.JsonMapper;
 
 @RestController
 @RequestMapping("/api/v1/room-types")
@@ -31,7 +30,6 @@ import tools.jackson.databind.json.JsonMapper;
 public class RoomTypeController {
     private final IRoomTypeService roomTypeService;
     private final MessageSource messageSource;
-    private final JsonMapper.Builder builder;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<RoomTypeResponse>>> getAllRoomType() {
