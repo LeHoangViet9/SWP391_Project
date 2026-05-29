@@ -1,6 +1,6 @@
 package com.hms.entity.auth;
 
-import com.hms.enums.AccountStatus;
+import com.hms.common.enums.AccountStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

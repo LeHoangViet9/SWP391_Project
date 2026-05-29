@@ -1,16 +1,21 @@
 package com.hms.service.auth.impl;
 
 import com.hms.config.JwtTokenProvider;
-import com.hms.dto.register.UserLoginRequest;
-import com.hms.dto.register.UserRegisterRequest;
-import com.hms.dto.response.UserResponse;
-import com.hms.enums.AccountStatus;
+import com.hms.dto.auth.request.UserLoginRequest;
+import com.hms.dto.auth.request.UserRegisterRequest;
+import com.hms.dto.auth.response.UserResponse;
+import com.hms.common.enums.AccountStatus;
 import com.hms.entity.auth.Role;
 import com.hms.entity.auth.User;
+import com.hms.common.exception.ConflictException;
+import com.hms.common.exception.ForbiddenException;
+import com.hms.common.exception.ResourceNotFoundException;
+import com.hms.common.exception.UnauthorizedException;
 import com.hms.repository.auth.RoleRepository;
 import com.hms.repository.auth.UserRepository;
 import com.hms.service.auth.IUserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hms.service.auth.mapper.UserMapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,54 +26,43 @@ import java.time.LocalDateTime;
 import java.util.Locale;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements IUserService {
 
-    @Autowired
-    private UserRepository userRepository;
 
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private MessageSource messageSource;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final MessageSource messageSource;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserMapper userMapper;
 
     @Override
     public UserResponse registerNewUser(UserRegisterRequest registerRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        if(userRepository.existsUserByUserName(registerRequest.getUsername())) {
-            throw new RuntimeException(messageSource.getMessage("error.username.exists", null, locale));
+        if(userRepository.existsUserByUserName(registerRequest.getUserName())) {
+            throw new ConflictException(messageSource.getMessage("error.username.exists", null, locale));
         }
         if(userRepository.existsUserByEmail(registerRequest.getEmail())) {
-            throw new RuntimeException(messageSource.getMessage("error.email.exists", null, locale));
+            throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
         }
         if(userRepository.existsUserByPhone(registerRequest.getPhone())) {
-            throw new RuntimeException(messageSource.getMessage("error.phone.exists", null, locale));
+            throw new ConflictException(messageSource.getMessage("error.phone.exists", null, locale));
         }
 
         String defaultRole = "CUSTOMER";
         Role role = roleRepository.findByRoleName(defaultRole)
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.role.invalid", new Object[]{defaultRole}, locale)
                 ));
 
-        User user = User.builder()
-                .userName(registerRequest.getUsername())
-                .email(registerRequest.getEmail())
-                .fullName(registerRequest.getFullName())
-                .phone(registerRequest.getPhone())
-                .password(passwordEncoder.encode(registerRequest.getPassword()))
-                .accountStatus(AccountStatus.ACTIVE)
-                .role(role)
-                .build();
+        User user = userMapper.toEntityRegister(registerRequest);
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setRole(role);
+        user.setAccountStatus(AccountStatus.ACTIVE);
         User savedUser = userRepository.save(user);
 
-        return toUserResponse(savedUser, null);
+        return userMapper.toResponse(savedUser);
     }
 
     @Override
@@ -77,10 +71,10 @@ public class UserServiceImpl implements IUserService {
         Locale locale = LocaleContextHolder.getLocale();
 
         User user = userRepository.findUserByUserName(loginRequest.getUsername())
-                .orElseThrow(() -> new RuntimeException(messageSource.getMessage("error.login.failed", null, locale)));
+                .orElseThrow(() -> new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale)));
 
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new RuntimeException(messageSource.getMessage("error.login.failed", null, locale));
+            throw new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale));
         }
 
         validateAccountStatus(user, locale);
@@ -99,10 +93,10 @@ public class UserServiceImpl implements IUserService {
     private void validateAccountStatus(User user, Locale locale) {
         AccountStatus status = user.getAccountStatus();
         if (status == AccountStatus.BANNED) {
-            throw new RuntimeException(messageSource.getMessage("error.account.banned", null, locale));
+            throw new ForbiddenException(messageSource.getMessage("error.account.banned", null, locale));
         }
         if (status == AccountStatus.INACTIVE) {
-            throw new RuntimeException(messageSource.getMessage("error.account.inactive", null, locale));
+            throw new ForbiddenException(messageSource.getMessage("error.account.inactive", null, locale));
         }
     }
 

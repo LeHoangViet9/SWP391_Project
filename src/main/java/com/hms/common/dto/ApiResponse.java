@@ -1,4 +1,4 @@
-package com.hms.dto.response;
+package com.hms.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,6 +15,7 @@ public class ApiResponse<T> {
     private String message;
     private T data;
     private HttpStatus status;
+
 
     public static <T> ApiResponse<T> success(String message) {
         return ApiResponse.<T>builder()
