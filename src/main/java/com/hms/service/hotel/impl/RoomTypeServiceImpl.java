@@ -2,8 +2,9 @@ package com.hms.service.hotel.impl;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
+import com.hms.common.exception.ConflictException;
+import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.service.hotel.mapper.RoomTypeMapper;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -39,7 +40,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     public RoomTypeResponse getRoomTypeById(Long id){
         Locale locale = LocaleContextHolder.getLocale();
         RoomType roomType = roomTypeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
         return roomTypeMapper.toResponse(roomType);
     }
 
@@ -47,7 +48,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     public RoomTypeResponse createRoomType(RoomTypeRequest request){
         Locale locale = LocaleContextHolder.getLocale();
         if(roomTypeRepository.existsByTypeName(request.getTypeName())){
-            throw new RuntimeException(messageSource.getMessage("error.roomtype.exists",null,locale));
+            throw new ConflictException(messageSource.getMessage("error.roomtype.exists",null,locale));
         }
         RoomType roomType = roomTypeMapper.toEntity(request);
         RoomType saved = roomTypeRepository.save(roomType);
@@ -58,13 +59,9 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     public RoomTypeResponse updateRoomType(Long id, RoomTypeRequest request){
         Locale locale = LocaleContextHolder.getLocale();
         RoomType roomType = roomTypeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(messageSource.getMessage("error.roomtype.notfound",null,locale)));
-        String newTypeName = request.getTypeName();
-        if(newTypeName == null || newTypeName.isBlank()){
-            throw new RuntimeException(messageSource.getMessage("error.roomtype.name.required", null, locale));
-        }
-        if(roomTypeRepository.existsByTypeNameAndIdNot(newTypeName, id)){
-            throw new RuntimeException(messageSource.getMessage("error.roomtype.exists",null,locale));
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound",null,locale)));
+        if(roomTypeRepository.existsByTypeNameAndIdNot(request.getTypeName(), id)){
+            throw new ConflictException(messageSource.getMessage("error.roomtype.exists",null,locale));
         }
         roomTypeMapper.updateRoomTypeFromRequest(request, roomType);
         RoomType updated = roomTypeRepository.save(roomType);
@@ -75,7 +72,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     public void deleteRoomTypeByID(Long id){
         Locale locale = LocaleContextHolder.getLocale();
         RoomType roomType = roomTypeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException(messageSource.getMessage("error.roomtype.notfound",null,locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound",null,locale)));
         roomTypeRepository.delete(roomType);
     }
 
