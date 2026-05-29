@@ -1,8 +1,8 @@
 package com.hms.service.auth;
 
-import com.hms.dto.register.UserLoginRequest;
-import com.hms.dto.register.UserRegisterRequest;
-import com.hms.dto.response.UserResponse;
+import com.hms.dto.auth.request.UserLoginRequest;
+import com.hms.dto.auth.request.UserRegisterRequest;
+import com.hms.dto.auth.response.UserResponse;
 
 public interface IUserService {
     UserResponse registerNewUser(UserRegisterRequest registerRequest);

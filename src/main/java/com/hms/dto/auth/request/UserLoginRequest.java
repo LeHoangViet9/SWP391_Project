@@ -1,4 +1,4 @@
-package com.hms.dto.register;
+package com.hms.dto.auth.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

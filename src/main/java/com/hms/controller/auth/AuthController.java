@@ -1,9 +1,9 @@
 package com.hms.controller.auth;
 
-import com.hms.dto.register.UserLoginRequest;
-import com.hms.dto.register.UserRegisterRequest;
-import com.hms.dto.response.ApiResponse;
-import com.hms.dto.response.UserResponse;
+import com.hms.dto.auth.request.UserLoginRequest;
+import com.hms.dto.auth.request.UserRegisterRequest;
+import com.hms.common.dto.ApiResponse;
+import com.hms.dto.auth.response.UserResponse;
 import com.hms.service.auth.IUserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;

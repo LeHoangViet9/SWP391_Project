@@ -24,7 +24,7 @@ public class Role {
     @Column(name="permissions" ,columnDefinition = "TEXT")
     private String permissions;
 
-    @OneToMany(mappedBy = "role",cascade = CascadeType.ALL)
-    private List<User> permissionList;
+    @OneToMany(mappedBy = "role",cascade = CascadeType.MERGE)
+    private List<User> userList;
 
 }

@@ -1,4 +1,4 @@
-package com.hms.enums;
+package com.hms.common.enums;
 
 public enum AccountStatus {
     ACTIVE,
