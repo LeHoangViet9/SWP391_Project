@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.hms.dto.response.ApiResponse;
+import com.hms.common.dto.ApiResponse;
 import com.hms.service.hotel.IRoomTypeService;
 
 import lombok.RequiredArgsConstructor;
