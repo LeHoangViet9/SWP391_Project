@@ -1,10 +1,10 @@
 package com.hms.common.utils;
 
+import com.hms.common.enums.SortDirection;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.parameters.P;
 
 public final class PageableUtils {
 
@@ -12,7 +12,7 @@ public final class PageableUtils {
 
     }
 
-    public static Pageable createPageable(Integer page, Integer size, String sortBy, String direction){
+    public static Pageable createPageable(Integer page, Integer size, String sortBy, SortDirection direction){
         if(page == null || page < 0){
             page = 0;
         }
@@ -22,12 +22,12 @@ public final class PageableUtils {
         if(sortBy == null || sortBy.isBlank()){
             sortBy="id";
         }
-        if (direction == null || direction.isBlank()){
-            direction="asc";
+        if (direction == null){
+            direction= SortDirection.ASC;
         }
-        Sort sort = "desc".equalsIgnoreCase(direction)
+        Sort sort = direction == SortDirection.DESC
                 ? Sort.by(sortBy).descending()
-                :Sort.by(sortBy).ascending();
+                : Sort.by(sortBy).ascending();
         return PageRequest.of(page, size, sort);
     }
 
