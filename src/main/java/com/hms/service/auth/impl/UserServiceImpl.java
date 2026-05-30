@@ -1,8 +1,7 @@
 package com.hms.service.auth.impl;
 
-import com.hms.common.config.JwtTokenProvider;
-import com.hms.dto.auth.request.UserLoginRequest;
-import com.hms.dto.auth.request.UserRegisterRequest;
+import com.hms.config.JwtTokenProvider;
+import com.hms.dto.auth.request.*;
 import com.hms.dto.auth.response.UserResponse;
 import com.hms.common.enums.AccountStatus;
 import com.hms.entity.auth.Role;
@@ -15,6 +14,7 @@ import com.hms.repository.auth.RoleRepository;
 import com.hms.repository.auth.UserRepository;
 import com.hms.service.auth.IUserService;
 import com.hms.service.auth.mapper.UserMapper;
+import com.hms.service.email.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +37,7 @@ public class UserServiceImpl implements IUserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserMapper userMapper;
+    private final EmailService emailService;
 
     @Override
     public UserResponse registerNewUser(UserRegisterRequest registerRequest) {
@@ -62,7 +64,7 @@ public class UserServiceImpl implements IUserService {
         user.setAccountStatus(AccountStatus.ACTIVE);
         User savedUser = userRepository.save(user);
 
-        return userMapper.toResponse(savedUser);
+        return userMapper.toResponse(savedUser,null);
     }
 
     @Override
@@ -87,7 +89,50 @@ public class UserServiceImpl implements IUserService {
                 updatedUser.getRole().getRoleName()
         );
 
-        return toUserResponse(updatedUser, accessToken);
+        return userMapper.toResponse(updatedUser,accessToken);
+    }
+
+    @Override
+    public void changePassword(String userName, ChangePasswordRequest changePasswordRequest) {
+        Locale locale = LocaleContextHolder.getLocale();
+        User user=userRepository.findUserByUserName(userName).orElseThrow(()-> new ResourceNotFoundException("error.user.invalid"));
+        if(!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.password.invalid", null, locale));
+        }
+        if(passwordEncoder.matches(changePasswordRequest.getNewPassword(), user.getPassword())) {
+            throw new ConflictException(messageSource.getMessage("error.password.invalid", null, locale));
+        }
+
+        user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
+        userRepository.save(user);
+    }
+
+    @Override
+    public void forgotPassword(ForgotPasswordRequest request) {
+        Locale locale = LocaleContextHolder.getLocale();
+        User user = userRepository.findUserByEmail(request.getEmail()).orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.email.invalid", null, locale)));
+        String token= UUID.randomUUID().toString();
+        user.setResetPasswordToken(token);
+        user.setResetPasswordExpiredAt(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+        emailService.sendForgotPasswordMail(user.getPassword(),  token);
+
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordRequest request) {
+        Locale locale = LocaleContextHolder.getLocale();
+        User user=userRepository.findByResetPasswordToken(request.getToken()).orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.token.invalid", null, locale)));
+        if(user.getResetPasswordExpiredAt().isBefore(LocalDateTime.now())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.token.expired", null, locale));
+        }
+        if(passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new ConflictException(messageSource.getMessage("error.password.invalid", null, locale));
+        }
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setResetPasswordToken(null);
+        user.setResetPasswordExpiredAt(null);
+        userRepository.save(user);
     }
 
     private void validateAccountStatus(User user, Locale locale) {
@@ -98,19 +143,5 @@ public class UserServiceImpl implements IUserService {
         if (status == AccountStatus.INACTIVE) {
             throw new ForbiddenException(messageSource.getMessage("error.account.inactive", null, locale));
         }
-    }
-
-    private UserResponse toUserResponse(User user, String token) {
-        return new UserResponse(
-                user.getId(),
-                user.getFullName(),
-                user.getUserName(),
-                user.getEmail(),
-                user.getPhone(),
-                user.getRole().getRoleName(),
-                token,
-                user.getAccountStatus().name(),
-                user.getLastLoginAt()
-        );
     }
 }
