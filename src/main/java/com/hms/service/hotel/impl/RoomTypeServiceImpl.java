@@ -1,6 +1,6 @@
 package com.hms.service.hotel.impl;
 
-import java.util.List;
+
 import java.util.Locale;
 
 import com.hms.common.exception.ConflictException;
@@ -8,6 +8,9 @@ import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.service.hotel.mapper.RoomTypeMapper;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.hms.dto.roomtype.response.RoomTypeResponse;
@@ -30,10 +33,18 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     private final MessageSource messageSource;
 
     @Override
-    public List<RoomTypeResponse> getAllRoomType(){
-        List<RoomType> roomTypes = roomTypeRepository.findAll();
-        return roomTypeMapper.toResponseList(roomTypes);
-
+    public Page<RoomTypeResponse> getAllRoomType(String keywords, Integer page, Integer size){
+        if(keywords ==  null){
+            keywords="";
+        }
+        if (page == null || page <0){
+            page = 0;
+        }
+        if(size == null || size <=0){
+            size = 10;
+        }
+        Pageable pageable = PageRequest.of(page, size);
+        return  roomTypeRepository.findByTypeNameContainingIgnoreCase(keywords, pageable).map(roomTypeMapper::toResponse);
     }
 
     @Override

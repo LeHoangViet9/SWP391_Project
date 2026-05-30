@@ -1,14 +1,19 @@
 package com.hms.service.hotel;
 
-import java.util.List;
-
 import com.hms.dto.roomtype.response.RoomTypeResponse;
 import com.hms.dto.roomtype.request.RoomTypeRequest;
+import org.springframework.data.domain.Page;
 
 public interface IRoomTypeService {
-    List<RoomTypeResponse> getAllRoomType();
+
+    Page<RoomTypeResponse> getAllRoomType(String keywords, Integer page, Integer size)
+            ;
     RoomTypeResponse getRoomTypeById(Long id);
+
     RoomTypeResponse createRoomType(RoomTypeRequest roomType);
-    RoomTypeResponse updateRoomType(Long id, RoomTypeRequest roomType);
+
+    RoomTypeResponse updateRoomType(Long id,
+                                    RoomTypeRequest roomType);
     void deleteRoomTypeByID(Long id);
+
 }
