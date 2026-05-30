@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.5'
+    id 'org.springframework.boot' version '4.0.6'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -37,9 +37,11 @@ dependencies {
 
     // Devtools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
     // PostgreSQL
     runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.postgresql:postgresql:42.7.7'
 
     // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
@@ -51,6 +53,13 @@ dependencies {
     implementation 'com.google.zxing:javase:3.5.3'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // Source: https://mvnrepository.com/artifact/org.mindrot/jbcrypt
+    implementation("org.mindrot:jbcrypt:0.4")
+    // Source: https://mvnrepository.com/artifact/com.cloudinary/cloudinary-http45
+    implementation("com.cloudinary:cloudinary-http45:1.39.0")
+    // Add mail dependency
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
 }
 
 tasks.named('test') {

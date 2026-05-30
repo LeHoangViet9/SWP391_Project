@@ -45,4 +45,8 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id",nullable = false)
     private Role role;
+    @Column(name = "reset_password_token",unique = true)
+    private String resetPasswordToken;
+    @Column(name = "reset_password_expire_at")
+    private LocalDateTime resetPasswordExpiredAt;
 }
