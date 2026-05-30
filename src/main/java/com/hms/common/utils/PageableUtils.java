@@ -1,47 +1,35 @@
 package com.hms.common.utils;
 
-import com.hms.common.config.PaginationProperties;
-import com.hms.common.enums.SortDirection;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.*;
-import org.springframework.stereotype.Component;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
-@Component
-@RequiredArgsConstructor
-public class PageableUtils {
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.parameters.P;
 
-    private final PaginationProperties paginationProperties;
+public final class PageableUtils {
 
-    public Pageable createPageable(
-            Integer page,
-            Integer size,
-            String sortBy,
-            SortDirection direction) {
+    private PageableUtils(){
 
-        if (page == null || page <= 0) {
-            page = paginationProperties.getDefaultPage();
-        }
-
-        if (size == null || size <= 0) {
-            size = paginationProperties.getDefaultSize();
-        }
-
-        if (size > paginationProperties.getMaxSize()) {
-            size = paginationProperties.getMaxSize();
-        }
-
-        if (sortBy == null || sortBy.isBlank()) {
-            sortBy = "id";
-        }
-
-        if (direction == null) {
-            direction = SortDirection.ASC;
-        }
-
-        Sort sort = direction == SortDirection.DESC
-                ? Sort.by(sortBy).descending()
-                : Sort.by(sortBy).ascending();
-
-        return PageRequest.of(page - 1, size, sort);
     }
+
+    public static Pageable createPageable(Integer page, Integer size, String sortBy, String direction){
+        if(page == null || page < 0){
+            page = 0;
+        }
+        if(size == null || size <=0){
+            size =10;
+        }
+        if(sortBy == null || sortBy.isBlank()){
+            sortBy="id";
+        }
+        if (direction == null || direction.isBlank()){
+            direction="asc";
+        }
+        Sort sort = "desc".equalsIgnoreCase(direction)
+                ? Sort.by(sortBy).descending()
+                :Sort.by(sortBy).ascending();
+        return PageRequest.of(page, size, sort);
+    }
+
+
 }
