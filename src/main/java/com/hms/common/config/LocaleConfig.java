@@ -1,4 +1,4 @@
-package com.hms.config;
+package com.hms.common.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

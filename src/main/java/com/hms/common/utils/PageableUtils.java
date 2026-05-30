@@ -1,35 +1,47 @@
 package com.hms.common.utils;
 
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
+import com.hms.common.config.PaginationProperties;
+import com.hms.common.enums.SortDirection;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
+import org.springframework.stereotype.Component;
 
-import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.parameters.P;
+@Component
+@RequiredArgsConstructor
+public class PageableUtils {
 
-public final class PageableUtils {
+    private final PaginationProperties paginationProperties;
 
-    private PageableUtils(){
+    public Pageable createPageable(
+            Integer page,
+            Integer size,
+            String sortBy,
+            SortDirection direction) {
 
-    }
-
-    public static Pageable createPageable(Integer page, Integer size, String sortBy, String direction){
-        if(page == null || page < 0){
-            page = 0;
+        if (page == null || page <= 0) {
+            page = paginationProperties.getDefaultPage();
         }
-        if(size == null || size <=0){
-            size =10;
+
+        if (size == null || size <= 0) {
+            size = paginationProperties.getDefaultSize();
         }
-        if(sortBy == null || sortBy.isBlank()){
-            sortBy="id";
+
+        if (size > paginationProperties.getMaxSize()) {
+            size = paginationProperties.getMaxSize();
         }
-        if (direction == null || direction.isBlank()){
-            direction="asc";
+
+        if (sortBy == null || sortBy.isBlank()) {
+            sortBy = "id";
         }
-        Sort sort = "desc".equalsIgnoreCase(direction)
+
+        if (direction == null) {
+            direction = SortDirection.ASC;
+        }
+
+        Sort sort = direction == SortDirection.DESC
                 ? Sort.by(sortBy).descending()
-                :Sort.by(sortBy).ascending();
-        return PageRequest.of(page, size, sort);
+                : Sort.by(sortBy).ascending();
+
+        return PageRequest.of(page - 1, size, sort);
     }
-
-
 }

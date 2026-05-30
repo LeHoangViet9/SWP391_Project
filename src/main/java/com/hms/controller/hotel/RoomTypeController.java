@@ -11,7 +11,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.hms.common.enums.SortField;
+import com.hms.common.enums.SortDirection;
 import com.hms.common.dto.ApiResponse;
 import com.hms.service.hotel.IRoomTypeService;
 
@@ -31,7 +32,9 @@ public class RoomTypeController {
     public ResponseEntity<ApiResponse<Page<RoomTypeResponse>>> getAllRoomType(
             @RequestParam(required = false) String keywords,
             @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
+            @RequestParam(required = false) Integer size,
+            @RequestParam(defaultValue = "ID") SortField sortBy,
+            @RequestParam(defaultValue = "ASC") SortDirection direction) {
 
         Locale locale =LocaleContextHolder.getLocale();
         String message = messageSource.getMessage("success.roomtype.getall", null, locale);
@@ -39,7 +42,7 @@ public class RoomTypeController {
         ApiResponse<Page<RoomTypeResponse>> response = ApiResponse.<Page<RoomTypeResponse>>builder()
                 .success(true)
                 .message(message)
-                .data(roomTypeService.getAllRoomType(keywords, page, size))
+                .data(roomTypeService.getAllRoomType(keywords, page, size, sortBy,direction))
                 .status(HttpStatus.OK)
                 .build();
 

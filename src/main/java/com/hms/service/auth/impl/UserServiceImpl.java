@@ -1,6 +1,6 @@
 package com.hms.service.auth.impl;
 
-import com.hms.config.JwtTokenProvider;
+import com.hms.common.config.JwtTokenProvider;
 import com.hms.dto.auth.request.UserLoginRequest;
 import com.hms.dto.auth.request.UserRegisterRequest;
 import com.hms.dto.auth.response.UserResponse;

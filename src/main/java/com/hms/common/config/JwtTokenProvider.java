@@ -1,4 +1,4 @@
-package com.hms.config;
+package com.hms.common.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

@@ -1,4 +1,4 @@
-package com.hms.config;
+package com.hms.common.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
