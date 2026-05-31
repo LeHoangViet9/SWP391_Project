@@ -21,10 +21,10 @@ public class EmailServiceImpl implements EmailService {
 
         message.setTo(to);
 
-        message.setSubject("Reset Password");
+        message.setSubject("{reset.password}");
 
         message.setText(
-                "Click link to reset password:\n"
+                "{link.reset.password}:\n"
                         + resetLink
         );
 
