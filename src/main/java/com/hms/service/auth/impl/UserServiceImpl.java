@@ -95,12 +95,16 @@ public class UserServiceImpl implements IUserService {
     @Override
     public void changePassword(String userName, ChangePasswordRequest changePasswordRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        User user=userRepository.findUserByUserName(userName).orElseThrow(()-> new ResourceNotFoundException("error.user.invalid"));
-        if(!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
-            throw new UnauthorizedException(messageSource.getMessage("error.password.invalid", null, locale));
+        User user = userRepository.findUserByUserName(userName)
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+        if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.password.incorrect", null, locale));
         }
-        if(passwordEncoder.matches(changePasswordRequest.getNewPassword(), user.getPassword())) {
-            throw new ConflictException(messageSource.getMessage("error.password.invalid", null, locale));
+        if (!changePasswordRequest.getNewPassword().equals(changePasswordRequest.getConfirmNewPassword())) {
+            throw new ConflictException(messageSource.getMessage("user.repassword.message", null, locale));
+        }
+        if (passwordEncoder.matches(changePasswordRequest.getNewPassword(), user.getPassword())) {
+            throw new ConflictException(messageSource.getMessage("error.password.sameAsOld", null, locale));
         }
 
         user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
@@ -111,11 +115,11 @@ public class UserServiceImpl implements IUserService {
     public void forgotPassword(ForgotPasswordRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findUserByEmail(request.getEmail()).orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.email.invalid", null, locale)));
-        String token= UUID.randomUUID().toString();
+        String token = UUID.randomUUID().toString();
         user.setResetPasswordToken(token);
         user.setResetPasswordExpiredAt(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
-        emailService.sendForgotPasswordMail(user.getPassword(),  token);
+        emailService.sendForgotPasswordMail(user.getEmail(), token);
 
     }
 
