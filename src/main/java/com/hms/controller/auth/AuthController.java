@@ -5,6 +5,7 @@ import com.hms.common.dto.ApiResponse;
 import com.hms.dto.auth.response.UserResponse;
 import com.hms.service.auth.IUserService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -19,11 +20,10 @@ import java.util.Locale;
 @RestController
 
 @RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
 public class AuthController {
-    @Autowired
-    private IUserService userService;
-    @Autowired
-    private MessageSource messageSource;
+    private final IUserService userService;
+    private final MessageSource messageSource;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> handleRegister(@Valid @RequestBody UserRegisterRequest registerRequest){
