@@ -19,12 +19,13 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CustomerServiceImpl implements CustomerService {
     private final CustomerRepository customerRepository;
     private final MessageSource messageSource;
@@ -44,6 +45,7 @@ public class CustomerServiceImpl implements CustomerService {
             throw new ConflictException(messageSource.getMessage("error.idCard.existed", new Object[]{customerDTO.getIdNumberCard()}, locale));
         }
         Customer customer=customerMapper.toEntity(customerDTO);
+        customer.setStatus(AccountStatus.ACTIVE);
         Customer savedCustomer=customerRepository.save(customer);
 
         return customerMapper.toResponse(savedCustomer);
@@ -115,7 +117,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public Page<CustomerResponse> getCustomers(String keywords, Integer page, Integer size, SortField sortBy, SortDirection direction) {
+    public Page<CustomerResponse> getCustomers(String keywords,AccountStatus status, Integer page, Integer size, SortField sortBy, SortDirection direction) {
         if (keywords == null) {
             keywords = "";
         }
@@ -127,13 +129,7 @@ public class CustomerServiceImpl implements CustomerService {
                 direction
         );
         return customerRepository
-                .findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneContainingIgnoreCaseOrIdNumberCardContainingIgnoreCase(
-                        keywords,
-                        keywords,
-                        keywords,
-                        keywords,
-                        pageable
-                )
+                .searchCustomer(keywords,status, pageable)
                 .map(customerMapper::toResponse);
     }
 

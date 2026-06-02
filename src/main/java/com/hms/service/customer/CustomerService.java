@@ -1,5 +1,6 @@
 package com.hms.service.customer;
 
+import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.dto.customer.request.CustomerCreateDTO;
@@ -13,10 +14,10 @@ public interface CustomerService {
     CustomerResponse createCustomer(CustomerCreateDTO customer);
     CustomerResponse updateCustomer(Long id,CustomerCreateDTO dto);
     void deleteCustomer(Long id);
-    Page<CustomerResponse> getCustomers( String keywords,
+    Page<CustomerResponse> getCustomers(String keywords, AccountStatus status,
                                          Integer page,
-                                         Integer size,
-                                         SortField sortBy,
-                                         SortDirection direction);
+                                        Integer size,
+                                        SortField sortBy,
+                                        SortDirection direction);
     CustomerResponse findById(Long id);
 }

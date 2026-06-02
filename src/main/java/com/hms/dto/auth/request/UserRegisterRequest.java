@@ -1,6 +1,7 @@
 package com.hms.dto.auth.request;
 
-import com.hms.custom_validator.RePasswordMatch;
+import com.hms.custom_validator.PasswordConfirmable;
+import com.hms.custom_validator.PasswordMatch;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -8,9 +9,9 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 
-@RePasswordMatch
+@PasswordMatch
 @Data
-public class UserRegisterRequest {
+public class UserRegisterRequest implements PasswordConfirmable {
     @NotBlank(message = "{user.fullname.notblank}")
     private String fullName;
 
@@ -29,6 +30,7 @@ public class UserRegisterRequest {
             message = "{user.password.invalid}"
     )
     private String password;
+
     @NotBlank(message = "{user.repassword.message}")
     private String rePassword;
 
@@ -40,4 +42,9 @@ public class UserRegisterRequest {
     @Pattern(regexp = "^(0|\\+84)[0-9]{9}$", message = "{user.phone.invalid}")
     private String phone;
 
+    // Implement PasswordConfirmable interface
+    @Override
+    public String getConfirmPassword() {
+        return this.rePassword;
+    }
 }

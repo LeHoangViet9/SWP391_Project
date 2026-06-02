@@ -1,6 +1,7 @@
 package com.hms.controller.customer;
 
 import com.hms.common.dto.ApiResponse;
+import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.dto.customer.request.CustomerCreateDTO;
@@ -15,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Locale;
 
 @RestController
@@ -28,6 +28,7 @@ public class CustomerController {
     @GetMapping
     public ResponseEntity<ApiResponse<Page<CustomerResponse>>> findAll(
             @RequestParam(required = false) String keywords,
+            @RequestParam(defaultValue = "ACTIVE") AccountStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
@@ -37,7 +38,7 @@ public class CustomerController {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("customer.getall.success", null, locale),
-                customerService.getCustomers(keywords,page,size,sortBy,direction),
+                customerService.getCustomers(keywords,status,page,size,sortBy,direction),
                 HttpStatus.OK
         ),HttpStatus.OK);
     }
@@ -76,19 +77,11 @@ public class CustomerController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteCustomer(
+    public ResponseEntity<Void> deleteCustomer(
             @PathVariable Long id
     ){
-        Locale locale = LocaleContextHolder.getLocale();
         customerService.deleteCustomer(id);
-        return new ResponseEntity<>(new ApiResponse<>(
-                        true,
-                        messageSource.getMessage("customer.delete.success", null, locale),
-                        null,
-                        HttpStatus.NO_CONTENT
-                ),
-                HttpStatus.NO_CONTENT
-        );
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
 }
