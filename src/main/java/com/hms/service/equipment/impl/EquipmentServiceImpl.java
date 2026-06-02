@@ -21,10 +21,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+
 @Transactional
 @Service
 @RequiredArgsConstructor
 public class EquipmentServiceImpl implements EquipmentService {
+
+    private static final String ERROR_EQUIPMENT_NOTFOUND = "error.equipment.notfound";
 
     private final EquipmentRepository equipmentRepository;
     private final EquipmentMapper equipmentMapper;
@@ -82,10 +85,11 @@ public class EquipmentServiceImpl implements EquipmentService {
     public EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        Equipment equipment = equipmentRepository.findByIdAndStatus(id, EquipmentStatus.ACTIVE)
+        Equipment equipment = equipmentRepository.findById(id)
+                .filter(e -> e.getStatus() == EquipmentStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(
-                                "error.equipment.notfound",
+                                ERROR_EQUIPMENT_NOTFOUND,
                                 new Object[]{id},
                                 locale
                         )
@@ -112,10 +116,11 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     public void deleteEquipment(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        Equipment equipment = equipmentRepository.findByIdAndStatus(id, EquipmentStatus.ACTIVE)
+        Equipment equipment = equipmentRepository.findById(id)
+                .filter(e -> e.getStatus() == EquipmentStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(
-                                "error.equipment.notfound",
+                                ERROR_EQUIPMENT_NOTFOUND,
                                 new Object[]{id},
                                 locale
                         )
@@ -128,10 +133,11 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     public EquipmentResponse findById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        Equipment equipment = equipmentRepository.findByIdAndStatus(id, EquipmentStatus.ACTIVE)
+        Equipment equipment = equipmentRepository.findById(id)
+                .filter(e -> e.getStatus() == EquipmentStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(
-                                "error.equipment.notfound",
+                                ERROR_EQUIPMENT_NOTFOUND,
                                 new Object[]{id},
                                 locale
                         )

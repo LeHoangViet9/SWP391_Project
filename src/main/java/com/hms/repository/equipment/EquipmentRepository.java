@@ -7,23 +7,23 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
 
+    // Kiểm tra trùng mã trên mọi bản ghi (ACTIVE/INACTIVE)
     boolean existsByEquipmentCode(String equipmentCode);
 
-    // Thêm các phương thức kiểm tra / tìm theo status
+    // Kiểm tra trùng mã chỉ với bản ACTIVE (thường dùng khi cho phép tái sử dụng mã của INACTIVE)
     boolean existsByEquipmentCodeAndStatus(String equipmentCode, EquipmentStatus status);
     boolean existsByEquipmentCodeAndIdNotAndStatus(String equipmentCode, Long id, EquipmentStatus status);
 
-    List<Equipment> findByStatus(EquipmentStatus status);
-
+    // Tìm kiếm trang theo tên thiết bị và status (đang dùng ở service)
     Page<Equipment> findByEquipmentNameContainingIgnoreCaseAndStatus(
             String keywords,
             EquipmentStatus status,
             Pageable pageable
     );
 
-    Optional<Equipment> findByIdAndStatus(Long id, EquipmentStatus status);
+    //  liệt kê theo status thì giữ, nếu không dùng có thể xóa
+    List<Equipment> findByStatus(EquipmentStatus status);
 }
