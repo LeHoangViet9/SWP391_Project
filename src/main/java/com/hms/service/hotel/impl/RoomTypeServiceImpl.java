@@ -1,8 +1,8 @@
 package com.hms.service.hotel.impl;
 
-
 import java.util.Locale;
 
+import com.hms.common.enums.AccountStatus; // 🛠️ Đảm bảo import enum trạng thái của dự án bạn
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.common.exception.ConflictException;
@@ -14,6 +14,8 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.hms.dto.roomtype.response.RoomTypeResponse;
 import com.hms.dto.roomtype.request.RoomTypeRequest;
@@ -27,16 +29,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RoomTypeServiceImpl implements IRoomTypeService {
 
-
     private final RoomTypeRepository roomTypeRepository;
-
     private final RoomTypeMapper roomTypeMapper;
-
     private final MessageSource messageSource;
-
     private final PageableUtils pageableUtils;
 
     @Override
+    @Transactional(readOnly = true)
     public Page<RoomTypeResponse> getAllRoomType(
             String keywords,
             Integer maxGuests,
@@ -45,11 +44,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
             SortField sortBy,
             SortDirection direction) {
 
-        if (keywords == null) {
-            keywords = "";
-        } else {
-            keywords = keywords.trim();
-        }
+        String searchKeywords = StringUtils.hasText(keywords) ? keywords.trim() : "";
 
         Pageable pageable = pageableUtils.createPageable(
                 page,
@@ -60,57 +55,72 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
         if (maxGuests != null) {
             return roomTypeRepository
-                    .findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqual(
-                            keywords,
+                    .findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqualAndStatus(
+                            searchKeywords,
                             maxGuests,
+                            AccountStatus.ACTIVE,
                             pageable
                     )
                     .map(roomTypeMapper::toResponse);
         }
 
         return roomTypeRepository
-                .findByTypeNameContainingIgnoreCase(keywords, pageable)
+                .findByTypeNameContainingIgnoreCaseAndStatus(searchKeywords, AccountStatus.ACTIVE, pageable)
                 .map(roomTypeMapper::toResponse);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public RoomTypeResponse getRoomTypeById(Long id){
         Locale locale = LocaleContextHolder.getLocale();
-        RoomType roomType = roomTypeRepository.findById(id)
+
+        RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
         return roomTypeMapper.toResponse(roomType);
     }
 
     @Override
+    @Transactional
     public RoomTypeResponse createRoomType(RoomTypeRequest request){
         Locale locale = LocaleContextHolder.getLocale();
-        if(roomTypeRepository.existsByTypeName(request.getTypeName())){
-            throw new ConflictException(messageSource.getMessage("error.roomtype.exists",null,locale));
+
+        if(roomTypeRepository.existsByTypeNameAndStatus(request.getTypeName(), AccountStatus.ACTIVE)){
+            throw new ConflictException(messageSource.getMessage("error.roomtype.exists", null, locale));
         }
+
         RoomType roomType = roomTypeMapper.toEntity(request);
+        roomType.setStatus(AccountStatus.ACTIVE);
+
         RoomType saved = roomTypeRepository.save(roomType);
         return roomTypeMapper.toResponse(saved);
     }
 
     @Override
+    @Transactional
     public RoomTypeResponse updateRoomType(Long id, RoomTypeRequest request){
         Locale locale = LocaleContextHolder.getLocale();
-        RoomType roomType = roomTypeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound",null,locale)));
-        if(roomTypeRepository.existsByTypeNameAndIdNot(request.getTypeName(), id)){
-            throw new ConflictException(messageSource.getMessage("error.roomtype.exists",null,locale));
+
+        RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+
+        if (!roomType.getTypeName().equalsIgnoreCase(request.getTypeName())
+                && roomTypeRepository.existsByTypeNameAndIdNotAndStatus(request.getTypeName(), id, AccountStatus.ACTIVE)) {
+            throw new ConflictException(messageSource.getMessage("error.roomtype.exists", null, locale));
         }
+
         roomTypeMapper.updateRoomTypeFromRequest(request, roomType);
         RoomType updated = roomTypeRepository.save(roomType);
         return roomTypeMapper.toResponse(updated);
     }
 
     @Override
+    @Transactional
     public void deleteRoomTypeByID(Long id){
         Locale locale = LocaleContextHolder.getLocale();
-        RoomType roomType = roomTypeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound",null,locale)));
-        roomTypeRepository.delete(roomType);
-    }
 
+        RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+        roomType.setStatus(AccountStatus.INACTIVE);
+        roomTypeRepository.save(roomType);
+    }
 }

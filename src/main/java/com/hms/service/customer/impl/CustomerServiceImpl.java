@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 
+import static java.util.Locale.filter;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -56,7 +58,9 @@ public class CustomerServiceImpl implements CustomerService {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        Customer customer = customerRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(
+        Customer customer = customerRepository.findById(id).
+                filter(c -> c.getStatus() == AccountStatus.ACTIVE).
+                orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(
                                 "error.customer.notfound",
                                 new Object[]{id},
@@ -104,7 +108,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public void deleteCustomer(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        Customer customer = customerRepository.findById(id)
+        Customer customer = customerRepository.findById(id).filter(c -> c.getStatus() == AccountStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(
                                 "error.customer.notfound",
@@ -136,7 +140,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public CustomerResponse findById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        Customer customer = customerRepository.findById(id)
+        Customer customer = customerRepository.findById(id).filter(c -> c.getStatus() == AccountStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.customer.notfound", new Object[]{id}, locale)
                 ));
