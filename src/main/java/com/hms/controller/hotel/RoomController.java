@@ -169,6 +169,24 @@ public class RoomController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @GetMapping("/available")
+    public ResponseEntity<ApiResponse<Page<RoomResponse>>> getAvailableRooms(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+        String message = messageSource.getMessage("success.room.getavailable", null, locale);
+
+        ApiResponse<Page<RoomResponse>> response = ApiResponse.<Page<RoomResponse>>builder()
+                .success(true)
+                .message(message)
+                .data(roomService.getAvailableRooms(page, size))
+                .status(HttpStatus.OK)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<Void>> updateRoomStatus(
             @PathVariable Long id,

@@ -1,0 +1,1 @@
+drop database HMS_DB;

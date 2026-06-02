@@ -1,5 +1,6 @@
 package com.hms.dto.room.request;
 
+import com.hms.common.enums.RoomStatus;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -14,8 +15,8 @@ public class RoomRequest {
     @NotNull(message = "{room.roomtype.notnull}")
     private Long roomTypeId;
 
-    @NotNull(message = "{room.status.notnull}")
-    private String roomStatus;
+    // Hệ thống tự set status AVAILABLE khi tạo, không cần user nhập
+    // private RoomStatus roomStatus;
 
     @NotNull(message = "{room.floor.notnull}")
     @Min(value = 1, message = "{room.floor.min}")

@@ -20,6 +20,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 
@@ -35,17 +36,15 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     public Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, SortField sortBy, SortDirection direction) {
-        if (keywords == null) {
-            keywords = "";
-        }
-
+        // Không sử dụng keywords - lấy tất cả phòng theo status (không phải INACTIVE)
         Pageable pageable = pageableUtils.createPageable(
                 page,
                 size,
                 sortBy.getField(),
                 direction
         );
-        return roomRepository.findByRoomNumberContainingIgnoreCase(keywords, pageable).map(roomMapper::toResponse);
+        // Chỉ lấy các phòng không bị xóa (status != INACTIVE)
+        return roomRepository.findByRoomStatusNot(RoomStatus.INACTIVE, pageable).map(roomMapper::toResponse);
     }
 
     @Override
@@ -57,6 +56,7 @@ public class RoomServiceImpl implements IRoomService {
     }
 
     @Override
+    @Transactional
     public RoomResponse createRoom(RoomRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -70,17 +70,17 @@ public class RoomServiceImpl implements IRoomService {
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
         Room room = new Room();
-        room.setRoomNumber(request.getRoomNumber());
-        room.setRoomType(roomType);
-        room.setRoomStatus(RoomStatus.valueOf(request.getRoomStatus()));
-        room.setFloorNumber(request.getFloorNumber());
-        room.setDescription(request.getDescription());
+        populateRoomData(room, request, roomType);
+
+        // Set default status = AVAILABLE khi tạo mới
+        room.setRoomStatus(RoomStatus.AVAILABLE);
 
         Room saved = roomRepository.save(room);
         return roomMapper.toResponse(saved);
     }
 
     @Override
+    @Transactional
     public RoomResponse updateRoom(Long id, RoomRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -96,22 +96,23 @@ public class RoomServiceImpl implements IRoomService {
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
-        room.setRoomNumber(request.getRoomNumber());
-        room.setRoomType(roomType);
-        room.setRoomStatus(RoomStatus.valueOf(request.getRoomStatus()));
-        room.setFloorNumber(request.getFloorNumber());
-        room.setDescription(request.getDescription());
+        populateRoomData(room, request, roomType);
+        // Giữ nguyên status hiện tại của phòng
 
         Room updated = roomRepository.save(room);
         return roomMapper.toResponse(updated);
     }
 
     @Override
+    @Transactional
     public void deleteRoomByID(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
-        roomRepository.delete(room);
+
+        // Soft delete: Set status = INACTIVE thay vì xóa thực sự
+        room.setRoomStatus(RoomStatus.INACTIVE);
+        roomRepository.save(room);
     }
 
     @Override
@@ -133,12 +134,33 @@ public class RoomServiceImpl implements IRoomService {
     }
 
     @Override
+    @Transactional
     public void updateRoomStatus(Long roomId, RoomStatus status) {
         Locale locale = LocaleContextHolder.getLocale();
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
         room.setRoomStatus(status);
         roomRepository.save(room);
+    }
+
+    /**
+     * Method private để fill data từ request vào entity
+     * Tái sử dụng trong cả create và update
+     */
+    private void populateRoomData(Room room, RoomRequest request, RoomType roomType) {
+        room.setRoomNumber(request.getRoomNumber());
+        room.setRoomType(roomType);
+        room.setFloorNumber(request.getFloorNumber());
+        room.setDescription(request.getDescription());
+    }
+
+    /**
+     * Lấy tất cả phòng đang trống (status = AVAILABLE)
+     */
+    @Override
+    public Page<RoomResponse> getAvailableRooms(Integer page, Integer size) {
+        Pageable pageable = pageableUtils.createPageable(page, size, "roomNumber", SortDirection.ASC);
+        return roomRepository.findByRoomStatus(RoomStatus.AVAILABLE, pageable).map(roomMapper::toResponse);
     }
 }
 

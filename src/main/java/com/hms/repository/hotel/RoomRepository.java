@@ -20,6 +20,9 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     Page<Room> findByRoomStatus(RoomStatus roomStatus, Pageable pageable);
 
+    // Lấy tất cả phòng KHÔNG có status chỉ định (dùng cho soft delete)
+    Page<Room> findByRoomStatusNot(RoomStatus roomStatus, Pageable pageable);
+
     Page<Room> findByFloorNumber(Integer floorNumber, Pageable pageable);
 
     Page<Room> findByRoomTypeId(Long roomTypeId, Pageable pageable);
