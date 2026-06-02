@@ -28,6 +28,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserServiceImpl implements IUserService {
 
 
@@ -39,6 +40,7 @@ public class UserServiceImpl implements IUserService {
     private final UserMapper userMapper;
     private final EmailService emailService;
 
+    @Transactional
     @Override
     public UserResponse registerNewUser(UserRegisterRequest registerRequest) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -91,7 +93,7 @@ public class UserServiceImpl implements IUserService {
 
         return userMapper.toResponse(updatedUser,accessToken);
     }
-
+    @Transactional
     @Override
     public void changePassword(String userName, ChangePasswordRequest changePasswordRequest) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -100,9 +102,6 @@ public class UserServiceImpl implements IUserService {
         if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
             throw new UnauthorizedException(messageSource.getMessage("error.password.incorrect", null, locale));
         }
-        if (!changePasswordRequest.getNewPassword().equals(changePasswordRequest.getConfirmNewPassword())) {
-            throw new ConflictException(messageSource.getMessage("user.repassword.message", null, locale));
-        }
         if (passwordEncoder.matches(changePasswordRequest.getNewPassword(), user.getPassword())) {
             throw new ConflictException(messageSource.getMessage("error.password.sameAsOld", null, locale));
         }
@@ -110,7 +109,7 @@ public class UserServiceImpl implements IUserService {
         user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
         userRepository.save(user);
     }
-
+    @Transactional
     @Override
     public void forgotPassword(ForgotPasswordRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -122,10 +121,13 @@ public class UserServiceImpl implements IUserService {
         emailService.sendForgotPasswordMail(user.getEmail(), token);
 
     }
-
+    @Transactional
     @Override
     public void resetPassword(ResetPasswordRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new ConflictException(messageSource.getMessage("user.repassword.message", null, locale));
+        }
         User user=userRepository.findByResetPasswordToken(request.getToken()).orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.token.invalid", null, locale)));
         if(user.getResetPasswordExpiredAt().isBefore(LocalDateTime.now())) {
             throw new UnauthorizedException(messageSource.getMessage("error.token.expired", null, locale));

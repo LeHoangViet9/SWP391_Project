@@ -1,5 +1,7 @@
 package com.hms.dto.auth.request;
 
+import com.hms.custom_validator.PasswordConfirmable;
+import com.hms.custom_validator.PasswordMatch;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -8,10 +10,11 @@ import lombok.Data;
 
 @Data
 @Builder
-
-public class ChangePasswordRequest {
+@PasswordMatch
+public class ChangePasswordRequest implements PasswordConfirmable {
     @NotBlank(message = "{user.oldPassword.notblank}")
     private String oldPassword;
+
     @NotBlank(message = "{user.newPassword.notblank}")
     @Size(min = 6, message = "{user.password.size}")
     @Pattern(
@@ -19,6 +22,18 @@ public class ChangePasswordRequest {
             message = "{user.password.invalid}"
     )
     private String newPassword;
+
     @NotBlank(message = "{user.confirmPassword.notblank}")
     private String confirmNewPassword;
+
+    // Implement PasswordConfirmable interface
+    @Override
+    public String getPassword() {
+        return this.newPassword;
+    }
+
+    @Override
+    public String getConfirmPassword() {
+        return this.confirmNewPassword;
+    }
 }
