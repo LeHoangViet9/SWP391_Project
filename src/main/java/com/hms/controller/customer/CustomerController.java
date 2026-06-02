@@ -1,6 +1,8 @@
 package com.hms.controller.customer;
 
 import com.hms.common.dto.ApiResponse;
+import com.hms.common.enums.SortDirection;
+import com.hms.common.enums.SortField;
 import com.hms.dto.customer.request.CustomerCreateDTO;
 import com.hms.dto.customer.response.CustomerResponse;
 import com.hms.service.customer.CustomerService;
@@ -8,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,12 +26,18 @@ public class CustomerController {
     private final CustomerService customerService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CustomerResponse>>> findAll(){
+    public ResponseEntity<ApiResponse<Page<CustomerResponse>>> findAll(
+            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(defaultValue = "ID") SortField sortBy,
+            @RequestParam(defaultValue = "ASC") SortDirection direction
+    ){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("customer.getall.success", null, locale),
-                customerService.getCustomers(),
+                customerService.getCustomers(keywords,page,size,sortBy,direction),
                 HttpStatus.OK
         ),HttpStatus.OK);
     }

@@ -1,5 +1,8 @@
 package com.hms.service.customer.impl;
 
+import com.hms.common.enums.SortDirection;
+import com.hms.common.enums.SortField;
+import com.hms.common.utils.PageableUtils;
 import com.hms.dto.customer.request.CustomerCreateDTO;
 import com.hms.dto.customer.response.CustomerResponse;
 import com.hms.entity.customer.Customer;
@@ -13,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,6 +29,7 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerRepository customerRepository;
     private final MessageSource messageSource;
     private final CustomerMapper customerMapper;
+    private final PageableUtils pageableUtils;
 
     @Override
     public CustomerResponse createCustomer(CustomerCreateDTO customerDTO) {
@@ -109,11 +115,26 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public List<CustomerResponse> getCustomers() {
-        List<Customer> customers =
-                customerRepository.findByStatus(AccountStatus.ACTIVE);
+    public Page<CustomerResponse> getCustomers(String keywords, Integer page, Integer size, SortField sortBy, SortDirection direction) {
+        if (keywords == null) {
+            keywords = "";
+        }
 
-        return customerMapper.toResponseList(customers);
+        Pageable pageable = pageableUtils.createPageable(
+                page,
+                size,
+                sortBy.getField(),
+                direction
+        );
+        return customerRepository
+                .findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrPhoneContainingIgnoreCaseOrIdNumberCardContainingIgnoreCase(
+                        keywords,
+                        keywords,
+                        keywords,
+                        keywords,
+                        pageable
+                )
+                .map(customerMapper::toResponse);
     }
 
     @Override
