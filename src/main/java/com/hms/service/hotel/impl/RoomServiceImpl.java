@@ -15,6 +15,7 @@ import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.hotel.IRoomService;
 import com.hms.service.hotel.mapper.RoomMapper;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
@@ -35,7 +36,7 @@ public class RoomServiceImpl implements IRoomService {
     private final PageableUtils pageableUtils;
 
     @Override
-    public Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, SortField sortBy, SortDirection direction) {
+    public Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, @NonNull SortField sortBy, SortDirection direction) {
         // Không sử dụng keywords - lấy tất cả phòng theo status (không phải INACTIVE)
         Pageable pageable = pageableUtils.createPageable(
                 page,
@@ -50,7 +51,9 @@ public class RoomServiceImpl implements IRoomService {
     @Override
     public RoomResponse getRoomById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
+        // Lấy phòng theo id nhưng lọc các phòng đã bị xóa (INACTIVE)
         Room room = roomRepository.findById(id)
+                .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
         return roomMapper.toResponse(room);
     }
@@ -84,7 +87,9 @@ public class RoomServiceImpl implements IRoomService {
     public RoomResponse updateRoom(Long id, RoomRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
+        // Lấy phòng và đảm bảo phòng chưa bị soft-delete
         Room room = roomRepository.findById(id)
+                .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
 
         // Check if room number already exists (excluding current room)
@@ -107,7 +112,9 @@ public class RoomServiceImpl implements IRoomService {
     @Transactional
     public void deleteRoomByID(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
+        // Lấy phòng và đảm bảo phòng chưa bị soft-delete
         Room room = roomRepository.findById(id)
+                .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
 
         // Soft delete: Set status = INACTIVE thay vì xóa thực sự
@@ -124,13 +131,17 @@ public class RoomServiceImpl implements IRoomService {
     @Override
     public Page<RoomResponse> getRoomsByFloor(Integer floorNumber, Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "roomNumber", SortDirection.ASC);
-        return roomRepository.findByFloorNumber(floorNumber, pageable).map(roomMapper::toResponse);
+        // Lấy phòng theo tầng, loại trừ các phòng INACTIVE
+        return roomRepository.findByFloorNumberAndRoomStatusNot(floorNumber, RoomStatus.INACTIVE, pageable)
+                .map(roomMapper::toResponse);
     }
 
     @Override
     public Page<RoomResponse> getRoomsByRoomType(Long roomTypeId, Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "roomNumber", SortDirection.ASC);
-        return roomRepository.findByRoomTypeId(roomTypeId, pageable).map(roomMapper::toResponse);
+        // Lấy phòng theo loại, loại trừ các phòng INACTIVE
+        return roomRepository.findByRoomTypeIdAndRoomStatusNot(roomTypeId, RoomStatus.INACTIVE, pageable)
+                .map(roomMapper::toResponse);
     }
 
     @Override
@@ -138,6 +149,7 @@ public class RoomServiceImpl implements IRoomService {
     public void updateRoomStatus(Long roomId, RoomStatus status) {
         Locale locale = LocaleContextHolder.getLocale();
         Room room = roomRepository.findById(roomId)
+                .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
         room.setRoomStatus(status);
         roomRepository.save(room);

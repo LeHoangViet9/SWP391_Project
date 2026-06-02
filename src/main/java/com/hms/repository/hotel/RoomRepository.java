@@ -26,5 +26,11 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     Page<Room> findByFloorNumber(Integer floorNumber, Pageable pageable);
 
     Page<Room> findByRoomTypeId(Long roomTypeId, Pageable pageable);
+
+    // Lấy phòng theo loại, loại trừ INACTIVE (deleted)
+    Page<Room> findByRoomTypeIdAndRoomStatusNot(Long roomTypeId, RoomStatus roomStatus, Pageable pageable);
+
+    // Lấy phòng theo tầng, loại trừ INACTIVE (deleted)
+    Page<Room> findByFloorNumberAndRoomStatusNot(Integer floorNumber, RoomStatus roomStatus, Pageable pageable);
 }
 
