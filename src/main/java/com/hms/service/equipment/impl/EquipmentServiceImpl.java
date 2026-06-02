@@ -60,7 +60,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     public EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO) {
         Locale locale = LocaleContextHolder.getLocale();
-        if (equipmentRepository.existsByEquipmentCode(equipmentDTO.getEquipmentCode())) {
+        if (equipmentRepository.existsByEquipmentCodeAndStatus(equipmentDTO.getEquipmentCode(), EquipmentStatus.ACTIVE)) {
             throw new ConflictException(
                     messageSource.getMessage(
                             "error.equipment.code.existed",
@@ -82,7 +82,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     public EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        Equipment equipment = equipmentRepository.findById(id)
+        Equipment equipment = equipmentRepository.findByIdAndStatus(id, EquipmentStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(
                                 "error.equipment.notfound",
@@ -92,7 +92,7 @@ public class EquipmentServiceImpl implements EquipmentService {
                 ));
 
         if (!equipment.getEquipmentCode().equals(dto.getEquipmentCode())
-                && equipmentRepository.existsByEquipmentCode(dto.getEquipmentCode())) {
+                && equipmentRepository.existsByEquipmentCodeAndIdNotAndStatus(dto.getEquipmentCode(), id, EquipmentStatus.ACTIVE)) {
             throw new ConflictException(
                     messageSource.getMessage(
                             "error.equipment.code.existed",
@@ -112,7 +112,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     public void deleteEquipment(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        Equipment equipment = equipmentRepository.findById(id)
+        Equipment equipment = equipmentRepository.findByIdAndStatus(id, EquipmentStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(
                                 "error.equipment.notfound",
@@ -128,7 +128,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     public EquipmentResponse findById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        Equipment equipment = equipmentRepository.findById(id)
+        Equipment equipment = equipmentRepository.findByIdAndStatus(id, EquipmentStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(
                                 "error.equipment.notfound",
