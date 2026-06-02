@@ -10,8 +10,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
+    Optional<Customer> findByIdAndStatus(Long id, AccountStatus status);
+
     boolean existsByEmail(String email);
 
     boolean existsByPhone(String phone);

@@ -23,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 
-import static java.util.Locale.filter;
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -35,6 +33,7 @@ public class CustomerServiceImpl implements CustomerService {
     private final PageableUtils pageableUtils;
 
     @Override
+    @Transactional
     public CustomerResponse createCustomer(CustomerCreateDTO customerDTO) {
         Locale locale = LocaleContextHolder.getLocale();
         if(customerRepository.existsByEmail(customerDTO.getEmail())) {
@@ -46,82 +45,62 @@ public class CustomerServiceImpl implements CustomerService {
         if(customerRepository.existsByIdNumberCard(customerDTO.getIdNumberCard())) {
             throw new ConflictException(messageSource.getMessage("error.idCard.existed", new Object[]{customerDTO.getIdNumberCard()}, locale));
         }
-        Customer customer=customerMapper.toEntity(customerDTO);
+        Customer customer = customerMapper.toEntity(customerDTO);
         customer.setStatus(AccountStatus.ACTIVE);
-        Customer savedCustomer=customerRepository.save(customer);
+        Customer savedCustomer = customerRepository.save(customer);
 
         return customerMapper.toResponse(savedCustomer);
     }
 
     @Override
+    @Transactional
     public CustomerResponse updateCustomer(Long id, CustomerCreateDTO dto) {
-
         Locale locale = LocaleContextHolder.getLocale();
 
-        Customer customer = customerRepository.findById(id).
-                filter(c -> c.getStatus() == AccountStatus.ACTIVE).
-                orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(
-                                "error.customer.notfound",
-                                new Object[]{id},
-                                locale
-                        )
+        Customer customer = customerRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.customer.notfound", new Object[]{id}, locale)
                 ));
 
         if (!customer.getEmail().equals(dto.getEmail()) && customerRepository.existsByEmail(dto.getEmail())) {
             throw new ConflictException(
-                    messageSource.getMessage(
-                            "error.email.existed",
-                            new Object[]{dto.getEmail()},
-                            locale
-                    )
+                    messageSource.getMessage("error.email.existed", new Object[]{dto.getEmail()}, locale)
             );
         }
 
         if (!customer.getPhone().equals(dto.getPhone()) && customerRepository.existsByPhone(dto.getPhone())) {
             throw new ConflictException(
-                    messageSource.getMessage(
-                            "error.phone.existed",
-                            new Object[]{dto.getPhone()},
-                            locale
-                    )
+                    messageSource.getMessage("error.phone.existed", new Object[]{dto.getPhone()}, locale)
             );
         }
 
         if (!customer.getIdNumberCard().equals(dto.getIdNumberCard()) && customerRepository.existsByIdNumberCard(dto.getIdNumberCard())) {
             throw new ConflictException(
-                    messageSource.getMessage(
-                            "error.idCard.existed",
-                            new Object[]{dto.getIdNumberCard()},
-                            locale
-                    )
+                    messageSource.getMessage("error.idCard.existed", new Object[]{dto.getIdNumberCard()}, locale)
             );
         }
 
         customerMapper.updateCustomerFromDto(dto, customer);
-
-        Customer updatedCustomer =
-                customerRepository.save(customer);
+        Customer updatedCustomer = customerRepository.save(customer);
 
         return customerMapper.toResponse(updatedCustomer);
     }
+
     @Override
+    @Transactional
     public void deleteCustomer(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        Customer customer = customerRepository.findById(id).filter(c -> c.getStatus() == AccountStatus.ACTIVE)
+        Customer customer = customerRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(
-                                "error.customer.notfound",
-                                new Object[]{id},
-                                locale
-                        )
+                        messageSource.getMessage("error.customer.notfound", new Object[]{id}, locale)
                 ));
+
         customer.setStatus(AccountStatus.INACTIVE);
         customerRepository.save(customer);
     }
 
     @Override
-    public Page<CustomerResponse> getCustomers(String keywords,AccountStatus status, Integer page, Integer size, SortField sortBy, SortDirection direction) {
+    public Page<CustomerResponse> getCustomers(String keywords, AccountStatus status, Integer page, Integer size, SortField sortBy, SortDirection direction) {
         if (keywords == null) {
             keywords = "";
         }
@@ -133,14 +112,14 @@ public class CustomerServiceImpl implements CustomerService {
                 direction
         );
         return customerRepository
-                .searchCustomer(keywords,status, pageable)
+                .searchCustomer(keywords, status, pageable)
                 .map(customerMapper::toResponse);
     }
 
     @Override
     public CustomerResponse findById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        Customer customer = customerRepository.findById(id).filter(c -> c.getStatus() == AccountStatus.ACTIVE)
+        Customer customer = customerRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.customer.notfound", new Object[]{id}, locale)
                 ));
