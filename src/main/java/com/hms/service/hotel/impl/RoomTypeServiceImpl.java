@@ -37,9 +37,18 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     private final PageableUtils pageableUtils;
 
     @Override
-    public Page<RoomTypeResponse> getAllRoomType(String keywords, Integer page, Integer size,SortField sortBy, SortDirection direction){
-        if(keywords ==  null) {
+    public Page<RoomTypeResponse> getAllRoomType(
+            String keywords,
+            Integer maxGuests,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction) {
+
+        if (keywords == null) {
             keywords = "";
+        } else {
+            keywords = keywords.trim();
         }
 
         Pageable pageable = pageableUtils.createPageable(
@@ -48,7 +57,20 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
                 sortBy.getField(),
                 direction
         );
-        return  roomTypeRepository.findByTypeNameContainingIgnoreCase(keywords, pageable).map(roomTypeMapper::toResponse);
+
+        if (maxGuests != null) {
+            return roomTypeRepository
+                    .findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqual(
+                            keywords,
+                            maxGuests,
+                            pageable
+                    )
+                    .map(roomTypeMapper::toResponse);
+        }
+
+        return roomTypeRepository
+                .findByTypeNameContainingIgnoreCase(keywords, pageable)
+                .map(roomTypeMapper::toResponse);
     }
 
     @Override

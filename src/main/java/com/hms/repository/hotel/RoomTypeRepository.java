@@ -11,7 +11,13 @@ public interface RoomTypeRepository extends JpaRepository<RoomType,Long> {
     boolean existsByTypeName(String typeName);
 
     boolean existsByTypeNameAndIdNot(String typeName, Long id);
-
     /**Tim theo cột typeName có chứa keywords */
     Page<RoomType> findByTypeNameContainingIgnoreCase (String keywords, Pageable pageable);
+
+    /**Tim theo sức chứa >= số người*/
+    Page<RoomType> findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqual(
+            String keywords,
+            Integer maxGuests,
+            Pageable pageable
+    );
 }

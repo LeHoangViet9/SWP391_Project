@@ -54,8 +54,12 @@ public class SecurityConfig {
                         // 7. Module infrastructure & equipment: Quản lý thiết bị, kiểm tra, sửa chữa
                         .requestMatchers("/api/v1/equipments/**", "/api/v1/equipment-checks/**").hasAnyRole("ADMIN", "TECHNICIAN")
 
+                        // Module RoomType: Quản lý loại phòng
+                        .requestMatchers("/api/v1/room-types/**").permitAll()
+
                         // Tất cả các request khác ngoài các prefix trên bắt buộc phải đăng nhập thành công mới được vào
                         .anyRequest().authenticated()
+
                 );
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
