@@ -1,7 +1,11 @@
 package com.hms.entity.equipment;
+
 import com.hms.common.enums.EquipmentStatus;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -18,24 +22,26 @@ public class Equipment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name="equipment_name", nullable = false)
+    @Column(name = "equipment_name", nullable = false)
     private String equipmentName;
 
-    @Column(name="equipment_code", nullable = false, unique = true)
+    @Column(name = "equipment_code", nullable = false, unique = true)
     private String equipmentCode;
 
-    @Column(nullable = false)
+    @Column(name = "location", nullable = false)
     private String location;
 
+    @Column(name = "description")
     private String description;
 
-    @Column(name="image_url")
+    @Column(name = "image_url")
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private EquipmentStatus status;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

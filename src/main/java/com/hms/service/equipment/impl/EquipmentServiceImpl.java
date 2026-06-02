@@ -1,8 +1,11 @@
 package com.hms.service.equipment.impl;
 
 import com.hms.common.enums.EquipmentStatus;
+import com.hms.common.enums.SortDirection;
+import com.hms.common.enums.SortField;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
+import com.hms.common.utils.PageableUtils;
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
 import com.hms.dto.equipment.response.EquipmentResponse;
 import com.hms.entity.equipment.Equipment;
@@ -12,11 +15,13 @@ import com.hms.service.equipment.mapper.EquipmentMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Locale;
-
+@Transactional
 @Service
 @RequiredArgsConstructor
 public class EquipmentServiceImpl implements EquipmentService {
@@ -24,6 +29,33 @@ public class EquipmentServiceImpl implements EquipmentService {
     private final EquipmentRepository equipmentRepository;
     private final EquipmentMapper equipmentMapper;
     private final MessageSource messageSource;
+    private final PageableUtils pageableUtils;
+
+    @Override
+    public Page<EquipmentResponse> getAllEquipments(
+            String keywords,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction) {
+
+        if (keywords == null) {
+            keywords = "";
+        } else {
+            keywords = keywords.trim();
+        }
+
+        Pageable pageable = pageableUtils.createPageable(
+                page,
+                size,
+                sortBy.getField(),
+                direction
+        );
+
+        return equipmentRepository
+                .findByEquipmentNameContainingIgnoreCaseAndStatus(keywords, EquipmentStatus.ACTIVE, pageable)
+                .map(equipmentMapper::toResponse);
+    }
 
     @Override
     public EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO) {
@@ -91,13 +123,6 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         equipment.setStatus(EquipmentStatus.INACTIVE);
         equipmentRepository.save(equipment);
-    }
-
-    @Override
-    public List<EquipmentResponse> getEquipments() {
-        List<Equipment> equipments = equipmentRepository.findByStatus(EquipmentStatus.ACTIVE);
-
-        return equipmentMapper.toResponseList(equipments);
     }
 
     @Override
