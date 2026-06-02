@@ -31,6 +31,7 @@ public class RoomTypeController {
     @GetMapping
     public ResponseEntity<ApiResponse<Page<RoomTypeResponse>>> getAllRoomType(
             @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) Integer maxGuests,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
@@ -42,7 +43,13 @@ public class RoomTypeController {
         ApiResponse<Page<RoomTypeResponse>> response = ApiResponse.<Page<RoomTypeResponse>>builder()
                 .success(true)
                 .message(message)
-                .data(roomTypeService.getAllRoomType(keywords, page, size, sortBy,direction))
+                .data(roomTypeService.getAllRoomType(
+                        keywords,
+                        maxGuests,
+                        page,
+                        size,
+                        sortBy,
+                        direction))
                 .status(HttpStatus.OK)
                 .build();
 

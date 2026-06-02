@@ -8,8 +8,15 @@ import org.springframework.data.domain.Page;
 
 public interface IRoomTypeService {
 
-    Page<RoomTypeResponse> getAllRoomType(String keywords, Integer page, Integer size, SortField sortBy, SortDirection direction)
-            ;
+    Page<RoomTypeResponse> getAllRoomType(
+            String keywords,
+            Integer maxGuests,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction
+    );
+
     RoomTypeResponse getRoomTypeById(Long id);
 
     RoomTypeResponse createRoomType(RoomTypeRequest roomType);

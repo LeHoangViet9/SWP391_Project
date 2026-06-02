@@ -77,11 +77,19 @@ public class CustomerController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCustomer(
+    public ResponseEntity<ApiResponse<Void>> deleteCustomer(
             @PathVariable Long id
     ){
+        Locale locale = LocaleContextHolder.getLocale();
         customerService.deleteCustomer(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(new ApiResponse<>(
+                        true,
+                        messageSource.getMessage("customer.delete.success", null, locale),
+                        null,
+                        HttpStatus.OK
+                ),
+                HttpStatus.OK
+        );
     }
 
 }
