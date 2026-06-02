@@ -1,12 +1,9 @@
 package com.hms.common.utils;
 
-import com.hms.common.dto.PageResponse;
-
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -36,12 +33,6 @@ public final class TimeUtils {
         return nights;
     }
 
-    public static PageResponse<String> calculateNightsAsPage(
-            LocalDateTime checkIn, LocalDateTime checkOut, java.util.Locale locale) {
-        long nights = calculateNights(checkIn, checkOut);
-        String result = formatNights(nights, locale);
-        return singleItemPage(result);
-    }
 
     public static long calculateHoursBetween(LocalDateTime from, LocalDateTime to) {
         Objects.requireNonNull(from, "from");
@@ -55,12 +46,6 @@ public final class TimeUtils {
         return hours;
     }
 
-    public static PageResponse<String> calculateHoursBetweenAsPage(
-            LocalDateTime from, LocalDateTime to, java.util.Locale locale) {
-        long hours = calculateHoursBetween(from, to);
-        String result = formatHours(hours, locale);
-        return singleItemPage(result);
-    }
 
     public static Map<String, String> formatDuration(LocalDateTime from, LocalDateTime to) {
         Objects.requireNonNull(from, "from");
@@ -83,15 +68,6 @@ public final class TimeUtils {
         );
     }
 
-    public static PageResponse<String> formatDurationAsPage(LocalDateTime from, LocalDateTime to) {
-        Map<String, String> map = formatDuration(from, to);
-        return PageResponse.<String>builder()
-                .currentPage(0)
-                .totalPages(1)
-                .totalElements(2)
-                .content(List.of(map.get("en"), map.get("vi")))
-                .build();
-    }
 
     private static String buildDurationEn(long days, long minutes) {
         if (days == 0 && minutes == 0) return "0 minutes";
@@ -164,39 +140,4 @@ public final class TimeUtils {
         }
     }
 
-    public static PageResponse<String> calculateLateCheckoutAsPage(
-            LocalDateTime checkout, LocalTime standardCheckoutTime) {
-        LateCheckoutResult result = calculateLateCheckoutHours(checkout, standardCheckoutTime);
-        return PageResponse.<String>builder()
-                .currentPage(0)
-                .totalPages(1)
-                .totalElements(2)
-                .content(List.of(result.toStringEn(), result.toStringVi()))
-                .build();
-    }
-
-    private static PageResponse<String> singleItemPage(String item) {
-        return PageResponse.<String>builder()
-                .currentPage(0)
-                .totalPages(1)
-                .totalElements(1)
-                .content(List.of(item))
-                .build();
-    }
-
-    private static String formatNights(long nights, java.util.Locale locale) {
-        boolean isVi = "vi".equalsIgnoreCase(locale.getLanguage());
-        if (isVi) {
-            return nights + (nights == 1 ? " đêm" : " đêm");
-        }
-        return nights + (nights == 1 ? " night" : " nights");
-    }
-
-    private static String formatHours(long hours, java.util.Locale locale) {
-        boolean isVi = "vi".equalsIgnoreCase(locale.getLanguage());
-        if (isVi) {
-            return hours + " giờ";
-        }
-        return hours + (hours == 1 ? " hour" : " hours");
-    }
 }
