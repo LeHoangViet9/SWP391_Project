@@ -84,4 +84,16 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(response);
     }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex, Locale locale) {
+        String exceptionMsg = ex.getMessage();
+
+        if (exceptionMsg != null && exceptionMsg.matches("\\d+")) {
+
+            String localizedMessage = messageSource.getMessage(
+                    "error.time.limit_exceeded", new Object[]{exceptionMsg}, locale);
+            return ResponseEntity.badRequest().body(Map.of("error", localizedMessage));
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", exceptionMsg));
+    }
 }

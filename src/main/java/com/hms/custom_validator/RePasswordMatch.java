@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-@Constraint(validatedBy = PaswordMatchValidator.class)
+@Constraint(validatedBy = PasswordMatchValidator.class)
 @Target({
         TYPE,
         ANNOTATION_TYPE
