@@ -1,5 +1,6 @@
 package com.hms.entity.booking;
 
+import com.hms.common.enums.BookingStatus;
 import com.hms.entity.auth.User;
 import com.hms.entity.customer.Customer;
 import com.hms.entity.hotel.Room;
@@ -9,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,6 +21,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
 public class Booking {
 
     @Id
@@ -47,7 +50,7 @@ public class Booking {
     private LocalDateTime checkOutDate;
 
     @Column(name = "booking_status", nullable = false)
-    private String bookingStatus;
+    private BookingStatus bookingStatus;
 
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
