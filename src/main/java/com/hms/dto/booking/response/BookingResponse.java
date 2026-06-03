@@ -18,10 +18,6 @@ public class BookingResponse {
 
     private String roomTypeName;
 
-    private Long roomId;
-
-    private String roomNumber;
-
     private LocalDateTime checkInDate;
 
     private LocalDateTime checkOutDate;
