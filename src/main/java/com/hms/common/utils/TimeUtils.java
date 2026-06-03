@@ -1,9 +1,11 @@
 package com.hms.common.utils;
 
+import org.springframework.context.MessageSource;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -17,6 +19,9 @@ public final class TimeUtils {
 
     private TimeUtils() { }
 
+    /**
+     * Tính số đêm giữa 2 mốc thời gian.
+     */
     public static long calculateNights(LocalDateTime checkIn, LocalDateTime checkOut) {
         Objects.requireNonNull(checkIn,  "checkIn");
         Objects.requireNonNull(checkOut, "checkOut");
@@ -27,26 +32,35 @@ public final class TimeUtils {
         return Math.max(0L, nights);
     }
 
+    /**
+     * Tính số đêm tối thiểu là 1 đêm nếu check-out sau check-in trong cùng một ngày.
+     */
     public static long calculateNightsMinimumOne(LocalDateTime checkIn, LocalDateTime checkOut) {
         long nights = calculateNights(checkIn, checkOut);
         if (nights == 0 && checkOut.isAfter(checkIn)) return 1L;
         return nights;
     }
 
-
+    /**
+     * Tính số giờ giữa 2 thời điểm. Giới hạn tối đa 30 ngày (720 giờ).
+     * Nếu vượt quá, ném ra IllegalArgumentException chứa mã lỗi (số giờ lỗi).
+     */
     public static long calculateHoursBetween(LocalDateTime from, LocalDateTime to) {
         Objects.requireNonNull(from, "from");
         Objects.requireNonNull(to,   "to");
         if (!to.isAfter(from)) return 0L;
+
         long hours = Duration.between(from, to).toHours();
         if (hours > 720L) {
-            throw new IllegalArgumentException(
-                    "Khoảng thời gian vượt giới hạn 30 ngày: " + hours + " giờ");
+            // Ném ra chuỗi số giờ lỗi để GlobalExceptionHandler tự dịch đa ngôn ngữ
+            throw new IllegalArgumentException(String.valueOf(hours));
         }
         return hours;
     }
 
-
+    /**
+     * Định dạng khoảng thời gian cố định trả về Map tĩnh (giữ lại từ code cũ của bạn).
+     */
     public static Map<String, String> formatDuration(LocalDateTime from, LocalDateTime to) {
         Objects.requireNonNull(from, "from");
         Objects.requireNonNull(to,   "to");
@@ -67,7 +81,6 @@ public final class TimeUtils {
                 "vi", buildDurationVi(days, remainMins)
         );
     }
-
 
     private static String buildDurationEn(long days, long minutes) {
         if (days == 0 && minutes == 0) return "0 minutes";
@@ -95,31 +108,34 @@ public final class TimeUtils {
         return sb.toString();
     }
 
-
+    /**
+     * Record lưu kết quả tính toán Check-out trễ, hỗ trợ dịch đa ngôn ngữ động từ file Resource Bundle.
+     */
     public record LateCheckoutResult(long fullHours, boolean halfHour) {
 
         public double totalHours() {
             return fullHours + (halfHour ? 0.5 : 0.0);
         }
 
-        public String toStringEn() {
-            if (fullHours == 0 && !halfHour) return "0 hours late";
-            String val = halfHour
-                    ? (fullHours + ".5")
-                    : String.valueOf(fullHours);
-            String unit = (fullHours == 1 && !halfHour) ? "hour" : "hours";
-            return val + " " + unit + " late";
-        }
+        /**
+         * Lấy câu thông báo trả về dựa trên ngôn ngữ (Locale) đang chọn của hệ thống.
+         */
+        public String getLocalizedMessage(MessageSource messageSource, Locale locale) {
+            if (fullHours == 0 && !halfHour) {
+                return messageSource.getMessage("checkout.late.not_late", null, locale);
+            }
 
-        public String toStringVi() {
-            if (fullHours == 0 && !halfHour) return "Không trễ";
-            String val = halfHour
-                    ? (fullHours + ".5")
-                    : String.valueOf(fullHours);
-            return "Trễ " + val + " giờ";
+            // Định dạng chuỗi số giờ trễ phát sinh (Ví dụ: 2 hoặc 2.5)
+            String timeVal = halfHour ? (fullHours + ".5") : String.valueOf(fullHours);
+
+            // Đẩy giá trị timeVal vào vị trí placeholder {0} trong file .properties
+            return messageSource.getMessage("checkout.late.msg", new Object[]{timeVal}, locale);
         }
     }
 
+    /**
+     * Tính toán số giờ trả phòng trễ dựa trên mốc giờ quy định tiêu chuẩn của khách sạn.
+     */
     public static LateCheckoutResult calculateLateCheckoutHours(
             LocalDateTime checkout, LocalTime standardCheckoutTime) {
 

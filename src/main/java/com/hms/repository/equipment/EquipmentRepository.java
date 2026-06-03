@@ -5,9 +5,10 @@ import com.hms.entity.equipment.Equipment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
-
+@Repository
 public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
 
     // Kiểm tra trùng mã trên mọi bản ghi (ACTIVE/INACTIVE)
