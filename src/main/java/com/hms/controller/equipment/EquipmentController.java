@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
 
@@ -68,9 +69,10 @@ public class EquipmentController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<EquipmentResponse>> createEquipment(
+            @RequestParam("file") MultipartFile file,
             @Valid @RequestBody EquipmentCreateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
-        EquipmentResponse created = equipmentService.createEquipment(dto);
+        EquipmentResponse created = equipmentService.createEquipment(dto,file);
         String message = messageSource.getMessage("equipment.add.success", null, locale);
 
         ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
@@ -85,10 +87,11 @@ public class EquipmentController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<EquipmentResponse>> updateEquipment(
+            @RequestParam("file")  MultipartFile file,
             @Valid @RequestBody EquipmentCreateDTO dto,
             @PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        EquipmentResponse updated = equipmentService.updateEquipment(id, dto);
+        EquipmentResponse updated = equipmentService.updateEquipment(id, dto,file);
         String message = messageSource.getMessage("equipment.update.success", null, locale);
 
         ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()

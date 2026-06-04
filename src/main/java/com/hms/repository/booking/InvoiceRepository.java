@@ -7,15 +7,24 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
 public interface InvoiceRepository extends JpaRepository<Invoice,Long> {
-    @Query("Select SUM(i.amount) From Invoice i Where i.paymentStatus= com.hms.common.enums.PaymentStatus.PAID")
+    @Query("Select SUM(i.amount) From Invoice i " +
+            "Where i.paymentStatus= com.hms.common.enums.PaymentStatus.PAID")
     BigDecimal calculateTotalRevenueAllTime();
-    @Query("Select SUM(i.amount) From Invoice i Where i.paymentStatus= com.hms.common.enums.PaymentStatus.PAID And i.paidAt between :start and :end")
-    BigDecimal calculateRevenueBetween(@Param("start") LocalDate start, @Param("end") LocalDate end);
-    @Query("Select SUM(i.amount) From Invoice i Where i.paymentStatus= com.hms.common.enums.PaymentStatus.PAID group by i.paymentMethod")
+    @Query("SELECT SUM(i.amount) FROM Invoice i " +
+            "WHERE i.paymentStatus = com.hms.common.enums.PaymentStatus.PAID " +
+            "AND i.paidAt BETWEEN :start AND :end")
+    BigDecimal calculateRevenueBetween(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
+    @Query("Select SUM(i.amount) From Invoice i " +
+            "Where i.paymentStatus= com.hms.common.enums.PaymentStatus.PAID " +
+            "group by i.paymentMethod")
     List<Object[]> getRevenueGroupedByPaymentMethod();
+
 }

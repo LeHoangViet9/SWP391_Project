@@ -5,6 +5,7 @@ import com.hms.common.enums.SortField;
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
 import com.hms.dto.equipment.response.EquipmentResponse;
 import org.springframework.data.domain.Page;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,9 +19,9 @@ public interface EquipmentService {
             SortDirection direction
     );
 
-    EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO);
+    EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO, MultipartFile file);
 
-    EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto);
+    EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto,MultipartFile file);
 
     void deleteEquipment(Long id);
 

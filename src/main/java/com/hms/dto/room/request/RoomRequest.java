@@ -23,5 +23,6 @@ public class RoomRequest {
     private Integer floorNumber;
 
     private String description;
+    private String imageRoom;
 }
 

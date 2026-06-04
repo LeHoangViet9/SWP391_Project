@@ -16,5 +16,6 @@ public class RoomResponse {
     private RoomStatus roomStatus;
     private Integer floorNumber;
     private String description;
+    private String imageRoom;
 }
 
