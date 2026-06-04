@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - HotelPro Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            max-width: 500px;
+            width: 100%;
+            padding: 50px 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-header .logo {
+            font-size: 48px;
+            color: #003580;
+            margin-bottom: 15px;
+        }
+
+        .login-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #003580;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #003580;
+            box-shadow: 0 0 0 3px rgba(0, 53, 128, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #bbb;
+        }
+
+        .alert {
+            border: none;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-danger {
+            background-color: #fee;
+            color: #c33;
+            border-left: 4px solid #c33;
+        }
+
+        .alert-success {
+            background-color: #efe;
+            color: #3c3;
+            border-left: 4px solid #3c3;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background-color: #003580;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            background-color: #002856;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 53, 128, 0.2);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .form-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .form-footer a {
+            color: #003580;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .form-footer a:hover {
+            color: #002856;
+            text-decoration: underline;
+        }
+
+        .forgot-password {
+            text-align: right;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 25px 0;
+            position: relative;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background-color: #e0e0e0;
+        }
+
+        .divider::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            width: 45%;
+            height: 1px;
+            background-color: #e0e0e0;
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .form-check input {
+            width: auto !important;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .form-check label {
+            margin-bottom: 0;
+            cursor: pointer;
+            font-weight: 400;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .register-link a {
+            color: #003580;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .register-link a:hover {
+            color: #002856;
+        }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <!-- Login Header -->
+    <div class="login-header">
+        <div class="logo">
+            <i class="fas fa-hotel"></i>
+        </div>
+        <h1>HotelPro Manager</h1>
+        <p>Hệ thống quản lý khách sạn hiện đại</p>
+    </div>
+
+    <!-- Alert Messages -->
+    <div th:if="${param.error}" class="alert alert-danger show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span th:text="${error ?: 'Tên đăng nhập hoặc mật khẩu không chính xác'}"></span>
+    </div>
+
+    <div th:if="${param.logout}" class="alert alert-success show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        Bạn đã đăng xuất thành công
+    </div>
+
+    <!-- Login Form -->
+    <form th:action="@{/login}" method="post" class="login-form">
+        <div class="form-group">
+            <label for="username">
+                <i class="fas fa-user me-2" style="color: #003580;"></i>Tên đăng nhập
+            </label>
+            <input type="text" id="username" name="username" placeholder="Nhập tên đăng nhập" required autofocus>
+        </div>
+
+        <div class="form-group">
+            <label for="password">
+                <i class="fas fa-lock me-2" style="color: #003580;"></i>Mật khẩu
+            </label>
+            <input type="password" id="password" name="password" placeholder="Nhập mật khẩu" required>
+        </div>
+
+        <div class="form-check">
+            <input type="checkbox" class="form-check-input" id="remember" name="remember-me">
+            <label class="form-check-label" for="remember">
+                Ghi nhớ đăng nhập
+            </label>
+        </div>
+
+        <button type="submit" class="btn-login">
+            <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+        </button>
+
+        <div class="form-footer">
+            <a href="/forgot-password" class="forgot-password">
+                <i class="fas fa-question-circle me-1"></i>Quên mật khẩu?
+            </a>
+        </div>
+    </form>
+
+    <!-- Register Link -->
+    <div class="register-link">
+        Chưa có tài khoản?
+        <a href="/register">
+            <i class="fas fa-user-plus me-1"></i>Đăng ký ngay
+        </a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
