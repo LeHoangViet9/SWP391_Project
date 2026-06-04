@@ -25,6 +25,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
@@ -49,7 +50,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponse getBookingById(Long id){
         Locale locale = LocaleContextHolder.getLocale();
         Booking booking = bookingRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(messageSource
-                .getMessage("error.booking.notFound", null, locale)));
+                .getMessage("error.booking.notfound", null, locale)));
         return bookingMapper.toResponse(booking);
     }
 
@@ -62,7 +63,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.customer.notfound", null, locale)));
 
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomType.notfound", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
         BigDecimal totalPrice= calculateTotalPrice(roomType, request);
 
@@ -70,6 +71,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setCustomer(customer);
         booking.setRoomType(roomType);
         booking.setBookingStatus(BookingStatus.PENDING);
+        booking.setPricePerNight(roomType.getBasePrice());
         booking.setTotalPrice(totalPrice);
 
         Booking saved = bookingRepository.save(booking);
@@ -108,7 +110,7 @@ public class BookingServiceImpl implements BookingService {
     public void deleteBooking(Long id){
         Locale locale = LocaleContextHolder.getLocale();
 
-        Booking booking = bookingRepository.findById()
+        Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.booking.notfound", null, locale)));
         bookingRepository.delete(booking);
     }
@@ -128,6 +130,27 @@ public class BookingServiceImpl implements BookingService {
                 .map(bookingMapper::toResponse);
     }
 
+    @Override
+    public Page<BookingResponse> getBookingsByRoomType(Long roomTypeId, Integer page, Integer size){
+        Pageable pageable = pageableUtils.createPageable(page, size, "id" , SortDirection.ASC);
+        return bookingRepository.findByRoomTypeId(roomTypeId, pageable)
+                .map(bookingMapper::toResponse);
+    }
+
+    @Override
+    public Page<BookingResponse> getBookingsByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size){
+        Pageable pageable = pageableUtils.createPageable(page, size, "checkInDate", SortDirection.ASC);
+        return bookingRepository.findByCheckInDateBetween(start, end, pageable)
+                .map(bookingMapper::toResponse);
+    }
+
+    @Override
+    public Page<BookingResponse> getBookingsByCheckOutDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size){
+        Pageable pageable = pageableUtils.createPageable(page,size, "checkOutDate", SortDirection.ASC);
+        return bookingRepository.findByCheckOutDateBetween(start, end, pageable)
+                .map(bookingMapper::toResponse);
+    }
+
     private void validateBookingDate(BookingRequest request, Locale locale){
         if(!request.getCheckOutDate().isAfter(request.getCheckInDate())){
             throw new ConflictException(messageSource.getMessage("error.booking.invalid", null, locale));
@@ -135,7 +158,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BigDecimal calculateTotalPrice(RoomType roomType, BookingRequest request){
-        Long nights = ChronoUnit.DAYS.between(request.getCheckInDate().toLocalDate(), request.getCheckOutDate().toLocalDate());
+        long nights = ChronoUnit.DAYS.between(request.getCheckInDate().toLocalDate(), request.getCheckOutDate().toLocalDate());
         return BillingUtils.calculateRoomChargePerNight(roomType.getBasePrice(), nights);
     }
 }
