@@ -5,14 +5,13 @@ import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.dto.booking.request.BookingRequest;
 import com.hms.dto.booking.response.BookingResponse;
-import com.hms.entity.booking.Booking;
 import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;
 
 public interface BookingService {
 
-    Page<BookingResponse> getAllBooking(Integer page, Integer size, SortField sortBy, SortDirection direction);
+    Page<BookingResponse> getAllBookings(Integer page, Integer size, SortField sortBy, SortDirection direction);
 
     BookingResponse getBookingById(Long id);
 
