@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<!-- HEADER FRAGMENT -->
+<nav th:fragment="header" class="navbar navbar-expand-lg navbar-dark" style="background-color: #003580;">
+    <div class="container-fluid">
+        <!-- Logo & Brand -->
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+            <i class="fas fa-hotel me-2" style="font-size: 28px;"></i>
+            <span>HotelPro Manager</span>
+        </a>
+
+        <!-- Toggler for mobile -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Navigation Links -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/room-plan" title="Sơ đồ phòng">
+                        <i class="fas fa-th me-1"></i> Sơ đồ phòng
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/room-type" title="Loại phòng">
+                        <i class="fas fa-door-open me-1"></i> Loại phòng
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/customers" title="Khách hàng">
+                        <i class="fas fa-users me-1"></i> Khách hàng
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/equipment" title="Trang thiết bị">
+                        <i class="fas fa-tools me-1"></i> Trang thiết bị
+                    </a>
+                </li>
+            </ul>
+
+            <!-- User Dropdown Menu -->
+            <div class="dropdown ms-auto">
+                <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2" type="button"
+                        id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img th:src="${#request.userPrincipal?.username ? '/api/avatar/' + #request.userPrincipal?.username : '/img/default-avatar.png'}"
+                         alt="Avatar" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                    <span th:text="${#request.userPrincipal?.name ?: 'Nhân viên'}"></span>
+                    <i class="fas fa-chevron-down" style="font-size: 12px;"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <li>
+                        <a class="dropdown-item" href="/profile">
+                            <i class="fas fa-user-circle me-2"></i> Thông tin cá nhân
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="/settings">
+                            <i class="fas fa-cog me-2"></i> Cài đặt
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form th:action="@{/logout}" method="post" class="d-inline">
+                            <button type="submit" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt me-2"></i> Đăng xuất
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<style>
+    .navbar {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .navbar-brand {
+        font-size: 20px;
+        font-weight: 700;
+        color: #fff !important;
+    }
+    .navbar-dark .navbar-nav .nav-link {
+        color: rgba(255, 255, 255, 0.8) !important;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+    .navbar-dark .navbar-nav .nav-link:hover {
+        color: #fff !important;
+    }
+    .navbar-dark .navbar-nav .nav-link.active {
+        color: #ffc107 !important;
+    }
+</style>
+</body>
+</html>
