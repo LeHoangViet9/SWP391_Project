@@ -29,10 +29,10 @@ public interface BookingRepository extends JpaRepository<Booking,Long> {
 
 
     // 1. Đếm số ca dự kiến CHECK-IN trong một khoảng thời gian (Ví dụ: Hôm nay từ 00:00 đến 23:59)
-    long countByBookingStatusCheckInDateBetween(BookingStatus status,LocalDateTime start, LocalDateTime end);
+    long countByBookingStatusAndCheckInDateBetween(BookingStatus status,LocalDateTime start, LocalDateTime end);
 
     // 2. Đếm số ca dự kiến CHECK-OUT trong một khoảng thời gian (Ví dụ: Hôm nay)
-    long countByBookingStatusCheckOutDateBetween(BookingStatus status,LocalDateTime start, LocalDateTime end);
+    long countByBookingStatusAndCheckOutDateBetween(BookingStatus status,LocalDateTime start, LocalDateTime end);
 
     // 3. Đếm số lượng đơn đặt phòng mới đang ở trạng thái treo chờ duyệt (Ví dụ: "PENDING")
     long countByBookingStatusAndCreatedAtBetween(BookingStatus status, LocalDateTime start, LocalDateTime end);

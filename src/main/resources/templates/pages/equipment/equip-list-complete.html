@@ -1,0 +1,581 @@
+<!-- ============================================================================
+     EQUIPMENT MANAGEMENT PAGE (Trang thiết bị) - COMPLETE VERSION
+     File: src/main/resources/templates/pages/equipment/equip-list-complete.html
+
+     Features:
+     - Equipment table with name, serial code, location, status
+     - Status colors: Good (green), Minor issues (yellow), Broken (red)
+     - Report damage/maintenance button with modal
+     - Modal to input damage severity and reason
+     - Delete/Edit equipment actions
+     - Proper Thymeleaf integration
+
+     ============================================================================ -->
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Trang thiết bị - HMS Hotel Management</title>
+    <div th:replace="~{fragments/header :: head-resources}"></div>
+    <style>
+        .equip-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            background: rgba(255,215,0,0.15);
+            color: #ffd700;
+        }
+        .equip-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .equip-name {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.875rem;
+        }
+        .equip-code {
+            font-size: 0.76rem;
+            color: var(--hms-muted);
+            font-family: monospace;
+        }
+        .location-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 0.3rem 0.65rem;
+            font-size: 0.78rem;
+            color: var(--hms-muted);
+        }
+        .location-pill.room {
+            color: #60a5fa;
+            border-color: rgba(96,165,250,0.25);
+            background: rgba(96,165,250,0.08);
+        }
+        .location-pill.storage {
+            color: #a78bfa;
+            border-color: rgba(167,139,250,0.25);
+            background: rgba(167,139,250,0.08);
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border: 1px solid;
+        }
+        .status-good {
+            background: rgba(16,185,129,0.12);
+            color: #10b981;
+            border-color: rgba(16,185,129,0.3);
+        }
+        .status-minor {
+            background: rgba(245,158,11,0.12);
+            color: #f59e0b;
+            border-color: rgba(245,158,11,0.3);
+        }
+        .status-broken {
+            background: rgba(239,68,68,0.12);
+            color: #ef4444;
+            border-color: rgba(239,68,68,0.3);
+        }
+        .btn-action {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        .btn-report {
+            background: rgba(245,158,11,0.12);
+            border-color: rgba(245,158,11,0.3);
+            color: #f59e0b;
+        }
+        .btn-report:hover {
+            background: rgba(245,158,11,0.25);
+            color: #fde68a;
+        }
+        .btn-edit {
+            background: rgba(59,130,246,0.12);
+            border-color: rgba(59,130,246,0.3);
+            color: #60a5fa;
+        }
+        .btn-edit:hover {
+            background: rgba(59,130,246,0.25);
+            color: #93c5fd;
+        }
+        .btn-delete {
+            background: rgba(239,68,68,0.12);
+            border-color: rgba(239,68,68,0.3);
+            color: #f87171;
+        }
+        .btn-delete:hover {
+            background: rgba(239,68,68,0.25);
+            color: #fca5a5;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 1.1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1;
+        }
+        .stat-label {
+            font-size: 0.78rem;
+            color: var(--hms-muted);
+            margin-top: 0.2rem;
+        }
+        .severity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .severity-low {
+            background: rgba(34,197,94,0.15);
+            color: #22c55e;
+        }
+        .severity-medium {
+            background: rgba(245,158,11,0.15);
+            color: #f59e0b;
+        }
+        .severity-high {
+            background: rgba(239,68,68,0.15);
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div th:replace="~{fragments/header :: header(activeTab='equipment')}"></div>
+
+    <!-- MAIN CONTENT -->
+    <div class="hms-content">
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1><i class="fa-solid fa-screwdriver-wrench me-2" style="color: var(--hms-accent);"></i>Quản lý <span>Trang thiết bị</span></h1>
+            <button type="button" class="btn-hms-primary btn-hms-accent" data-bs-toggle="modal" data-bs-target="#addEquipmentModal">
+                <i class="fa-solid fa-plus"></i> Thêm thiết bị
+            </button>
+        </div>
+
+        <!-- STATS ROW -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(0,80,179,0.2); color: #60a5fa;">
+                    <i class="fa-solid fa-box"></i>
+                </div>
+                <div>
+                    <div class="stat-val" th:text="${equipments != null} ? ${equipments.totalElements} : '0'">0</div>
+                    <div class="stat-label">Tổng thiết bị</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(16,185,129,0.2); color: #10b981;">
+                    <i class="fa-solid fa-check-circle"></i>
+                </div>
+                <div>
+                    <div class="stat-val" th:text="${goodCount != null} ? ${goodCount} : '0'">0</div>
+                    <div class="stat-label">Hoạt động tốt</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(245,158,11,0.2); color: #f59e0b;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <div class="stat-val" th:text="${maintenanceCount != null} ? ${maintenanceCount} : '0'">0</div>
+                    <div class="stat-label">Cần bảo trì</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(239,68,68,0.2); color: #ef4444;">
+                    <i class="fa-solid fa-wrench"></i>
+                </div>
+                <div>
+                    <div class="stat-val" th:text="${brokenCount != null} ? ${brokenCount} : '0'">0</div>
+                    <div class="stat-label">Hỏng hóc</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEARCH & FILTER -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center;">
+            <div class="hms-search-bar" style="flex: 1; min-width: 300px;">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchEquipment" placeholder="Tìm theo tên, mã thiết bị..."
+                       onkeyup="handleSearch(this.value)">
+            </div>
+            <select id="statusFilter" class="form-select" style="max-width: 200px;" onchange="handleStatusFilter(this.value)">
+                <option value="">Tất cả trạng thái</option>
+                <option value="ACTIVE">Hoạt động</option>
+                <option value="MAINTENANCE">Bảo trì</option>
+                <option value="BROKEN">Hỏng hóc</option>
+            </select>
+        </div>
+
+        <!-- EQUIPMENT TABLE -->
+        <div class="hms-table-wrapper">
+            <table class="hms-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Tên thiết bị</th>
+                        <th style="width: 15%;">Mã thiết bị</th>
+                        <th style="width: 20%;">Vị trí</th>
+                        <th style="width: 15%;">Trạng thái</th>
+                        <th style="width: 20%;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="equipmentTableBody">
+                    <tr th:each="equip : ${equipments.content}" th:if="${equipments.content != null and equipments.totalElements > 0}">
+                        <!-- Equipment Name -->
+                        <td>
+                            <div class="equip-info">
+                                <div class="equip-avatar">
+                                    <i class="fa-solid fa-microchip"></i>
+                                </div>
+                                <div>
+                                    <div class="equip-name" th:text="${equip.equipmentName}"></div>
+                                    <div class="equip-code" th:text="${equip.description != null ? equip.description : '(Không có mô tả)'}"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <!-- Equipment Code -->
+                        <td>
+                            <code style="background: rgba(255,255,255,0.04); padding: 0.25rem 0.5rem; border-radius: 4px; color: #60a5fa; font-size: 0.8rem;"
+                                  th:text="${equip.equipmentCode}"></code>
+                        </td>
+                        <!-- Location -->
+                        <td>
+                            <span class="location-pill"
+                                  th:classappend="${equip.location.contains('Phòng') or equip.location.contains('Room')} ? 'room' : 'storage'"
+                                  th:text="${equip.location}"></span>
+                        </td>
+                        <!-- Status -->
+                        <td>
+                            <span class="status-badge"
+                                  th:classappend="${equip.status == 'ACTIVE'} ? 'status-good' : ${equip.status == 'MAINTENANCE'} ? 'status-minor' : 'status-broken'">
+                                <i class="fa-solid"
+                                   th:classappend="${equip.status == 'ACTIVE'} ? 'fa-check-circle' : ${equip.status == 'MAINTENANCE'} ? 'fa-triangle-exclamation' : 'fa-circle-xmark'"></i>
+                                <span th:text="${equip.status == 'ACTIVE'} ? 'Hoạt động' : ${equip.status == 'MAINTENANCE'} ? 'Bảo trì' : 'Hỏng hóc'"></span>
+                            </span>
+                        </td>
+                        <!-- Actions -->
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button" class="btn-action btn-report"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#reportDamageModal"
+                                        th:onclick="'openReportDamageModal(' + ${equip.id} + ')'">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                </button>
+                                <button type="button" class="btn-action btn-edit"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editEquipmentModal"
+                                        th:onclick="'openEditEquipmentModal(' + ${equip.id} + ')'">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button type="button" class="btn-action btn-delete"
+                                        th:onclick="'deleteEquipment(' + ${equip.id} + ')'">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${equipments.totalElements == 0}">
+                        <td colspan="5" style="text-align: center; padding: 2rem; color: var(--hms-muted);">
+                            <i class="fa-solid fa-inbox" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                            Chưa có thiết bị nào
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION -->
+        <div style="display: flex; justify-content: center; margin-top: 1.5rem;" th:if="${equipments.totalPages > 1}">
+            <nav>
+                <ul class="pagination" style="margin: 0;">
+                    <li class="page-item" th:classappend="${!equipments.hasPrevious()} ? 'disabled' : ''">
+                        <a class="page-link" href="#" th:href="${equipments.hasPrevious() ? '/equipments?page=' + (equipments.number - 1) : '#'}">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item" th:each="pageNum : ${#numbers.sequence(0, equipments.totalPages - 1)}">
+                        <a class="page-link" href="#" th:href="'/equipments?page=' + ${pageNum}"
+                           th:classappend="${pageNum == equipments.number} ? 'active' : ''"
+                           th:text="${pageNum + 1}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${!equipments.hasNext()} ? 'disabled' : ''">
+                        <a class="page-link" href="#" th:href="${equipments.hasNext() ? '/equipments?page=' + (equipments.number + 1) : '#'}">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- MODAL: REPORT DAMAGE/MAINTENANCE -->
+    <div class="modal fade hms-modal" id="reportDamageModal" tabindex="-1" aria-labelledby="reportDamageLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reportDamageLabel">
+                        <i class="fa-solid fa-triangle-exclamation me-2" style="color: #f59e0b;"></i>Báo cáo hỏng hóc
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="reportDamageForm" method="post" th:action="@{/api/v1/maintenance/report}">
+                    <div class="modal-body">
+                        <input type="hidden" id="equipmentIdReport" name="equipmentId">
+
+                        <!-- Severity -->
+                        <div class="mb-3">
+                            <label for="severity" class="form-label">
+                                <i class="fa-solid fa-exclamation-triangle me-2" style="color: var(--hms-primary);"></i>Mức độ hỏng hóc
+                            </label>
+                            <select class="form-select" id="severity" name="severity" required>
+                                <option value="LOW">Nhẹ (lỗi nhỏ)</option>
+                                <option value="MEDIUM">Trung bình (ảnh hưởng hoạt động)</option>
+                                <option value="HIGH">Nặng (không sử dụng được)</option>
+                            </select>
+                        </div>
+
+                        <!-- Diagnosis / Description -->
+                        <div class="mb-3">
+                            <label for="diagnosis" class="form-label">
+                                <i class="fa-solid fa-notes-medical me-2" style="color: var(--hms-primary);"></i>Mô tả tình trạng hỏng hóc
+                            </label>
+                            <textarea class="form-control" id="diagnosis" name="diagnosis"
+                                      placeholder="Ví dụ: Điều hòa bị chảy nước, tivi không bật được, cửa bị hỏng..."
+                                      rows="4" required></textarea>
+                        </div>
+
+                        <!-- Priority -->
+                        <div class="alert alert-info" style="background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.3); color: #60a5fa; border-radius: 10px; font-size: 0.85rem;">
+                            <i class="fa-solid fa-info-circle me-2"></i>
+                            Báo cáo sẽ được gửi tới bộ phận bảo trì để xử lý sớm nhất.
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-hms-primary btn-hms-accent">
+                            <i class="fa-solid fa-paper-plane me-2"></i>Gửi báo cáo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD EQUIPMENT -->
+    <div class="modal fade hms-modal" id="addEquipmentModal" tabindex="-1" aria-labelledby="addEquipmentLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addEquipmentLabel">
+                        <i class="fa-solid fa-plus me-2"></i>Thêm thiết bị mới
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form id="addEquipmentForm" th:action="@{/api/v1/equipments}" method="post" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        <!-- Equipment Name -->
+                        <div class="mb-3">
+                            <label for="equipmentName" class="form-label">
+                                <i class="fa-solid fa-microchip me-2" style="color: var(--hms-primary);"></i>Tên thiết bị
+                            </label>
+                            <input type="text" class="form-control" id="equipmentName" name="equipmentName"
+                                   placeholder="Vd: Điều hòa, Tivi, Tủ lạnh..." required>
+                        </div>
+
+                        <!-- Equipment Code -->
+                        <div class="mb-3">
+                            <label for="equipmentCode" class="form-label">
+                                <i class="fa-solid fa-barcode me-2" style="color: var(--hms-primary);"></i>Mã thiết bị
+                            </label>
+                            <input type="text" class="form-control" id="equipmentCode" name="equipmentCode"
+                                   placeholder="Mã seri hoặc mã nhập vào" required>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="mb-3">
+                            <label for="location" class="form-label">
+                                <i class="fa-solid fa-map-pin me-2" style="color: var(--hms-primary);"></i>Vị trí
+                            </label>
+                            <input type="text" class="form-control" id="location" name="location"
+                                   placeholder="Vd: Phòng 101, Kho đạo tạo..." required>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="fa-solid fa-pen-to-square me-2" style="color: var(--hms-primary);"></i>Mô tả
+                            </label>
+                            <textarea class="form-control" id="description" name="description"
+                                      placeholder="Mô tả chi tiết về thiết bị..." rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-hms-primary btn-hms-accent">
+                            <i class="fa-solid fa-plus me-2"></i>Thêm thiết bị
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- TOAST CONTAINER -->
+    <div th:replace="~{fragments/header :: toast-container}"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function openReportDamageModal(equipmentId) {
+            document.getElementById('equipmentIdReport').value = equipmentId;
+            document.getElementById('diagnosis').value = '';
+            document.getElementById('severity').value = 'MEDIUM';
+        }
+
+        function openEditEquipmentModal(equipmentId) {
+            // Fetch and populate equipment data
+            fetch(`/api/v1/equipments/${equipmentId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Handle edit - implement as needed
+                        console.log('Edit equipment:', data.data);
+                    }
+                })
+                .catch(err => console.error('Error:', err));
+        }
+
+        function deleteEquipment(equipmentId) {
+            if (!confirm('Bạn chắc chắn muốn xóa thiết bị này?')) return;
+
+            fetch(`/api/v1/equipments/${equipmentId}`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('success', 'Thành công', 'Xóa thiết bị thành công');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('error', 'Lỗi', data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showToast('error', 'Lỗi', 'Có lỗi xảy ra');
+            });
+        }
+
+        function handleSearch(keyword) {
+            location.href = `/equipments?keywords=${encodeURIComponent(keyword)}`;
+        }
+
+        function handleStatusFilter(status) {
+            const url = new URL(window.location);
+            if (status) {
+                url.searchParams.set('status', status);
+            } else {
+                url.searchParams.delete('status');
+            }
+            window.location.href = url.toString();
+        }
+
+        function showToast(type, title, message) {
+            const toastWrapper = document.getElementById('hmsToastWrapper');
+            const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
+            const toast = document.createElement('div');
+            toast.className = `hms-toast ${type}`;
+            toast.innerHTML = `
+                <div class="toast-icon">
+                    <i class="fa-solid ${icon}"></i>
+                </div>
+                <div class="toast-body">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-msg">${message}</div>
+                </div>
+            `;
+            toastWrapper.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        // Form submission handlers
+        document.getElementById('reportDamageForm')?.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('success', 'Thành công', 'Báo cáo đã được gửi');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('error', 'Lỗi', data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showToast('error', 'Lỗi', 'Có lỗi xảy ra');
+            });
+        });
+    </script>
+</body>
+</html>
+
