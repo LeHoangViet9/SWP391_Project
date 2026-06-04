@@ -1,5 +1,6 @@
 package com.hms.entity.booking;
 
+import com.hms.common.enums.BookingStatus;
 import com.hms.entity.auth.User;
 import com.hms.entity.customer.Customer;
 import com.hms.entity.hotel.Room;
@@ -47,7 +48,8 @@ public class Booking {
     private LocalDateTime checkOutDate;
 
     @Column(name = "booking_status", nullable = false)
-    private String bookingStatus;
+    @Enumerated(EnumType.STRING)
+    private BookingStatus bookingStatus;
 
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
