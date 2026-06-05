@@ -14,18 +14,28 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface MaintenanceMapper {
 
+    /**
+     * Convert MaintenanceRequestCreateDTO thành RepairRequest entity
+     */
     RepairRequest toEntity(MaintenanceRequestCreateDTO dto);
 
+    /**
+     * Convert RepairRequest entity thành MaintenanceResponse DTO
+     */
     MaintenanceResponse toResponse(RepairRequest repairRequest);
 
-    // Khi cập nhật, bỏ qua các trường null trong DTO để không ghi đè dữ liệu hiện có
+    /**
+     * Cập nhật RepairRequest từ MaintenanceRequestUpdateDTO
+     * Bỏ qua các trường null trong DTO để không ghi đè dữ liệu hiện có
+     */
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateFromDto(
             MaintenanceRequestUpdateDTO dto,
             @MappingTarget RepairRequest repairRequest
     );
 
-    List<MaintenanceResponse> toResponseList(
-            List<RepairRequest> repairRequests
-    );
+    /**
+     * Convert danh sách RepairRequest entity thành danh sách MaintenanceResponse DTO
+     */
+    List<MaintenanceResponse> toResponseList(List<RepairRequest> repairRequests);
 }

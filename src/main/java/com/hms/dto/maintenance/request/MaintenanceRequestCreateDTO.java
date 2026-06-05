@@ -1,8 +1,12 @@
 package com.hms.dto.maintenance.request;
+
 import com.hms.common.enums.MaintenanceSeverity;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -10,6 +14,7 @@ import lombok.*;
 @Builder
 public class MaintenanceRequestCreateDTO {
 
+        @NotNull(message = "{maintenance.roomId.notnull}")
         private Long roomId;
 
         private Long equipmentId;
