@@ -1,513 +1,427 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Khách hàng — HMS Hotel</title>
-    <meta name="description" content="Xem danh sách, thêm, sửa và xóa thông tin khách hàng trong hệ thống HMS Hotel.">
-
-
-    <!-- Shared styles from header fragment -->
-    <div th:replace="~{fragments/header :: head-resources}"></div>
-
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="Quản lý danh sách khách hàng - Hotel Management System"/>
+    <title>Khách hàng - Hotel Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
-        /* PAGE-SPECIFIC STYLES */
-        .customer-avatar {
-            width: 38px; height: 38px; border-radius: 50%;
-            background: linear-gradient(135deg, #003580, #0050b3);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.9rem; font-weight: 700; color: #fff;
-            flex-shrink: 0;
+        :root {
+            --hms-primary: #003580;
+            --hms-secondary: #0071c2;
+            --hms-accent: #febb02;
+            --hms-light-bg: #f4f6fb;
+            --hms-border: #e0e6f0;
+            --hms-text-muted: #6b7c93;
         }
-        .customer-info { display: flex; align-items: center; gap: 0.75rem; }
-        .customer-name { font-weight: 600; color: #fff; font-size: 0.875rem; }
-        .customer-email { font-size: 0.78rem; color: #8899a6; }
-        .id-badge {
-            display: inline-flex; align-items: center; gap: 0.35rem;
-            background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.25);
-            color: #ffd700; padding: 0.2rem 0.6rem; border-radius: 6px;
-            font-size: 0.75rem; font-weight: 600;
+        * { font-family: 'Inter', sans-serif; }
+        body { background: var(--hms-light-bg); min-height: 100vh; display: flex; flex-direction: column; }
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, #003580 0%, #0052a5 100%);
+            color: #fff;
+            padding: 1.5rem 0;
+            margin-bottom: 0;
         }
-        .btn-action {
-            width: 34px; height: 34px; border-radius: 8px; border: 1px solid;
-            display: inline-flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.2s; font-size: 0.85rem;
-        }
-        .btn-action.edit {
-            background: rgba(59,130,246,0.12);
-            border-color: rgba(59,130,246,0.3); color: #60a5fa;
-        }
-        .btn-action.edit:hover { background: rgba(59,130,246,0.25); color: #93c5fd; }
-        .btn-action.delete {
-            background: rgba(239,68,68,0.12);
-            border-color: rgba(239,68,68,0.3); color: #f87171;
-        }
-        .btn-action.delete:hover { background: rgba(239,68,68,0.25); color: #fca5a5; }
-        /* PAGINATION */
-        .hms-pagination { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
-        .page-btn {
-            min-width: 36px; height: 36px; border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            color: #8899a6; font-size: 0.85rem; cursor: pointer;
-            text-decoration: none; transition: all 0.2s; padding: 0 0.5rem;
-        }
-        .page-btn:hover { background: rgba(0,53,128,0.4); color: #fff; border-color: rgba(0,53,128,0.5); }
-        .page-btn.active { background: #003580; color: #fff; border-color: #003580; }
-        .page-btn.disabled { opacity: 0.4; pointer-events: none; }
-        /* STATS CARDS */
+        .page-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px; }
+        .page-header .breadcrumb { margin-bottom: 0; --bs-breadcrumb-divider-color: rgba(255,255,255,0.5); }
+        .page-header .breadcrumb-item { font-size: 0.82rem; color: rgba(255,255,255,0.7); }
+        .page-header .breadcrumb-item.active { color: rgba(255,255,255,0.9); }
+        .page-header .breadcrumb-item a { color: rgba(255,255,255,0.7); text-decoration: none; }
+        .page-header .breadcrumb-item a:hover { color: #fff; }
+        /* Main content */
+        .main-content { flex: 1; padding: 1.8rem 0; }
+        /* Stats row */
         .stat-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 14px; padding: 1.1rem 1.25rem;
-            display: flex; align-items: center; gap: 1rem;
+            background: #fff;
+            border-radius: 14px;
+            padding: 1.2rem 1.4rem;
+            box-shadow: 0 2px 12px rgba(0,53,128,0.07);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: all 0.2s;
+            border: 1px solid var(--hms-border);
         }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,53,128,0.12); }
         .stat-icon {
-            width: 44px; height: 44px; border-radius: 12px;
+            width: 48px; height: 48px;
+            border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1.2rem; flex-shrink: 0;
         }
-        .stat-val { font-size: 1.5rem; font-weight: 700; color: #fff; line-height: 1; }
-        .stat-label { font-size: 0.78rem; color: #8899a6; margin-top: 0.2rem; }
-        /* MODAL DARK */
-        .modal-content {
-            background: #152238 !important;
-            border: 1px solid rgba(255,255,255,0.1) !important;
-            border-radius: 18px !important; color: #e8edf3;
+        .stat-icon.blue { background: #e8f2ff; color: var(--hms-secondary); }
+        .stat-icon.green { background: #e8fff0; color: #27ae60; }
+        .stat-icon.yellow { background: #fffbe6; color: #e6a800; }
+        .stat-icon.red { background: #fff0f0; color: #e74c3c; }
+        .stat-value { font-size: 1.5rem; font-weight: 700; color: #1a1a2e; line-height: 1; }
+        .stat-label { font-size: 0.78rem; color: var(--hms-text-muted); margin-top: 2px; }
+        /* Toolbar */
+        .toolbar-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 1.1rem 1.4rem;
+            box-shadow: 0 2px 12px rgba(0,53,128,0.07);
+            border: 1px solid var(--hms-border);
+            margin-bottom: 1rem;
         }
-        .modal-header {
-            background: #003580 !important;
-            border-radius: 18px 18px 0 0 !important;
-            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+        .search-input-wrap {
+            position: relative;
+            flex: 1;
+            max-width: 380px;
         }
-        .modal-title { font-family: 'Poppins', sans-serif; font-weight: 700; color: #fff; }
-        .btn-close { filter: invert(1); opacity: 0.7; }
-        .modal-footer { border-top: 1px solid rgba(255,255,255,0.08) !important; }
-        .modal .form-label {
-            font-size: 0.8rem; font-weight: 600; color: #8899a6;
-            text-transform: uppercase; letter-spacing: 0.4px;
+        .search-input-wrap .search-icon {
+            position: absolute;
+            left: 12px; top: 50%;
+            transform: translateY(-50%);
+            color: #9daec2; font-size: 0.88rem;
         }
-        .modal .form-control,
-        .modal .form-select {
-            background: rgba(255,255,255,0.06) !important;
-            border: 1px solid rgba(255,255,255,0.12) !important;
-            border-radius: 10px; color: #fff !important;
+        .search-input {
+            width: 100%;
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            border: 1.5px solid var(--hms-border);
+            border-radius: 10px;
+            font-size: 0.875rem;
+            background: #f8fafd;
+            transition: all 0.2s;
+            outline: none;
         }
-        .modal .form-control:focus,
-        .modal .form-select:focus {
-            border-color: #ffd700 !important;
-            box-shadow: 0 0 0 3px rgba(255,215,0,0.12) !important;
+        .search-input:focus {
+            border-color: var(--hms-secondary);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(0,113,194,0.1);
         }
-        .modal .form-control::placeholder { color: #8899a6 !important; }
-        .modal .form-select option { background: #152238; color: #fff; }
-        .modal .is-invalid {
-            border-color: #ef4444 !important;
-            box-shadow: 0 0 0 3px rgba(239,68,68,0.12) !important;
+        .btn-add {
+            background: linear-gradient(135deg, #febb02, #e6a800);
+            color: var(--hms-primary);
+            font-weight: 700;
+            font-size: 0.875rem;
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
         }
-        .modal .invalid-feedback { color: #fca5a5; font-size: 0.78rem; }
-        /* DELETE CONFIRM */
-        .delete-confirm-modal .modal-body { text-align: center; padding: 2rem; }
-        .delete-confirm-icon {
-            width: 64px; height: 64px; border-radius: 50%;
-            background: rgba(239,68,68,0.12); border: 2px solid rgba(239,68,68,0.3);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.75rem; color: #ef4444; margin: 0 auto 1rem;
+        .btn-add:hover { box-shadow: 0 4px 14px rgba(254,187,2,0.4); transform: translateY(-1px); }
+        /* Table */
+        .table-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,53,128,0.07);
+            border: 1px solid var(--hms-border);
+            overflow: hidden;
         }
+        .table-hms { margin: 0; }
+        .table-hms thead { background: linear-gradient(135deg, #003580, #0052a5); }
+        .table-hms thead th {
+            color: rgba(255,255,255,0.9);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.9rem 1rem;
+            border: none;
+            white-space: nowrap;
+        }
+        .table-hms tbody tr {
+            border-bottom: 1px solid #f0f4fb;
+            transition: background 0.15s;
+        }
+        .table-hms tbody tr:hover { background: #f8faff; }
+        .table-hms tbody tr:last-child { border-bottom: none; }
+        .table-hms tbody td { padding: 0.85rem 1rem; vertical-align: middle; font-size: 0.875rem; color: #2d3748; }
+        .stt-badge {
+            width: 28px; height: 28px;
+            background: #e8f2ff; color: var(--hms-secondary);
+            border-radius: 8px; display: inline-flex;
+            align-items: center; justify-content: center;
+            font-size: 0.78rem; font-weight: 700;
+        }
+        .customer-name { font-weight: 600; color: #1a1a2e; }
+        .customer-email { color: var(--hms-text-muted); font-size: 0.8rem; }
+        .badge-id {
+            background: #f0f4ff; color: #5c7cfa;
+            border: 1px solid #dce4ff; border-radius: 6px;
+            font-size: 0.78rem; padding: 2px 8px; font-weight: 500;
+        }
+        .action-btn {
+            width: 32px; height: 32px;
+            border-radius: 8px; border: none;
+            display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 0.8rem;
+            transition: all 0.15s;
+        }
+        .action-btn-edit { background: #e8f4ff; color: var(--hms-secondary); }
+        .action-btn-edit:hover { background: var(--hms-secondary); color: #fff; }
+        .action-btn-delete { background: #fff0f0; color: #e74c3c; }
+        .action-btn-delete:hover { background: #e74c3c; color: #fff; }
+        /* Empty state */
+        .empty-state { text-align: center; padding: 3rem; color: var(--hms-text-muted); }
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+        /* Pagination */
+        .pagination-wrap { padding: 1rem 1.2rem; border-top: 1px solid #f0f4fb; display: flex; align-items: center; justify-content: space-between; }
+        .pagination-info { font-size: 0.83rem; color: var(--hms-text-muted); }
+        .page-link { color: var(--hms-primary); border-radius: 8px; font-size: 0.82rem; }
+        .page-item.active .page-link { background: var(--hms-primary); border-color: var(--hms-primary); }
+        /* Modal */
+        .modal-header-hms {
+            background: linear-gradient(135deg, #003580, #0071c2);
+            color: #fff;
+            border-radius: 16px 16px 0 0;
+            padding: 1.2rem 1.5rem;
+        }
+        .modal-header-hms .modal-title { font-size: 1rem; font-weight: 700; }
+        .modal-header-hms .btn-close { filter: invert(1); opacity: 0.8; }
+        .modal-content { border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid #f0f4fb; }
+        .form-label-modal { font-size: 0.82rem; font-weight: 600; color: #2d3748; margin-bottom: 0.35rem; }
+        .form-control-modal {
+            border: 1.5px solid #e0e6f0;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            padding: 0.62rem 0.9rem;
+            transition: all 0.2s;
+        }
+        .form-control-modal:focus {
+            border-color: var(--hms-secondary);
+            box-shadow: 0 0 0 3px rgba(0,113,194,0.1);
+        }
+        .btn-modal-save {
+            background: linear-gradient(135deg, #003580, #0071c2);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 0.62rem 1.5rem;
+            transition: all 0.2s;
+        }
+        .btn-modal-save:hover { box-shadow: 0 4px 14px rgba(0,53,128,0.3); color: #fff; }
+        .btn-modal-cancel {
+            border-radius: 10px;
+            font-size: 0.88rem;
+            padding: 0.62rem 1.2rem;
+        }
+        /* Toast */
+        .toast-hms {
+            position: fixed; top: 80px; right: 20px; z-index: 9999;
+            min-width: 280px; border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            animation: slideInRight 0.3s ease;
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .loading-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+            z-index: 9998; display: none;
+            align-items: center; justify-content: center;
+        }
+        .loading-spinner {
+            width: 50px; height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div th:replace="~{fragments/header :: header(activeTab='customer')}"></div>
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
 
-<!-- MAIN CONTENT -->
-<main class="hms-content">
+<!-- Header -->
+<div th:replace="~{fragments/header :: header}"></div>
 
-    <!-- PAGE HEADER -->
-    <div class="page-header">
-        <div>
-            <h1><i class="fa-solid fa-users" style="color: #ffd700; font-size: 1.4rem; margin-right: 0.5rem;"></i>Quản lý <span>Khách hàng</span></h1>
-            <p style="color:#8899a6; font-size:0.85rem; margin-top:0.25rem;">
-                Xem, thêm, chỉnh sửa và quản lý thông tin khách hàng
-            </p>
-        </div>
-        <button class="btn-hms-primary btn-hms-accent"
-                id="btnAddCustomer"
-                data-bs-toggle="modal"
-                data-bs-target="#customerModal"
-                onclick="openAddModal()">
-            <i class="fa-solid fa-user-plus"></i> Thêm khách hàng
-        </button>
-    </div>
-
-    <!-- STATS ROW -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(0,80,179,0.2); color: #60a5fa;">
-                <i class="fa-solid fa-users"></i>
-            </div>
+<!-- Page Header -->
+<div class="page-header">
+    <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div>
-                <div class="stat-val" id="statTotal" th:text="${customers != null} ? ${customers.totalElements} : '0'">0</div>
-                <div class="stat-label">Tổng khách hàng</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(16,185,129,0.2); color: #10b981;">
-                <i class="fa-solid fa-user-check"></i>
-            </div>
-            <div>
-                <div class="stat-val" th:text="${activeCount != null} ? ${activeCount} : '0'">0</div>
-                <div class="stat-label">Đang hoạt động</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(245,158,11,0.2); color: #f59e0b;">
-                <i class="fa-solid fa-user-clock"></i>
-            </div>
-            <div>
-                <div class="stat-val" id="statToday">0</div>
-                <div class="stat-label">Mới hôm nay</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(139,92,246,0.2); color: #a78bfa;">
-                <i class="fa-solid fa-passport"></i>
-            </div>
-            <div>
-                <div class="stat-val" th:text="${passportCount != null} ? ${passportCount} : '0'">0</div>
-                <div class="stat-label">Khách quốc tế</div>
+                <h1><i class="fa-solid fa-users"></i> Quản lý khách hàng</h1>
+                <nav aria-label="breadcrumb" class="mt-1">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                        <li class="breadcrumb-item active">Khách hàng</li>
+                    </ol>
+                </nav>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- SEARCH + FILTER -->
-    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-        <form method="get" th:action="@{/customers}" style="display:flex; gap:0.75rem; align-items:center; flex:1; flex-wrap:wrap;">
-            <!-- SEARCH BAR (viền vàng bo góc lớn per spec) -->
-            <div class="hms-search-bar" style="flex:1; min-width:280px;">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text"
-                       name="keywords"
-                       id="searchKeywords"
-                       th:value="${keywords}"
-                       placeholder="Tìm theo tên, SĐT, email, CCCD/Passport..."
-                       oninput="debounceSearch(this.value)">
-                <button type="submit" style="background:none; border:none; color:#ffd700; cursor:pointer; padding:0;">
-                    <i class="fa-solid fa-arrow-right"></i>
+<!-- Main -->
+<main class="main-content">
+    <div class="container-fluid px-4">
+
+        <!-- Stats Row -->
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+                    <div>
+                        <div class="stat-value" id="statTotal">-</div>
+                        <div class="stat-label">Tổng khách hàng</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fa-solid fa-user-check"></i></div>
+                    <div>
+                        <div class="stat-value" id="statActive">-</div>
+                        <div class="stat-label">Đang hoạt động</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon yellow"><i class="fa-solid fa-user-clock"></i></div>
+                    <div>
+                        <div class="stat-value" id="statToday">-</div>
+                        <div class="stat-label">Thêm hôm nay</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-card">
+                    <div class="stat-icon red"><i class="fa-solid fa-user-xmark"></i></div>
+                    <div>
+                        <div class="stat-value" id="statInactive">-</div>
+                        <div class="stat-label">Ngừng hoạt động</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar-card">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div class="search-input-wrap">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" class="search-input" id="searchInput"
+                           placeholder="Tìm theo tên, email, số điện thoại..."
+                           oninput="debounceSearch(this.value)"/>
+                </div>
+                <select class="form-select" id="statusFilter" style="width:160px; border-radius:10px; border:1.5px solid #e0e6f0; font-size:0.875rem;"
+                        onchange="loadCustomers()">
+                    <option value="ACTIVE">Đang hoạt động</option>
+                    <option value="INACTIVE">Ngừng hoạt động</option>
+                </select>
+                <button class="btn-add ms-auto" onclick="openAddModal()" id="btnAddCustomer">
+                    <i class="fa-solid fa-plus me-2"></i>Thêm khách hàng
                 </button>
             </div>
-
-            <!-- STATUS FILTER -->
-            <select name="status" class="form-select"
-                    style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#fff; border-radius:10px; width:auto; font-size:0.875rem;"
-                    onchange="this.form.submit()">
-                <option value="ACTIVE"    th:selected="${status == 'ACTIVE'}">Đang hoạt động</option>
-                <option value="INACTIVE"  th:selected="${status == 'INACTIVE'}">Không hoạt động</option>
-            </select>
-
-            <!-- SORT -->
-            <select name="sortBy" class="form-select"
-                    style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#fff; border-radius:10px; width:auto; font-size:0.875rem;"
-                    onchange="this.form.submit()">
-                <option value="ID"        th:selected="${sortBy == 'ID'}">Mặc định</option>
-                <option value="FULL_NAME" th:selected="${sortBy == 'FULL_NAME'}">Tên A→Z</option>
-                <option value="CREATED_AT" th:selected="${sortBy == 'CREATED_AT'}">Mới nhất</option>
-            </select>
-        </form>
-
-        <!-- EXPORT -->
-        <button class="btn-hms-primary" onclick="exportTable()" title="Xuất Excel">
-            <i class="fa-solid fa-file-excel"></i> Xuất
-        </button>
-    </div>
-
-    <!-- SUCCESS / ERROR FLASH -->
-    <div class="hms-alert" th:if="${successMessage != null}"
-         style="background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.3); color:#6ee7b7; border-radius:12px; padding:0.85rem 1rem; display:flex; align-items:center; gap:0.65rem; margin-bottom:1rem;">
-        <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
-        <span th:text="${successMessage}">Thành công!</span>
-    </div>
-    <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:12px; padding:0.85rem 1rem; display:flex; align-items:center; gap:0.65rem; margin-bottom:1rem; color:#fca5a5;"
-         th:if="${errorMessage != null}">
-        <i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>
-        <span th:text="${errorMessage}">Lỗi.</span>
-    </div>
-
-    <!-- CUSTOMER TABLE -->
-    <div class="hms-table-wrapper">
-        <table class="hms-table" id="customerTable">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Khách hàng</th>
-                    <th>Số điện thoại</th>
-                    <th>Loại giấy tờ</th>
-                    <th>Số CCCD/Passport</th>
-                    <th>Quốc tịch</th>
-                    <th>Trạng thái</th>
-                    <th>Ngày tạo</th>
-                    <th style="text-align:center;">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Thymeleaf loop over Page<CustomerResponse> -->
-                <tr th:each="c, stat : ${customers.content}"
-                    th:attr="data-id=${c.id}">
-                    <td style="color:#8899a6; font-size:0.8rem;"
-                        th:text="${customers.number * customers.size + stat.count}">1</td>
-
-                    <td>
-                        <div class="customer-info">
-                            <div class="customer-avatar"
-                                 th:text="${c.fullName != null and c.fullName.length() > 0} ? ${c.fullName.substring(0,1).toUpperCase()} : 'K'">K</div>
-                            <div>
-                                <div class="customer-name" th:text="${c.fullName}">Nguyễn Văn A</div>
-                                <div class="customer-email" th:text="${c.email}">email@example.com</div>
-                            </div>
-                        </div>
-                    </td>
-
-                    <td>
-                        <span style="display:flex; align-items:center; gap:0.4rem; font-size:0.875rem;">
-                            <i class="fa-solid fa-phone" style="color:#8899a6; font-size:0.8rem;"></i>
-                            <span th:text="${c.phone}">0912345678</span>
-                        </span>
-                    </td>
-
-                    <td>
-                        <span th:text="${c.idType}" style="font-size:0.82rem; color:#8899a6;">CCCD</span>
-                    </td>
-
-                    <td>
-                        <span class="id-badge">
-                            <i class="fa-regular fa-id-card"></i>
-                            <span th:text="${c.idNumberCard}">079-xxx-xxx</span>
-                        </span>
-                    </td>
-
-                    <td style="font-size:0.875rem;" th:text="${c.nationality}">Việt Nam</td>
-
-                    <td>
-                        <span class="badge-status"
-                              th:classappend="${c.status != null and c.status.name() == 'ACTIVE'} ? 'badge-active' : 'badge-inactive'">
-                            <i th:classappend="${c.status != null and c.status.name() == 'ACTIVE'} ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"></i>
-                            <span th:text="${c.status != null and c.status.name() == 'ACTIVE'} ? 'Hoạt động' : 'Không HĐ'">Hoạt động</span>
-                        </span>
-                    </td>
-
-                    <td style="font-size:0.8rem; color:#8899a6;"
-                        th:text="${c.createdAt != null} ? ${#temporals.format(c.createdAt, 'dd/MM/yyyy')} : '-'">01/01/2025</td>
-
-                    <!-- ACTION COLUMN -->
-                    <td>
-                        <div style="display:flex; align-items:center; justify-content:center; gap:0.4rem;">
-                            <!-- EDIT BTN -->
-                            <button class="btn-action edit"
-                                    title="Chỉnh sửa khách hàng"
-                                    th:attr="onclick='openEditModal(
-                                        \'' + ${c.id} + '\',
-                                        \'' + ${c.fullName} + '\',
-                                        \'' + ${c.phone} + '\',
-                                        \'' + ${c.email} + '\',
-                                        \'' + ${c.idType} + '\',
-                                        \'' + ${c.idNumberCard} + '\',
-                                        \'' + ${c.nationality} + '\'
-                                    )'">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
-
-                            <!-- DELETE BTN -->
-                            <button class="btn-action delete"
-                                    title="Xóa khách hàng"
-                                    th:attr="onclick='confirmDelete(' + ${c.id} + ', \'' + ${c.fullName} + '\')'">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-
-                <!-- EMPTY STATE -->
-                <tr th:if="${customers.content.isEmpty()}">
-                    <td colspan="9" style="text-align:center; padding:3rem; color:#8899a6;">
-                        <i class="fa-solid fa-users-slash" style="font-size:2.5rem; margin-bottom:0.75rem; display:block; color:rgba(255,255,255,0.15);"></i>
-                        <div style="font-size:1rem; font-weight:600; color:#fff; margin-bottom:0.4rem;">Chưa có khách hàng nào</div>
-                        <div style="font-size:0.85rem;">Nhấn nút "Thêm khách hàng" để bắt đầu.</div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- PAGINATION -->
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 1.25rem; flex-wrap: wrap; gap: 1rem;">
-        <div style="font-size:0.82rem; color:#8899a6;">
-            Hiển thị
-            <strong th:text="${customers.numberOfElements}">10</strong>
-            /
-            <strong th:text="${customers.totalElements}">100</strong>
-            khách hàng
         </div>
-        <nav class="hms-pagination" th:if="${customers.totalPages > 1}">
-            <!-- PREV -->
-            <a th:href="@{/customers(page=${customers.number - 1}, keywords=${keywords}, status=${status}, sortBy=${sortBy})}"
-               class="page-btn"
-               th:classappend="${customers.first} ? 'disabled' : ''">
-                <i class="fa-solid fa-chevron-left"></i>
-            </a>
-            <!-- PAGE NUMBERS -->
-            <th:block th:each="i : ${#numbers.sequence(0, customers.totalPages - 1)}">
-                <a th:if="${i >= customers.number - 2 and i <= customers.number + 2}"
-                   th:href="@{/customers(page=${i}, keywords=${keywords}, status=${status}, sortBy=${sortBy})}"
-                   class="page-btn"
-                   th:classappend="${i == customers.number} ? 'active' : ''"
-                   th:text="${i + 1}">1</a>
-            </th:block>
-            <!-- NEXT -->
-            <a th:href="@{/customers(page=${customers.number + 1}, keywords=${keywords}, status=${status}, sortBy=${sortBy})}"
-               class="page-btn"
-               th:classappend="${customers.last} ? 'disabled' : ''">
-                <i class="fa-solid fa-chevron-right"></i>
-            </a>
-        </nav>
+
+        <!-- Table -->
+        <div class="table-card">
+            <div class="table-responsive">
+                <table class="table table-hms" id="customerTable">
+                    <thead>
+                    <tr>
+                        <th style="width:54px;">STT</th>
+                        <th>Họ và tên</th>
+                        <th>Số điện thoại</th>
+                        <th>Email</th>
+                        <th>CCCD/Passport</th>
+                        <th>Quốc tịch</th>
+                        <th>Trạng thái</th>
+                        <th style="width:100px; text-align:center;">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody id="customerTableBody">
+                    <!-- Populated by JS -->
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <i class="fa-solid fa-spinner fa-spin d-block" style="font-size:2rem; margin-bottom:0.5rem;"></i>
+                            Đang tải dữ liệu...
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-wrap" id="paginationWrap">
+                <div class="pagination-info" id="paginationInfo">Hiển thị 0-0 trong 0 kết quả</div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 gap-1" id="paginationList"></ul>
+                </nav>
+            </div>
+        </div>
     </div>
 </main>
 
-<!-- ================================================================
-     MODAL: THÊM / SỬA KHÁCH HÀNG
-     th:object="${customerCreateDTO}" — backend controller phải put object này vào Model
-     ================================================================ -->
-<div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customerModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+<!-- Footer -->
+<div th:replace="~{fragments/footer :: footer}"></div>
+
+<!-- ===== Customer Modal (Add / Edit) ===== -->
+<div class="modal fade" id="customerModal" tabindex="-1" aria-labelledby="customerModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="customerModalLabel">
-                    <i class="fa-solid fa-user-plus" id="modalTitleIcon" style="margin-right:0.5rem;"></i>
-                    <span id="modalTitleText">Thêm khách hàng mới</span>
+            <div class="modal-header-hms">
+                <h5 class="modal-title" id="customerModalTitle">
+                    <i class="fa-solid fa-user-plus me-2"></i>Thêm khách hàng mới
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
-
-            <!--
-                ADD FORM (shown when adding new customer)
-                th:action  -> POST /api/v1/customers (hoặc controller page route)
-                th:object  -> customerCreateDTO (model attribute từ controller)
-            -->
-            <form id="addCustomerForm"
-                  th:action="@{/customers/add}"
-                  th:object="${customerCreateDTO}"
-                  method="post"
-                  novalidate>
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-
-                <!-- Edit ID (hidden, used for PUT) -->
-                <input type="hidden" id="editCustomerId" name="editCustomerId" value="">
-
+            <form id="customerForm" novalidate>
                 <div class="modal-body">
+                    <input type="hidden" id="customerId"/>
                     <div class="row g-3">
-                        <!-- Họ tên -->
                         <div class="col-md-6">
-                            <label class="form-label" for="m-fullName">
-                                <i class="fa-solid fa-id-card" style="margin-right:4px;"></i>Họ và tên <span style="color:#ef4444;">*</span>
-                            </label>
-                            <input type="text"
-                                   class="form-control"
-                                   id="m-fullName"
-                                   th:field="*{fullName}"
-                                   th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid' : ''"
-                                   placeholder="Nguyễn Văn A"
-                                   required>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}">Lỗi</div>
+                            <label class="form-label-modal" for="modalFullName">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-modal" id="modalFullName" placeholder="Nhập họ và tên..." required/>
+                            <div class="invalid-feedback">Vui lòng nhập họ tên</div>
                         </div>
-
-                        <!-- Email -->
                         <div class="col-md-6">
-                            <label class="form-label" for="m-email">
-                                <i class="fa-regular fa-envelope" style="margin-right:4px;"></i>Email <span style="color:#ef4444;">*</span>
-                            </label>
-                            <input type="email"
-                                   class="form-control"
-                                   id="m-email"
-                                   th:field="*{email}"
-                                   th:classappend="${#fields.hasErrors('email')} ? 'is-invalid' : ''"
-                                   placeholder="email@example.com"
-                                   required>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Lỗi</div>
+                            <label class="form-label-modal" for="modalPhone">Số điện thoại <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control form-control-modal" id="modalPhone" placeholder="0901234567" required/>
+                            <div class="invalid-feedback">Vui lòng nhập số điện thoại hợp lệ</div>
                         </div>
-
-                        <!-- Số điện thoại -->
                         <div class="col-md-6">
-                            <label class="form-label" for="m-phone">
-                                <i class="fa-solid fa-phone" style="margin-right:4px;"></i>Số điện thoại <span style="color:#ef4444;">*</span>
-                            </label>
-                            <input type="tel"
-                                   class="form-control"
-                                   id="m-phone"
-                                   th:field="*{phone}"
-                                   th:classappend="${#fields.hasErrors('phone')} ? 'is-invalid' : ''"
-                                   placeholder="0912345678"
-                                   pattern="^0[0-9]{9}$"
-                                   required>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}">Lỗi</div>
+                            <label class="form-label-modal" for="modalEmail">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control form-control-modal" id="modalEmail" placeholder="email@example.com" required/>
+                            <div class="invalid-feedback">Vui lòng nhập email hợp lệ</div>
                         </div>
-
-                        <!-- Quốc tịch -->
                         <div class="col-md-6">
-                            <label class="form-label" for="m-nationality">
-                                <i class="fa-solid fa-earth-asia" style="margin-right:4px;"></i>Quốc tịch <span style="color:#ef4444;">*</span>
-                            </label>
-                            <input type="text"
-                                   class="form-control"
-                                   id="m-nationality"
-                                   th:field="*{nationality}"
-                                   th:classappend="${#fields.hasErrors('nationality')} ? 'is-invalid' : ''"
-                                   placeholder="Việt Nam"
-                                   required>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('nationality')}" th:errors="*{nationality}">Lỗi</div>
+                            <label class="form-label-modal" for="modalNationality">Quốc tịch</label>
+                            <input type="text" class="form-control form-control-modal" id="modalNationality" placeholder="Việt Nam"/>
                         </div>
-
-                        <!-- Loại giấy tờ -->
                         <div class="col-md-6">
-                            <label class="form-label" for="m-idType">
-                                <i class="fa-regular fa-id-card" style="margin-right:4px;"></i>Loại giấy tờ <span style="color:#ef4444;">*</span>
-                            </label>
-                            <select class="form-select"
-                                    id="m-idType"
-                                    th:field="*{idType}"
-                                    th:classappend="${#fields.hasErrors('idType')} ? 'is-invalid' : ''"
-                                    required>
-                                <option value="">— Chọn loại —</option>
+                            <label class="form-label-modal" for="modalIdType">Loại giấy tờ <span class="text-danger">*</span></label>
+                            <select class="form-select form-control-modal" id="modalIdType" required>
+                                <option value="">-- Chọn loại giấy tờ --</option>
                                 <option value="CCCD">CCCD (Căn cước công dân)</option>
+                                <option value="PASSPORT">Hộ chiếu (Passport)</option>
                                 <option value="CMND">CMND (Chứng minh nhân dân)</option>
-                                <option value="PASSPORT">Passport (Hộ chiếu)</option>
                             </select>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('idType')}" th:errors="*{idType}">Lỗi</div>
+                            <div class="invalid-feedback">Vui lòng chọn loại giấy tờ</div>
                         </div>
-
-                        <!-- Số CCCD / Passport -->
                         <div class="col-md-6">
-                            <label class="form-label" for="m-idNumberCard">
-                                <i class="fa-solid fa-hashtag" style="margin-right:4px;"></i>Số CCCD / Passport <span style="color:#ef4444;">*</span>
-                            </label>
-                            <input type="text"
-                                   class="form-control"
-                                   id="m-idNumberCard"
-                                   th:field="*{idNumberCard}"
-                                   th:classappend="${#fields.hasErrors('idNumberCard')} ? 'is-invalid' : ''"
-                                   placeholder="079xxxxxxx"
-                                   required>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('idNumberCard')}" th:errors="*{idNumberCard}">Lỗi</div>
+                            <label class="form-label-modal" for="modalIdNumber">Số giấy tờ <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-modal" id="modalIdNumber" placeholder="Nhập số CCCD/Passport..." required/>
+                            <div class="invalid-feedback">Vui lòng nhập số giấy tờ</div>
                         </div>
                     </div>
                 </div>
-
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:10px;">
-                        <i class="fa-solid fa-xmark"></i> Hủy
+                    <button type="button" class="btn btn-modal-cancel btn-light" data-bs-dismiss="modal">
+                        <i class="fa-solid fa-xmark me-1"></i>Hủy
                     </button>
-                    <button type="submit" class="btn-hms-primary btn-hms-accent" id="btnModalSubmit" style="border-radius:10px;">
-                        <i class="fa-solid fa-floppy-disk" id="modalSubmitIcon"></i>
-                        <span id="modalSubmitText">Lưu khách hàng</span>
+                    <button type="submit" class="btn btn-modal-save" id="btnSaveCustomer">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>Lưu lại
                     </button>
                 </div>
             </form>
@@ -515,152 +429,271 @@
     </div>
 </div>
 
-<!-- MODAL: XÁC NHẬN XÓA -->
-<div class="modal fade delete-confirm-modal" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
-        <div class="modal-content">
-            <div class="modal-body">
-                <div class="delete-confirm-icon">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
+<!-- Delete Confirm Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-radius:16px; border:none;">
+            <div class="modal-body text-center p-4">
+                <div style="width:56px;height:56px;background:#fff0f0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+                    <i class="fa-solid fa-trash" style="color:#e74c3c;font-size:1.3rem;"></i>
                 </div>
-                <h5 style="font-family:'Poppins',sans-serif; font-weight:700; color:#fff; margin-bottom:0.5rem;">Xác nhận xóa?</h5>
-                <p style="color:#8899a6; font-size:0.875rem; margin-bottom:1.5rem;">
-                    Bạn sắp xóa khách hàng <strong id="deleteCustomerName" style="color:#fff;">---</strong>.
-                    Hành động này <strong style="color:#ef4444;">không thể hoàn tác</strong>.
-                </p>
-                <form id="deleteForm" method="post">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                    <input type="hidden" name="_method" value="DELETE">
-                    <div style="display:flex; gap:0.75rem; justify-content:center;">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:10px; min-width:100px;">
-                            <i class="fa-solid fa-xmark"></i> Hủy
-                        </button>
-                        <button type="submit" style="background:#ef4444; border:none; color:#fff; border-radius:10px; padding:0.6rem 1.25rem; font-weight:600; min-width:130px; cursor:pointer;">
-                            <i class="fa-solid fa-trash-can"></i> Xác nhận xóa
-                        </button>
-                    </div>
-                </form>
+                <h6 style="font-weight:700;color:#1a1a2e;margin-bottom:0.5rem;">Xóa khách hàng?</h6>
+                <p style="font-size:0.85rem;color:#6b7c93;margin-bottom:1.5rem;">Hành động này không thể hoàn tác. Bạn có chắc muốn xóa khách hàng <strong id="deleteCustomerName"></strong>?</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button class="btn btn-light btn-sm px-3" data-bs-dismiss="modal" style="border-radius:8px;">Hủy</button>
+                    <button class="btn btn-danger btn-sm px-3" id="btnConfirmDelete" style="border-radius:8px;">
+                        <i class="fa-solid fa-trash me-1"></i>Xóa
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- FOOTER -->
-<div th:replace="~{fragments/footer :: footer}"></div>
+<!-- Toast -->
+<div class="toast toast-hms align-items-center text-white border-0" id="toastMsg" role="alert" aria-live="assertive">
+    <div class="d-flex">
+        <div class="toast-body" id="toastText"></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+</div>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // ============================================================
-    // MODAL: Open for ADD
-    // ============================================================
+    const API_BASE = '/api/v1/customers';
+    let currentPage = 0;
+    let totalPages = 0;
+    let deleteId = null;
+    let searchTimeout = null;
+
+    // Bootstrap instances
+    const customerModalEl = document.getElementById('customerModal');
+    const customerModal = new bootstrap.Modal(customerModalEl);
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const toastEl = document.getElementById('toastMsg');
+    const toastInstance = new bootstrap.Toast(toastEl, { delay: 3500 });
+
+    function showToast(msg, type = 'success') {
+        toastEl.className = `toast toast-hms align-items-center text-white border-0 bg-${type === 'success' ? 'success' : 'danger'}`;
+        document.getElementById('toastText').textContent = msg;
+        toastInstance.show();
+    }
+
+    function showLoading(v) {
+        document.getElementById('loadingOverlay').style.display = v ? 'flex' : 'none';
+    }
+
+    function debounceSearch(val) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => { currentPage = 0; loadCustomers(); }, 400);
+    }
+
+    async function loadCustomers() {
+        const keyword = document.getElementById('searchInput').value.trim();
+        const status = document.getElementById('statusFilter').value;
+        const params = new URLSearchParams({ page: currentPage, size: 10, sortBy: 'ID', direction: 'ASC', status });
+        if (keyword) params.append('keywords', keyword);
+
+        try {
+            const res = await fetch(`${API_BASE}?${params}`, { headers: { 'Accept': 'application/json' } });
+            const json = await res.json();
+            if (json.success) {
+                renderTable(json.data.content);
+                renderPagination(json.data);
+                document.getElementById('statTotal').textContent = json.data.totalElements;
+                document.getElementById('statActive').textContent = json.data.totalElements;
+            }
+        } catch (e) {
+            document.getElementById('customerTableBody').innerHTML = `
+                <tr><td colspan="8" class="empty-state">
+                    <i class="fa-solid fa-circle-exclamation d-block" style="font-size:2rem; margin-bottom:0.5rem; color:#e74c3c;"></i>
+                    Không thể tải dữ liệu. Vui lòng thử lại.
+                </td></tr>`;
+        }
+    }
+
+    function renderTable(customers) {
+        const tbody = document.getElementById('customerTableBody');
+        if (!customers || customers.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="empty-state">
+                <i class="fa-solid fa-users-slash d-block" style="font-size:2.5rem; margin-bottom:0.8rem; opacity:0.3;"></i>
+                Không tìm thấy khách hàng nào
+            </td></tr>`;
+            return;
+        }
+        tbody.innerHTML = customers.map((c, i) => `
+            <tr>
+                <td><span class="stt-badge">${currentPage * 10 + i + 1}</span></td>
+                <td>
+                    <div class="customer-name">${escHtml(c.fullName || '')}</div>
+                    <div class="customer-email">${escHtml(c.email || '')}</div>
+                </td>
+                <td>${escHtml(c.phone || '')}</td>
+                <td>${escHtml(c.email || '')}</td>
+                <td><span class="badge-id">${escHtml(c.idNumberCard || '-')}</span></td>
+                <td>${escHtml(c.nationality || '-')}</td>
+                <td>
+                    <span class="badge ${c.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'}" style="border-radius:6px; font-size:0.75rem;">
+                        ${c.status === 'ACTIVE' ? 'Hoạt động' : 'Ngừng HĐ'}
+                    </span>
+                </td>
+                <td class="text-center">
+                    <button class="action-btn action-btn-edit me-1" onclick="openEditModal(${c.id})" title="Sửa" id="btnEdit${c.id}">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="action-btn action-btn-delete" onclick="confirmDelete(${c.id}, '${escHtml(c.fullName || '')}')" title="Xóa" id="btnDelete${c.id}">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function renderPagination(data) {
+        totalPages = data.totalPages;
+        const info = document.getElementById('paginationInfo');
+        const start = data.number * data.size + 1;
+        const end = Math.min(start + data.size - 1, data.totalElements);
+        info.textContent = `Hiển thị ${data.totalElements > 0 ? start : 0}-${data.totalElements > 0 ? end : 0} trong ${data.totalElements} kết quả`;
+        const list = document.getElementById('paginationList');
+        list.innerHTML = '';
+        if (totalPages <= 1) return;
+        list.innerHTML += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1})"><i class="fa-solid fa-chevron-left"></i></a></li>`;
+        for (let p = 0; p < totalPages; p++) {
+            if (p === 0 || p === totalPages - 1 || Math.abs(p - currentPage) <= 1) {
+                list.innerHTML += `<li class="page-item ${p === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${p})">${p + 1}</a></li>`;
+            } else if (Math.abs(p - currentPage) === 2) {
+                list.innerHTML += `<li class="page-item disabled"><a class="page-link">...</a></li>`;
+            }
+        }
+        list.innerHTML += `<li class="page-item ${currentPage === totalPages - 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1})"><i class="fa-solid fa-chevron-right"></i></a></li>`;
+    }
+
+    function changePage(p) {
+        if (p < 0 || p >= totalPages) return;
+        currentPage = p;
+        loadCustomers();
+    }
+
     function openAddModal() {
-        document.getElementById('customerModalLabel').querySelector('span').textContent = 'Thêm khách hàng mới';
-        document.getElementById('modalTitleIcon').className = 'fa-solid fa-user-plus';
-        document.getElementById('modalSubmitIcon').className = 'fa-solid fa-floppy-disk';
-        document.getElementById('modalSubmitText').textContent = 'Lưu khách hàng';
-
-        // Reset form
-        document.getElementById('addCustomerForm').reset();
-        document.getElementById('editCustomerId').value = '';
-
-        // Point form to ADD endpoint
-        document.getElementById('addCustomerForm').action = '/customers/add';
+        document.getElementById('customerModalTitle').innerHTML = '<i class="fa-solid fa-user-plus me-2"></i>Thêm khách hàng mới';
+        document.getElementById('customerId').value = '';
+        document.getElementById('customerForm').reset();
+        document.getElementById('customerForm').classList.remove('was-validated');
+        customerModal.show();
     }
 
-    // ============================================================
-    // MODAL: Open for EDIT — populated with existing data
-    // ============================================================
-    function openEditModal(id, fullName, phone, email, idType, idNumberCard, nationality) {
-        document.getElementById('customerModalLabel').querySelector('span').textContent = 'Chỉnh sửa khách hàng';
-        document.getElementById('modalTitleIcon').className = 'fa-solid fa-pen-to-square';
-        document.getElementById('modalSubmitIcon').className = 'fa-solid fa-floppy-disk';
-        document.getElementById('modalSubmitText').textContent = 'Cập nhật';
-
-        // Fill fields
-        document.getElementById('editCustomerId').value = id;
-        document.getElementById('m-fullName').value      = fullName;
-        document.getElementById('m-phone').value         = phone;
-        document.getElementById('m-email').value         = email;
-        document.getElementById('m-idNumberCard').value  = idNumberCard;
-        document.getElementById('m-nationality').value   = nationality;
-
-        // Set select
-        const idTypeSelect = document.getElementById('m-idType');
-        for (let opt of idTypeSelect.options) {
-            if (opt.value === idType) { opt.selected = true; break; }
+    async function openEditModal(id) {
+        try {
+            showLoading(true);
+            const res = await fetch(`${API_BASE}/${id}`, { headers: { 'Accept': 'application/json' } });
+            const json = await res.json();
+            showLoading(false);
+            if (json.success) {
+                const c = json.data;
+                document.getElementById('customerModalTitle').innerHTML = '<i class="fa-solid fa-pen me-2"></i>Chỉnh sửa khách hàng';
+                document.getElementById('customerId').value = c.id;
+                document.getElementById('modalFullName').value = c.fullName || '';
+                document.getElementById('modalPhone').value = c.phone || '';
+                document.getElementById('modalEmail').value = c.email || '';
+                document.getElementById('modalNationality').value = c.nationality || '';
+                document.getElementById('modalIdType').value = c.idType || '';
+                document.getElementById('modalIdNumber').value = c.idNumberCard || '';
+                document.getElementById('customerForm').classList.remove('was-validated');
+                customerModal.show();
+            }
+        } catch (e) {
+            showLoading(false);
+            showToast('Không thể tải thông tin khách hàng', 'danger');
         }
-
-        // Point form to EDIT endpoint (PUT via POST + _method hidden)
-        document.getElementById('addCustomerForm').action = '/customers/update/' + id;
-
-        // Open modal
-        new bootstrap.Modal(document.getElementById('customerModal')).show();
     }
 
-    // ============================================================
-    // CONFIRM DELETE — populate modal and set form action
-    // ============================================================
-    function confirmDelete(id, fullName) {
-        document.getElementById('deleteCustomerName').textContent = fullName;
-        document.getElementById('deleteForm').action = '/customers/delete/' + id;
-        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    function confirmDelete(id, name) {
+        deleteId = id;
+        document.getElementById('deleteCustomerName').textContent = name;
+        deleteModal.show();
     }
 
-    // ============================================================
-    // AUTO-OPEN MODAL if validation errors returned by server
-    // ============================================================
-    document.addEventListener('DOMContentLoaded', function () {
-        const hasErrors = document.querySelector('.is-invalid');
-        if (hasErrors) {
-            // Try to reopen modal if there are validation errors
-            const editId = document.getElementById('editCustomerId') && document.getElementById('editCustomerId').value;
-            new bootstrap.Modal(document.getElementById('customerModal')).show();
+    document.getElementById('btnConfirmDelete').addEventListener('click', async function() {
+        if (!deleteId) return;
+        try {
+            showLoading(true);
+            const res = await fetch(`${API_BASE}/${deleteId}`, { method: 'DELETE', headers: getCsrfHeaders() });
+            const json = await res.json();
+            showLoading(false);
+            deleteModal.hide();
+            if (json.success) {
+                showToast('Xóa khách hàng thành công!', 'success');
+                loadCustomers();
+            } else {
+                showToast(json.message || 'Xóa thất bại', 'danger');
+            }
+        } catch (e) {
+            showLoading(false);
+            deleteModal.hide();
+            showToast('Có lỗi xảy ra khi xóa', 'danger');
         }
-
-        // Auto-hide flash messages
-        const flashes = document.querySelectorAll('[th\\:if]');
-        // Alternative: timeout
-        setTimeout(() => {
-            document.querySelectorAll('.hms-alert, [style*="rgba(239,68,68"]').forEach(el => {
-                el.style.transition = 'opacity 0.5s';
-                el.style.opacity = '0';
-                setTimeout(() => el.style.display = 'none', 500);
-            });
-        }, 4000);
     });
 
-    // ============================================================
-    // SEARCH DEBOUNCE
-    // ============================================================
-    let searchTimer;
-    function debounceSearch(val) {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => {
-            if (val.length >= 2 || val.length === 0) {
-                document.getElementById('searchKeywords').closest('form').submit();
+    document.getElementById('customerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        this.classList.add('was-validated');
+        if (!this.checkValidity()) return;
+
+        const id = document.getElementById('customerId').value;
+        const payload = {
+            fullName: document.getElementById('modalFullName').value.trim(),
+            phone: document.getElementById('modalPhone').value.trim(),
+            email: document.getElementById('modalEmail').value.trim(),
+            nationality: document.getElementById('modalNationality').value.trim(),
+            idType: document.getElementById('modalIdType').value,
+            idNumberCard: document.getElementById('modalIdNumber').value.trim()
+        };
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${API_BASE}/${id}` : API_BASE;
+
+        try {
+            showLoading(true);
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...getCsrfHeaders() },
+                body: JSON.stringify(payload)
+            });
+            const json = await res.json();
+            showLoading(false);
+            if (json.success) {
+                customerModal.hide();
+                showToast(id ? 'Cập nhật khách hàng thành công!' : 'Thêm khách hàng thành công!', 'success');
+                loadCustomers();
+            } else {
+                showToast(json.message || 'Lưu thất bại', 'danger');
             }
-        }, 500);
+        } catch (e) {
+            showLoading(false);
+            showToast('Có lỗi xảy ra', 'danger');
+        }
+    });
+
+    function getCsrfHeaders() {
+        const token = document.querySelector('meta[name="_csrf"]')?.content;
+        const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+        return token && header ? { [header]: token } : {};
     }
 
-    // ============================================================
-    // EXPORT TABLE (basic CSV)
-    // ============================================================
-    function exportTable() {
-        const rows = document.querySelectorAll('#customerTable tr');
-        let csv = [];
-        rows.forEach(row => {
-            const cols = row.querySelectorAll('th, td');
-            const line = Array.from(cols).slice(0, -1).map(col => `"${col.innerText.trim().replace(/"/g, '""')}"`).join(',');
-            csv.push(line);
-        });
-        const blob = new Blob(['\uFEFF' + csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href = url; a.download = 'khach-hang-' + new Date().toLocaleDateString('vi') + '.csv';
-        a.click(); URL.revokeObjectURL(url);
+    function escHtml(str) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(str));
+        return d.innerHTML;
     }
+
+    // Init
+    loadCustomers();
+    document.getElementById('statInactive').textContent = '0';
+    document.getElementById('statToday').textContent = '0';
 </script>
 </body>
 </html>

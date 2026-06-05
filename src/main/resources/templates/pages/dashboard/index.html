@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      lang="vi">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="Dashboard - Hotel Management System"/>
+    <title>Dashboard - Hotel Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <style>
+        :root {
+            --hms-primary: #003580;
+            --hms-secondary: #0071c2;
+            --hms-accent: #febb02;
+            --hms-light-bg: #f4f6fb;
+            --hms-border: #e0e6f0;
+            --hms-text-muted: #6b7c93;
+            --hms-sidebar-width: 260px;
+            --hms-sidebar-collapsed: 72px;
+        }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: var(--hms-light-bg); min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* Layout */
+        .app-layout { display: flex; min-height: calc(100vh - 64px); padding-top: 64px; }
+        .main-area { flex: 1; margin-left: var(--hms-sidebar-width); transition: margin-left 0.3s; min-width: 0; }
+        .main-area.sidebar-collapsed { margin-left: var(--hms-sidebar-collapsed); }
+        @media (max-width: 992px) { .main-area { margin-left: 0; } }
+
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, #003580 0%, #0052a5 100%);
+            color: #fff; padding: 1.8rem 0;
+        }
+        .page-header h1 { font-size: 1.5rem; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+        .page-header .welcome-sub { font-size: 0.9rem; color: rgba(255,255,255,0.7); margin-top: 4px; }
+        .page-header .date-chip {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px; padding: 4px 14px; font-size: 0.8rem; color: rgba(255,255,255,0.85);
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+
+        .main-content { padding: 2rem 0; flex: 1; }
+
+        /* KPI Cards */
+        .kpi-card {
+            background: #fff; border-radius: 16px; padding: 1.4rem 1.5rem;
+            box-shadow: 0 2px 14px rgba(0,53,128,0.07); border: 1px solid var(--hms-border);
+            transition: all 0.25s; display: flex; align-items: center; gap: 16px;
+            position: relative; overflow: hidden;
+        }
+        .kpi-card::after {
+            content: ''; position: absolute; top: 0; right: 0;
+            width: 80px; height: 80px; border-radius: 50%;
+            transform: translate(25px, -25px);
+        }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,53,128,0.13); }
+        .kpi-card.blue::after { background: rgba(0,113,194,0.06); }
+        .kpi-card.green::after { background: rgba(39,174,96,0.06); }
+        .kpi-card.yellow::after { background: rgba(254,187,2,0.08); }
+        .kpi-card.red::after { background: rgba(231,76,60,0.06); }
+        .kpi-card.purple::after { background: rgba(142,68,173,0.06); }
+        .kpi-card.teal::after { background: rgba(26,188,156,0.06); }
+
+        .kpi-icon {
+            width: 56px; height: 56px; border-radius: 16px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+        }
+        .kpi-icon.blue { background: linear-gradient(135deg, #e8f2ff, #d0e8ff); color: #0071c2; }
+        .kpi-icon.green { background: linear-gradient(135deg, #e8fff0, #c8f5dc); color: #27ae60; }
+        .kpi-icon.yellow { background: linear-gradient(135deg, #fffbe6, #fff3b0); color: #c8a000; }
+        .kpi-icon.red { background: linear-gradient(135deg, #fff0f0, #ffd8d8); color: #e74c3c; }
+        .kpi-icon.purple { background: linear-gradient(135deg, #f4e8ff, #e8d0ff); color: #8e44ad; }
+        .kpi-icon.teal { background: linear-gradient(135deg, #e8fffc, #c8f5ef); color: #1abc9c; }
+
+        .kpi-info { flex: 1; min-width: 0; }
+        .kpi-value { font-size: 2rem; font-weight: 800; color: #1a1a2e; line-height: 1; margin-bottom: 4px; }
+        .kpi-label { font-size: 0.82rem; color: var(--hms-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .kpi-trend { font-size: 0.76rem; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+        .kpi-trend.up { color: #27ae60; }
+        .kpi-trend.down { color: #e74c3c; }
+        .kpi-trend.neutral { color: var(--hms-text-muted); }
+
+        /* Section Title */
+        .section-title { font-size: 1rem; font-weight: 700; color: #1a1a2e; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+        .section-title i { color: var(--hms-secondary); }
+
+        /* Room Status Grid */
+        .room-status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+        .room-status-card {
+            background: #fff; border-radius: 12px; padding: 1rem;
+            border: 1px solid var(--hms-border); text-align: center;
+            transition: all 0.2s;
+        }
+        .room-status-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,53,128,0.1); }
+        .room-status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-bottom: 6px; }
+        .dot-available { background: #27ae60; }
+        .dot-occupied { background: #0071c2; }
+        .dot-dirty { background: #e67e22; }
+        .dot-maintenance { background: #e74c3c; }
+        .dot-inactive { background: #95a5a6; }
+        .room-status-count { font-size: 1.4rem; font-weight: 700; color: #1a1a2e; }
+        .room-status-label { font-size: 0.75rem; color: var(--hms-text-muted); }
+
+        /* Activity Feed */
+        .activity-card {
+            background: #fff; border-radius: 16px; padding: 1.4rem;
+            box-shadow: 0 2px 14px rgba(0,53,128,0.07); border: 1px solid var(--hms-border);
+        }
+        .activity-item { display: flex; align-items: flex-start; gap: 12px; padding: 0.7rem 0; border-bottom: 1px solid #f0f4fb; }
+        .activity-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .activity-avatar {
+            width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+        }
+        .activity-avatar.blue { background: #e8f2ff; color: #0071c2; }
+        .activity-avatar.green { background: #e8fff0; color: #27ae60; }
+        .activity-avatar.yellow { background: #fffbe6; color: #c8a000; }
+        .activity-avatar.red { background: #fff0f0; color: #e74c3c; }
+        .activity-text { flex: 1; }
+        .activity-text strong { font-size: 0.85rem; color: #1a1a2e; font-weight: 600; }
+        .activity-text p { font-size: 0.8rem; color: var(--hms-text-muted); margin: 0; }
+        .activity-time { font-size: 0.75rem; color: #b0bec5; white-space: nowrap; }
+
+        /* Quick Actions */
+        .quick-action-btn {
+            display: flex; align-items: center; gap: 12px;
+            background: #fff; border: 1px solid var(--hms-border); border-radius: 12px;
+            padding: 1rem 1.2rem; text-decoration: none; color: #2d3748;
+            transition: all 0.2s; font-size: 0.875rem; font-weight: 500; width: 100%;
+        }
+        .quick-action-btn:hover { border-color: var(--hms-secondary); background: #f0f8ff; color: var(--hms-secondary); transform: translateX(3px); }
+        .quick-action-icon {
+            width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+        }
+
+        /* Chart placeholder */
+        .chart-placeholder {
+            background: linear-gradient(135deg, #f8fafd, #eef2fb); border-radius: 12px;
+            border: 1px dashed #d0d9e8; height: 200px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: var(--hms-text-muted); font-size: 0.85rem;
+        }
+        .chart-placeholder i { font-size: 2.5rem; opacity: 0.3; margin-bottom: 0.6rem; }
+
+        /* Notification badge */
+        .notif-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #e74c3c;
+            display: inline-block; margin-left: 4px; vertical-align: middle;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.7; } }
+
+        /* Summary Table */
+        .summary-table { margin: 0; }
+        .summary-table thead { background: linear-gradient(135deg, #003580, #0052a5); }
+        .summary-table thead th { color: rgba(255,255,255,0.9); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.8rem 1rem; border: none; }
+        .summary-table tbody td { font-size: 0.875rem; padding: 0.75rem 1rem; vertical-align: middle; color: #2d3748; border-bottom: 1px solid #f0f4fb; }
+        .summary-table tbody tr:hover { background: #f8faff; }
+        .summary-table tbody tr:last-child td { border-bottom: none; }
+
+        .badge-status { font-size: 0.74rem; border-radius: 6px; padding: 3px 9px; font-weight: 600; }
+        .table-card { background: #fff; border-radius: 14px; overflow: hidden; border: 1px solid var(--hms-border); box-shadow: 0 2px 12px rgba(0,53,128,0.06); }
+
+        /* Skeleton loading */
+        .skeleton { background: linear-gradient(90deg, #f0f4fb 25%, #e8edf7 50%, #f0f4fb 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* Responsive */
+        @media (max-width: 768px) { .kpi-value { font-size: 1.6rem; } }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div th:replace="~{fragments/header :: header}"></div>
+
+<div class="app-layout">
+    <!-- Sidebar -->
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+
+    <!-- Main Area -->
+    <div class="main-area" id="mainArea">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="container-fluid px-4">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div>
+                        <h1>
+                            <i class="fa-solid fa-gauge-high me-2" style="color:#febb02;"></i>
+                            Dashboard
+                        </h1>
+                        <div class="welcome-sub">
+                            Xin chào, <strong th:text="${currentUser != null ? currentUser.fullName : 'Người dùng'}">Người dùng</strong>!
+                            Đây là tổng quan hoạt động hôm nay.
+                        </div>
+                    </div>
+                    <div class="date-chip" id="currentDateChip">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <span id="currentDateText">--/--/----</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div class="container-fluid px-4">
+
+                <!-- ===== KPI Cards Row ===== -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-4 col-xl-2">
+                        <div class="kpi-card blue">
+                            <div class="kpi-icon blue"><i class="fa-solid fa-door-open"></i></div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="kpiTotalRooms">
+                                    <span class="skeleton" style="width:40px;height:28px;display:inline-block;">&nbsp;</span>
+                                </div>
+                                <div class="kpi-label">Tổng phòng</div>
+                                <div class="kpi-trend neutral"><i class="fa-solid fa-minus"></i> Tổng số</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4 col-xl-2">
+                        <div class="kpi-card green">
+                            <div class="kpi-icon green"><i class="fa-solid fa-circle-check"></i></div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="kpiAvailableRooms">
+                                    <span class="skeleton" style="width:40px;height:28px;display:inline-block;">&nbsp;</span>
+                                </div>
+                                <div class="kpi-label">Phòng trống</div>
+                                <div class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> Sẵn sàng</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4 col-xl-2">
+                        <div class="kpi-card purple">
+                            <div class="kpi-icon purple"><i class="fa-solid fa-bed"></i></div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="kpiOccupiedRooms">
+                                    <span class="skeleton" style="width:40px;height:28px;display:inline-block;">&nbsp;</span>
+                                </div>
+                                <div class="kpi-label">Đang ở</div>
+                                <div class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> Đang lấp đầy</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4 col-xl-2">
+                        <div class="kpi-card yellow">
+                            <div class="kpi-icon yellow"><i class="fa-solid fa-users"></i></div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="kpiTotalCustomers">
+                                    <span class="skeleton" style="width:40px;height:28px;display:inline-block;">&nbsp;</span>
+                                </div>
+                                <div class="kpi-label">Khách hàng</div>
+                                <div class="kpi-trend up"><i class="fa-solid fa-arrow-up"></i> Tổng số</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4 col-xl-2">
+                        <div class="kpi-card red">
+                            <div class="kpi-icon red"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="kpiMaintenanceRooms">
+                                    <span class="skeleton" style="width:40px;height:28px;display:inline-block;">&nbsp;</span>
+                                </div>
+                                <div class="kpi-label">Bảo trì</div>
+                                <div class="kpi-trend neutral"><i class="fa-solid fa-wrench"></i> Phòng/TB</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4 col-xl-2">
+                        <div class="kpi-card teal">
+                            <div class="kpi-icon teal"><i class="fa-solid fa-layer-group"></i></div>
+                            <div class="kpi-info">
+                                <div class="kpi-value" id="kpiRoomTypes">
+                                    <span class="skeleton" style="width:40px;height:28px;display:inline-block;">&nbsp;</span>
+                                </div>
+                                <div class="kpi-label">Loại phòng</div>
+                                <div class="kpi-trend neutral"><i class="fa-solid fa-tag"></i> Danh mục</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Left Column -->
+                    <div class="col-lg-8">
+
+                        <!-- Room Status Overview -->
+                        <div class="activity-card mb-4">
+                            <div class="section-title">
+                                <i class="fa-solid fa-map-location-dot"></i>
+                                Tình trạng phòng
+                            </div>
+                            <div class="room-status-grid" id="roomStatusGrid">
+                                <!-- Loaded by JS -->
+                                <div class="room-status-card">
+                                    <div class="room-status-dot dot-available"></div>
+                                    <div class="room-status-count" id="rsAvailable">--</div>
+                                    <div class="room-status-label">Trống</div>
+                                </div>
+                                <div class="room-status-card">
+                                    <div class="room-status-dot dot-occupied"></div>
+                                    <div class="room-status-count" id="rsOccupied">--</div>
+                                    <div class="room-status-label">Đang ở</div>
+                                </div>
+                                <div class="room-status-card">
+                                    <div class="room-status-dot dot-dirty"></div>
+                                    <div class="room-status-count" id="rsDirty">--</div>
+                                    <div class="room-status-label">Cần dọn</div>
+                                </div>
+                                <div class="room-status-card">
+                                    <div class="room-status-dot dot-maintenance"></div>
+                                    <div class="room-status-count" id="rsMaintenance">--</div>
+                                    <div class="room-status-label">Bảo trì</div>
+                                </div>
+                                <div class="room-status-card">
+                                    <div class="room-status-dot dot-inactive"></div>
+                                    <div class="room-status-count" id="rsInactive">--</div>
+                                    <div class="room-status-label">Không dùng</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Customers Table -->
+                        <div sec:authorize="hasAnyRole('ADMIN','MANAGER','RECEPTIONIST')">
+                            <div class="section-title">
+                                <i class="fa-solid fa-users-line"></i>
+                                Khách hàng mới nhất
+                            </div>
+                            <div class="table-card mb-4">
+                                <div class="table-responsive">
+                                    <table class="table summary-table">
+                                        <thead>
+                                        <tr>
+                                            <th>Khách hàng</th>
+                                            <th>Email</th>
+                                            <th>Quốc tịch</th>
+                                            <th>Trạng thái</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="recentCustomersBody">
+                                        <tr>
+                                            <td colspan="4" class="text-center py-3" style="color:#9daec2; font-size:0.85rem;">
+                                                <i class="fa-solid fa-spinner fa-spin me-2"></i>Đang tải...
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div style="padding:0.75rem 1rem; border-top:1px solid #f0f4fb;">
+                                    <a th:href="@{/customers}" style="font-size:0.82rem; color:var(--hms-secondary); text-decoration:none; font-weight:500;">
+                                        <i class="fa-solid fa-arrow-right me-1"></i> Xem tất cả khách hàng
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Equipment Summary -->
+                        <div sec:authorize="hasAnyRole('ADMIN','MANAGER','MAINTENANCE')">
+                            <div class="section-title">
+                                <i class="fa-solid fa-screwdriver-wrench"></i>
+                                Tình trạng thiết bị
+                            </div>
+                            <div class="table-card mb-4">
+                                <div class="table-responsive">
+                                    <table class="table summary-table">
+                                        <thead>
+                                        <tr>
+                                            <th>Thiết bị</th>
+                                            <th>Mã</th>
+                                            <th>Vị trí</th>
+                                            <th>Trạng thái</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="recentEquipmentBody">
+                                        <tr>
+                                            <td colspan="4" class="text-center py-3" style="color:#9daec2; font-size:0.85rem;">
+                                                <i class="fa-solid fa-spinner fa-spin me-2"></i>Đang tải...
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div style="padding:0.75rem 1rem; border-top:1px solid #f0f4fb;">
+                                    <a th:href="@{/equipments}" style="font-size:0.82rem; color:var(--hms-secondary); text-decoration:none; font-weight:500;">
+                                        <i class="fa-solid fa-arrow-right me-1"></i> Xem tất cả thiết bị
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-lg-4">
+
+                        <!-- Quick Actions -->
+                        <div class="activity-card mb-4">
+                            <div class="section-title">
+                                <i class="fa-solid fa-bolt"></i>
+                                Thao tác nhanh
+                            </div>
+                            <div class="d-flex flex-column gap-2">
+                                <a th:href="@{/customers}" class="quick-action-btn" sec:authorize="hasAnyRole('ADMIN','MANAGER','RECEPTIONIST')">
+                                    <div class="quick-action-icon" style="background:#e8f2ff; color:#0071c2;"><i class="fa-solid fa-user-plus"></i></div>
+                                    <span>Thêm khách hàng</span>
+                                    <i class="fa-solid fa-chevron-right ms-auto" style="font-size:0.75rem; color:#9daec2;"></i>
+                                </a>
+                                <a th:href="@{/rooms}" class="quick-action-btn" sec:authorize="hasAnyRole('ADMIN','MANAGER')">
+                                    <div class="quick-action-icon" style="background:#e8fff0; color:#27ae60;"><i class="fa-solid fa-door-open"></i></div>
+                                    <span>Quản lý phòng</span>
+                                    <i class="fa-solid fa-chevron-right ms-auto" style="font-size:0.75rem; color:#9daec2;"></i>
+                                </a>
+                                <a th:href="@{/room-types}" class="quick-action-btn" sec:authorize="hasAnyRole('ADMIN','MANAGER')">
+                                    <div class="quick-action-icon" style="background:#f4e8ff; color:#8e44ad;"><i class="fa-solid fa-layer-group"></i></div>
+                                    <span>Loại phòng</span>
+                                    <i class="fa-solid fa-chevron-right ms-auto" style="font-size:0.75rem; color:#9daec2;"></i>
+                                </a>
+                                <a th:href="@{/equipments}" class="quick-action-btn" sec:authorize="hasAnyRole('ADMIN','MANAGER','MAINTENANCE')">
+                                    <div class="quick-action-icon" style="background:#fff0f0; color:#e74c3c;"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                                    <span>Thiết bị</span>
+                                    <i class="fa-solid fa-chevron-right ms-auto" style="font-size:0.75rem; color:#9daec2;"></i>
+                                </a>
+                                <a th:href="@{/change-password}" class="quick-action-btn">
+                                    <div class="quick-action-icon" style="background:#fffbe6; color:#c8a000;"><i class="fa-solid fa-key"></i></div>
+                                    <span>Đổi mật khẩu</span>
+                                    <i class="fa-solid fa-chevron-right ms-auto" style="font-size:0.75rem; color:#9daec2;"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="activity-card mb-4">
+                            <div class="section-title">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                                Hoạt động gần đây
+                                <span class="notif-dot ms-1"></span>
+                            </div>
+                            <div id="activityFeed">
+                                <div class="activity-item">
+                                    <div class="activity-avatar blue"><i class="fa-solid fa-user-plus"></i></div>
+                                    <div class="activity-text">
+                                        <strong>Hệ thống</strong>
+                                        <p>Đang tải hoạt động...</p>
+                                    </div>
+                                    <div class="activity-time">--</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Info Card -->
+                        <div class="activity-card">
+                            <div class="section-title">
+                                <i class="fa-solid fa-circle-info"></i>
+                                Thông tin hệ thống
+                            </div>
+                            <div style="font-size:0.83rem; color:#6b7c93; line-height:2;">
+                                <div class="d-flex justify-content-between">
+                                    <span>Phiên bản</span>
+                                    <strong style="color:#1a1a2e;">HMS v1.0.0</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Môi trường</span>
+                                    <span class="badge bg-success" style="border-radius:6px; font-size:0.72rem;">Production</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Vai trò</span>
+                                    <strong style="color:#0071c2;" sec:authentication="principal.authorities" th:text="${currentUser != null ? currentUser.roleName : 'N/A'}">Admin</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Phiên đăng nhập</span>
+                                    <strong style="color:#1a1a2e;" id="sessionTime">--</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <div th:replace="~{fragments/footer :: footer}"></div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Sidebar sync
+    (function() {
+        const collapsed = localStorage.getItem('hms_sidebar_collapsed') === '1';
+        if (collapsed) document.getElementById('mainArea')?.classList.add('sidebar-collapsed');
+        document.addEventListener('sidebarToggled', e => {
+            document.getElementById('mainArea')?.classList.toggle('sidebar-collapsed', e.detail.collapsed);
+        });
+    })();
+
+    // Date display
+    (function() {
+        const now = new Date();
+        const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const el = document.getElementById('currentDateText');
+        if (el) el.textContent = now.toLocaleDateString('vi-VN', opts);
+    })();
+
+    // Session time
+    const loginTime = new Date();
+    setInterval(() => {
+        const diff = Math.floor((new Date() - loginTime) / 60000);
+        const el = document.getElementById('sessionTime');
+        if (el) el.textContent = diff < 1 ? 'Vừa đăng nhập' : `${diff} phút trước`;
+    }, 10000);
+
+    function esc(s) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(s || ''));
+        return d.innerHTML;
+    }
+
+    // Load dashboard data
+    async function loadDashboardData() {
+        // Load rooms
+        try {
+            const res = await fetch('/api/v1/rooms?page=0&size=1', { headers: { Accept: 'application/json' } });
+            const json = await res.json();
+            if (json.success) {
+                const total = json.data?.totalElements ?? 0;
+                setKpi('kpiTotalRooms', total);
+            }
+        } catch(e) { setKpi('kpiTotalRooms', 'N/A'); }
+
+        // Load customers
+        try {
+            const res = await fetch('/api/v1/customers?page=0&size=5', { headers: { Accept: 'application/json' } });
+            const json = await res.json();
+            if (json.success) {
+                setKpi('kpiTotalCustomers', json.data?.totalElements ?? 0);
+                renderRecentCustomers(json.data?.content ?? []);
+            }
+        } catch(e) { setKpi('kpiTotalCustomers', 'N/A'); }
+
+        // Load room types
+        try {
+            const res = await fetch('/api/v1/room-types?page=0&size=1', { headers: { Accept: 'application/json' } });
+            const json = await res.json();
+            if (json.success) setKpi('kpiRoomTypes', json.data?.totalElements ?? 0);
+        } catch(e) { setKpi('kpiRoomTypes', 'N/A'); }
+
+        // Load equipment
+        try {
+            const res = await fetch('/api/v1/equipments?page=0&size=5', { headers: { Accept: 'application/json' } });
+            const json = await res.json();
+            if (json.success) renderRecentEquipment(json.data?.content ?? []);
+        } catch(e) {}
+
+        // Static placeholders for status breakdown (replace with real API calls)
+        setKpi('kpiAvailableRooms', '--');
+        setKpi('kpiOccupiedRooms', '--');
+        setKpi('kpiMaintenanceRooms', '--');
+        document.getElementById('rsAvailable').textContent = '--';
+        document.getElementById('rsOccupied').textContent = '--';
+        document.getElementById('rsDirty').textContent = '--';
+        document.getElementById('rsMaintenance').textContent = '--';
+        document.getElementById('rsInactive').textContent = '--';
+
+        // Activity feed placeholder
+        renderActivityFeed([
+            { icon: 'fa-user-plus', color: 'blue', title: 'Khách hàng mới', desc: 'Hệ thống đã sẵn sàng.', time: 'Vừa xong' },
+            { icon: 'fa-door-open', color: 'green', title: 'Phòng đã được cập nhật', desc: 'Trạng thái phòng được đồng bộ.', time: '5 phút trước' },
+            { icon: 'fa-screwdriver-wrench', color: 'red', title: 'Thiết bị cần kiểm tra', desc: 'Xem danh sách thiết bị.', time: '1 giờ trước' }
+        ]);
+    }
+
+    function setKpi(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = `<span style="font-size:inherit; font-weight:inherit;">${val}</span>`;
+    }
+
+    function renderRecentCustomers(customers) {
+        const tbody = document.getElementById('recentCustomersBody');
+        if (!tbody) return;
+        if (!customers || customers.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3" style="color:#9daec2; font-size:0.85rem;">Chưa có khách hàng</td></tr>';
+            return;
+        }
+        tbody.innerHTML = customers.slice(0, 5).map(c => `
+            <tr>
+                <td><strong style="font-size:0.85rem;">${esc(c.fullName || '-')}</strong></td>
+                <td style="font-size:0.82rem; color:#6b7c93;">${esc(c.email || '-')}</td>
+                <td style="font-size:0.82rem;">${esc(c.nationality || 'VN')}</td>
+                <td><span class="badge badge-status ${c.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'}">${c.status === 'ACTIVE' ? 'Hoạt động' : 'Ngừng HĐ'}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    function renderRecentEquipment(equips) {
+        const tbody = document.getElementById('recentEquipmentBody');
+        if (!tbody) return;
+        if (!equips || equips.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3" style="color:#9daec2; font-size:0.85rem;">Chưa có thiết bị</td></tr>';
+            return;
+        }
+        const statusColors = { ACTIVE: 'bg-success', INACTIVE: 'bg-secondary', MAINTENANCE: 'bg-warning text-dark', BROKEN: 'bg-danger' };
+        const statusLabels = { ACTIVE: 'Hoạt động', INACTIVE: 'Ngừng HĐ', MAINTENANCE: 'Bảo trì', BROKEN: 'Hỏng' };
+        tbody.innerHTML = equips.slice(0, 5).map(e => `
+            <tr>
+                <td><strong style="font-size:0.85rem;">${esc(e.equipmentName || '-')}</strong></td>
+                <td><span style="font-size:0.78rem; background:#f0f4ff; color:#5c7cfa; border:1px solid #dce4ff; border-radius:5px; padding:2px 7px;">${esc(e.equipmentCode || '-')}</span></td>
+                <td style="font-size:0.82rem; color:#6b7c93;">${esc(e.location || '-')}</td>
+                <td><span class="badge badge-status ${statusColors[e.status] || 'bg-secondary'}">${statusLabels[e.status] || e.status || 'N/A'}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    function renderActivityFeed(activities) {
+        const feed = document.getElementById('activityFeed');
+        if (!feed) return;
+        feed.innerHTML = activities.map(a => `
+            <div class="activity-item">
+                <div class="activity-avatar ${a.color}"><i class="fa-solid ${a.icon}"></i></div>
+                <div class="activity-text">
+                    <strong>${esc(a.title)}</strong>
+                    <p>${esc(a.desc)}</p>
+                </div>
+                <div class="activity-time">${esc(a.time)}</div>
+            </div>
+        `).join('');
+    }
+
+    loadDashboardData();
+</script>
+</body>
+</html>

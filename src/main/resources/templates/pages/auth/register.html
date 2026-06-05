@@ -1,550 +1,463 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng Ký Tài Khoản — HMS Hotel</title>
-    <meta name="description" content="Đăng ký tài khoản nhân viên mới cho Hệ thống Quản lý Khách sạn HMS Hotel.">
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="Đăng ký tài khoản nhân viên - Hotel Management System"/>
+    <title>Đăng ký - Hotel Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
     <style>
         :root {
-            --primary: #003580;
-            --primary-light: #0050b3;
-            --accent: #ffd700;
-            --bg-dark: #060e1a;
-            --card-bg: rgba(15, 28, 50, 0.85);
-            --border: rgba(255,255,255,0.08);
-            --text: #e8edf3;
-            --muted: #8899a6;
-            --error: #ef4444;
-            --success: #10b981;
+            --hms-primary: #003580;
+            --hms-secondary: #0071c2;
+            --hms-accent: #febb02;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
         body {
-            background: var(--bg-dark);
-            background-image:
-                radial-gradient(ellipse at 20% 20%, rgba(0,53,128,0.25) 0, transparent 55%),
-                radial-gradient(ellipse at 80% 80%, rgba(0,80,179,0.18) 0, transparent 55%);
-            background-attachment: fixed;
             min-height: 100vh;
-            display: flex; align-items: center; justify-content: center;
-            color: var(--text);
-            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, #001a4d 0%, #003580 40%, #0052a5 70%, #0071c2 100%);
+            position: relative;
+            overflow-x: hidden;
         }
         body::before {
             content: '';
-            position: fixed; inset: 0;
-            background-image: radial-gradient(rgba(255,215,0,0.05) 1px, transparent 1px);
-            background-size: 32px 32px;
+            position: fixed;
+            top: -20%;
+            right: -10%;
+            width: 700px;
+            height: 700px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(254,187,2,0.1) 0%, transparent 70%);
             pointer-events: none;
+            animation: floatBlob 10s ease-in-out infinite;
+        }
+        @keyframes floatBlob {
+            0%, 100% { transform: translate(0,0); }
+            50% { transform: translate(-30px, 40px); }
         }
         .register-wrapper {
-            width: 100%; max-width: 520px;
-            position: relative; z-index: 2;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            position: relative;
+            z-index: 1;
         }
-        .auth-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-radius: 24px;
-            padding: 2.25rem 2.25rem;
-            box-shadow: 0 30px 70px rgba(0,0,0,0.5);
-            position: relative; overflow: hidden;
+        .register-container {
+            width: 100%;
+            max-width: 520px;
         }
-        .auth-card::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0;
+        .brand-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            animation: fadeInDown 0.6s ease;
+        }
+        .brand-icon-lg {
+            width: 62px;
+            height: 62px;
+            background: var(--hms-accent);
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--hms-primary);
+            font-size: 1.6rem;
+            margin-bottom: 0.8rem;
+            box-shadow: 0 8px 25px rgba(254,187,2,0.4);
+        }
+        .brand-title { font-size: 1.4rem; font-weight: 800; color: #fff; margin-bottom: 0.25rem; }
+        .brand-subtitle { font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+        .register-card {
+            background: rgba(255,255,255,0.97);
+            border-radius: 20px;
+            padding: 2.2rem 2.2rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeInUp 0.6s ease 0.1s both;
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .register-card h2 { font-size: 1.3rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.25rem; }
+        .register-card .subtitle { font-size: 0.85rem; color: #6b7c93; margin-bottom: 1.5rem; }
+        .form-label-hms { font-size: 0.82rem; font-weight: 600; color: #2d3748; margin-bottom: 0.35rem; display: block; }
+        .form-label-hms .required-star { color: #e74c3c; margin-left: 2px; }
+        .input-wrap {
+            position: relative;
+            margin-bottom: 1.1rem;
+        }
+        .input-icon {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9daec2;
+            font-size: 0.88rem;
+            z-index: 5;
+        }
+        .form-control-hms {
+            width: 100%;
+            padding: 0.68rem 1rem 0.68rem 2.6rem;
+            border: 1.5px solid #dde3ee;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            color: #1a1a2e;
+            background: #f8fafd;
+            transition: all 0.25s;
+            outline: none;
+        }
+        .form-control-hms:focus {
+            border-color: var(--hms-secondary);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(0,113,194,0.1);
+        }
+        .form-control-hms.is-invalid-hms {
+            border-color: #e74c3c;
+            background: #fff8f8;
+        }
+        .form-control-hms.is-valid-hms {
+            border-color: #27ae60;
+            background: #f8fff9;
+        }
+        .invalid-feedback-hms {
+            font-size: 0.78rem;
+            color: #e74c3c;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .form-control-hms::placeholder { color: #b0bec5; }
+        .toggle-password {
+            position: absolute;
+            right: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #9daec2;
+            cursor: pointer;
+            font-size: 0.88rem;
+            padding: 2px 5px;
+            z-index: 5;
+        }
+        .toggle-password:hover { color: var(--hms-secondary); }
+        .password-strength {
+            margin-top: 6px;
+        }
+        .password-strength-bar {
             height: 4px;
-            background: linear-gradient(90deg, var(--primary-light), var(--accent), var(--primary-light));
-            background-size: 200% 100%;
-            animation: shimmer 3s infinite linear;
+            border-radius: 2px;
+            background: #e8ecf2;
+            overflow: hidden;
+            margin-bottom: 3px;
         }
-        @keyframes shimmer {
-            0%   { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+        .password-strength-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: all 0.3s;
+            width: 0%;
         }
-        .auth-logo {
-            display: flex; align-items: center; justify-content: center;
-            flex-direction: column; margin-bottom: 1.75rem; text-align: center;
+        .password-strength-text { font-size: 0.73rem; color: #9daec2; }
+        .alert-hms-danger {
+            background: #fff0f0;
+            color: #c0392b;
+            border-left: 3px solid #e74c3c;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 1.2rem;
         }
-        .auth-logo .logo-icon {
-            width: 60px; height: 60px;
-            background: linear-gradient(135deg, var(--primary-light), #1a6bb5);
-            border-radius: 17px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.6rem; color: #fff;
-            box-shadow: 0 12px 30px rgba(0,53,128,0.5);
-            margin-bottom: 0.9rem;
+        .btn-register-submit {
+            width: 100%;
+            background: linear-gradient(135deg, #003580 0%, #0071c2 100%);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.93rem;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s;
+            margin-bottom: 1rem;
         }
-        .auth-logo h1 {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.7rem; font-weight: 800;
-            background: linear-gradient(135deg, #fff 40%, #a8c4e8);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px; margin-bottom: 0.2rem;
+        .btn-register-submit:hover { box-shadow: 0 6px 20px rgba(0,53,128,0.4); }
+        .btn-register-submit:active { transform: scale(0.98); }
+        .divider-hms {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 0.8rem 0;
         }
-        .auth-logo p { font-size: 0.86rem; color: var(--muted); }
-
-        /* STEP INDICATOR */
+        .divider-hms::before, .divider-hms::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e8ecf2;
+        }
+        .divider-hms span { font-size: 0.78rem; color: #9daec2; }
+        .btn-back-login {
+            width: 100%;
+            background: transparent;
+            color: var(--hms-primary);
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 0.65rem;
+            border: 1.5px solid var(--hms-primary);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+        }
+        .btn-back-login:hover { background: var(--hms-primary); color: #fff; }
         .step-indicator {
-            display: flex; align-items: center; gap: 0;
-            margin-bottom: 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 1.5rem;
         }
         .step-dot {
-            display: flex; align-items: center; justify-content: center;
-            width: 32px; height: 32px; border-radius: 50%;
-            font-size: 0.8rem; font-weight: 700;
-            background: rgba(255,255,255,0.06);
-            border: 2px solid rgba(255,255,255,0.12);
-            color: var(--muted);
-            flex-shrink: 0; position: relative; z-index: 1;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #e0e6ef;
             transition: all 0.3s;
         }
         .step-dot.active {
-            background: var(--primary-light);
-            border-color: var(--primary-light);
-            color: #fff;
-            box-shadow: 0 0 16px rgba(0,80,179,0.5);
+            background: var(--hms-secondary);
+            width: 24px;
+            border-radius: 4px;
         }
-        .step-dot.done {
-            background: var(--success);
-            border-color: var(--success);
-            color: #fff;
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #e8f2ff;
+            border: 1px solid #b8d4ff;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--hms-secondary);
+            margin-bottom: 1rem;
         }
-        .step-line {
-            flex: 1; height: 2px;
-            background: rgba(255,255,255,0.08);
-        }
-        .step-line.active { background: var(--primary-light); }
-
-        /* ALERT */
-        .hms-alert {
-            display: flex; align-items: flex-start; gap: 0.65rem;
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.3);
-            border-radius: 12px;
-            padding: 0.85rem 1rem;
-            margin-bottom: 1.25rem;
-            font-size: 0.875rem; color: #fca5a5;
-            animation: fadeInDown 0.3s ease;
-        }
-        .hms-alert i { color: var(--error); flex-shrink: 0; }
-        @keyframes fadeInDown {
-            from { opacity: 0; transform: translateY(-8px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        .hms-alert ul { padding-left: 1rem; margin: 0.3rem 0 0; }
-        .hms-alert ul li { margin-bottom: 0.2rem; }
-
-        /* FORM ROWS */
-        .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
-        .form-group { margin-bottom: 1rem; }
-        .form-label {
-            display: block; font-size: 0.8rem; font-weight: 600;
-            color: var(--muted); text-transform: uppercase;
-            letter-spacing: 0.4px; margin-bottom: 0.4rem;
-        }
-        .input-icon-wrap { position: relative; }
-        .input-icon-wrap .fi {
-            position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%);
-            color: var(--muted); font-size: 0.9rem; pointer-events: none; z-index: 2;
-        }
-        .input-icon-wrap .form-control,
-        .input-icon-wrap .form-select {
-            width: 100%;
-            padding: 0.78rem 0.9rem 0.78rem 2.7rem;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px;
-            color: #fff; font-size: 0.9rem; outline: none;
-            transition: all 0.2s;
-        }
-        .input-icon-wrap .form-control:focus,
-        .input-icon-wrap .form-select:focus {
-            border-color: var(--accent);
-            background: rgba(255,255,255,0.08);
-            box-shadow: 0 0 0 3px rgba(255,215,0,0.12);
-        }
-        .input-icon-wrap .form-control::placeholder { color: var(--muted); }
-        .input-icon-wrap .form-select option { background: #152238; color: #fff; }
-        .input-icon-wrap .toggle-pw {
-            position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%);
-            background: none; border: none; color: var(--muted); cursor: pointer;
-            font-size: 0.9rem; transition: color 0.2s;
-        }
-        .input-icon-wrap .toggle-pw:hover { color: #fff; }
-        .field-has-error .form-control,
-        .field-has-error .form-select { border-color: var(--error); box-shadow: 0 0 0 3px rgba(239,68,68,0.12); }
-        .field-error-msg {
-            display: flex; align-items: center; gap: 0.3rem;
-            color: #fca5a5; font-size: 0.76rem; margin-top: 0.3rem;
-        }
-        /* Password strength */
-        .pw-strength { margin-top: 0.4rem; }
-        .pw-strength-bar {
-            height: 4px; border-radius: 4px;
-            background: rgba(255,255,255,0.08);
-            overflow: hidden;
-        }
-        .pw-strength-fill {
-            height: 100%; border-radius: 4px;
-            width: 0; transition: width 0.4s, background 0.4s;
-        }
-        .pw-strength-text { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
-
-        /* SUBMIT */
-        .btn-auth-submit {
-            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-            width: 100%; padding: 0.9rem;
-            background: linear-gradient(135deg, var(--primary-light), var(--primary));
-            border: none; border-radius: 12px;
-            color: #fff; font-size: 1rem; font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 8px 24px rgba(0,53,128,0.4);
-            transition: all 0.25s;
-        }
-        .btn-auth-submit:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 30px rgba(0,53,128,0.55);
-            filter: brightness(1.1);
-        }
-        .btn-spinner {
-            display: none; width: 18px; height: 18px;
-            border: 2.5px solid rgba(255,255,255,0.3);
-            border-top-color: #fff; border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .auth-footer-link {
-            text-align: center; font-size: 0.875rem; color: var(--muted); margin-top: 1.25rem;
-        }
-        .auth-footer-link a { color: var(--accent); font-weight: 600; text-decoration: none; }
-        .auth-footer-link a:hover { text-decoration: underline; }
-        .terms-check { display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 1.25rem; }
-        .terms-check .form-check-input:checked { background-color: var(--primary-light); border-color: var(--primary-light); }
-        .terms-check label { font-size: 0.83rem; color: var(--muted); line-height: 1.5; }
-        .terms-check label a { color: var(--accent); }
-        @media (max-width: 500px) { .form-row-2 { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 <div class="register-wrapper">
-    <div class="auth-card">
+    <div class="register-container">
 
-        <!-- LOGO -->
-        <div class="auth-logo">
-            <div class="logo-icon"><i class="fa-solid fa-user-plus"></i></div>
-            <h1>Đăng Ký Tài Khoản</h1>
-            <p>Tạo tài khoản nhân viên mới cho hệ thống HMS Hotel</p>
+        <!-- Brand -->
+        <div class="brand-header">
+            <div class="brand-icon-lg"><i class="fa-solid fa-hotel"></i></div>
+            <div class="brand-title">Hotel Management System</div>
+            <div class="brand-subtitle">Tạo tài khoản nhân viên mới</div>
         </div>
 
-        <!-- SERVER-SIDE VALIDATION ERRORS -->
-        <div class="hms-alert"
-             th:if="${#fields.hasErrors('*')}"
-             th:object="${registerDTO}">
-            <i class="fa-solid fa-circle-xmark"></i>
-            <div>
-                <strong>Có lỗi xảy ra! Vui lòng kiểm tra lại:</strong>
-                <ul>
-                    <li th:each="err : ${#fields.allErrors()}" th:text="${err}">Lỗi</li>
-                </ul>
+        <!-- Card -->
+        <div class="register-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div>
+                    <h2>Đăng ký tài khoản</h2>
+                    <p class="subtitle mb-0">Điền đầy đủ thông tin để tạo tài khoản</p>
+                </div>
+                <div class="role-badge">
+                    <i class="fa-solid fa-id-badge"></i>
+                    <span>Nhân viên</span>
+                </div>
             </div>
-        </div>
 
-        <!-- GENERIC ERROR -->
-        <div class="hms-alert" th:if="${errorMessage != null}">
-            <i class="fa-solid fa-circle-xmark"></i>
-            <span th:text="${errorMessage}">Có lỗi xảy ra.</span>
-        </div>
+            <!-- Step indicator -->
+            <div class="step-indicator">
+                <div class="step-dot active"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+            </div>
 
-        <!-- REGISTER FORM -->
-        <!-- NOTE: Adjust th:action to match your AuthController's register endpoint -->
-        <form id="registerForm"
-              th:action="@{/register}"
-              th:object="${registerDTO}"
-              method="post"
-              novalidate>
+            <!-- Error messages from server -->
+            <div class="alert-hms-danger" th:if="${errorMessage}">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span th:text="${errorMessage}">Có lỗi xảy ra. Vui lòng thử lại.</span>
+            </div>
 
-            <!-- CSRF Token -->
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <!-- Register Form -->
+            <form th:action="@{/register}" th:object="${employee}" method="post" id="registerForm" novalidate>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" th:if="${_csrf}"/>
 
-            <!-- ROW 1: Họ tên + Tên đăng nhập -->
-            <div class="form-row-2">
                 <!-- Full Name -->
-                <div class="form-group" id="group-fullName">
-                    <label class="form-label" for="fullName">
-                        <i class="fa-solid fa-id-card" style="margin-right:3px;"></i>Họ và tên
-                    </label>
-                    <div class="input-icon-wrap">
-                        <i class="fa-solid fa-id-card fi"></i>
-                        <input type="text"
-                               id="fullName"
-                               th:field="*{fullName}"
-                               class="form-control"
-                               th:classappend="${#fields.hasErrors('fullName')} ? ' is-invalid' : ''"
-                               placeholder="Nguyễn Văn A"
-                               required>
-                    </div>
-                    <div class="field-error-msg" th:if="${#fields.hasErrors('fullName')}">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span th:errors="*{fullName}">Lỗi họ tên</span>
-                    </div>
-                    <div class="field-error-msg" id="err-fullName" style="display:none;">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>Vui lòng nhập họ và tên.</span>
-                    </div>
-                </div>
-
-                <!-- Username -->
-                <div class="form-group" id="group-userName">
-                    <label class="form-label" for="userName">
-                        <i class="fa-regular fa-user" style="margin-right:3px;"></i>Tên đăng nhập
-                    </label>
-                    <div class="input-icon-wrap">
-                        <i class="fa-regular fa-user fi"></i>
-                        <input type="text"
-                               id="userName"
-                               th:field="*{userName}"
-                               class="form-control"
-                               th:classappend="${#fields.hasErrors('userName')} ? ' is-invalid' : ''"
-                               placeholder="nhanvien01"
-                               required>
-                    </div>
-                    <div class="field-error-msg" th:if="${#fields.hasErrors('userName')}">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span th:errors="*{userName}">Lỗi username</span>
-                    </div>
-                    <div class="field-error-msg" id="err-userName" style="display:none;">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>Vui lòng nhập tên đăng nhập.</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ROW 2: Email + SĐT -->
-            <div class="form-row-2">
-                <!-- Email -->
-                <div class="form-group" id="group-email">
-                    <label class="form-label" for="email">
-                        <i class="fa-regular fa-envelope" style="margin-right:3px;"></i>Email
-                    </label>
-                    <div class="input-icon-wrap">
-                        <i class="fa-regular fa-envelope fi"></i>
-                        <input type="email"
-                               id="email"
-                               th:field="*{email}"
-                               class="form-control"
-                               th:classappend="${#fields.hasErrors('email')} ? ' is-invalid' : ''"
-                               placeholder="email@hms.vn"
-                               required>
-                    </div>
-                    <div class="field-error-msg" th:if="${#fields.hasErrors('email')}">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span th:errors="*{email}">Lỗi email</span>
-                    </div>
-                    <div class="field-error-msg" id="err-email" style="display:none;">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>Vui lòng nhập email hợp lệ.</span>
-                    </div>
-                </div>
-
-                <!-- Phone -->
-                <div class="form-group" id="group-phone">
-                    <label class="form-label" for="phone">
-                        <i class="fa-solid fa-phone" style="margin-right:3px;"></i>Số điện thoại
-                    </label>
-                    <div class="input-icon-wrap">
-                        <i class="fa-solid fa-phone fi"></i>
-                        <input type="tel"
-                               id="phone"
-                               th:field="*{phone}"
-                               class="form-control"
-                               th:classappend="${#fields.hasErrors('phone')} ? ' is-invalid' : ''"
-                               placeholder="0912345678"
-                               pattern="^0[0-9]{9}$"
-                               required>
-                    </div>
-                    <div class="field-error-msg" th:if="${#fields.hasErrors('phone')}">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span th:errors="*{phone}">Lỗi số điện thoại</span>
-                    </div>
-                    <div class="field-error-msg" id="err-phone" style="display:none;">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>SĐT không hợp lệ (10 số, bắt đầu bằng 0).</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ROW 3: Mật khẩu + Xác nhận -->
-            <div class="form-row-2">
-                <!-- Password -->
-                <div class="form-group" id="group-password">
-                    <label class="form-label" for="regPassword">
-                        <i class="fa-solid fa-lock" style="margin-right:3px;"></i>Mật khẩu
-                    </label>
-                    <div class="input-icon-wrap">
-                        <i class="fa-solid fa-lock fi"></i>
-                        <input type="password"
-                               id="regPassword"
-                               th:field="*{password}"
-                               class="form-control"
-                               th:classappend="${#fields.hasErrors('password')} ? ' is-invalid' : ''"
-                               placeholder="Tối thiểu 8 ký tự"
-                               required minlength="8">
-                        <button type="button" class="toggle-pw" id="toggleRegPw">
-                            <i class="fa-regular fa-eye-slash" id="toggleRegPwIcon"></i>
-                        </button>
-                    </div>
-                    <div class="pw-strength">
-                        <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwStrengthFill"></div></div>
-                        <div class="pw-strength-text" id="pwStrengthText">Nhập mật khẩu để kiểm tra độ mạnh</div>
-                    </div>
-                    <div class="field-error-msg" th:if="${#fields.hasErrors('password')}">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span th:errors="*{password}">Lỗi mật khẩu</span>
-                    </div>
-                </div>
-
-                <!-- Confirm Password -->
-                <div class="form-group" id="group-confirmPassword">
-                    <label class="form-label" for="confirmPassword">
-                        <i class="fa-solid fa-lock" style="margin-right:3px;"></i>Xác nhận MK
-                    </label>
-                    <div class="input-icon-wrap">
-                        <i class="fa-solid fa-lock-open fi"></i>
-                        <input type="password"
-                               id="confirmPassword"
-                               name="confirmPassword"
-                               class="form-control"
-                               placeholder="Nhập lại mật khẩu"
-                               required>
-                        <button type="button" class="toggle-pw" id="toggleConfirmPw">
-                            <i class="fa-regular fa-eye-slash" id="toggleConfirmPwIcon"></i>
-                        </button>
-                    </div>
-                    <div class="field-error-msg" id="err-confirmPassword" style="display:none;">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>Mật khẩu xác nhận không khớp.</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TERMS -->
-            <div class="terms-check">
-                <input class="form-check-input mt-0" type="checkbox" id="agreeTerms" required>
-                <label for="agreeTerms">
-                    Tôi đồng ý với <a href="#">Điều khoản sử dụng</a> và
-                    <a href="#">Chính sách bảo mật</a> của HMS Hotel.
+                <label class="form-label-hms" for="regFullName">
+                    Họ và tên <span class="required-star">*</span>
                 </label>
-            </div>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-user input-icon"></i>
+                    <input type="text"
+                           id="regFullName"
+                           th:field="*{fullName}"
+                           class="form-control-hms"
+                           th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid-hms'"
+                           placeholder="Ví dụ: Nguyễn Văn An"
+                           required/>
+                    <div class="invalid-feedback-hms" th:if="${#fields.hasErrors('fullName')}">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span th:errors="*{fullName}">Họ tên không hợp lệ</span>
+                    </div>
+                </div>
 
-            <!-- SUBMIT -->
-            <button type="submit" class="btn-auth-submit" id="btnRegister">
-                <div class="btn-spinner" id="regSpinner"></div>
-                <i class="fa-solid fa-user-plus" id="regBtnIcon"></i>
-                <span id="regBtnText">Tạo Tài Khoản</span>
-            </button>
-        </form>
+                <!-- Email -->
+                <label class="form-label-hms" for="regEmail">
+                    Email <span class="required-star">*</span>
+                </label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-envelope input-icon"></i>
+                    <input type="email"
+                           id="regEmail"
+                           th:field="*{email}"
+                           class="form-control-hms"
+                           th:classappend="${#fields.hasErrors('email')} ? 'is-invalid-hms'"
+                           placeholder="Ví dụ: nguyenan@hotel.com"
+                           required/>
+                    <div class="invalid-feedback-hms" th:if="${#fields.hasErrors('email')}">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span th:errors="*{email}">Email không hợp lệ</span>
+                    </div>
+                </div>
 
-        <!-- FOOTER LINK -->
-        <div class="auth-footer-link">
-            Đã có tài khoản?
-            <a href="/login"><i class="fa-solid fa-right-to-bracket" style="font-size:0.85rem;"></i> Đăng nhập ngay</a>
+                <!-- Phone Number -->
+                <label class="form-label-hms" for="regPhone">
+                    Số điện thoại <span class="required-star">*</span>
+                </label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-phone input-icon"></i>
+                    <input type="tel"
+                           id="regPhone"
+                           th:field="*{phoneNumber}"
+                           class="form-control-hms"
+                           th:classappend="${#fields.hasErrors('phoneNumber')} ? 'is-invalid-hms'"
+                           placeholder="Ví dụ: 0901234567"
+                           required/>
+                    <div class="invalid-feedback-hms" th:if="${#fields.hasErrors('phoneNumber')}">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span th:errors="*{phoneNumber}">Số điện thoại không hợp lệ</span>
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <label class="form-label-hms" for="regPassword">
+                    Mật khẩu <span class="required-star">*</span>
+                </label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-lock input-icon"></i>
+                    <input type="password"
+                           id="regPassword"
+                           th:field="*{password}"
+                           class="form-control-hms"
+                           th:classappend="${#fields.hasErrors('password')} ? 'is-invalid-hms'"
+                           placeholder="Tối thiểu 8 ký tự"
+                           oninput="checkStrength(this.value)"
+                           required/>
+                    <button type="button" class="toggle-password" onclick="togglePwd('regPassword','pwdIcon2')" aria-label="Hiện/Ẩn">
+                        <i class="fa-solid fa-eye" id="pwdIcon2"></i>
+                    </button>
+                    <div class="invalid-feedback-hms" th:if="${#fields.hasErrors('password')}">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span th:errors="*{password}">Mật khẩu không hợp lệ</span>
+                    </div>
+                </div>
+
+                <!-- Password Strength -->
+                <div class="password-strength mb-3">
+                    <div class="password-strength-bar">
+                        <div class="password-strength-fill" id="strengthFill"></div>
+                    </div>
+                    <span class="password-strength-text" id="strengthText">Nhập mật khẩu để kiểm tra độ mạnh</span>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn-register-submit" id="btnRegisterSubmit">
+                    <i class="fa-solid fa-user-plus me-2"></i>Tạo tài khoản
+                </button>
+
+                <div class="divider-hms"><span>Đã có tài khoản?</span></div>
+
+                <a th:href="@{/login}" class="btn-back-login" id="btnBackLogin">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i>Đăng nhập ngay
+                </a>
+            </form>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Toggle password visibility
-    function togglePassword(inputId, iconId) {
-        const input = document.getElementById(inputId);
-        const icon  = document.getElementById(iconId);
-        const isHidden = input.type === 'password';
-        input.type = isHidden ? 'text' : 'password';
-        icon.className = isHidden ? 'fa-regular fa-eye' : 'fa-regular fa-eye-slash';
+    function togglePwd(fieldId, iconId) {
+        const f = document.getElementById(fieldId);
+        const i = document.getElementById(iconId);
+        if (f.type === 'password') { f.type = 'text'; i.className = 'fa-solid fa-eye-slash'; }
+        else { f.type = 'password'; i.className = 'fa-solid fa-eye'; }
     }
-    document.getElementById('toggleRegPw').addEventListener('click',     () => togglePassword('regPassword',     'toggleRegPwIcon'));
-    document.getElementById('toggleConfirmPw').addEventListener('click', () => togglePassword('confirmPassword', 'toggleConfirmPwIcon'));
 
-    // Password strength meter
-    document.getElementById('regPassword').addEventListener('input', function () {
-        const val = this.value;
-        const fill = document.getElementById('pwStrengthFill');
-        const text = document.getElementById('pwStrengthText');
+    function checkStrength(val) {
+        const fill = document.getElementById('strengthFill');
+        const text = document.getElementById('strengthText');
         let score = 0;
         if (val.length >= 8) score++;
         if (/[A-Z]/.test(val)) score++;
         if (/[0-9]/.test(val)) score++;
         if (/[^A-Za-z0-9]/.test(val)) score++;
         const levels = [
-            { w: '0%',   bg: 'transparent', label: 'Nhập mật khẩu để kiểm tra độ mạnh' },
-            { w: '25%',  bg: '#ef4444',      label: '⚠️ Yếu — cần ít nhất 8 ký tự' },
-            { w: '50%',  bg: '#f59e0b',      label: '🟡 Trung bình — thêm chữ hoa hoặc số' },
-            { w: '75%',  bg: '#3b82f6',      label: '🔵 Khá mạnh — thêm ký tự đặc biệt' },
-            { w: '100%', bg: '#10b981',      label: '✅ Rất mạnh — tuyệt vời!' },
+            { w: '0%',   color: '#e8ecf2', label: 'Nhập mật khẩu để kiểm tra độ mạnh' },
+            { w: '25%',  color: '#e74c3c', label: 'Rất yếu - Cần ít nhất 8 ký tự' },
+            { w: '50%',  color: '#e67e22', label: 'Yếu - Thêm chữ hoa và số' },
+            { w: '75%',  color: '#f1c40f', label: 'Trung bình - Thêm ký tự đặc biệt' },
+            { w: '100%', color: '#27ae60', label: 'Mạnh - Mật khẩu tốt!' }
         ];
-        const lv = val.length === 0 ? levels[0] : levels[score] || levels[1];
-        fill.style.width = lv.w;
-        fill.style.background = lv.bg;
-        text.textContent = lv.label;
-        text.style.color = lv.bg === 'transparent' ? 'var(--muted)' : lv.bg;
-    });
+        const l = val.length === 0 ? 0 : score;
+        fill.style.width = levels[l].w;
+        fill.style.background = levels[l].color;
+        text.textContent = levels[l].label;
+        text.style.color = levels[l].color === '#e8ecf2' ? '#9daec2' : levels[l].color;
+    }
 
-    // Form validation
-    const regForm = document.getElementById('registerForm');
-    regForm.addEventListener('submit', function (e) {
+    // Client-side validation
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+        const fullName = document.getElementById('regFullName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
+        const pwd = document.getElementById('regPassword').value;
         let valid = true;
-        const fields = ['fullName', 'userName', 'email', 'phone'];
-        fields.forEach(f => {
-            const el = document.getElementById(f);
-            const errEl = document.getElementById('err-' + f);
-            if (errEl) errEl.style.display = 'none';
-            if (el && !el.value.trim()) {
-                if (errEl) errEl.style.display = 'flex';
-                valid = false;
-            }
-        });
-        // Email format
-        const emailVal = document.getElementById('email').value;
-        if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
-            document.getElementById('err-email').style.display = 'flex';
-            valid = false;
-        }
-        // Phone format
-        const phoneVal = document.getElementById('phone').value;
-        if (phoneVal && !/^0[0-9]{9}$/.test(phoneVal)) {
-            document.getElementById('err-phone').style.display = 'flex';
-            valid = false;
-        }
-        // Confirm password
-        const pw  = document.getElementById('regPassword').value;
-        const cpw = document.getElementById('confirmPassword').value;
-        if (pw !== cpw) {
-            document.getElementById('err-confirmPassword').style.display = 'flex';
-            valid = false;
-        }
-        // Terms
-        if (!document.getElementById('agreeTerms').checked) {
-            alert('Vui lòng đồng ý với điều khoản sử dụng.');
-            valid = false;
-        }
 
-        if (!valid) { e.preventDefault(); return; }
+        if (!fullName) { markInvalid('regFullName'); valid = false; }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { markInvalid('regEmail'); valid = false; }
+        if (!phone || !/^[0-9]{10,11}$/.test(phone)) { markInvalid('regPhone'); valid = false; }
+        if (!pwd || pwd.length < 8) { markInvalid('regPassword'); valid = false; }
 
-        // Show loading
-        document.getElementById('regSpinner').style.display = 'block';
-        document.getElementById('regBtnIcon').style.display = 'none';
-        document.getElementById('regBtnText').textContent = 'Đang tạo tài khoản...';
-        this.querySelector('.btn-auth-submit').disabled = true;
+        if (!valid) e.preventDefault();
+        else {
+            const btn = document.getElementById('btnRegisterSubmit');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Đang xử lý...';
+            btn.disabled = true;
+        }
     });
+
+    function markInvalid(id) {
+        const el = document.getElementById(id);
+        el.classList.add('is-invalid-hms');
+        el.addEventListener('input', () => el.classList.remove('is-invalid-hms'), { once: true });
+    }
 </script>
 </body>
 </html>

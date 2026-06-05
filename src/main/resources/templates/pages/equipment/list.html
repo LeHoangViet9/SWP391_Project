@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6"
+      lang="vi">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="Quản lý thiết bị - Hotel Management System"/>
+    <title>Thiết bị - Hotel Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <style>
+        :root { --hms-primary:#003580; --hms-secondary:#0071c2; --hms-accent:#febb02; --hms-light-bg:#f4f6fb; --hms-border:#e0e6f0; --hms-text-muted:#6b7c93; --hms-sidebar-width:260px; --hms-sidebar-collapsed:72px; }
+        * { font-family:'Inter',sans-serif; }
+        body { background:var(--hms-light-bg); min-height:100vh; display:flex; flex-direction:column; }
+        .app-layout { display:flex; min-height:calc(100vh - 64px); padding-top:64px; }
+        .main-area { flex:1; margin-left:var(--hms-sidebar-width); transition:margin-left 0.3s; min-width:0; }
+        .main-area.sidebar-collapsed { margin-left:var(--hms-sidebar-collapsed); }
+        @media(max-width:992px){.main-area{margin-left:0;}}
+        .page-header { background:linear-gradient(135deg,#003580 0%,#0052a5 100%); color:#fff; padding:1.5rem 0; }
+        .page-header h1 { font-size:1.4rem; font-weight:700; margin:0; display:flex; align-items:center; gap:10px; }
+        .breadcrumb { margin-bottom:0; --bs-breadcrumb-divider-color:rgba(255,255,255,0.5); }
+        .breadcrumb-item { font-size:0.82rem; color:rgba(255,255,255,0.7); }
+        .breadcrumb-item.active { color:rgba(255,255,255,0.9); }
+        .breadcrumb-item a { color:rgba(255,255,255,0.7); text-decoration:none; }
+        .main-content { flex:1; padding:1.8rem 0; }
+
+        /* Status chips */
+        .status-chip { display:inline-flex; align-items:center; gap:5px; border-radius:20px; padding:3px 10px; font-size:0.74rem; font-weight:600; white-space:nowrap; }
+        .chip-ACTIVE { background:#e8fff0; color:#27ae60; border:1px solid #c8f0d8; }
+        .chip-INACTIVE { background:#f4f5f7; color:#6b7c93; border:1px solid #d8dce6; }
+        .chip-MAINTENANCE { background:#fff8e6; color:#c8a000; border:1px solid #ffe8a0; }
+        .chip-BROKEN { background:#fff0f0; color:#e74c3c; border:1px solid #ffd0d0; }
+
+        .stat-card { background:#fff; border-radius:14px; padding:1.1rem 1.3rem; box-shadow:0 2px 12px rgba(0,53,128,0.07); display:flex; align-items:center; gap:14px; border:1px solid var(--hms-border); transition:all 0.2s; }
+        .stat-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,53,128,0.12); }
+        .stat-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+        .stat-icon.blue { background:#e8f2ff; color:var(--hms-secondary); }
+        .stat-icon.green { background:#e8fff0; color:#27ae60; }
+        .stat-icon.yellow { background:#fffbe6; color:#c8a000; }
+        .stat-icon.red { background:#fff0f0; color:#e74c3c; }
+        .stat-value { font-size:1.4rem; font-weight:700; color:#1a1a2e; line-height:1; }
+        .stat-label { font-size:0.76rem; color:var(--hms-text-muted); margin-top:2px; }
+
+        .toolbar-card { background:#fff; border-radius:14px; padding:1.1rem 1.4rem; box-shadow:0 2px 12px rgba(0,53,128,0.07); border:1px solid var(--hms-border); margin-bottom:1rem; }
+        .search-wrap { position:relative; flex:1; max-width:360px; }
+        .search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#9daec2; font-size:0.88rem; }
+        .search-input { width:100%; padding:0.6rem 1rem 0.6rem 2.4rem; border:1.5px solid var(--hms-border); border-radius:10px; font-size:0.875rem; background:#f8fafd; transition:all 0.2s; outline:none; }
+        .search-input:focus { border-color:var(--hms-secondary); background:#fff; box-shadow:0 0 0 3px rgba(0,113,194,0.1); }
+        .filter-select { border:1.5px solid var(--hms-border); border-radius:10px; font-size:0.875rem; padding:0.6rem 0.9rem; background:#f8fafd; outline:none; cursor:pointer; }
+        .filter-select:focus { border-color:var(--hms-secondary); box-shadow:0 0 0 3px rgba(0,113,194,0.1); }
+        .btn-add { background:linear-gradient(135deg,#febb02,#e6a800); color:var(--hms-primary); font-weight:700; font-size:0.875rem; padding:0.6rem 1.2rem; border:none; border-radius:10px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px; }
+        .btn-add:hover { box-shadow:0 4px 14px rgba(254,187,2,0.4); transform:translateY(-1px); }
+
+        .table-card { background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,53,128,0.07); border:1px solid var(--hms-border); overflow:hidden; }
+        .table-hms { margin:0; }
+        .table-hms thead { background:linear-gradient(135deg,#003580,#0052a5); }
+        .table-hms thead th { color:rgba(255,255,255,0.9); font-size:0.78rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; padding:0.9rem 1rem; border:none; white-space:nowrap; }
+        .table-hms tbody tr { border-bottom:1px solid #f0f4fb; transition:background 0.15s; }
+        .table-hms tbody tr:hover { background:#f8faff; }
+        .table-hms tbody tr:last-child { border-bottom:none; }
+        .table-hms tbody td { padding:0.85rem 1rem; vertical-align:middle; font-size:0.875rem; color:#2d3748; }
+        .stt-badge { width:28px; height:28px; background:#e8f2ff; color:var(--hms-secondary); border-radius:8px; display:inline-flex; align-items:center; justify-content:middle; justify-content:center; font-size:0.78rem; font-weight:700; }
+        .equip-name { font-weight:600; color:#1a1a2e; }
+        .equip-code { background:#f0f4ff; color:#5c7cfa; border:1px solid #dce4ff; border-radius:6px; font-size:0.78rem; padding:2px 8px; font-weight:500; }
+        .action-btn { width:32px; height:32px; border-radius:8px; border:none; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:0.8rem; transition:all 0.15s; }
+        .action-btn-info { background:#e8f4ff; color:var(--hms-secondary); }
+        .action-btn-info:hover { background:var(--hms-secondary); color:#fff; }
+        .action-btn-edit { background:#e8f4ff; color:var(--hms-secondary); }
+        .action-btn-edit:hover { background:var(--hms-secondary); color:#fff; }
+        .action-btn-delete { background:#fff0f0; color:#e74c3c; }
+        .action-btn-delete:hover { background:#e74c3c; color:#fff; }
+        .equip-img { width:46px; height:38px; object-fit:cover; border-radius:7px; }
+        .equip-img-placeholder { width:46px; height:38px; background:#f0f4fb; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; color:#9daec2; font-size:1rem; }
+
+        .empty-state { text-align:center; padding:3.5rem 1rem; color:var(--hms-text-muted); }
+        .empty-state i { font-size:3.5rem; margin-bottom:1rem; opacity:0.25; display:block; }
+        .pagination-wrap { padding:1rem 1.2rem; border-top:1px solid #f0f4fb; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; }
+        .pagination-info { font-size:0.83rem; color:var(--hms-text-muted); }
+        .page-link { color:var(--hms-primary); border-radius:8px; font-size:0.82rem; }
+        .page-item.active .page-link { background:var(--hms-primary); border-color:var(--hms-primary); }
+
+        .modal-header-hms { background:linear-gradient(135deg,#003580,#0071c2); color:#fff; border-radius:16px 16px 0 0; padding:1.2rem 1.5rem; }
+        .modal-header-hms .modal-title { font-size:1rem; font-weight:700; }
+        .modal-header-hms .btn-close { filter:invert(1); opacity:0.8; }
+        .modal-content { border-radius:16px; border:none; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+        .modal-body { padding:1.5rem; }
+        .modal-footer { padding:1rem 1.5rem; border-top:1px solid #f0f4fb; }
+        .form-label-modal { font-size:0.82rem; font-weight:600; color:#2d3748; margin-bottom:0.35rem; display:block; }
+        .form-control-modal { border:1.5px solid var(--hms-border); border-radius:10px; font-size:0.875rem; padding:0.62rem 0.9rem; transition:all 0.2s; width:100%; outline:none; background:#f8fafd; }
+        .form-control-modal:focus { border-color:var(--hms-secondary); box-shadow:0 0 0 3px rgba(0,113,194,0.1); background:#fff; }
+        .form-control-modal.is-invalid { border-color:#e74c3c; }
+        .btn-modal-save { background:linear-gradient(135deg,#003580,#0071c2); color:#fff; border:none; border-radius:10px; font-weight:600; font-size:0.88rem; padding:0.62rem 1.5rem; transition:all 0.2s; }
+        .btn-modal-save:hover { box-shadow:0 4px 14px rgba(0,53,128,0.3); color:#fff; }
+        .btn-modal-cancel { border-radius:10px; font-size:0.88rem; padding:0.62rem 1.2rem; }
+
+        /* Image upload area */
+        .img-upload-area { width:100%; height:150px; border:1.5px dashed #d0d9e8; border-radius:10px; display:flex; align-items:center; justify-content:center; background:#f8fafd; cursor:pointer; transition:all 0.2s; overflow:hidden; position:relative; }
+        .img-upload-area:hover { border-color:var(--hms-secondary); background:#f0f8ff; }
+        .img-upload-area img { width:100%; height:100%; object-fit:cover; border-radius:9px; }
+        .img-upload-placeholder { text-align:center; color:#9daec2; pointer-events:none; }
+        .img-upload-placeholder i { font-size:2rem; margin-bottom:0.4rem; display:block; }
+
+        .detail-row { display:flex; padding:0.6rem 0; border-bottom:1px solid #f0f4fb; font-size:0.875rem; }
+        .detail-row:last-child { border-bottom:none; }
+        .detail-label { width:130px; flex-shrink:0; color:var(--hms-text-muted); font-size:0.82rem; }
+        .detail-value { color:#1a1a2e; font-weight:500; flex:1; }
+
+        .toast-hms { position:fixed; top:80px; right:20px; z-index:9999; min-width:300px; border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.15); animation:slideInRight 0.3s ease; }
+        @keyframes slideInRight { from{opacity:0;transform:translateX(30px);} to{opacity:1;transform:translateX(0);} }
+        .loading-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:9998; display:none; align-items:center; justify-content:center; }
+        .loading-spinner { width:46px; height:46px; border:4px solid rgba(255,255,255,0.3); border-top-color:#fff; border-radius:50%; animation:spin 0.8s linear infinite; }
+        @keyframes spin{to{transform:rotate(360deg);}}
+    </style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay"><div class="loading-spinner"></div></div>
+
+<div th:replace="~{fragments/header :: header}"></div>
+<div class="app-layout">
+    <div th:replace="~{fragments/sidebar :: sidebar}"></div>
+    <div class="main-area" id="mainArea">
+
+        <div class="page-header">
+            <div class="container-fluid px-4">
+                <h1><i class="fa-solid fa-screwdriver-wrench"></i> Quản lý thiết bị</h1>
+                <nav aria-label="breadcrumb" class="mt-1">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a th:href="@{/dashboard}">Trang chủ</a></li>
+                        <li class="breadcrumb-item active">Thiết bị</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div class="container-fluid px-4">
+
+                <!-- Stats -->
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon blue"><i class="fa-solid fa-list"></i></div>
+                            <div><div class="stat-value" id="statTotal">-</div><div class="stat-label">Tổng thiết bị</div></div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+                            <div><div class="stat-value" id="statActive">-</div><div class="stat-label">Hoạt động</div></div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon yellow"><i class="fa-solid fa-tools"></i></div>
+                            <div><div class="stat-value" id="statMaintenance">-</div><div class="stat-label">Bảo trì</div></div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon red"><i class="fa-solid fa-circle-xmark"></i></div>
+                            <div><div class="stat-value" id="statBroken">-</div><div class="stat-label">Hỏng</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toolbar -->
+                <div class="toolbar-card">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="search-wrap">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" class="search-input" id="searchInput"
+                                   placeholder="Tìm theo tên, mã, vị trí..."
+                                   oninput="debounceSearch()"/>
+                        </div>
+                        <select class="filter-select" id="statusFilter" onchange="currentPage=0; loadEquipments()">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="ACTIVE">Hoạt động</option>
+                            <option value="INACTIVE">Ngừng HĐ</option>
+                            <option value="MAINTENANCE">Bảo trì</option>
+                            <option value="BROKEN">Hỏng</option>
+                        </select>
+                        <button class="btn-add ms-auto" onclick="openAddModal()" id="btnAddEquipment"
+                                sec:authorize="hasAnyRole('ADMIN','MANAGER','MAINTENANCE')">
+                            <i class="fa-solid fa-plus"></i> Thêm thiết bị
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-card">
+                    <div class="table-responsive">
+                        <table class="table table-hms">
+                            <thead>
+                            <tr>
+                                <th style="width:54px;">STT</th>
+                                <th>Tên thiết bị</th>
+                                <th>Mã thiết bị</th>
+                                <th>Vị trí</th>
+                                <th>Ảnh</th>
+                                <th>Mô tả</th>
+                                <th>Ngày tạo</th>
+                                <th>Trạng thái</th>
+                                <th style="width:130px; text-align:center;">Thao tác</th>
+                            </tr>
+                            </thead>
+                            <tbody id="equipTableBody">
+                            <tr><td colspan="9" class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i>Đang tải...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-wrap" id="paginationWrap">
+                        <div class="pagination-info" id="paginationInfo">Hiển thị 0 kết quả</div>
+                        <nav><ul class="pagination pagination-sm mb-0 gap-1" id="paginationList"></ul></nav>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <div th:replace="~{fragments/footer :: footer}"></div>
+    </div>
+</div>
+
+<!-- Equipment Modal (Add/Edit) -->
+<div class="modal fade" id="equipModal" tabindex="-1" aria-labelledby="equipModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header-hms">
+                <h5 class="modal-title" id="equipModalLabel"><i class="fa-solid fa-plus me-2"></i>Thêm thiết bị mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="equipForm" novalidate>
+                <div class="modal-body">
+                    <input type="hidden" id="equipId"/>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label-modal" for="mEquipName">Tên thiết bị <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control-modal" id="mEquipName" placeholder="VD: Điều hòa Daikin 12000BTU" required/>
+                            <div class="invalid-feedback" style="font-size:0.78rem;">Vui lòng nhập tên thiết bị</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-modal" for="mEquipCode">Mã thiết bị <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control-modal" id="mEquipCode" placeholder="VD: AC-101, TV-205..." required/>
+                            <div class="invalid-feedback" style="font-size:0.78rem;">Vui lòng nhập mã thiết bị</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-modal" for="mEquipLocation">Vị trí <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control-modal" id="mEquipLocation" placeholder="VD: Phòng 101, Sảnh chờ..." required/>
+                            <div class="invalid-feedback" style="font-size:0.78rem;">Vui lòng nhập vị trí</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-modal" for="mEquipImageUrl">URL Hình ảnh</label>
+                            <input type="url" class="form-control-modal" id="mEquipImageUrl"
+                                   placeholder="https://example.com/equip.jpg"
+                                   oninput="previewEquipImage(this.value)"/>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label-modal">Xem trước ảnh</label>
+                            <div class="img-upload-area" id="equipImgWrap">
+                                <div class="img-upload-placeholder" id="equipImgPlaceholder">
+                                    <i class="fa-solid fa-image"></i>
+                                    <div style="font-size:0.82rem;">Nhập URL ảnh để xem trước</div>
+                                </div>
+                                <img id="equipImgPreview" src="" alt="Preview" style="display:none;"/>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label-modal" for="mEquipDesc">Mô tả</label>
+                            <textarea class="form-control-modal" id="mEquipDesc" rows="2" placeholder="Mô tả về thiết bị..." style="resize:vertical;"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-modal-cancel btn-light" data-bs-dismiss="modal"><i class="fa-solid fa-xmark me-1"></i>Hủy</button>
+                    <button type="submit" class="btn btn-modal-save" id="btnSaveEquip"><i class="fa-solid fa-floppy-disk me-1"></i>Lưu lại</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header-hms">
+                <h5 class="modal-title"><i class="fa-solid fa-screwdriver-wrench me-2"></i>Chi tiết thiết bị</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailModalBody">
+                <div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content" style="border-radius:16px; border:none;">
+            <div class="modal-body text-center p-4">
+                <div style="width:56px;height:56px;background:#fff0f0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1rem;">
+                    <i class="fa-solid fa-trash" style="color:#e74c3c;font-size:1.3rem;"></i>
+                </div>
+                <h6 style="font-weight:700;color:#1a1a2e;margin-bottom:0.5rem;">Xóa thiết bị?</h6>
+                <p style="font-size:0.85rem;color:#6b7c93;margin-bottom:1.5rem;">Bạn có chắc muốn xóa thiết bị <strong id="deleteEquipName"></strong>?</p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button class="btn btn-light btn-sm px-3" data-bs-dismiss="modal" style="border-radius:8px;">Hủy</button>
+                    <button class="btn btn-danger btn-sm px-3" id="btnConfirmDelete" style="border-radius:8px;"><i class="fa-solid fa-trash me-1"></i>Xóa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast toast-hms align-items-center text-white border-0" id="toastMsg" role="alert">
+    <div class="d-flex">
+        <div class="toast-body" id="toastText"></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function(){
+        if(localStorage.getItem('hms_sidebar_collapsed')==='1') document.getElementById('mainArea')?.classList.add('sidebar-collapsed');
+        document.addEventListener('sidebarToggled',e=>document.getElementById('mainArea')?.classList.toggle('sidebar-collapsed',e.detail.collapsed));
+    })();
+
+    const API = '/api/v1/equipments';
+    let currentPage = 0, totalPages = 0, deleteId = null, searchTimeout = null;
+
+    const equipModal = new bootstrap.Modal(document.getElementById('equipModal'));
+    const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const toastEl = document.getElementById('toastMsg');
+    const toast = new bootstrap.Toast(toastEl, { delay: 3500 });
+
+    function showToast(msg, type='success') {
+        toastEl.className = `toast toast-hms align-items-center text-white border-0 bg-${type==='success'?'success':'danger'}`;
+        document.getElementById('toastText').textContent = msg; toast.show();
+    }
+    function showLoading(v) { document.getElementById('loadingOverlay').style.display = v?'flex':'none'; }
+    function debounceSearch() { clearTimeout(searchTimeout); searchTimeout = setTimeout(()=>{currentPage=0; loadEquipments();}, 400); }
+    function esc(s) { const d=document.createElement('div'); d.appendChild(document.createTextNode(s||'')); return d.innerHTML; }
+    function getCsrf() {
+        const t=document.querySelector('meta[name="_csrf"]')?.content, h=document.querySelector('meta[name="_csrf_header"]')?.content;
+        return t&&h?{[h]:t}:{};
+    }
+    function fmtDate(dt) { if (!dt) return '-'; return new Date(dt).toLocaleDateString('vi-VN'); }
+
+    const STATUS_CONFIG = {
+        ACTIVE: { label:'Hoạt động', cls:'chip-ACTIVE' },
+        INACTIVE: { label:'Ngừng HĐ', cls:'chip-INACTIVE' },
+        MAINTENANCE: { label:'Bảo trì', cls:'chip-MAINTENANCE' },
+        BROKEN: { label:'Hỏng', cls:'chip-BROKEN' }
+    };
+
+    function previewEquipImage(url) {
+        const img = document.getElementById('equipImgPreview');
+        const placeholder = document.getElementById('equipImgPlaceholder');
+        if (url) {
+            img.src = url; img.style.display = ''; placeholder.style.display = 'none';
+            img.onerror = () => { img.style.display = 'none'; placeholder.style.display = ''; };
+        } else { img.style.display = 'none'; img.src = ''; placeholder.style.display = ''; }
+    }
+
+    async function loadEquipments() {
+        const kw = document.getElementById('searchInput').value.trim();
+        const status = document.getElementById('statusFilter').value;
+        const params = new URLSearchParams({ page: currentPage, size: 10 });
+        if (kw) params.append('keywords', kw);
+        if (status) params.append('status', status);
+        try {
+            const res = await fetch(`${API}?${params}`, { headers: { Accept: 'application/json' } });
+            const json = await res.json();
+            if (json.success) { renderTable(json.data.content); renderPagination(json.data); document.getElementById('statTotal').textContent = json.data.totalElements; }
+        } catch(e) {
+            document.getElementById('equipTableBody').innerHTML = `<tr><td colspan="9" class="empty-state"><i class="fa-solid fa-circle-exclamation" style="color:#e74c3c;"></i><br>Không thể tải dữ liệu</td></tr>`;
+        }
+    }
+
+    function renderTable(list) {
+        const tbody = document.getElementById('equipTableBody');
+        if (!list || list.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9" class="empty-state"><i class="fa-solid fa-screwdriver-wrench"></i>Không tìm thấy thiết bị nào</td></tr>`; return;
+        }
+        tbody.innerHTML = list.map((e, i) => {
+            const sc = STATUS_CONFIG[e.status] || { label: e.status, cls: 'chip-INACTIVE' };
+            const imgHtml = e.imageUrl
+                ? `<img src="${esc(e.imageUrl)}" class="equip-img" alt="${esc(e.equipmentName)}" onerror="this.outerHTML='<span class=equip-img-placeholder><i class=fa-solid fa-image></i></span>'"/>`
+                : `<span class="equip-img-placeholder"><i class="fa-solid fa-image"></i></span>`;
+            return `<tr>
+                <td><span class="stt-badge">${currentPage*10+i+1}</span></td>
+                <td><div class="equip-name">${esc(e.equipmentName||'-')}</div></td>
+                <td><span class="equip-code">${esc(e.equipmentCode||'-')}</span></td>
+                <td style="font-size:0.83rem; color:#6b7c93;">${esc(e.location||'-')}</td>
+                <td>${imgHtml}</td>
+                <td style="max-width:160px; font-size:0.82rem; color:#6b7c93;">${esc(e.description||'-')}</td>
+                <td style="font-size:0.8rem; color:#9daec2;">${fmtDate(e.createdAt)}</td>
+                <td><span class="status-chip ${sc.cls}">${sc.label}</span></td>
+                <td class="text-center">
+                    <button class="action-btn action-btn-info me-1" onclick="openDetailModal(${e.id})" title="Chi tiết"><i class="fa-solid fa-eye"></i></button>
+                    <button class="action-btn action-btn-edit me-1" onclick="openEditModal(${e.id})" title="Sửa"><i class="fa-solid fa-pen"></i></button>
+                    <button class="action-btn action-btn-delete" onclick="confirmDelete(${e.id},'${esc(e.equipmentName||'')}')" title="Xóa"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function renderPagination(data) {
+        totalPages = data.totalPages;
+        const start = data.number * data.size + 1, end = Math.min(start + data.size - 1, data.totalElements);
+        document.getElementById('paginationInfo').textContent = `Hiển thị ${data.totalElements>0?start:0}–${data.totalElements>0?end:0} trong ${data.totalElements} kết quả`;
+        const ul = document.getElementById('paginationList'); ul.innerHTML = '';
+        if (totalPages <= 1) return;
+        ul.innerHTML += `<li class="page-item ${currentPage===0?'disabled':''}"><a class="page-link" href="#" onclick="changePage(${currentPage-1})"><i class="fa-solid fa-chevron-left"></i></a></li>`;
+        for (let p=0; p<totalPages; p++) {
+            if (p===0||p===totalPages-1||Math.abs(p-currentPage)<=1) ul.innerHTML += `<li class="page-item ${p===currentPage?'active':''}"><a class="page-link" href="#" onclick="changePage(${p})">${p+1}</a></li>`;
+            else if (Math.abs(p-currentPage)===2) ul.innerHTML += `<li class="page-item disabled"><a class="page-link">...</a></li>`;
+        }
+        ul.innerHTML += `<li class="page-item ${currentPage===totalPages-1?'disabled':''}"><a class="page-link" href="#" onclick="changePage(${currentPage+1})"><i class="fa-solid fa-chevron-right"></i></a></li>`;
+    }
+    function changePage(p) { if(p<0||p>=totalPages) return; currentPage=p; loadEquipments(); }
+
+    function openAddModal() {
+        document.getElementById('equipModalLabel').innerHTML = '<i class="fa-solid fa-plus me-2"></i>Thêm thiết bị mới';
+        document.getElementById('equipId').value = '';
+        document.getElementById('equipForm').reset();
+        document.getElementById('equipForm').classList.remove('was-validated');
+        previewEquipImage('');
+        equipModal.show();
+    }
+
+    async function openEditModal(id) {
+        try {
+            showLoading(true);
+            const res = await fetch(`${API}/${id}`, { headers: { Accept: 'application/json' } });
+            const json = await res.json(); showLoading(false);
+            if (json.success) {
+                const e = json.data;
+                document.getElementById('equipModalLabel').innerHTML = '<i class="fa-solid fa-pen me-2"></i>Chỉnh sửa thiết bị';
+                document.getElementById('equipId').value = e.id;
+                document.getElementById('mEquipName').value = e.equipmentName || '';
+                document.getElementById('mEquipCode').value = e.equipmentCode || '';
+                document.getElementById('mEquipLocation').value = e.location || '';
+                document.getElementById('mEquipImageUrl').value = e.imageUrl || '';
+                document.getElementById('mEquipDesc').value = e.description || '';
+                document.getElementById('equipForm').classList.remove('was-validated');
+                previewEquipImage(e.imageUrl || '');
+                equipModal.show();
+            }
+        } catch(e) { showLoading(false); showToast('Không thể tải thông tin thiết bị', 'danger'); }
+    }
+
+    async function openDetailModal(id) {
+        document.getElementById('detailModalBody').innerHTML = '<div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+        detailModal.show();
+        try {
+            const res = await fetch(`${API}/${id}`, { headers: { Accept: 'application/json' } });
+            const json = await res.json();
+            if (json.success) {
+                const e = json.data;
+                const sc = STATUS_CONFIG[e.status] || { label: e.status, cls: 'chip-INACTIVE' };
+                document.getElementById('detailModalBody').innerHTML = `
+                    ${e.imageUrl ? `<img src="${esc(e.imageUrl)}" style="width:100%;height:170px;object-fit:cover;border-radius:10px;margin-bottom:1rem;" alt="${esc(e.equipmentName)}"/>` : ''}
+                    <div class="detail-row"><span class="detail-label">Tên thiết bị</span><span class="detail-value"><strong>${esc(e.equipmentName||'-')}</strong></span></div>
+                    <div class="detail-row"><span class="detail-label">Mã thiết bị</span><span class="detail-value"><span class="equip-code">${esc(e.equipmentCode||'-')}</span></span></div>
+                    <div class="detail-row"><span class="detail-label">Vị trí</span><span class="detail-value">${esc(e.location||'-')}</span></div>
+                    <div class="detail-row"><span class="detail-label">Mô tả</span><span class="detail-value" style="font-weight:400; color:#6b7c93;">${esc(e.description||'-')}</span></div>
+                    <div class="detail-row"><span class="detail-label">Trạng thái</span><span class="detail-value"><span class="status-chip ${sc.cls}">${sc.label}</span></span></div>
+                    <div class="detail-row"><span class="detail-label">Ngày tạo</span><span class="detail-value">${fmtDate(e.createdAt)}</span></div>`;
+            }
+        } catch(e) { document.getElementById('detailModalBody').innerHTML = '<div class="text-center py-3 text-danger"><i class="fa-solid fa-circle-exclamation me-2"></i>Không thể tải thông tin</div>'; }
+    }
+
+    function confirmDelete(id, name) {
+        deleteId = id; document.getElementById('deleteEquipName').textContent = name; deleteModal.show();
+    }
+
+    document.getElementById('btnConfirmDelete').addEventListener('click', async function() {
+        if (!deleteId) return;
+        try {
+            showLoading(true);
+            const res = await fetch(`${API}/${deleteId}`, { method: 'DELETE', headers: { Accept:'application/json', ...getCsrf() } });
+            const json = await res.json(); showLoading(false); deleteModal.hide();
+            if (json.success) { showToast('Xóa thiết bị thành công!', 'success'); loadEquipments(); }
+            else showToast(json.message || 'Xóa thất bại', 'danger');
+        } catch(e) { showLoading(false); deleteModal.hide(); showToast('Có lỗi xảy ra', 'danger'); }
+    });
+
+    document.getElementById('equipForm').addEventListener('submit', async function(e) {
+        e.preventDefault(); this.classList.add('was-validated');
+        if (!this.checkValidity()) return;
+        const id = document.getElementById('equipId').value;
+        const payload = {
+            equipmentName: document.getElementById('mEquipName').value.trim(),
+            equipmentCode: document.getElementById('mEquipCode').value.trim(),
+            location: document.getElementById('mEquipLocation').value.trim(),
+            imageUrl: document.getElementById('mEquipImageUrl').value.trim(),
+            description: document.getElementById('mEquipDesc').value.trim()
+        };
+        try {
+            showLoading(true);
+            const res = await fetch(id ? `${API}/${id}` : API, {
+                method: id ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...getCsrf() },
+                body: JSON.stringify(payload)
+            });
+            const json = await res.json(); showLoading(false);
+            if (json.success) { equipModal.hide(); showToast(id ? 'Cập nhật thành công!' : 'Thêm thiết bị thành công!', 'success'); loadEquipments(); }
+            else showToast(json.message || 'Lưu thất bại', 'danger');
+        } catch(e) { showLoading(false); showToast('Có lỗi xảy ra', 'danger'); }
+    });
+
+    // Load stats by status
+    async function loadStats() {
+        for (const [status, elId] of [['ACTIVE','statActive'],['MAINTENANCE','statMaintenance'],['BROKEN','statBroken']]) {
+            try {
+                const res = await fetch(`${API}?page=0&size=1&status=${status}`, { headers: { Accept: 'application/json' } });
+                const json = await res.json();
+                if (json.success) document.getElementById(elId).textContent = json.data.totalElements;
+            } catch(e) {}
+        }
+    }
+
+    loadEquipments(); loadStats();
+</script>
+</body>
+</html>

@@ -1,661 +1,608 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Loại phòng — HMS Hotel</title>
-    <meta name="description" content="Xem danh mục, thêm mới loại phòng và điều chỉnh giá phòng trong hệ thống HMS Hotel.">
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
-
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="Danh sách loại phòng - Hotel Management System"/>
+    <title>Loại phòng - Hotel Management System</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
         :root {
-            --hms-primary: #003580; --hms-primary-dk: #002060;
-            --hms-accent: #ffd700; --hms-accent-hov: #f5c400;
-            --hms-dark-bg: #0d1b2a; --hms-card-bg: rgba(255,255,255,0.04);
-            --hms-border: rgba(255,255,255,0.10); --hms-text: #e8edf3; --hms-muted: #8899a6;
+            --hms-primary: #003580;
+            --hms-secondary: #0071c2;
+            --hms-accent: #febb02;
+            --hms-light-bg: #f4f6fb;
+            --hms-border: #e0e6f0;
         }
-        * { box-sizing: border-box; margin:0; padding:0; font-family:'Inter',sans-serif; }
-        body { background: var(--hms-dark-bg); color: var(--hms-text); min-height: 100vh; }
-        .hms-content { margin-top: 64px; padding: 2rem; }
+        * { font-family: 'Inter', sans-serif; }
+        body { background: var(--hms-light-bg); min-height: 100vh; display: flex; flex-direction: column; }
         .page-header {
-            display:flex; align-items:center; justify-content:space-between;
-            margin-bottom:1.75rem; flex-wrap:wrap; gap:1rem;
+            background: linear-gradient(135deg, #003580 0%, #0052a5 100%);
+            color: #fff; padding: 1.5rem 0;
         }
-        .page-header h1 { font-family:'Poppins',sans-serif; font-size:1.6rem; font-weight:700; color:#fff; margin:0; }
-        .page-header h1 span { color: var(--hms-accent); }
-        .btn-hms-primary {
-            display:inline-flex; align-items:center; gap:0.5rem;
-            background:var(--hms-primary); border:1px solid rgba(255,255,255,0.2);
-            color:#fff; border-radius:10px; padding:0.6rem 1.25rem;
-            font-size:0.875rem; font-weight:600; cursor:pointer;
-            text-decoration:none; transition:all 0.2s;
+        .page-header h1 { font-size: 1.4rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 10px; }
+        .page-header .breadcrumb { margin-bottom: 0; }
+        .page-header .breadcrumb-item { font-size: 0.82rem; color: rgba(255,255,255,0.7); }
+        .page-header .breadcrumb-item.active { color: rgba(255,255,255,0.9); }
+        .page-header .breadcrumb-item a { color: rgba(255,255,255,0.7); text-decoration: none; }
+        .main-content { flex: 1; padding: 1.8rem 0; }
+        /* Toolbar */
+        .toolbar-card {
+            background: #fff; border-radius: 14px;
+            padding: 1.1rem 1.4rem;
+            box-shadow: 0 2px 12px rgba(0,53,128,0.07);
+            border: 1px solid var(--hms-border);
+            margin-bottom: 1.5rem;
         }
-        .btn-hms-primary:hover { background:var(--hms-primary-dk); color:#fff; transform:translateY(-1px); }
-        .btn-hms-accent { background:linear-gradient(135deg, var(--hms-accent), #ff9500); color:#1a1a1a; border:none; }
-        .btn-hms-accent:hover { color:#1a1a1a; box-shadow:0 4px 16px rgba(255,215,0,.35); }
-
-        /* GRID CARDS — Booking.com style */
-        .room-type-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 1.5rem;
+        .search-input-wrap { position: relative; flex: 1; max-width: 360px; }
+        .search-input-wrap .si { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9daec2; font-size: 0.88rem; }
+        .search-input {
+            width: 100%; padding: 0.6rem 1rem 0.6rem 2.5rem;
+            border: 1.5px solid var(--hms-border); border-radius: 10px;
+            font-size: 0.875rem; background: #f8fafd; outline: none; transition: all 0.2s;
         }
+        .search-input:focus { border-color: var(--hms-secondary); background: #fff; box-shadow: 0 0 0 3px rgba(0,113,194,0.1); }
+        .btn-add-rt {
+            background: linear-gradient(135deg, #febb02, #e6a800);
+            color: var(--hms-primary); font-weight: 700; font-size: 0.875rem;
+            padding: 0.6rem 1.2rem; border: none; border-radius: 10px;
+            cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-add-rt:hover { box-shadow: 0 4px 14px rgba(254,187,2,0.4); transform: translateY(-1px); }
+        /* Room type card grid */
         .rt-card {
-            background: linear-gradient(145deg, rgba(15,30,55,0.95), rgba(10,22,40,0.98));
-            border: 1px solid rgba(255,255,255,0.09);
-            border-radius: 20px;
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-            position: relative;
+            background: #fff; border-radius: 16px;
+            border: 1px solid var(--hms-border);
+            box-shadow: 0 2px 12px rgba(0,53,128,0.07);
+            overflow: hidden; transition: all 0.25s;
         }
-        .rt-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(0,53,128,0.5);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-        }
-        /* TOP BANNER */
-        .rt-card-banner {
-            height: 130px;
-            background: linear-gradient(135deg, #003580 0%, #0050b3 50%, #003580 100%);
+        .rt-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,53,128,0.14); }
+        .rt-card-header {
+            background: linear-gradient(135deg, #003580, #0071c2);
+            padding: 1.3rem 1.4rem;
             position: relative; overflow: hidden;
-            display: flex; align-items: center; justify-content: center;
         }
-        .rt-card-banner::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: radial-gradient(ellipse at center, rgba(255,215,0,0.12) 0, transparent 70%);
+        .rt-card-header::after {
+            content: '\f015';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute; right: -10px; bottom: -15px;
+            font-size: 4.5rem; color: rgba(255,255,255,0.08);
+            pointer-events: none;
         }
-        .rt-card-banner .banner-icon {
-            font-size: 3rem; color: rgba(255,255,255,0.15);
-            position: absolute;
+        .rt-name { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 0.3rem; }
+        .rt-price-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: var(--hms-accent); color: var(--hms-primary);
+            font-size: 0.85rem; font-weight: 700;
+            border-radius: 20px; padding: 4px 12px;
         }
-        .rt-card-banner .banner-label {
-            position: relative; z-index: 1;
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.3rem; font-weight: 700; color: #fff;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.4);
-            text-align: center; padding: 0 1rem;
-        }
-        .rt-card-banner .rt-badge-price {
-            position: absolute; top: 0.75rem; right: 0.75rem;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #fff; padding: 0.3rem 0.8rem; border-radius: 20px;
-            font-size: 0.82rem; font-weight: 700;
-            box-shadow: 0 4px 12px rgba(16,185,129,0.4);
-        }
-        .rt-card-banner .rt-badge-guests {
-            position: absolute; top: 0.75rem; left: 0.75rem;
-            background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
-            color: rgba(255,255,255,0.85); padding: 0.25rem 0.65rem; border-radius: 20px;
-            font-size: 0.78rem; font-weight: 600;
-        }
-        /* CARD BODY */
-        .rt-card-body { padding: 1.25rem; }
-        .rt-type-name {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.1rem; font-weight: 700; color: #fff;
-            margin-bottom: 0.4rem;
-        }
-        .rt-description {
-            font-size: 0.82rem; color: var(--hms-muted); margin-bottom: 1rem;
-            line-height: 1.5;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        /* AMENITIES CHECKBOXES */
-        .rt-amenities {
-            display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;
-        }
+        .rt-card-body { padding: 1.2rem 1.4rem; }
+        .rt-info-row { display: flex; align-items: center; gap: 8px; margin-bottom: 0.6rem; font-size: 0.855rem; color: #4a5568; }
+        .rt-info-row i { width: 18px; color: var(--hms-secondary); font-size: 0.8rem; }
+        .rt-amenities { margin-top: 0.8rem; }
+        .rt-amenities-title { font-size: 0.75rem; font-weight: 600; color: #9daec2; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
         .amenity-chip {
-            display: inline-flex; align-items: center; gap: 0.35rem;
-            background: rgba(0,53,128,0.2);
-            border: 1px solid rgba(0,80,179,0.3);
-            color: #93c5fd;
-            padding: 0.3rem 0.7rem; border-radius: 8px;
-            font-size: 0.76rem; font-weight: 500;
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #f0f4ff; border: 1px solid #dce4ff;
+            border-radius: 20px; padding: 3px 10px;
+            font-size: 0.76rem; font-weight: 500; color: #5c7cfa;
+            margin: 2px;
         }
-        .amenity-chip i { font-size: 0.75rem; }
-        .amenity-chip.has { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.3); color: #6ee7b7; }
-        /* PRICE ROW */
-        .rt-price-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0.85rem 1rem;
-            background: rgba(255,255,255,0.03);
-            border-top: 1px solid rgba(255,255,255,0.06);
-            border-radius: 0 0 12px 12px;
-        }
-        .rt-price-val {
-            font-family: 'Poppins', sans-serif;
-            font-size: 1.3rem; font-weight: 800; color: var(--hms-accent);
-        }
-        .rt-price-label { font-size: 0.75rem; color: var(--hms-muted); margin-top: 0.1rem; }
-        .rt-card-actions { display: flex; align-items: center; gap: 0.5rem; }
-        .btn-rt-action {
-            display: inline-flex; align-items: center; gap: 0.4rem;
-            padding: 0.45rem 0.9rem; border-radius: 8px;
-            font-size: 0.8rem; font-weight: 600; cursor: pointer;
-            border: 1px solid; transition: all 0.2s;
-        }
-        .btn-rt-edit { background:rgba(59,130,246,0.1); border-color:rgba(59,130,246,0.3); color:#60a5fa; }
-        .btn-rt-edit:hover { background:rgba(59,130,246,0.2); color:#93c5fd; }
-        .btn-rt-price { background:rgba(255,215,0,0.1); border-color:rgba(255,215,0,0.3); color:#ffd700; }
-        .btn-rt-price:hover { background:rgba(255,215,0,0.2); color:#fde68a; }
-        .btn-rt-delete { background:rgba(239,68,68,0.1); border-color:rgba(239,68,68,0.3); color:#f87171; }
-        .btn-rt-delete:hover { background:rgba(239,68,68,0.2); color:#fca5a5; }
-
-        /* MODAL */
-        .modal-content {
-            background:#152238 !important; border:1px solid rgba(255,255,255,0.1) !important;
-            border-radius:18px !important; color:#e8edf3;
-        }
-        .modal-header { background:#003580 !important; border-radius:18px 18px 0 0 !important; border-bottom:1px solid rgba(255,255,255,0.1) !important; }
-        .modal-title { font-family:'Poppins',sans-serif; font-weight:700; color:#fff; }
-        .btn-close { filter:invert(1); opacity:0.7; }
-        .modal-footer { border-top:1px solid rgba(255,255,255,0.08) !important; }
-        .modal .form-label { font-size:0.8rem; font-weight:600; color:#8899a6; text-transform:uppercase; letter-spacing:0.4px; }
-        .modal .form-control, .modal .form-select {
-            background:rgba(255,255,255,0.06) !important; border:1px solid rgba(255,255,255,0.12) !important;
-            border-radius:10px; color:#fff !important;
-        }
-        .modal .form-control:focus, .modal .form-select:focus {
-            border-color:#ffd700 !important; box-shadow:0 0 0 3px rgba(255,215,0,0.12) !important;
-        }
-        .modal .form-control::placeholder { color:#8899a6 !important; }
-        .modal .form-select option { background:#152238; color:#fff; }
-        .modal .invalid-feedback { color:#fca5a5; font-size:0.78rem; }
-        /* AMENITIES IN MODAL */
-        .amenity-checkbox-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;
-        }
-        .amenity-check-item {
-            display: flex; align-items: center; gap: 0.6rem;
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 10px; padding: 0.65rem 0.9rem;
+        .amenity-chip i { font-size: 0.7rem; }
+        .rt-card-footer { padding: 0.9rem 1.4rem; border-top: 1px solid #f0f4fb; display: flex; gap: 8px; }
+        .btn-update-price {
+            flex: 1; background: linear-gradient(135deg, #003580, #0071c2);
+            color: #fff; border: none; border-radius: 10px;
+            font-size: 0.85rem; font-weight: 600; padding: 0.6rem;
             cursor: pointer; transition: all 0.2s;
         }
-        .amenity-check-item:hover { border-color: rgba(0,80,179,0.4); background: rgba(0,53,128,0.12); }
-        .amenity-check-item input[type="checkbox"] { accent-color: #0050b3; width:16px; height:16px; }
-        .amenity-check-item label { font-size:0.85rem; color:#e8edf3; cursor:pointer; display:flex; align-items:center; gap:0.45rem; }
-        .amenity-check-item label i { color: #60a5fa; font-size: 0.9rem; }
-
-        /* EMPTY STATE */
-        .empty-state {
-            text-align: center; padding: 4rem 2rem;
-            grid-column: 1 / -1;
+        .btn-update-price:hover { box-shadow: 0 4px 14px rgba(0,53,128,0.3); }
+        .btn-edit-rt {
+            width: 38px; height: 38px; border: 1.5px solid #e0e6f0;
+            background: #f8fafd; border-radius: 10px; color: var(--hms-secondary);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; transition: all 0.2s;
         }
-        .empty-state i { font-size:3.5rem; color:rgba(255,255,255,0.1); margin-bottom:1rem; display:block; }
-        .empty-state h3 { font-family:'Poppins',sans-serif; font-weight:700; color:#fff; margin-bottom:0.5rem; }
-        .empty-state p { color:#8899a6; font-size:0.875rem; }
-
-        @media(max-width:600px) { .room-type-grid { grid-template-columns:1fr; } }
+        .btn-edit-rt:hover { background: var(--hms-secondary); color: #fff; border-color: var(--hms-secondary); }
+        .btn-delete-rt {
+            width: 38px; height: 38px; border: 1.5px solid #ffe0e0;
+            background: #fff8f8; border-radius: 10px; color: #e74c3c;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; transition: all 0.2s;
+        }
+        .btn-delete-rt:hover { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+        .status-badge {
+            font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; font-weight: 600;
+        }
+        /* Modal */
+        .modal-header-hms {
+            background: linear-gradient(135deg, #003580, #0071c2);
+            color: #fff; border-radius: 16px 16px 0 0; padding: 1.2rem 1.5rem;
+        }
+        .modal-header-hms .btn-close { filter: invert(1); opacity: 0.8; }
+        .modal-content { border-radius: 16px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid #f0f4fb; }
+        .form-label-modal { font-size: 0.82rem; font-weight: 600; color: #2d3748; margin-bottom: 0.35rem; }
+        .form-control-modal { border: 1.5px solid #e0e6f0; border-radius: 10px; font-size: 0.875rem; padding: 0.62rem 0.9rem; transition: all 0.2s; }
+        .form-control-modal:focus { border-color: var(--hms-secondary); box-shadow: 0 0 0 3px rgba(0,113,194,0.1); }
+        .btn-modal-save {
+            background: linear-gradient(135deg, #003580, #0071c2); color: #fff;
+            border: none; border-radius: 10px; font-weight: 600; font-size: 0.88rem;
+            padding: 0.62rem 1.5rem; transition: all 0.2s;
+        }
+        .btn-modal-save:hover { box-shadow: 0 4px 14px rgba(0,53,128,0.3); color: #fff; }
+        .amenity-check { display: flex; flex-wrap: wrap; gap: 10px; }
+        .amenity-check-item {
+            display: flex; align-items: center; gap: 7px;
+            background: #f8fafd; border: 1.5px solid #e0e6f0;
+            border-radius: 10px; padding: 7px 12px; cursor: pointer;
+            font-size: 0.85rem; transition: all 0.2s; user-select: none;
+        }
+        .amenity-check-item:hover { border-color: var(--hms-secondary); color: var(--hms-secondary); }
+        .amenity-check-item input[type=checkbox] { accent-color: var(--hms-secondary); }
+        .amenity-check-item input:checked ~ span { color: var(--hms-secondary); font-weight: 600; }
+        .price-highlight {
+            background: linear-gradient(135deg, #fffbe6, #fff9d0);
+            border: 1.5px solid #febb02; border-radius: 12px; padding: 1rem;
+            text-align: center;
+        }
+        .price-highlight .big-price { font-size: 1.8rem; font-weight: 800; color: var(--hms-primary); }
+        .price-highlight .price-label { font-size: 0.78rem; color: #9daec2; }
+        .toast-hms {
+            position: fixed; top: 80px; right: 20px; z-index: 9999;
+            min-width: 280px; border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+        .loading-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+            z-index: 9998; display: none; align-items: center; justify-content: center;
+        }
+        .loading-spinner {
+            width: 50px; height: 50px;
+            border: 4px solid rgba(255,255,255,0.3); border-top-color: #fff;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .skeleton-card {
+            background: linear-gradient(90deg, #f0f4fb 25%, #e8edf8 50%, #f0f4fb 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 16px; height: 280px;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
 <body>
 
-<!-- HEADER -->
-<div th:replace="~{fragments/header :: header(activeTab='room-type')}"></div>
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
 
-<main class="hms-content">
+<!-- Header -->
+<div th:replace="~{fragments/header :: header}"></div>
 
-    <!-- PAGE HEADER -->
-    <div class="page-header">
-        <div>
-            <h1><i class="fa-solid fa-layer-group" style="color:#ffd700; font-size:1.4rem; margin-right:0.5rem;"></i>Quản lý <span>Loại phòng</span></h1>
-            <p style="color:#8899a6; font-size:0.85rem; margin-top:0.25rem;">
-                Xem danh mục, thêm mới và điều chỉnh giá theo loại phòng
-            </p>
-        </div>
-        <button class="btn-hms-primary btn-hms-accent"
-                data-bs-toggle="modal"
-                data-bs-target="#roomTypeModal"
-                onclick="openAddRoomTypeModal()">
-            <i class="fa-solid fa-plus"></i> Thêm loại phòng
-        </button>
-    </div>
-
-    <!-- FLASH MESSAGES -->
-    <div th:if="${successMessage != null}"
-         style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:0.85rem 1rem;display:flex;align-items:center;gap:0.65rem;margin-bottom:1.25rem;color:#6ee7b7;">
-        <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
-        <span th:text="${successMessage}">Thành công!</span>
-    </div>
-    <div th:if="${errorMessage != null}"
-         style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:0.85rem 1rem;display:flex;align-items:center;gap:0.65rem;margin-bottom:1.25rem;color:#fca5a5;">
-        <i class="fa-solid fa-circle-xmark" style="color:#ef4444;"></i>
-        <span th:text="${errorMessage}">Lỗi.</span>
-    </div>
-
-    <!-- SEARCH + FILTER -->
-    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.75rem; flex-wrap:wrap;">
-        <form method="get" th:action="@{/room-types}" style="display:flex; gap:0.75rem; align-items:center; flex:1; flex-wrap:wrap;">
-            <div style="display:flex; align-items:center; gap:0.6rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:0.5rem 1rem; flex:1; min-width:240px;">
-                <i class="fa-solid fa-magnifying-glass" style="color:#8899a6;"></i>
-                <input type="text" name="keywords" th:value="${keywords}"
-                       placeholder="Tìm theo tên loại phòng..."
-                       style="background:none; border:none; outline:none; color:#fff; font-size:0.9rem; width:100%;">
+<!-- Page Header -->
+<div class="page-header">
+    <div class="container-fluid px-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <h1><i class="fa-solid fa-layer-group"></i> Loại phòng</h1>
+                <nav aria-label="breadcrumb" class="mt-1">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a th:href="@{/}">Trang chủ</a></li>
+                        <li class="breadcrumb-item active">Loại phòng</li>
+                    </ol>
+                </nav>
             </div>
-            <select name="sortBy"
-                    style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#fff; border-radius:10px; padding:0.5rem 0.9rem; font-size:0.875rem;"
-                    onchange="this.form.submit()">
-                <option value="ID"         th:selected="${sortBy == 'ID'}">Mặc định</option>
-                <option value="PRICE"      th:selected="${sortBy == 'PRICE'}">Giá: Thấp → Cao</option>
-                <option value="MAX_GUESTS" th:selected="${sortBy == 'MAX_GUESTS'}">Sức chứa</option>
-            </select>
-            <button type="submit" class="btn-hms-primary">
-                <i class="fa-solid fa-magnifying-glass"></i> Tìm
+        </div>
+    </div>
+</div>
+
+<!-- Main -->
+<main class="main-content">
+    <div class="container-fluid px-4">
+
+        <!-- Toolbar -->
+        <div class="toolbar-card">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div class="search-input-wrap">
+                    <i class="fa-solid fa-magnifying-glass si"></i>
+                    <input type="text" class="search-input" id="rtSearch"
+                           placeholder="Tìm theo tên loại phòng..."
+                           oninput="debounceSearch(this.value)"/>
+                </div>
+                <div class="ms-auto d-flex gap-2">
+                    <button class="btn-add-rt" onclick="openAddRoomTypeModal()" id="btnAddRoomType">
+                        <i class="fa-solid fa-plus me-2"></i>Thêm loại phòng
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cards Grid -->
+        <div class="row g-3" id="roomTypeGrid">
+            <!-- Skeleton loading -->
+            <div class="col-md-4 col-lg-3 skeleton-card-wrap" th:each="i : ${#numbers.sequence(1,4)}">
+                <div class="skeleton-card"></div>
+            </div>
+        </div>
+
+        <!-- Empty state -->
+        <div class="text-center py-5 d-none" id="emptyState">
+            <div style="font-size:4rem; opacity:0.3; margin-bottom:1rem;">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <h5 style="color:#6b7c93;">Không tìm thấy loại phòng</h5>
+            <p style="color:#9daec2; font-size:0.875rem;">Thêm loại phòng đầu tiên để bắt đầu</p>
+            <button class="btn-add-rt" onclick="openAddRoomTypeModal()">
+                <i class="fa-solid fa-plus me-2"></i>Thêm loại phòng
             </button>
-        </form>
-    </div>
-
-    <!-- ROOM TYPE GRID CARDS (Booking.com style) -->
-    <div class="room-type-grid">
-
-        <!-- Thymeleaf loop over Page<RoomTypeResponse> -->
-        <div class="rt-card" th:each="rt : ${roomTypes.content}">
-
-            <!-- BANNER -->
-            <div class="rt-card-banner">
-                <i class="fa-solid fa-bed banner-icon"></i>
-                <div class="banner-label" th:text="${rt.typeName}">Phòng Deluxe</div>
-                <!-- Giá badge -->
-                <div class="rt-badge-price">
-                    <i class="fa-solid fa-tag" style="margin-right:3px;"></i>
-                    <span th:text="${#numbers.formatDecimal(rt.basePrice, 0, 'COMMA', 0, 'POINT')} + ' ₫'">1,200,000 ₫</span>
-                </div>
-                <!-- Max guests badge -->
-                <div class="rt-badge-guests">
-                    <i class="fa-solid fa-user-group" style="margin-right:3px;"></i>
-                    <span th:text="${rt.maxGuests} + ' khách'">2 khách</span>
-                </div>
-            </div>
-
-            <!-- BODY -->
-            <div class="rt-card-body">
-                <div class="rt-type-name" th:text="${rt.typeName}">Phòng Deluxe</div>
-                <div class="rt-description"
-                     th:text="${rt.description != null and !rt.description.isEmpty()} ? ${rt.description} : 'Loại phòng cao cấp với đầy đủ tiện nghi hiện đại.'">
-                    Loại phòng cao cấp với đầy đủ tiện nghi.
-                </div>
-
-                <!-- AMENITIES CHIPS (hardcoded từ spec; có thể map từ backend nếu có field) -->
-                <div class="rt-amenities">
-                    <span class="amenity-chip has"><i class="fa-solid fa-wifi"></i> Wifi</span>
-                    <span class="amenity-chip has"><i class="fa-solid fa-snowflake"></i> Điều hòa</span>
-                    <span class="amenity-chip has"><i class="fa-solid fa-tv"></i> Tivi</span>
-                    <span class="amenity-chip"><i class="fa-solid fa-temperature-low"></i> Tủ lạnh</span>
-                    <span class="amenity-chip"><i class="fa-solid fa-door-open"></i> Ban công</span>
-                </div>
-
-                <!-- STATUS -->
-                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
-                    <span th:if="${rt.status != null and rt.status.name() == 'ACTIVE'}"
-                          style="display:inline-flex;align-items:center;gap:4px;background:rgba(16,185,129,0.12);color:#10b981;border:1px solid rgba(16,185,129,0.3);padding:0.25rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;">
-                        <i class="fa-solid fa-circle-check"></i> Đang kinh doanh
-                    </span>
-                    <span th:if="${rt.status == null or rt.status.name() != 'ACTIVE'}"
-                          style="display:inline-flex;align-items:center;gap:4px;background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.3);padding:0.25rem 0.65rem;border-radius:20px;font-size:0.75rem;font-weight:600;">
-                        <i class="fa-solid fa-circle-xmark"></i> Ngừng kinh doanh
-                    </span>
-                </div>
-            </div>
-
-            <!-- PRICE ROW + ACTIONS -->
-            <div class="rt-price-row">
-                <div>
-                    <div class="rt-price-val"
-                         th:text="${#numbers.formatDecimal(rt.basePrice, 0, 'COMMA', 0, 'POINT')} + ' ₫'">1,200,000 ₫</div>
-                    <div class="rt-price-label">/ đêm</div>
-                </div>
-                <div class="rt-card-actions">
-                    <!-- PRICE UPDATE BTN -->
-                    <button class="btn-rt-action btn-rt-price"
-                            title="Cập nhật giá"
-                            th:attr="onclick='openPriceModal(' + ${rt.id} + ', \'' + ${rt.typeName} + '\', ' + ${rt.basePrice} + ')'">
-                        <i class="fa-solid fa-dollar-sign"></i> Cập nhật giá
-                    </button>
-                    <!-- EDIT BTN -->
-                    <button class="btn-rt-action btn-rt-edit"
-                            title="Chỉnh sửa"
-                            th:attr="onclick='openEditRoomTypeModal(
-                                ' + ${rt.id} + ',
-                                \'' + ${rt.typeName} + '\',
-                                \'' + ${rt.description} + '\',
-                                ' + ${rt.basePrice} + ',
-                                ' + ${rt.maxGuests} + '
-                            )'">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                    </button>
-                    <!-- DELETE BTN -->
-                    <button class="btn-rt-action btn-rt-delete"
-                            title="Xóa"
-                            th:attr="onclick='confirmDeleteRoomType(' + ${rt.id} + ', \'' + ${rt.typeName} + '\')'">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                </div>
-            </div>
         </div>
-
-        <!-- EMPTY STATE -->
-        <div class="empty-state" th:if="${roomTypes.content.isEmpty()}">
-            <i class="fa-solid fa-layer-group"></i>
-            <h3>Chưa có loại phòng nào</h3>
-            <p>Nhấn nút "Thêm loại phòng" để thêm loại phòng đầu tiên.</p>
-        </div>
-    </div>
-
-    <!-- PAGINATION -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1.75rem;flex-wrap:wrap;gap:1rem;"
-         th:if="${roomTypes.totalPages > 1}">
-        <div style="font-size:0.82rem;color:#8899a6;">
-            Trang <strong th:text="${roomTypes.number + 1}">1</strong> /
-            <strong th:text="${roomTypes.totalPages}">5</strong> —
-            <strong th:text="${roomTypes.totalElements}">20</strong> loại phòng
-        </div>
-        <nav style="display:flex;gap:0.4rem;">
-            <a th:href="@{/room-types(page=${roomTypes.number - 1}, keywords=${keywords})}"
-               style="min-width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8899a6;text-decoration:none;transition:all 0.2s;"
-               th:classappend="${roomTypes.first} ? 'disabled' : ''"
-               th:style="${roomTypes.first} ? 'opacity:0.4; pointer-events:none;' : ''">
-                <i class="fa-solid fa-chevron-left"></i>
-            </a>
-            <th:block th:each="i : ${#numbers.sequence(0, roomTypes.totalPages - 1)}">
-                <a th:if="${i >= roomTypes.number - 2 and i <= roomTypes.number + 2}"
-                   th:href="@{/room-types(page=${i}, keywords=${keywords})}"
-                   th:text="${i + 1}"
-                   style="min-width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;text-decoration:none;transition:all 0.2s;"
-                   th:style="${i == roomTypes.number} ? 'background:#003580;color:#fff;border:1px solid #003580;' : 'background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8899a6;'">1</a>
-            </th:block>
-            <a th:href="@{/room-types(page=${roomTypes.number + 1}, keywords=${keywords})}"
-               style="min-width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#8899a6;text-decoration:none;transition:all 0.2s;"
-               th:classappend="${roomTypes.last} ? 'disabled' : ''"
-               th:style="${roomTypes.last} ? 'opacity:0.4; pointer-events:none;' : ''">
-                <i class="fa-solid fa-chevron-right"></i>
-            </a>
-        </nav>
     </div>
 </main>
 
-<!-- ================================================================
-     MODAL: THÊM / SỬA LOẠI PHÒNG
-     th:action -> /room-types/add  |  /room-types/update/{id}
-     th:object -> roomTypeRequest
-     ================================================================ -->
-<div class="modal fade" id="roomTypeModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="rtModalTitle">
-                    <i class="fa-solid fa-layer-group" style="margin-right:0.5rem;"></i>
-                    <span id="rtModalTitleText">Thêm loại phòng mới</span>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-
-            <form id="roomTypeForm"
-                  th:action="@{/room-types/add}"
-                  th:object="${roomTypeRequest}"
-                  method="post"
-                  novalidate>
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <input type="hidden" id="rt-edit-id" name="editId" value="">
-
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <!-- Tên loại phòng -->
-                        <div class="col-md-8">
-                            <label class="form-label" for="rt-typeName">
-                                <i class="fa-solid fa-tag" style="margin-right:4px;"></i>Tên loại phòng <span style="color:#ef4444;">*</span>
-                            </label>
-                            <input type="text"
-                                   id="rt-typeName"
-                                   th:field="*{typeName}"
-                                   class="form-control"
-                                   th:classappend="${#fields.hasErrors('typeName')} ? 'is-invalid' : ''"
-                                   placeholder="VD: Phòng Deluxe, Suite King..."
-                                   required>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('typeName')}" th:errors="*{typeName}">Lỗi</div>
-                        </div>
-
-                        <!-- Sức chứa -->
-                        <div class="col-md-4">
-                            <label class="form-label" for="rt-maxGuests">
-                                <i class="fa-solid fa-user-group" style="margin-right:4px;"></i>Sức chứa (khách) <span style="color:#ef4444;">*</span>
-                            </label>
-                            <input type="number"
-                                   id="rt-maxGuests"
-                                   th:field="*{maxGuests}"
-                                   class="form-control"
-                                   th:classappend="${#fields.hasErrors('maxGuests')} ? 'is-invalid' : ''"
-                                   placeholder="2" min="1" max="20"
-                                   required>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('maxGuests')}" th:errors="*{maxGuests}">Lỗi</div>
-                        </div>
-
-                        <!-- Giá cơ bản -->
-                        <div class="col-md-6">
-                            <label class="form-label" for="rt-basePrice">
-                                <i class="fa-solid fa-dollar-sign" style="margin-right:4px;"></i>Giá cơ bản (₫/đêm) <span style="color:#ef4444;">*</span>
-                            </label>
-                            <div style="position:relative;">
-                                <input type="number"
-                                       id="rt-basePrice"
-                                       th:field="*{basePrice}"
-                                       class="form-control"
-                                       th:classappend="${#fields.hasErrors('basePrice')} ? 'is-invalid' : ''"
-                                       placeholder="1200000" min="0" step="50000"
-                                       required>
-                                <span style="position:absolute;right:0.9rem;top:50%;transform:translateY(-50%);color:#8899a6;font-size:0.8rem;">₫</span>
-                            </div>
-                            <div class="invalid-feedback" th:if="${#fields.hasErrors('basePrice')}" th:errors="*{basePrice}">Lỗi</div>
-                        </div>
-
-                        <!-- Status -->
-                        <div class="col-md-6">
-                            <label class="form-label" for="rt-status">
-                                <i class="fa-solid fa-toggle-on" style="margin-right:4px;"></i>Trạng thái
-                            </label>
-                            <select id="rt-status" name="status" class="form-select">
-                                <option value="ACTIVE">Đang kinh doanh</option>
-                                <option value="INACTIVE">Ngừng kinh doanh</option>
-                            </select>
-                        </div>
-
-                        <!-- Mô tả -->
-                        <div class="col-12">
-                            <label class="form-label" for="rt-description">
-                                <i class="fa-regular fa-file-lines" style="margin-right:4px;"></i>Mô tả
-                            </label>
-                            <textarea id="rt-description"
-                                      th:field="*{description}"
-                                      class="form-control"
-                                      rows="3"
-                                      placeholder="Mô tả ngắn về loại phòng, view, đặc điểm nổi bật..."></textarea>
-                        </div>
-
-                        <!-- TIỆN NGHI CHECKBOXES -->
-                        <div class="col-12">
-                            <label class="form-label">
-                                <i class="fa-solid fa-stars" style="margin-right:4px;"></i>Tiện nghi có sẵn
-                            </label>
-                            <div class="amenity-checkbox-grid">
-                                <div class="amenity-check-item">
-                                    <input type="checkbox" id="am-wifi"      name="amenities" value="WIFI" checked>
-                                    <label for="am-wifi"><i class="fa-solid fa-wifi"></i> Wifi miễn phí</label>
-                                </div>
-                                <div class="amenity-check-item">
-                                    <input type="checkbox" id="am-ac"        name="amenities" value="AC" checked>
-                                    <label for="am-ac"><i class="fa-solid fa-snowflake"></i> Điều hòa</label>
-                                </div>
-                                <div class="amenity-check-item">
-                                    <input type="checkbox" id="am-tv"        name="amenities" value="TV" checked>
-                                    <label for="am-tv"><i class="fa-solid fa-tv"></i> Tivi thông minh</label>
-                                </div>
-                                <div class="amenity-check-item">
-                                    <input type="checkbox" id="am-fridge"    name="amenities" value="FRIDGE">
-                                    <label for="am-fridge"><i class="fa-solid fa-temperature-low"></i> Tủ lạnh</label>
-                                </div>
-                                <div class="amenity-check-item">
-                                    <input type="checkbox" id="am-balcony"   name="amenities" value="BALCONY">
-                                    <label for="am-balcony"><i class="fa-solid fa-door-open"></i> Ban công</label>
-                                </div>
-                                <div class="amenity-check-item">
-                                    <input type="checkbox" id="am-bathtub"   name="amenities" value="BATHTUB">
-                                    <label for="am-bathtub"><i class="fa-solid fa-bath"></i> Bồn tắm</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:10px;">
-                        <i class="fa-solid fa-xmark"></i> Hủy
-                    </button>
-                    <button type="submit" class="btn-hms-primary btn-hms-accent" style="border-radius:10px;">
-                        <i class="fa-solid fa-floppy-disk" id="rtSubmitIcon"></i>
-                        <span id="rtSubmitText">Lưu loại phòng</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- ================================================================
-     MODAL: CẬP NHẬT GIÁ (Price Update Modal)
-     Gửi PATCH/PUT về /room-types/{id}/price
-     ================================================================ -->
-<div class="modal fade" id="priceModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fa-solid fa-dollar-sign" style="margin-right:0.5rem; color:#ffd700;"></i>
-                    Cập nhật giá phòng
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="priceUpdateForm" method="post">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <input type="hidden" name="_method" value="PUT">
-                <div class="modal-body">
-                    <div style="text-align:center; margin-bottom:1.25rem;">
-                        <div style="font-size:0.82rem; color:#8899a6; margin-bottom:0.25rem;">Loại phòng</div>
-                        <div style="font-family:'Poppins',sans-serif; font-size:1.1rem; font-weight:700; color:#fff;" id="priceModalRoomTypeName">Phòng Deluxe</div>
-                    </div>
-                    <label class="form-label" for="newBasePrice">
-                        <i class="fa-solid fa-coins" style="margin-right:4px;"></i>Giá mới (₫/đêm) <span style="color:#ef4444;">*</span>
-                    </label>
-                    <div style="position:relative;">
-                        <input type="number"
-                               id="newBasePrice"
-                               name="basePrice"
-                               class="form-control"
-                               placeholder="1200000" min="0" step="50000"
-                               required>
-                        <span style="position:absolute;right:0.9rem;top:50%;transform:translateY(-50%);color:#8899a6;font-size:0.85rem;">₫/đêm</span>
-                    </div>
-                    <div style="margin-top:0.6rem; font-size:0.8rem; color:#8899a6;">
-                        Giá hiện tại: <strong id="currentPriceDisplay" style="color:#ffd700;">0 ₫</strong>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:10px;">Hủy</button>
-                    <button type="submit" class="btn-hms-primary btn-hms-accent" style="border-radius:10px;">
-                        <i class="fa-solid fa-floppy-disk"></i> Lưu giá mới
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL: XÁC NHẬN XÓA -->
-<div class="modal fade" id="deleteRtModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
-        <div class="modal-content">
-            <div class="modal-body" style="text-align:center; padding:2rem;">
-                <div style="width:64px;height:64px;border-radius:50%;background:rgba(239,68,68,0.12);border:2px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;font-size:1.75rem;color:#ef4444;margin:0 auto 1rem;">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-                <h5 style="font-family:'Poppins',sans-serif; font-weight:700; color:#fff; margin-bottom:0.5rem;">Xóa loại phòng?</h5>
-                <p style="color:#8899a6; font-size:0.875rem; margin-bottom:1.5rem;">
-                    Loại phòng <strong id="deleteRtName" style="color:#fff;">---</strong> sẽ bị xóa vĩnh viễn.
-                </p>
-                <form id="deleteRtForm" method="post">
-                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                    <input type="hidden" name="_method" value="DELETE">
-                    <div style="display:flex; gap:0.75rem; justify-content:center;">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius:10px; min-width:100px;">Hủy</button>
-                        <button type="submit" style="background:#ef4444;border:none;color:#fff;border-radius:10px;padding:0.6rem 1.25rem;font-weight:600;min-width:120px;cursor:pointer;">
-                            <i class="fa-solid fa-trash-can"></i> Xóa
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- FOOTER -->
+<!-- Footer -->
 <div th:replace="~{fragments/footer :: footer}"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- ===== Update Price Modal ===== -->
+<div class="modal fade" id="updatePriceModal" tabindex="-1" aria-labelledby="updatePriceTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header-hms">
+                <h5 class="modal-title" id="updatePriceTitle">
+                    <i class="fa-solid fa-tag me-2"></i>Cập nhật giá phòng
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <form id="updatePriceForm" novalidate>
+                <div class="modal-body">
+                    <input type="hidden" id="priceRoomTypeId"/>
+                    <div class="price-highlight mb-3">
+                        <div class="price-label">Giá hiện tại</div>
+                        <div class="big-price" id="currentPriceDisplay">0</div>
+                        <div class="price-label">VNĐ / đêm</div>
+                    </div>
+                    <label class="form-label-modal" for="newPrice">Giá mới (VNĐ/đêm) <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="number" class="form-control form-control-modal" id="newPrice"
+                               placeholder="Nhập giá mới..." min="0" step="1000" required/>
+                        <span class="input-group-text" style="border-radius:0 10px 10px 0; border:1.5px solid #e0e6f0; background:#f8fafd; font-size:0.85rem;">VNĐ</span>
+                    </div>
+                    <div class="invalid-feedback d-block d-none" id="priceError">Vui lòng nhập giá hợp lệ</div>
+                    <small class="text-muted" style="font-size:0.77rem;">* Nhập số nguyên dương, đơn vị VNĐ</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius:10px;">Hủy</button>
+                    <button type="submit" class="btn btn-modal-save" id="btnSavePrice">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>Cập nhật giá
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Add / Edit RoomType Modal ===== -->
+<div class="modal fade" id="roomTypeModal" tabindex="-1" aria-labelledby="roomTypeModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header-hms">
+                <h5 class="modal-title" id="roomTypeModalTitle">
+                    <i class="fa-solid fa-plus me-2"></i>Thêm loại phòng
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <form id="roomTypeForm" novalidate>
+                <div class="modal-body">
+                    <input type="hidden" id="rtId"/>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label-modal" for="rtTypeName">Tên loại phòng <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-modal" id="rtTypeName" placeholder="Ví dụ: Phòng Deluxe, Suite..." required/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-modal" for="rtMaxGuests">Số khách tối đa <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-modal" id="rtMaxGuests" placeholder="2" min="1" max="20" required/>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label-modal" for="rtBasePrice">Giá cơ bản (VNĐ/đêm) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-modal" id="rtBasePrice" placeholder="500000" min="0" step="1000" required/>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label-modal" for="rtDescription">Mô tả</label>
+                            <textarea class="form-control form-control-modal" id="rtDescription" rows="2" placeholder="Mô tả về loại phòng..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label-modal d-block mb-2">Tiện nghi phòng</label>
+                            <div class="amenity-check">
+                                <label class="amenity-check-item">
+                                    <input type="checkbox" name="amenity" value="wifi"/>
+                                    <i class="fa-solid fa-wifi" style="color:#0071c2;"></i>
+                                    <span>Wi-Fi</span>
+                                </label>
+                                <label class="amenity-check-item">
+                                    <input type="checkbox" name="amenity" value="ac"/>
+                                    <i class="fa-solid fa-snowflake" style="color:#74b9ff;"></i>
+                                    <span>Điều hòa</span>
+                                </label>
+                                <label class="amenity-check-item">
+                                    <input type="checkbox" name="amenity" value="fridge"/>
+                                    <i class="fa-solid fa-box" style="color:#55efc4;"></i>
+                                    <span>Tủ lạnh</span>
+                                </label>
+                                <label class="amenity-check-item">
+                                    <input type="checkbox" name="amenity" value="tv"/>
+                                    <i class="fa-solid fa-tv" style="color:#a29bfe;"></i>
+                                    <span>TV</span>
+                                </label>
+                                <label class="amenity-check-item">
+                                    <input type="checkbox" name="amenity" value="balcony"/>
+                                    <i class="fa-solid fa-sun" style="color:#fdcb6e;"></i>
+                                    <span>Ban công</span>
+                                </label>
+                                <label class="amenity-check-item">
+                                    <input type="checkbox" name="amenity" value="bathtub"/>
+                                    <i class="fa-solid fa-bath" style="color:#74b9ff;"></i>
+                                    <span>Bồn tắm</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius:10px;">Hủy</button>
+                    <button type="submit" class="btn btn-modal-save" id="btnSaveRoomType">
+                        <i class="fa-solid fa-floppy-disk me-1"></i>Lưu lại
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast toast-hms align-items-center text-white border-0" id="toastMsg" role="alert">
+    <div class="d-flex">
+        <div class="toast-body" id="toastText"></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Open Add Room Type Modal
-    function openAddRoomTypeModal() {
-        document.getElementById('rtModalTitleText').textContent = 'Thêm loại phòng mới';
-        document.getElementById('rtSubmitText').textContent = 'Lưu loại phòng';
-        document.getElementById('rtSubmitIcon').className = 'fa-solid fa-plus';
-        document.getElementById('roomTypeForm').reset();
-        document.getElementById('rt-edit-id').value = '';
-        document.getElementById('roomTypeForm').action = '/room-types/add';
+    const RT_API = '/api/v1/room-types';
+    let searchTimeout = null;
+    const updatePriceModal = new bootstrap.Modal(document.getElementById('updatePriceModal'));
+    const roomTypeModal = new bootstrap.Modal(document.getElementById('roomTypeModal'));
+    const toastEl = document.getElementById('toastMsg');
+    const toastInst = new bootstrap.Toast(toastEl, { delay: 3500 });
+
+    const AMENITIES = {
+        wifi: { icon: 'fa-wifi', label: 'Wi-Fi', color: '#0071c2' },
+        ac: { icon: 'fa-snowflake', label: 'Điều hòa', color: '#74b9ff' },
+        fridge: { icon: 'fa-box', label: 'Tủ lạnh', color: '#55efc4' },
+        tv: { icon: 'fa-tv', label: 'TV', color: '#a29bfe' },
+        balcony: { icon: 'fa-sun', label: 'Ban công', color: '#fdcb6e' },
+        bathtub: { icon: 'fa-bath', label: 'Bồn tắm', color: '#74b9ff' }
+    };
+
+    function showToast(msg, type = 'success') {
+        toastEl.className = `toast toast-hms align-items-center text-white border-0 bg-${type === 'success' ? 'success' : 'danger'}`;
+        document.getElementById('toastText').textContent = msg;
+        toastInst.show();
+    }
+    function showLoading(v) { document.getElementById('loadingOverlay').style.display = v ? 'flex' : 'none'; }
+    function debounceSearch(v) { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => loadRoomTypes(), 400); }
+    function fmtPrice(v) { return Number(v).toLocaleString('vi-VN'); }
+
+    async function loadRoomTypes() {
+        const kw = document.getElementById('rtSearch').value.trim();
+        const params = new URLSearchParams({ sortBy: 'ID', direction: 'ASC', size: 100 });
+        if (kw) params.append('keywords', kw);
+        try {
+            const res = await fetch(`${RT_API}?${params}`, { headers: { 'Accept': 'application/json' } });
+            const json = await res.json();
+            if (json.success) renderRoomTypes(json.data.content);
+        } catch (e) {
+            document.getElementById('roomTypeGrid').innerHTML = `<div class="col-12 text-center text-danger py-4">Không thể tải dữ liệu</div>`;
+        }
     }
 
-    // Open Edit Room Type Modal
-    function openEditRoomTypeModal(id, typeName, description, basePrice, maxGuests) {
-        document.getElementById('rtModalTitleText').textContent = 'Chỉnh sửa loại phòng';
-        document.getElementById('rtSubmitText').textContent = 'Cập nhật';
-        document.getElementById('rtSubmitIcon').className = 'fa-solid fa-floppy-disk';
-
-        document.getElementById('rt-edit-id').value = id;
-        document.getElementById('rt-typeName').value = typeName;
-        document.getElementById('rt-description').value = description || '';
-        document.getElementById('rt-basePrice').value = basePrice;
-        document.getElementById('rt-maxGuests').value = maxGuests;
-        document.getElementById('roomTypeForm').action = '/room-types/update/' + id;
-
-        new bootstrap.Modal(document.getElementById('roomTypeModal')).show();
+    function renderRoomTypes(list) {
+        const grid = document.getElementById('roomTypeGrid');
+        const empty = document.getElementById('emptyState');
+        if (!list || list.length === 0) {
+            grid.innerHTML = '';
+            empty.classList.remove('d-none');
+            return;
+        }
+        empty.classList.add('d-none');
+        grid.innerHTML = list.map(rt => `
+            <div class="col-md-6 col-lg-4 col-xl-3">
+                <div class="rt-card" id="rtCard${rt.id}">
+                    <div class="rt-card-header">
+                        <div class="d-flex align-items-start justify-content-between mb-2">
+                            <div class="rt-name">${escHtml(rt.typeName || '')}</div>
+                            <span class="badge ${rt.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'} ms-2" style="font-size:0.7rem;">${rt.status === 'ACTIVE' ? 'Hoạt động' : 'Tạm dừng'}</span>
+                        </div>
+                        <span class="rt-price-badge">
+                            <i class="fa-solid fa-tag" style="font-size:0.75rem;"></i>
+                            ${fmtPrice(rt.basePrice)} VNĐ/đêm
+                        </span>
+                    </div>
+                    <div class="rt-card-body">
+                        <div class="rt-info-row">
+                            <i class="fa-solid fa-users"></i>
+                            <span>Tối đa <strong>${rt.maxGuests || 2}</strong> khách</span>
+                        </div>
+                        <div class="rt-info-row" th:if="${rt.description}" style="${rt.description ? '' : 'display:none'}">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span style="font-size:0.82rem; color:#6b7c93;">${rt.description ? escHtml(rt.description.substring(0, 60)) + (rt.description.length > 60 ? '...' : '') : ''}</span>
+                        </div>
+                        <div class="rt-amenities">
+                            <div class="rt-amenities-title">Tiện nghi</div>
+                            <span class="amenity-chip"><i class="fa-solid fa-wifi"></i><span>Wi-Fi</span></span>
+                            <span class="amenity-chip"><i class="fa-solid fa-snowflake"></i><span>Điều hòa</span></span>
+                            <span class="amenity-chip"><i class="fa-solid fa-tv"></i><span>TV</span></span>
+                        </div>
+                    </div>
+                    <div class="rt-card-footer">
+                        <button class="btn-update-price" onclick="openUpdatePrice(${rt.id}, '${escHtml(rt.typeName || '')}', ${rt.basePrice})" id="btnUpdatePrice${rt.id}">
+                            <i class="fa-solid fa-tag me-1"></i>Cập nhật giá
+                        </button>
+                        <button class="btn-edit-rt" onclick="openEditRoomType(${rt.id})" title="Chỉnh sửa" id="btnEditRt${rt.id}">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="btn-delete-rt" onclick="deleteRoomType(${rt.id}, '${escHtml(rt.typeName || '')}')" title="Xóa" id="btnDeleteRt${rt.id}">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
     }
 
-    // Open Price Update Modal
-    function openPriceModal(id, typeName, currentPrice) {
-        document.getElementById('priceModalRoomTypeName').textContent = typeName;
-        document.getElementById('newBasePrice').value = currentPrice;
-        document.getElementById('currentPriceDisplay').textContent = Number(currentPrice).toLocaleString('vi-VN') + ' ₫';
-        document.getElementById('priceUpdateForm').action = '/room-types/' + id + '/price';
-        new bootstrap.Modal(document.getElementById('priceModal')).show();
+    function openUpdatePrice(id, name, currentPrice) {
+        document.getElementById('priceRoomTypeId').value = id;
+        document.getElementById('currentPriceDisplay').textContent = fmtPrice(currentPrice);
+        document.getElementById('updatePriceTitle').innerHTML = `<i class="fa-solid fa-tag me-2"></i>Cập nhật giá - ${name}`;
+        document.getElementById('newPrice').value = currentPrice;
+        document.getElementById('priceError').classList.add('d-none');
+        updatePriceModal.show();
     }
 
-    // Confirm Delete Room Type
-    function confirmDeleteRoomType(id, typeName) {
-        document.getElementById('deleteRtName').textContent = typeName;
-        document.getElementById('deleteRtForm').action = '/room-types/delete/' + id;
-        new bootstrap.Modal(document.getElementById('deleteRtModal')).show();
-    }
-
-    // Format price input in real-time
-    document.getElementById('rt-basePrice') && document.getElementById('rt-basePrice').addEventListener('blur', function () {
-        if (this.value) {
-            this.title = Number(this.value).toLocaleString('vi-VN') + ' ₫';
+    document.getElementById('updatePriceForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const id = document.getElementById('priceRoomTypeId').value;
+        const price = parseFloat(document.getElementById('newPrice').value);
+        if (!price || price <= 0) {
+            document.getElementById('priceError').classList.remove('d-none');
+            return;
+        }
+        try {
+            showLoading(true);
+            // Fetch current data first, then update
+            const getRes = await fetch(`${RT_API}/${id}`, { headers: { 'Accept': 'application/json' } });
+            const getJson = await getRes.json();
+            if (!getJson.success) throw new Error();
+            const current = getJson.data;
+            const payload = { typeName: current.typeName, description: current.description, basePrice: price, maxGuests: current.maxGuests };
+            const res = await fetch(`${RT_API}/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...getCsrfHeaders() },
+                body: JSON.stringify(payload)
+            });
+            const json = await res.json();
+            showLoading(false);
+            if (json.success) {
+                updatePriceModal.hide();
+                showToast('Cập nhật giá phòng thành công!', 'success');
+                loadRoomTypes();
+            } else {
+                showToast(json.message || 'Cập nhật thất bại', 'danger');
+            }
+        } catch (e) {
+            showLoading(false);
+            showToast('Có lỗi xảy ra', 'danger');
         }
     });
+
+    function openAddRoomTypeModal() {
+        document.getElementById('roomTypeModalTitle').innerHTML = '<i class="fa-solid fa-plus me-2"></i>Thêm loại phòng';
+        document.getElementById('rtId').value = '';
+        document.getElementById('roomTypeForm').reset();
+        document.querySelectorAll('input[name=amenity]').forEach(c => c.checked = false);
+        roomTypeModal.show();
+    }
+
+    async function openEditRoomType(id) {
+        try {
+            showLoading(true);
+            const res = await fetch(`${RT_API}/${id}`, { headers: { 'Accept': 'application/json' } });
+            const json = await res.json();
+            showLoading(false);
+            if (json.success) {
+                const rt = json.data;
+                document.getElementById('roomTypeModalTitle').innerHTML = '<i class="fa-solid fa-pen me-2"></i>Chỉnh sửa loại phòng';
+                document.getElementById('rtId').value = rt.id;
+                document.getElementById('rtTypeName').value = rt.typeName || '';
+                document.getElementById('rtMaxGuests').value = rt.maxGuests || '';
+                document.getElementById('rtBasePrice').value = rt.basePrice || '';
+                document.getElementById('rtDescription').value = rt.description || '';
+                roomTypeModal.show();
+            }
+        } catch (e) {
+            showLoading(false);
+            showToast('Không thể tải thông tin', 'danger');
+        }
+    }
+
+    document.getElementById('roomTypeForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        this.classList.add('was-validated');
+        if (!this.checkValidity()) return;
+        const id = document.getElementById('rtId').value;
+        const payload = {
+            typeName: document.getElementById('rtTypeName').value.trim(),
+            maxGuests: parseInt(document.getElementById('rtMaxGuests').value),
+            basePrice: parseFloat(document.getElementById('rtBasePrice').value),
+            description: document.getElementById('rtDescription').value.trim()
+        };
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `${RT_API}/${id}` : RT_API;
+        try {
+            showLoading(true);
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...getCsrfHeaders() },
+                body: JSON.stringify(payload)
+            });
+            const json = await res.json();
+            showLoading(false);
+            if (json.success) {
+                roomTypeModal.hide();
+                showToast(id ? 'Cập nhật thành công!' : 'Thêm loại phòng thành công!', 'success');
+                loadRoomTypes();
+            } else {
+                showToast(json.message || 'Lưu thất bại', 'danger');
+            }
+        } catch (e) {
+            showLoading(false);
+            showToast('Có lỗi xảy ra', 'danger');
+        }
+    });
+
+    async function deleteRoomType(id, name) {
+        if (!confirm(`Bạn có chắc muốn xóa loại phòng "${name}"?`)) return;
+        try {
+            showLoading(true);
+            const res = await fetch(`${RT_API}/${id}`, { method: 'DELETE', headers: getCsrfHeaders() });
+            const json = await res.json();
+            showLoading(false);
+            if (json.success) { showToast('Xóa thành công!', 'success'); loadRoomTypes(); }
+            else showToast(json.message || 'Xóa thất bại', 'danger');
+        } catch (e) {
+            showLoading(false);
+            showToast('Có lỗi xảy ra', 'danger');
+        }
+    }
+
+    function getCsrfHeaders() {
+        const token = document.querySelector('meta[name="_csrf"]')?.content;
+        const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+        return token && header ? { [header]: token } : {};
+    }
+    function escHtml(str) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(String(str)));
+        return d.innerHTML;
+    }
+
+    loadRoomTypes();
 </script>
 </body>
 </html>

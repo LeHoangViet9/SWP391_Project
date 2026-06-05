@@ -41,4 +41,6 @@ public interface BookingRepository extends JpaRepository<Booking,Long> {
     // Câu lệnh JPQL này tự động kết nối sang bảng RoomType để lấy typeName
     @Query("SELECT b.roomType.typeName, COUNT(b) FROM Booking b GROUP BY b.roomType.typeName")
     List<Object[]> countBookingsGroupedByRoomType();
+
+    long countBookingByBookingStatus(BookingStatus bookingStatus);
 }
