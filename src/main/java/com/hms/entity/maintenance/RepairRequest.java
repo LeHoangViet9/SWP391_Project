@@ -22,27 +22,31 @@ public class RepairRequest {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    // Nếu yêu cầu có thể liên quan đến phòng hoặc thiết bị, để nullable = true
-    @Column(name = "room_id", nullable = true)
+    // Nếu yêu cầu có thể liên quan đến phòng hoặc thiết bị, để null nếu không có
+    @Column(name = "room_id")
     private Long roomId;
 
-    @Column(name = "equipment_id", nullable = true)
+    @Column(name = "equipment_id")
     private Long equipmentId;
 
+    // Người báo lỗi: housekeeper/receptionist/staff
+    @Column(name = "reported_by")
+    private Long reportedBy;
+
     // người được phân công sửa (user id), có thể null nếu chưa phân công
-    @Column(name = "assigned_to", nullable = true)
+    @Column(name = "assigned_to")
     private Long assignedTo;
 
     @Column(name = "issue_title", nullable = false, length = 255)
     private String issueTitle;
 
-    @Column(name = "issue_description", nullable = true, columnDefinition = "text")
+    @Column(name = "issue_description", columnDefinition = "TEXT")
     private String issueDescription;
 
-    @Column(name = "diagnosis", nullable = true, columnDefinition = "text")
+    @Column(name = "diagnosis", columnDefinition = "TEXT")
     private String diagnosis;
 
-    @Column(name = "repair_result", nullable = true, columnDefinition = "text")
+    @Column(name = "repair_result", columnDefinition = "TEXT")
     private String repairResult;
 
     @Enumerated(EnumType.STRING)
@@ -51,7 +55,7 @@ public class RepairRequest {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    // gán default trong Java để entity mới có status = PENDING
+    @Builder.Default
     private MaintenanceStatus status = MaintenanceStatus.PENDING;
 
     @CreationTimestamp
@@ -59,6 +63,9 @@ public class RepairRequest {
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(name = "updated_at", nullable = true)
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
 }
