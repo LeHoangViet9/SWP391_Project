@@ -23,6 +23,8 @@ public class MaintenanceRequestCreateDTO {
 
         private String description;
 
+        private Long assignToId;
+
         @NotNull(message = "{maintenance.severity.notnull}")
         private MaintenanceSeverity severity;
 }

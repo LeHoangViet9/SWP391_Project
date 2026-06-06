@@ -2,11 +2,15 @@ package com.hms.service.dashboard.impl;
 
 
 import com.hms.common.enums.BookingStatus;
+import com.hms.common.enums.MaintenanceStatus;
 import com.hms.dto.dashboard.response.AdminDashboardResponse;
+import com.hms.dto.dashboard.response.MaintenanceDashboardResponse;
+import com.hms.dto.dashboard.response.ManagerDashboardResponse;
 import com.hms.dto.dashboard.response.ReceptionistDashboardResponse;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
 import com.hms.repository.hotel.RoomRepository;
+import com.hms.repository.maintenance.MaintenanceRepository;
 import com.hms.service.dashboard.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +34,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final BookingRepository bookingRepository;
     private final InvoiceRepository invoiceRepository;
     private final RoomRepository roomRepository;
+    private final MaintenanceRepository maintenanceRepository;
 
 
     @Override
@@ -132,6 +137,38 @@ public class DashboardServiceImpl implements DashboardService {
                 .roomStatusOverview(roomStatusOverview)
                 .build();
     }
+
+    @Override
+    public MaintenanceDashboardResponse getMaintenanceDashboard() {
+        Long total = maintenanceRepository.count();
+        Long pending = maintenanceRepository.countByStatus(MaintenanceStatus.PENDING);
+        Long inProgress = maintenanceRepository.countByStatus(MaintenanceStatus.IN_PROGRESS);
+        Long completed = maintenanceRepository.countByStatus(MaintenanceStatus.COMPLETED);
+
+        // 2. Tính tổng tiền
+        BigDecimal totalCost = maintenanceRepository.totalMaintenanceCost();
+        if (totalCost == null) {
+            totalCost = BigDecimal.ZERO;
+        }
+
+        // 3. Map dữ liệu Group By Severity thành Map<String, Long>
+        java.util.Map<String, Long> severityMap = new java.util.HashMap<>();
+        List<Object[]> severityData = maintenanceRepository.countRequestsBySeverity();
+        for (Object[] row : severityData) {
+            severityMap.put(row[0].toString(), (Long) row[1]);
+        }
+
+        // 4. Trả về DTO tổng hợp
+        return MaintenanceDashboardResponse.builder()
+                .totalRequests(total)
+                .pendingRequests(pending)
+                .inProgressRequests(inProgress)
+                .completedRequests(completed)
+                .totalCost(totalCost)
+                .requestsBySeverity(severityMap)
+                .build();
+    }
+
 
 
     private List<AdminDashboardResponse.RevenueChartPoint> buildSevenDayRevenueTrend(LocalDate today) {

@@ -40,6 +40,12 @@ public class RepairRequest {
     @Column(name = "description")
     private String description; // Chi tiết tình trạng sửa chữa
 
+    @Column(name = "diagnosis")
+    private String diagnosis; // Chẩn đoán bệnh ban đầu từ kỹ thuật viên
+
+    @Column(name = "repair_result")
+    private String repairResult;
+
     @Column(name = "cost", precision = 12, scale = 2)
     private BigDecimal cost; // Chi phí sửa chữa (Dùng BigDecimal cho tiền tệ)
 

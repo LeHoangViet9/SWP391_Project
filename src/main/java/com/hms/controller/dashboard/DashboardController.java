@@ -3,6 +3,7 @@ package com.hms.controller.dashboard;
 
 import com.hms.common.dto.ApiResponse;
 import com.hms.dto.dashboard.response.AdminDashboardResponse;
+import com.hms.dto.dashboard.response.MaintenanceDashboardResponse;
 import com.hms.dto.dashboard.response.ReceptionistDashboardResponse;
 import com.hms.service.dashboard.DashboardService;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,15 @@ public class DashboardController {
                 HttpStatus.OK
         ), HttpStatus.OK
         );
+    }
+    @GetMapping("/maintenance")
+    public ResponseEntity<ApiResponse<MaintenanceDashboardResponse>> getMaintenanceDashboard() {
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                "Maintenance dashboard data retrieved successfully",
+                dashboardService.getMaintenanceDashboard(),
+                HttpStatus.OK
+        ),HttpStatus.OK);
     }
 }
 

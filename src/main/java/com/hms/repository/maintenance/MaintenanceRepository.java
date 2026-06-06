@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Repository
@@ -48,4 +49,15 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
             @Param("assignedToId") Long assignedToId, // Thêm tham số này vào hàm
             Pageable pageable
     );
+
+    // Dashboard
+
+    long countByStatus(MaintenanceStatus status);
+
+    @Query("Select coalesce(sum(r.cost),0) from RepairRequest r where r.status =com.hms.common.enums.MaintenanceStatus.COMPLETED")
+    BigDecimal totalMaintenanceCost();
+
+    //Thống kê số lượng theo mức độ nghiêm trọng
+    @Query("Select cast(r.severity as string ), count(r) from RepairRequest r group by r.severity")
+    List<Object[]> countRequestsBySeverity();
 }

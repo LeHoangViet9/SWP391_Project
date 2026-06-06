@@ -20,22 +20,25 @@ public interface MaintenanceMapper {
     // 2. Chuyển từ Entity sang Response (Phẳng hóa Object thành các trường ID và Name)
     @Mapping(source = "room.id", target = "roomId")
     @Mapping(source = "room.roomNumber", target = "roomNumber")
-
     @Mapping(source = "equipment.id", target = "equipmentId")
     @Mapping(source = "equipment.equipmentName", target = "equipmentName")
     @Mapping(source = "assignedTo.id", target = "assignedToId")
     @Mapping(source = "assignedTo.fullName", target = "assignedToName")
+    // BỔ SUNG ĐẢM BẢO MAP CHUẨN SANG RESPONSE (Nếu tên thuộc tính ở DTO Response khớp hoàn toàn thì MapStruct tự map, nhưng khai báo ở đây cho chắc chắn)
+    @Mapping(source = "diagnosis", target = "diagnosis")
+    @Mapping(source = "repairResult", target = "repairResult")
     MaintenanceResponse toResponse(RepairRequest repairRequest);
 
     // 3. Khi cập nhật, giữ nguyên chiến lược IGNORE trường null của bạn
-    // Nhưng bắt buộc phải IGNORE thêm trường assignedTo để không bị lỗi lệch kiểu Long vs User
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "assignedTo", ignore = true)
     @Mapping(target = "room", ignore = true)
     @Mapping(target = "equipment", ignore = true)
+    // BỔ SUNG: Cho phép MapStruct tự động cập nhật 2 trường này từ DTO Update vào Entity
+    @Mapping(source = "diagnosis", target = "diagnosis")
+    @Mapping(source = "repairResult", target = "repairResult")
     void updateFromDto(
             MaintenanceRequestUpdateDTO dto,
             @MappingTarget RepairRequest repairRequest
     );
-
 }
