@@ -4,6 +4,7 @@ import com.hms.common.dto.ApiResponse;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
+import com.hms.common.utils.CloudinaryUtils;
 import com.hms.dto.room.request.RoomRequest;
 import com.hms.dto.room.response.RoomResponse;
 import com.hms.service.hotel.IRoomService;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
 
@@ -25,6 +27,7 @@ public class RoomController {
 
     private final IRoomService roomService;
     private final MessageSource messageSource;
+    private final CloudinaryUtils cloudinaryUtils;
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getAllRooms(
@@ -64,9 +67,9 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestBody @Valid RoomRequest roomRequest) {
+    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam("file")MultipartFile file, @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomResponse created = roomService.createRoom(roomRequest);
+        RoomResponse created = roomService.createRoom(roomRequest,file);
         String message = messageSource.getMessage("success.room.create", null, locale);
 
         ApiResponse<RoomResponse> response = ApiResponse.<RoomResponse>builder()
@@ -81,10 +84,11 @@ public class RoomController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
+            @RequestParam("file") MultipartFile file,
             @PathVariable Long id,
             @RequestBody @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomResponse updated = roomService.updateRoom(id, roomRequest);
+        RoomResponse updated = roomService.updateRoom(id, roomRequest,file);
         String message = messageSource.getMessage("success.room.update", null, locale);
 
         ApiResponse<RoomResponse> response = ApiResponse.<RoomResponse>builder()

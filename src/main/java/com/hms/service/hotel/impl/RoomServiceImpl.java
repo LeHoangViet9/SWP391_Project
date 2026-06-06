@@ -5,6 +5,7 @@ import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
+import com.hms.common.utils.CloudinaryUtils;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.room.request.RoomRequest;
 import com.hms.dto.room.response.RoomResponse;
@@ -22,6 +23,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
 
@@ -34,6 +36,7 @@ public class RoomServiceImpl implements IRoomService {
     private final RoomMapper roomMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
+    private final CloudinaryUtils  cloudinaryUtils;
 
     @Override
     public Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, @NonNull SortField sortBy, SortDirection direction) {
@@ -60,8 +63,9 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse createRoom(RoomRequest request) {
+    public RoomResponse createRoom(RoomRequest request, MultipartFile file) {
         Locale locale = LocaleContextHolder.getLocale();
+
 
         // Check if room number already exists
         if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
@@ -74,6 +78,10 @@ public class RoomServiceImpl implements IRoomService {
 
         Room room = new Room();
         populateRoomData(room, request, roomType);
+        if (file != null && !file.isEmpty()) {
+            String imageUrl = cloudinaryUtils.uploadFile(file);
+            room.setImageRoom(imageUrl); // Lưu link URL từ Cloudinary vào thuộc tính entity phòng
+        }
 
         // Set default status = AVAILABLE khi tạo mới
         room.setRoomStatus(RoomStatus.AVAILABLE);
@@ -84,7 +92,7 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse updateRoom(Long id, RoomRequest request) {
+    public RoomResponse updateRoom(Long id, RoomRequest request,MultipartFile file) {
         Locale locale = LocaleContextHolder.getLocale();
 
         // Lấy phòng và đảm bảo phòng chưa bị soft-delete
@@ -103,6 +111,10 @@ public class RoomServiceImpl implements IRoomService {
 
         populateRoomData(room, request, roomType);
         // Giữ nguyên status hiện tại của phòng
+        if (file != null && !file.isEmpty()) {
+            String imageUrl = cloudinaryUtils.uploadFile(file);
+            room.setImageRoom(imageUrl); // Lưu link URL từ Cloudinary vào thuộc tính entity phòng
+        }
 
         Room updated = roomRepository.save(room);
         return roomMapper.toResponse(updated);

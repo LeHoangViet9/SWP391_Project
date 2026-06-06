@@ -34,5 +34,8 @@ public class Room {
 
     @Column(name = "description")
     private String description;
+
+    @Column(name = "image_room",length = 10000)
+    private String imageRoom;
 }
 

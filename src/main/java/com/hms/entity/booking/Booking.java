@@ -10,7 +10,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,7 +20,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class Booking {
 
     @Id
@@ -50,6 +48,7 @@ public class Booking {
     private LocalDateTime checkOutDate;
 
     @Column(name = "booking_status", nullable = false)
+    @Enumerated(EnumType.STRING)
     private BookingStatus bookingStatus;
 
     @Column(name = "total_price", nullable = false)

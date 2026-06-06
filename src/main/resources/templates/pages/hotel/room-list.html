@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ đồ Phòng - HotelPro Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #003580;
+            --secondary-color: #f5f7fa;
+            --status-empty: #87CEEB;
+            --status-occupied: #dc3545;
+            --status-cleaning: #ff9800;
+            --status-maintenance: #6c757d;
+            --border-color: #ddd;
+        }
+
+        body {
+            background-color: var(--secondary-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-container {
+            padding: 30px 0;
+            min-height: calc(100vh - 200px);
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-add-room {
+            padding: 12px 25px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add-room:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        .status-legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+        }
+
+        /* Floor Sections */
+        .floor-section {
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .floor-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #002856 100%);
+            color: white;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .floor-grid {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+        }
+
+        .room-box {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .room-box:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .room-box.empty {
+            background-color: var(--status-empty);
+            color: white;
+        }
+
+        .room-box.occupied {
+            background-color: var(--status-occupied);
+            color: white;
+        }
+
+        .room-box.cleaning {
+            background-color: var(--status-cleaning);
+            color: white;
+        }
+
+        .room-box.maintenance {
+            background-color: var(--status-maintenance);
+            color: white;
+        }
+
+        .room-number {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .room-status {
+            font-size: 11px;
+            margin-top: 3px;
+            opacity: 0.9;
+        }
+
+        /* Modal Styles */
+        .modal-header {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .room-detail-info {
+            background-color: #f5f7fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 53, 128, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-row.full {
+            grid-template-columns: 1fr;
+        }
+
+        .status-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-btn {
+            padding: 10px;
+            border: 2px solid #ddd;
+            background-color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .status-btn.empty {
+            border-color: var(--status-empty);
+            color: var(--status-empty);
+        }
+
+        .status-btn.empty.active {
+            background-color: var(--status-empty);
+            color: white;
+        }
+
+        .status-btn.occupied {
+            border-color: var(--status-occupied);
+            color: var(--status-occupied);
+        }
+
+        .status-btn.occupied.active {
+            background-color: var(--status-occupied);
+            color: white;
+        }
+
+        .status-btn.cleaning {
+            border-color: var(--status-cleaning);
+            color: var(--status-cleaning);
+        }
+
+        .status-btn.cleaning.active {
+            background-color: var(--status-cleaning);
+            color: white;
+        }
+
+        .status-btn.maintenance {
+            border-color: var(--status-maintenance);
+            color: var(--status-maintenance);
+        }
+
+        .status-btn.maintenance.active {
+            background-color: var(--status-maintenance);
+            color: white;
+        }
+
+        .status-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-save, .btn-delete, .btn-cancel {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-save {
+            background-color: #28a745;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-save:hover {
+            background-color: #218838;
+        }
+
+        .btn-delete {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: #c82333;
+        }
+
+        .btn-cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background-color: #5a6268;
+        }
+
+        @media (max-width: 768px) {
+            .floor-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                gap: 10px;
+                padding: 15px;
+            }
+
+            .status-legend {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .action-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-add-room {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- Include Header -->
+<div th:include="fragments/header :: header"></div>
+
+<div class="container-fluid main-container">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-th me-2"></i>Sơ đồ Phòng
+            </h1>
+            <p class="page-subtitle">Quản lý bố cục phòng và trạng thái theo tầng</p>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <button type="button" class="btn-add-room" data-bs-toggle="modal" data-bs-target="#addRoomModal">
+                <i class="fas fa-plus me-2"></i>Thêm phòng mới
+            </button>
+        </div>
+
+        <!-- Status Legend -->
+        <div class="status-legend">
+            <span style="font-weight: 700; color: var(--primary-color);">Huyền thoại trạng thái:</span>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: var(--status-empty);"></div>
+                <span>Trống</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: var(--status-occupied);"></div>
+                <span>Có khách</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: var(--status-cleaning);"></div>
+                <span>Đang dọn</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: var(--status-maintenance);"></div>
+                <span>Bảo trì</span>
+            </div>
+        </div>
+
+        <!-- Floor Sections -->
+        <div th:each="floor : ${roomsByFloor.keySet()}" class="floor-section">
+            <div class="floor-header">
+                <i class="fas fa-layer-group"></i>
+                <span th:text="'Tầng ' + ${floor}"></span>
+            </div>
+            <div class="floor-grid">
+                <div th:each="room : ${roomsByFloor.get(floor)}" 
+                     class="room-box"
+                     th:classappend="${room.status}"
+                     onclick="openRoomDetailModal([[${room.id}]], [[${room.roomNumber}]], [[${room.floor}]], '[[${room.status}]]', '[[${room.notes}]]')"
+                     data-bs-toggle="modal" 
+                     data-bs-target="#roomDetailModal">
+                    <div class="room-number" th:text="'Room ' + ${room.roomNumber}"></div>
+                    <div class="room-status" th:text="${room.statusLabel}"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div th:if="${#lists.isEmpty(roomsByFloor)}" class="floor-section">
+            <div style="text-align: center; padding: 60px 20px; color: #999;">
+                <div style="font-size: 48px; margin-bottom: 15px; color: #ddd;">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <p>Chưa có phòng nào. Hãy thêm phòng mới để bắt đầu.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Room Modal -->
+<div class="modal fade" id="addRoomModal" tabindex="-1" aria-labelledby="addRoomModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addRoomModalLabel">
+                    <i class="fas fa-plus me-2"></i>Thêm phòng mới
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form th:action="@{/room-plan/add}" method="post" id="addRoomForm">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="roomNumber">
+                                <i class="fas fa-door-open me-2" style="color: #003580;"></i>Số phòng
+                            </label>
+                            <input type="text" class="form-control" id="roomNumber" name="roomNumber" placeholder="Ví dụ: 101, 102..." required>
+                        </div>
+                        <div class="form-group">
+                            <label for="floor">
+                                <i class="fas fa-layer-group me-2" style="color: #003580;"></i>Số tầng
+                            </label>
+                            <input type="number" class="form-control" id="floor" name="floor" placeholder="1, 2, 3..." min="1" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="roomType">
+                            <i class="fas fa-list me-2" style="color: #003580;"></i>Loại phòng
+                        </label>
+                        <select class="form-control" id="roomType" name="roomTypeId" required>
+                            <option value="">-- Chọn loại phòng --</option>
+                            <option th:each="type : ${roomTypes}" th:value="${type.id}" th:text="${type.name}"></option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="roomCapacity">
+                            <i class="fas fa-users me-2" style="color: #003580;"></i>Sức chứa
+                        </label>
+                        <input type="number" class="form-control" id="roomCapacity" name="capacity" placeholder="Số người tối đa" min="1" required>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Hủy
+                    </button>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-save me-2"></i>Thêm phòng
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Room Detail Modal -->
+<div class="modal fade" id="roomDetailModal" tabindex="-1" aria-labelledby="roomDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="roomDetailModalLabel">
+                    <i class="fas fa-door-open me-2"></i>Chi tiết phòng
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form th:action="@{/room-plan/update}" method="post" id="roomDetailForm">
+                <div class="modal-body">
+                    <input type="hidden" name="roomId" id="detailRoomId">
+
+                    <div class="room-detail-info">
+                        <div class="info-row">
+                            <span class="info-label">Phòng:</span>
+                            <span id="detailRoomNumber"></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Tầng:</span>
+                            <span id="detailFloor"></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Trạng thái hiện tại:</span>
+                            <span id="detailStatus"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight: 700; margin-bottom: 15px;">
+                            <i class="fas fa-toggle-on me-2" style="color: #003580;"></i>Cập nhật trạng thái
+                        </label>
+                        <div class="status-buttons">
+                            <button type="button" class="status-btn empty" onclick="selectStatus('empty')">
+                                <i class="fas fa-circle me-1"></i>Trống
+                            </button>
+                            <button type="button" class="status-btn occupied" onclick="selectStatus('occupied')">
+                                <i class="fas fa-circle me-1"></i>Có khách
+                            </button>
+                            <button type="button" class="status-btn cleaning" onclick="selectStatus('cleaning')">
+                                <i class="fas fa-circle me-1"></i>Đang dọn
+                            </button>
+                            <button type="button" class="status-btn maintenance" onclick="selectStatus('maintenance')">
+                                <i class="fas fa-circle me-1"></i>Bảo trì
+                            </button>
+                        </div>
+                        <input type="hidden" name="status" id="selectedStatus">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="roomNotes">
+                            <i class="fas fa-sticky-note me-2" style="color: #003580;"></i>Ghi chú thiết bị
+                        </label>
+                        <textarea class="form-control" id="roomNotes" name="notes" placeholder="Nhập ghi chú về tình trạng thiết bị hoặc vấn đề cần sửa chữa" rows="4"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-delete" onclick="deleteRoomFromPlan()">
+                        <i class="fas fa-trash me-2"></i>Xóa phòng
+                    </button>
+                    <button type="button" class="btn-cancel" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Hủy
+                    </button>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-save me-2"></i>Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Include Footer -->
+<div th:include="fragments/footer :: footer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let currentRoomId = null;
+
+    function openRoomDetailModal(roomId, roomNumber, floor, status, notes) {
+        currentRoomId = roomId;
+        document.getElementById('detailRoomId').value = roomId;
+        document.getElementById('detailRoomNumber').textContent = 'Room ' + roomNumber;
+        document.getElementById('detailFloor').textContent = 'Tầng ' + floor;
+        document.getElementById('detailStatus').textContent = getStatusLabel(status);
+        document.getElementById('roomNotes').value = notes || '';
+        document.getElementById('selectedStatus').value = status;
+
+        // Set active status button
+        document.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.status-btn.${status}`).classList.add('active');
+    }
+
+    function getStatusLabel(status) {
+        const labels = {
+            'empty': 'Trống',
+            'occupied': 'Có khách',
+            'cleaning': 'Đang dọn',
+            'maintenance': 'Bảo trì'
+        };
+        return labels[status] || status;
+    }
+
+    function selectStatus(status) {
+        document.getElementById('selectedStatus').value = status;
+        document.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.status-btn.${status}`).classList.add('active');
+    }
+
+    function deleteRoomFromPlan() {
+        if (confirm('Bạn có chắc muốn xóa phòng này khỏi sơ đồ?')) {
+            fetch(`/api/room-plan/${currentRoomId}`, { method: 'DELETE' })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Xóa phòng thành công');
+                        location.reload();
+                    } else {
+                        alert('Lỗi khi xóa phòng');
+                    }
+                })
+                .catch(error => {
+                    alert('Lỗi: ' + error);
+                });
+        }
+    }
+</script>
+</body>
+</html>

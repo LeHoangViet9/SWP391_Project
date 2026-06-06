@@ -1,5 +1,7 @@
 package com.hms.entity.booking;
 
+import com.hms.common.enums.PaymentMethod;
+import com.hms.common.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,10 +31,12 @@ public class Invoice {
     private BigDecimal amount;
 
     @Column(name = "payment_status", nullable = false)
-    private String paymentStatus;
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus;
 
     @Column(name = "payment_method")
-    private String paymentMethod;
+    @Enumerated(EnumType.STRING)
+    private PaymentMethod paymentMethod;
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
