@@ -33,5 +33,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     // Lấy phòng theo tầng, loại trừ INACTIVE (deleted)
     Page<Room> findByFloorNumberAndRoomStatusNot(Integer floorNumber, RoomStatus roomStatus, Pageable pageable);
+
+    // Đếm số phòng AVAILABLE thuộc một loại phòng – dùng để kiểm tra số lượng booking
+    long countByRoomTypeIdAndRoomStatus(Long roomTypeId, RoomStatus roomStatus);
 }
 

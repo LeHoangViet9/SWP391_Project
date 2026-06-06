@@ -42,6 +42,9 @@ public class Booking {
     @Column(name = "price_per_night", nullable = false)
     private BigDecimal pricePerNight;
 
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity;
+
     @Column(name = "check_in_date", nullable = false)
     private LocalDateTime checkInDate;
 

@@ -2,6 +2,7 @@ package com.hms.service.booking.impl;
 
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.BookingStatus;
+import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.common.exception.ConflictException;
@@ -15,6 +16,7 @@ import com.hms.entity.customer.Customer;
 import com.hms.entity.hotel.RoomType;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.customer.CustomerRepository;
+import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.booking.BookingService;
 import com.hms.service.booking.mapper.BookingMapper;
@@ -27,15 +29,23 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
+    private static final List<BookingStatus> ROOM_HOLDING_STATUSES = List.of(
+            BookingStatus.PENDING,
+            BookingStatus.CONFIRMED,
+            BookingStatus.CHECKED_IN
+    );
+
     private final BookingRepository bookingRepository;
     private final CustomerRepository customerRepository;
     private final RoomTypeRepository roomTypeRepository;
+    private final RoomRepository roomRepository;
     private final BookingMapper bookingMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
@@ -64,6 +74,8 @@ public class BookingServiceImpl implements BookingService {
 
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+
+        validateRoomAvailability(request, null, locale);
 
         BigDecimal totalPrice= calculateTotalPrice(roomType, request);
 
@@ -94,6 +106,8 @@ public class BookingServiceImpl implements BookingService {
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
+        validateRoomAvailability(request, id, locale);
+
         BigDecimal totalPrice = calculateTotalPrice(roomType, request);
 
         bookingMapper.updateBookingFromRequest(request, booking);
@@ -116,25 +130,11 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public Page<BookingResponse> getBookingByStatus(BookingStatus bookingStatus, Integer page, Integer size){
+    public Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size) {
+
         Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.ASC);
-        return bookingRepository.findByBookingStatus(bookingStatus, pageable)
-                .map(bookingMapper::toResponse);
-    }
 
-
-    @Override
-    public Page<BookingResponse> getBookingByCustomer(Long customerId, Integer page, Integer size){
-        Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.ASC);
-        return bookingRepository.findByCustomerId(customerId, pageable)
-                .map(bookingMapper::toResponse);
-    }
-
-    @Override
-    public Page<BookingResponse> getBookingsByRoomType(Long roomTypeId, Integer page, Integer size){
-        Pageable pageable = pageableUtils.createPageable(page, size, "id" , SortDirection.ASC);
-        return bookingRepository.findByRoomTypeId(roomTypeId, pageable)
-                .map(bookingMapper::toResponse);
+        return bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable).map(bookingMapper::toResponse);
     }
 
     @Override
@@ -152,13 +152,41 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateBookingDate(BookingRequest request, Locale locale){
+        if(request.getCheckInDate().isBefore(LocalDateTime.now())){
+            throw new ConflictException(messageSource.getMessage("error.booking.checkin.past", null, locale));
+        }
+
         if(!request.getCheckOutDate().isAfter(request.getCheckInDate())){
             throw new ConflictException(messageSource.getMessage("error.booking.invalid", null, locale));
         }
     }
 
+    private void validateRoomAvailability(BookingRequest request, Long excludedBookingId, Locale locale){
+        long availableRoomCount = roomRepository.countByRoomTypeIdAndRoomStatus(
+                request.getRoomTypeId(),
+                RoomStatus.AVAILABLE
+        );
+        long bookedQuantity = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
+                request.getRoomTypeId(),
+                request.getCheckInDate(),
+                request.getCheckOutDate(),
+                excludedBookingId,
+                ROOM_HOLDING_STATUSES
+        );
+        long remainingQuantity = availableRoomCount - bookedQuantity;
+
+        if (request.getQuantity() > remainingQuantity) {
+            String message = messageSource.getMessage(
+                    "error.booking.not.enough.rooms",
+                    new Object[]{request.getQuantity(), Math.max(remainingQuantity, 0)},
+                    locale);
+            throw new ConflictException(message);
+        }
+    }
+
     private BigDecimal calculateTotalPrice(RoomType roomType, BookingRequest request){
         long nights = ChronoUnit.DAYS.between(request.getCheckInDate().toLocalDate(), request.getCheckOutDate().toLocalDate());
-        return BillingUtils.calculateRoomChargePerNight(roomType.getBasePrice(), nights);
+        BigDecimal roomCharge = BillingUtils.calculateRoomChargePerNight(roomType.getBasePrice(), nights);
+        return roomCharge.multiply(BigDecimal.valueOf(request.getQuantity()));
     }
 }

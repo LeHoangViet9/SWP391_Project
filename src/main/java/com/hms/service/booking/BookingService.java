@@ -21,11 +21,7 @@ public interface BookingService {
 
     void deleteBooking(Long id);
 
-    Page<BookingResponse> getBookingByStatus(BookingStatus bookingStatus, Integer page, Integer size);
-
-    Page<BookingResponse> getBookingByCustomer(Long customerId, Integer page, Integer size);
-
-    Page<BookingResponse> getBookingsByRoomType(Long roomTypeId, Integer page, Integer size);
+    Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size);
 
     Page<BookingResponse> getBookingsByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size);
 

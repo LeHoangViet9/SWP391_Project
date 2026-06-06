@@ -51,6 +51,31 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<Page<BookingResponse>>> searchBookings(
+            @RequestParam(required = false) BookingStatus status,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) Long roomTypeId,
+            @RequestParam(required = false) Long roomId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Page<BookingResponse> data = bookingService.searchBookings(status, customerId, roomTypeId, roomId, page, size);
+
+        String message = messageSource.getMessage("success.booking.getall", null, locale);
+
+        ApiResponse<Page<BookingResponse>> response = ApiResponse.<Page<BookingResponse>>builder()
+                .success(true)
+                .message(message)
+                .data(data)
+                .status(HttpStatus.OK)
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
@@ -67,72 +92,6 @@ public class BookingController {
                 .build();
 
         return  ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/status/{status}")
-    public ResponseEntity<ApiResponse<Page<BookingResponse>>> getBookingByStatus(
-            @PathVariable BookingStatus status,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size){
-
-        Locale locale = LocaleContextHolder.getLocale();
-
-        Page<BookingResponse> data = bookingService.getBookingByStatus(status, page, size);
-
-        String message = messageSource.getMessage("success.booking.getall", null, locale);
-
-        ApiResponse<Page<BookingResponse>> response = ApiResponse.<Page<BookingResponse>>builder()
-                .success(true)
-                .message(message)
-                .data(data)
-                .status(HttpStatus.OK)
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/customer/{customerId}")
-    public ResponseEntity<ApiResponse<Page<BookingResponse>>> getBookingByCustomer(
-            @PathVariable Long customerId,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size){
-
-        Locale locale = LocaleContextHolder.getLocale();
-
-        Page<BookingResponse> data = bookingService.getBookingByCustomer(customerId, page, size);
-
-        String message = messageSource.getMessage("success.booking.getall", null, locale);
-
-        ApiResponse<Page<BookingResponse>> response = ApiResponse.<Page<BookingResponse>>builder()
-                .success(true)
-                .message(message)
-                .data(data)
-                .status(HttpStatus.OK)
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/room-type/{roomTypeId}")
-    public ResponseEntity<ApiResponse<Page<BookingResponse>>> getBookingByRoomType(
-            @PathVariable Long roomTypeId,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size){
-
-        Locale locale = LocaleContextHolder.getLocale();
-
-        Page<BookingResponse> data = bookingService.getBookingsByRoomType(roomTypeId, page, size);
-
-        String message = messageSource.getMessage("success.booking.getall", null, locale);
-
-        ApiResponse<Page<BookingResponse>> response = ApiResponse.<Page<BookingResponse>>builder()
-                .success(true)
-                .message(message)
-                .data(data)
-                .status(HttpStatus.OK)
-                .build();
-
-        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/check-in")
