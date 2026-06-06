@@ -2,11 +2,15 @@ package com.hms.entity.maintenance;
 
 import com.hms.common.enums.MaintenanceSeverity;
 import com.hms.common.enums.MaintenanceStatus;
+import com.hms.entity.auth.User;
+import com.hms.entity.equipment.Equipment;
+import com.hms.entity.hotel.Room;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -19,53 +23,49 @@ public class RepairRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
     private Long id;
 
-    // Nếu yêu cầu có thể liên quan đến phòng hoặc thiết bị, để null nếu không có
-    @Column(name = "room_id")
-    private Long roomId;
+    // Thiết lập mối quan hệ Many-to-One với bảng Equipment
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "equipment_id")
+    private Equipment equipment;
 
-    @Column(name = "equipment_id")
-    private Long equipmentId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id")
+    private Room room;
 
-    // Người báo lỗi: housekeeper/receptionist/staff
-    @Column(name = "reported_by")
-    private Long reportedBy;
+    @Column(name = "repair_reason", nullable = false)
+    private String repairReason; // Lý do hỏng/sửa chữa
 
-    // người được phân công sửa (user id), có thể null nếu chưa phân công
-    @Column(name = "assigned_to")
-    private Long assignedTo;
+    @Column(name = "description")
+    private String description; // Chi tiết tình trạng sửa chữa
 
-    @Column(name = "issue_title", nullable = false, length = 255)
-    private String issueTitle;
-
-    @Column(name = "issue_description", columnDefinition = "TEXT")
-    private String issueDescription;
-
-    @Column(name = "diagnosis", columnDefinition = "TEXT")
-    private String diagnosis;
-
-    @Column(name = "repair_result", columnDefinition = "TEXT")
-    private String repairResult;
+    @Column(name = "cost", precision = 12, scale = 2)
+    private BigDecimal cost; // Chi phí sửa chữa (Dùng BigDecimal cho tiền tệ)
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "severity", nullable = false, length = 20)
+    @Column(name = "status", nullable = false)
+    private MaintenanceStatus status;// Trạng thái: Đang chờ, Đang sửa, Đã xong...
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private MaintenanceSeverity severity;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    @Builder.Default
-    private MaintenanceStatus status = MaintenanceStatus.PENDING;
+    @Column(name = "start_date")
+    private LocalDateTime startDate; // Ngày bắt đầu sửa
 
-    @CreationTimestamp
+    @Column(name = "end_date")
+    private LocalDateTime endDate; // Ngày sửa xong hoàn thành
+
     @Column(name = "created_at", nullable = false, updatable = false)
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_to_id")
+    private User assignedTo;
 
-    @Column(name = "completed_at")
-    private LocalDateTime completedAt;
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 }

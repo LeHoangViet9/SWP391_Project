@@ -1,4 +1,4 @@
-package com.hms.custom_validator;
+package com.hms.common.constant;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

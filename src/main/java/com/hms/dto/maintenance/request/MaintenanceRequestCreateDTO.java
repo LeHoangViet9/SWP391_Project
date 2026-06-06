@@ -17,10 +17,11 @@ public class MaintenanceRequestCreateDTO {
         @NotNull(message = "{maintenance.reportedBy.notnull}")
         private Long reportedBy;
 
-        @NotBlank(message = "{maintenance.issueTitle.notblank}")
-        private String issueTitle;
+        @NotBlank(message = "{maintenance.repairReason.notblank}")
+        private String repairReason;
 
-        private String issueDescription;
+
+        private String description;
 
         @NotNull(message = "{maintenance.severity.notnull}")
         private MaintenanceSeverity severity;

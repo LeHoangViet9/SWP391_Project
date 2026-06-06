@@ -3,14 +3,12 @@ package com.hms.service.customer.mapper;
 import com.hms.dto.customer.request.CustomerCreateDTO;
 import com.hms.dto.customer.response.CustomerResponse;
 import com.hms.entity.customer.Customer;
-import java.util.ArrayList;
-import java.util.List;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-06-04T14:35:36+0700",
+    date = "2026-06-06T11:34:38+0700",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Oracle Corporation)"
 )
 @Component
@@ -68,19 +66,5 @@ public class CustomerMapperImpl implements CustomerMapper {
         customer.setIdType( dto.getIdType() );
         customer.setIdNumberCard( dto.getIdNumberCard() );
         customer.setNationality( dto.getNationality() );
-    }
-
-    @Override
-    public List<CustomerResponse> toResponseList(List<Customer> customers) {
-        if ( customers == null ) {
-            return null;
-        }
-
-        List<CustomerResponse> list = new ArrayList<CustomerResponse>( customers.size() );
-        for ( Customer customer : customers ) {
-            list.add( toResponse( customer ) );
-        }
-
-        return list;
     }
 }
