@@ -9,7 +9,9 @@ import com.hms.common.utils.PageableUtils;
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
 import com.hms.dto.equipment.response.EquipmentResponse;
 import com.hms.entity.equipment.Equipment;
+import com.hms.entity.hotel.Room;
 import com.hms.repository.equipment.EquipmentRepository;
+import com.hms.repository.hotel.RoomRepository;
 import com.hms.service.equipment.EquipmentService;
 import com.hms.service.equipment.mapper.EquipmentMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +30,10 @@ import java.util.Locale;
 public class EquipmentServiceImpl implements EquipmentService {
 
     private static final String ERROR_EQUIPMENT_NOTFOUND = "error.equipment.notfound";
+    private static final String ERROR_ROOM_NOTFOUND = "error.room.notfound";
 
     private final EquipmentRepository equipmentRepository;
+    private final RoomRepository roomRepository;
     private final EquipmentMapper equipmentMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
@@ -84,6 +88,19 @@ public class EquipmentServiceImpl implements EquipmentService {
         Equipment equipment = equipmentMapper.toEntity(equipmentDTO);
         equipment.setStatus(EquipmentStatus.ACTIVE);
 
+        if (equipmentDTO.getRoomId() != null) {
+            Room room = roomRepository.findById(equipmentDTO.getRoomId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            messageSource.getMessage(
+                                    ERROR_ROOM_NOTFOUND,
+                                    new Object[]{equipmentDTO.getRoomId()},
+                                    locale
+                            )
+                    ));
+
+            equipment.setRoom(room);
+        }
+
         Equipment savedEquipment = equipmentRepository.save(equipment);
 
         return equipmentMapper.toResponse(savedEquipment);
@@ -119,6 +136,19 @@ public class EquipmentServiceImpl implements EquipmentService {
         }
 
         equipmentMapper.updateEquipmentFromDto(dto, equipment);
+
+        if (dto.getRoomId() != null) {
+            Room room = roomRepository.findById(dto.getRoomId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            messageSource.getMessage(
+                                    ERROR_ROOM_NOTFOUND,
+                                    new Object[]{dto.getRoomId()},
+                                    locale
+                            )
+                    ));
+
+            equipment.setRoom(room);
+        }
 
         Equipment updatedEquipment = equipmentRepository.save(equipment);
 

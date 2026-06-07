@@ -28,4 +28,11 @@ public class EquipmentResponse {
     private List<EquipmentImageResponse> images;
 
     private List<EquipmentCheckResponse> checks;
+
+    private Long roomId;
+    private String roomNumber;
+
+    private Long roomTypeId;
+    private String roomTypeName;
+
 }
