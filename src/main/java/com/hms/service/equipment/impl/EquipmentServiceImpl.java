@@ -5,12 +5,13 @@ import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
-import com.hms.common.utils.CloudinaryUtils;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
 import com.hms.dto.equipment.response.EquipmentResponse;
 import com.hms.entity.equipment.Equipment;
+import com.hms.entity.hotel.Room;
 import com.hms.repository.equipment.EquipmentRepository;
+import com.hms.repository.hotel.RoomRepository;
 import com.hms.service.equipment.EquipmentService;
 import com.hms.service.equipment.mapper.EquipmentMapper;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
 
@@ -30,12 +30,13 @@ import java.util.Locale;
 public class EquipmentServiceImpl implements EquipmentService {
 
     private static final String ERROR_EQUIPMENT_NOTFOUND = "error.equipment.notfound";
+    private static final String ERROR_ROOM_NOTFOUND = "error.room.notfound";
 
     private final EquipmentRepository equipmentRepository;
+    private final RoomRepository roomRepository;
     private final EquipmentMapper equipmentMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
-    private final CloudinaryUtils  cloudinaryUtils;
 
     @Override
     public Page<EquipmentResponse> getAllEquipments(
@@ -59,14 +60,22 @@ public class EquipmentServiceImpl implements EquipmentService {
         );
 
         return equipmentRepository
-                .findByEquipmentNameContainingIgnoreCaseAndStatus(keywords, EquipmentStatus.ACTIVE, pageable)
+                .findByEquipmentNameContainingIgnoreCaseAndStatusNot(
+                        keywords,
+                        EquipmentStatus.INACTIVE,
+                        pageable
+                )
                 .map(equipmentMapper::toResponse);
     }
 
     @Override
-    public EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO, MultipartFile file) {
+    public EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO) {
         Locale locale = LocaleContextHolder.getLocale();
-        if (equipmentRepository.existsByEquipmentCodeAndStatus(equipmentDTO.getEquipmentCode(), EquipmentStatus.ACTIVE)) {
+
+        if (equipmentRepository.existsByEquipmentCodeAndStatus(
+                equipmentDTO.getEquipmentCode(),
+                EquipmentStatus.ACTIVE
+        )) {
             throw new ConflictException(
                     messageSource.getMessage(
                             "error.equipment.code.existed",
@@ -77,12 +86,20 @@ public class EquipmentServiceImpl implements EquipmentService {
         }
 
         Equipment equipment = equipmentMapper.toEntity(equipmentDTO);
-        if (file != null && !file.isEmpty()) {
-            String imageUrl = cloudinaryUtils.uploadFile(file);
-            equipment.setImageUrl(imageUrl); // Ghi đè URL ảnh mới lên trường ảnh cũ của Entity
-        }
-        Equipment updatedEquipment = equipmentRepository.save(equipment);
         equipment.setStatus(EquipmentStatus.ACTIVE);
+
+        if (equipmentDTO.getRoomId() != null) {
+            Room room = roomRepository.findById(equipmentDTO.getRoomId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            messageSource.getMessage(
+                                    ERROR_ROOM_NOTFOUND,
+                                    new Object[]{equipmentDTO.getRoomId()},
+                                    locale
+                            )
+                    ));
+
+            equipment.setRoom(room);
+        }
 
         Equipment savedEquipment = equipmentRepository.save(equipment);
 
@@ -90,7 +107,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     }
 
     @Override
-    public EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto,MultipartFile file) {
+    public EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Equipment equipment = equipmentRepository.findById(id)
@@ -104,7 +121,11 @@ public class EquipmentServiceImpl implements EquipmentService {
                 ));
 
         if (!equipment.getEquipmentCode().equals(dto.getEquipmentCode())
-                && equipmentRepository.existsByEquipmentCodeAndIdNotAndStatus(dto.getEquipmentCode(), id, EquipmentStatus.ACTIVE)) {
+                && equipmentRepository.existsByEquipmentCodeAndIdNotAndStatus(
+                dto.getEquipmentCode(),
+                id,
+                EquipmentStatus.ACTIVE
+        )) {
             throw new ConflictException(
                     messageSource.getMessage(
                             "error.equipment.code.existed",
@@ -115,10 +136,22 @@ public class EquipmentServiceImpl implements EquipmentService {
         }
 
         equipmentMapper.updateEquipmentFromDto(dto, equipment);
-        if (file != null && !file.isEmpty()) {
-            String imageUrl = cloudinaryUtils.uploadFile(file);
-            equipment.setImageUrl(imageUrl); // Ghi đè URL ảnh mới lên trường ảnh cũ của Entity
+
+        if (dto.getRoomId() != null) {
+            Room room = roomRepository.findById(dto.getRoomId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            messageSource.getMessage(
+                                    ERROR_ROOM_NOTFOUND,
+                                    new Object[]{dto.getRoomId()},
+                                    locale
+                            )
+                    ));
+
+            equipment.setRoom(room);
+        }else {
+            equipment.setRoom(null);
         }
+
         Equipment updatedEquipment = equipmentRepository.save(equipment);
 
         return equipmentMapper.toResponse(updatedEquipment);
@@ -127,6 +160,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     public void deleteEquipment(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
+
         Equipment equipment = equipmentRepository.findById(id)
                 .filter(e -> e.getStatus() == EquipmentStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -144,6 +178,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     @Override
     public EquipmentResponse findById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
+
         Equipment equipment = equipmentRepository.findById(id)
                 .filter(e -> e.getStatus() == EquipmentStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(

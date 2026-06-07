@@ -14,7 +14,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
 
@@ -22,6 +21,7 @@ import java.util.Locale;
 @RequestMapping("/api/v1/equipments")
 @RequiredArgsConstructor
 public class EquipmentController {
+
     private final EquipmentService equipmentService;
     private final MessageSource messageSource;
 
@@ -34,51 +34,57 @@ public class EquipmentController {
             @RequestParam(defaultValue = "ASC") SortDirection direction) {
 
         Locale locale = LocaleContextHolder.getLocale();
+
+        Page<EquipmentResponse> data = equipmentService.getAllEquipments(
+                keywords,
+                page,
+                size,
+                sortBy,
+                direction
+        );
+
         String message = messageSource.getMessage("equipment.getall.success", null, locale);
 
         ApiResponse<Page<EquipmentResponse>> response = ApiResponse.<Page<EquipmentResponse>>builder()
                 .success(true)
                 .message(message)
-                .data(equipmentService.getAllEquipments(
-                        keywords,
-                        page,
-                        size,
-                        sortBy,
-                        direction))
+                .data(data)
                 .status(HttpStatus.OK)
                 .build();
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<EquipmentResponse>> findById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        EquipmentResponse equipment = equipmentService.findById(id);
+
+        EquipmentResponse data = equipmentService.findById(id);
         String message = messageSource.getMessage("equipment.getbyid.success", null, locale);
 
         ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
                 .success(true)
                 .message(message)
-                .data(equipment)
+                .data(data)
                 .status(HttpStatus.OK)
                 .build();
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<EquipmentResponse>> createEquipment(
-            @RequestParam("file") MultipartFile file,
             @Valid @RequestBody EquipmentCreateDTO dto) {
+
         Locale locale = LocaleContextHolder.getLocale();
-        EquipmentResponse created = equipmentService.createEquipment(dto,file);
+
+        EquipmentResponse data = equipmentService.createEquipment(dto);
         String message = messageSource.getMessage("equipment.add.success", null, locale);
 
         ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
                 .success(true)
                 .message(message)
-                .data(created)
+                .data(data)
                 .status(HttpStatus.CREATED)
                 .build();
 
@@ -87,26 +93,28 @@ public class EquipmentController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<EquipmentResponse>> updateEquipment(
-            @RequestParam("file")  MultipartFile file,
-            @Valid @RequestBody EquipmentCreateDTO dto,
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @Valid @RequestBody EquipmentCreateDTO dto) {
+
         Locale locale = LocaleContextHolder.getLocale();
-        EquipmentResponse updated = equipmentService.updateEquipment(id, dto,file);
+
+        EquipmentResponse data = equipmentService.updateEquipment(id, dto);
         String message = messageSource.getMessage("equipment.update.success", null, locale);
 
         ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
                 .success(true)
                 .message(message)
-                .data(updated)
+                .data(data)
                 .status(HttpStatus.OK)
                 .build();
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteEquipment(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
+
         equipmentService.deleteEquipment(id);
         String message = messageSource.getMessage("equipment.delete.success", null, locale);
 
@@ -116,6 +124,6 @@ public class EquipmentController {
                 .status(HttpStatus.OK)
                 .build();
 
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 }
