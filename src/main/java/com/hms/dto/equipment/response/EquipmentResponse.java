@@ -1,12 +1,16 @@
 package com.hms.dto.equipment.response;
+
+import com.hms.common.enums.EquipmentStatus;
 import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
 public class EquipmentResponse {
+
     private Long id;
 
     private String equipmentName;
@@ -17,9 +21,11 @@ public class EquipmentResponse {
 
     private String description;
 
-    private String imageUrl;
-
-    private String status;
+    private EquipmentStatus status;
 
     private LocalDateTime createdAt;
+
+    private List<EquipmentImageResponse> images;
+
+    private List<EquipmentCheckResponse> checks;
 }

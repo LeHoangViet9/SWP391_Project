@@ -1,131 +1,194 @@
 package com.hms.service.maintenance.impl;
 
+import com.hms.common.enums.MaintenanceSeverity;
 import com.hms.common.enums.MaintenanceStatus;
+import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.common.exception.ResourceNotFoundException;
+import com.hms.common.utils.PageableUtils;
 import com.hms.dto.maintenance.request.MaintenanceRequestCreateDTO;
 import com.hms.dto.maintenance.request.MaintenanceRequestUpdateDTO;
 import com.hms.dto.maintenance.response.MaintenanceResponse;
+import com.hms.entity.auth.User;
+import com.hms.entity.equipment.Equipment;
+import com.hms.entity.hotel.Room;
 import com.hms.entity.maintenance.RepairRequest;
+import com.hms.repository.auth.UserRepository;
+import com.hms.repository.equipment.EquipmentRepository;
+import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.maintenance.MaintenanceRepository;
 import com.hms.service.maintenance.MaintenanceService;
 import com.hms.service.maintenance.mapper.MaintenanceMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
 public class MaintenanceServiceImpl implements MaintenanceService {
 
     private final MaintenanceRepository maintenanceRepository;
+    private final RoomRepository roomRepository;
+    private final EquipmentRepository equipmentRepository;
+    private final UserRepository userRepository;
     private final MaintenanceMapper maintenanceMapper;
+    private final MessageSource messageSource;
+    private final PageableUtils pageableUtils;
 
-    // Pagination config
-    private static final int DEFAULT_PAGE = 1;
-    private static final int DEFAULT_SIZE = 10;
-    private static final int MAX_SIZE = 100;
-
-    /**
-     * Tạo yêu cầu bảo trì mới
-     */
     @Override
+    @Transactional
     public MaintenanceResponse createRequest(MaintenanceRequestCreateDTO dto) {
-        // Convert DTO thành entity
-        RepairRequest repairRequest = maintenanceMapper.toEntity(dto);
+        Locale locale = LocaleContextHolder.getLocale();
 
-        // Đảm bảo trạng thái mặc định khi tạo mới là PENDING
+        if (dto.getRoomId() == null && dto.getEquipmentId() == null) {
+            throw new IllegalArgumentException(
+                    messageSource.getMessage("error.maintenance.target.required", null, locale)
+            );
+        }
+
+        RepairRequest repairRequest = maintenanceMapper.toEntity(dto);
         repairRequest.setStatus(MaintenanceStatus.PENDING);
 
-        // Lưu vào database
-        RepairRequest saved = maintenanceRepository.save(repairRequest);
+        User reporter = userRepository.findById(dto.getReportedBy())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.user.notfound", new Object[]{dto.getReportedBy()}, locale)
+                ));
+        repairRequest.setReportedBy(reporter);
 
-        // Convert entity thành response DTO
+        if (dto.getRoomId() != null) {
+            Room room = roomRepository.findById(dto.getRoomId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            messageSource.getMessage("error.room.notfound", new Object[]{dto.getRoomId()}, locale)
+                    ));
+
+            room.setRoomStatus(RoomStatus.MAINTENANCE);
+            roomRepository.save(room);
+            repairRequest.setRoom(room);
+        }
+
+        if (dto.getEquipmentId() != null) {
+            Equipment equipment = equipmentRepository.findById(dto.getEquipmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            messageSource.getMessage("error.equipment.notfound", new Object[]{dto.getEquipmentId()}, locale)
+                    ));
+            repairRequest.setEquipment(equipment);
+        }
+
+        RepairRequest saved = maintenanceRepository.save(repairRequest);
         return maintenanceMapper.toResponse(saved);
     }
 
-    /**
-     * Cập nhật yêu cầu bảo trì
-     */
     @Override
+    @Transactional
     public MaintenanceResponse updateRequest(Long id, MaintenanceRequestUpdateDTO dto) {
-        // Tìm yêu cầu bảo trì theo ID, nếu không tìm thấy throw exception
-        RepairRequest repairRequest = maintenanceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu bảo trì không tồn tại"));
+        Locale locale = LocaleContextHolder.getLocale();
 
-        // Cập nhật các trường từ DTO (bỏ qua các trường null)
+        RepairRequest repairRequest = maintenanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.maintenance.notfound", new Object[]{id}, locale)
+                ));
+
+        MaintenanceStatus oldStatus = repairRequest.getStatus();
+
         maintenanceMapper.updateFromDto(dto, repairRequest);
 
-        // Nếu chuyển trạng thái sang COMPLETED thì lưu thời gian hoàn tất
-        if (dto.getStatus() == MaintenanceStatus.COMPLETED) {
-            repairRequest.setCompletedAt(LocalDateTime.now());
+        if (dto.getAssignedToId() != null) {
+            User assignedUser = userRepository.findById(dto.getAssignedToId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            messageSource.getMessage("error.user.notfound", new Object[]{dto.getAssignedToId()}, locale)
+                    ));
+            repairRequest.setAssignedTo(assignedUser);
         }
 
-        // Lưu cập nhật vào database
-        RepairRequest updated = maintenanceRepository.save(repairRequest);
+        if (dto.getStatus() == MaintenanceStatus.IN_PROGRESS && oldStatus != MaintenanceStatus.IN_PROGRESS) {
+            repairRequest.setStartDate(LocalDateTime.now());
+        }
 
-        // Convert entity thành response DTO
+        if (dto.getStatus() == MaintenanceStatus.COMPLETED && oldStatus != MaintenanceStatus.COMPLETED) {
+            repairRequest.setEndDate(LocalDateTime.now());
+
+            if (repairRequest.getRoom() != null) {
+                Room room = repairRequest.getRoom();
+                room.setRoomStatus(RoomStatus.DIRTY);
+                roomRepository.save(room);
+            }
+        }
+
+        if (dto.getStatus() == MaintenanceStatus.CANCELLED && oldStatus != MaintenanceStatus.CANCELLED) {
+            if (repairRequest.getRoom() != null
+                    && repairRequest.getRoom().getRoomStatus() == RoomStatus.MAINTENANCE) {
+                Room room = repairRequest.getRoom();
+                room.setRoomStatus(RoomStatus.AVAILABLE);
+                roomRepository.save(room);
+            }
+        }
+
+        RepairRequest updated = maintenanceRepository.save(repairRequest);
         return maintenanceMapper.toResponse(updated);
     }
 
-    /**
-     * Lấy chi tiết yêu cầu bảo trì theo ID
-     */
     @Override
     public MaintenanceResponse getRequestById(Long id) {
-        // Tìm yêu cầu bảo trì theo ID
-        RepairRequest repairRequest = maintenanceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu bảo trì không tồn tại"));
+        Locale locale = LocaleContextHolder.getLocale();
 
-        // Convert entity thành response DTO
+        RepairRequest repairRequest = maintenanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.maintenance.notfound", new Object[]{id}, locale)
+                ));
+
         return maintenanceMapper.toResponse(repairRequest);
     }
 
-    /**
-     * Lấy danh sách yêu cầu bảo trì có phân trang
-     */
     @Override
-    public Page<MaintenanceResponse> getAllRequests(
-            String keywords,
+    public Page<MaintenanceResponse> searchAndFilterRequests(
+            String keyword,
+            MaintenanceStatus status,
+            MaintenanceSeverity severity,
+            Long roomId,
+            Long assignedToId,
             Integer page,
             Integer size,
             SortField sortBy,
-            SortDirection direction
-    ) {
-        // Xác định trang (nếu null thì dùng mặc định)
-        page = (page == null || page < 1) ? DEFAULT_PAGE : page;
-        size = (size == null || size < 1) ? DEFAULT_SIZE : Math.min(size, MAX_SIZE);
+            SortDirection direction) {
 
-        // Xác định hướng sắp xếp
-        Sort.Direction sortDirection = direction == SortDirection.DESC ? Sort.Direction.DESC : Sort.Direction.ASC;
-        String sortField = "id"; // Sắp xếp theo ID mặc định
+        Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
 
-        // Tạo Pageable object
-        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(sortDirection, sortField));
+        String cleanKeyword = (keyword != null && !keyword.trim().isEmpty())
+                ? keyword.trim()
+                : null;
 
-        // Lấy tất cả yêu cầu bảo trì từ database (có phân trang)
-        Page<RepairRequest> requests = maintenanceRepository.findAll(pageable);
-
-        // Convert danh sách entity thành danh sách response DTO
-        return requests.map(maintenanceMapper::toResponse);
+        return maintenanceRepository
+                .searchAndFilterRequests(cleanKeyword, status, severity, roomId, assignedToId, pageable)
+                .map(maintenanceMapper::toResponse);
     }
 
-    /**
-     * Xóa yêu cầu bảo trì
-     */
     @Override
+    @Transactional
     public void deleteRequest(Long id) {
-        // Tìm yêu cầu bảo trì theo ID
-        RepairRequest repairRequest = maintenanceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu bảo trì không tồn tại"));
+        Locale locale = LocaleContextHolder.getLocale();
 
-        // Xóa khỏi database
+        RepairRequest repairRequest = maintenanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.maintenance.notfound", new Object[]{id}, locale)
+                ));
+
+        if (repairRequest.getRoom() != null
+                && repairRequest.getStatus() != MaintenanceStatus.COMPLETED
+                && repairRequest.getRoom().getRoomStatus() == RoomStatus.MAINTENANCE) {
+
+            Room room = repairRequest.getRoom();
+            room.setRoomStatus(RoomStatus.AVAILABLE);
+            roomRepository.save(room);
+        }
+
         maintenanceRepository.delete(repairRequest);
     }
 }

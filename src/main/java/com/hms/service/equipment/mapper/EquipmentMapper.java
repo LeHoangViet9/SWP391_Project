@@ -1,8 +1,14 @@
 package com.hms.service.equipment.mapper;
+
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
+import com.hms.dto.equipment.response.EquipmentCheckResponse;
+import com.hms.dto.equipment.response.EquipmentImageResponse;
 import com.hms.dto.equipment.response.EquipmentResponse;
 import com.hms.entity.equipment.Equipment;
+import com.hms.entity.equipment.EquipmentCheck;
+import com.hms.entity.equipment.EquipmentImage;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 import java.util.List;
@@ -19,5 +25,11 @@ public interface EquipmentMapper {
     );
 
     List<EquipmentResponse> toResponseList(List<Equipment> equipments);
+
+    EquipmentImageResponse toImageResponse(EquipmentImage image);
+
+    @Mapping(source = "checkedBy.id", target = "checkedById")
+    @Mapping(source = "checkedBy.fullName", target = "checkedByName")
+    EquipmentCheckResponse toCheckResponse(EquipmentCheck check);
 
 }

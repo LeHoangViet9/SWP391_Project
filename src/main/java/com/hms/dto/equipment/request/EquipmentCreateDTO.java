@@ -26,5 +26,5 @@ public class EquipmentCreateDTO {
 
     private String description;
 
-    private String imageUrl;
+
 }

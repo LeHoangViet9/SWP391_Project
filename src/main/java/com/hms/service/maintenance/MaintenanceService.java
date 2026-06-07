@@ -1,5 +1,7 @@
 package com.hms.service.maintenance;
 
+import com.hms.common.enums.MaintenanceSeverity;
+import com.hms.common.enums.MaintenanceStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.dto.maintenance.request.MaintenanceRequestCreateDTO;
@@ -9,34 +11,23 @@ import org.springframework.data.domain.Page;
 
 public interface MaintenanceService {
 
-    /**
-     * Tạo yêu cầu bảo trì mới
-     */
     MaintenanceResponse createRequest(MaintenanceRequestCreateDTO dto);
 
-    /**
-     * Cập nhật yêu cầu bảo trì
-     */
     MaintenanceResponse updateRequest(Long id, MaintenanceRequestUpdateDTO dto);
 
-    /**
-     * Lấy chi tiết yêu cầu bảo trì theo ID
-     */
     MaintenanceResponse getRequestById(Long id);
 
-    /**
-     * Lấy danh sách yêu cầu bảo trì có phân trang
-     */
-    Page<MaintenanceResponse> getAllRequests(
-            String keywords,
+    Page<MaintenanceResponse> searchAndFilterRequests(
+            String keyword,
+            MaintenanceStatus status,
+            MaintenanceSeverity severity,
+            Long roomId,
+            Long assignedToId,
             Integer page,
             Integer size,
             SortField sortBy,
             SortDirection direction
     );
 
-    /**
-     * Xóa yêu cầu bảo trì
-     */
     void deleteRequest(Long id);
 }
