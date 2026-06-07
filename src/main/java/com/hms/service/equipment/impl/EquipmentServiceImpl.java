@@ -148,6 +148,8 @@ public class EquipmentServiceImpl implements EquipmentService {
                     ));
 
             equipment.setRoom(room);
+        }else {
+            equipment.setRoom(null);
         }
 
         Equipment updatedEquipment = equipmentRepository.save(equipment);
