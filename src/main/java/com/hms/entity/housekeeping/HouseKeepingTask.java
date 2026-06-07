@@ -1,0 +1,47 @@
+package com.hms.entity.housekeeping;
+
+import com.hms.common.enums.TaskStatus;
+import com.hms.entity.auth.User;
+import com.hms.entity.hotel.Room;
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "housekeeping_task")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class HouseKeepingTask {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "room_id", nullable = false)
+    private Room room;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "assigned_to", nullable = false)
+    private User assignedTo;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "assigned_by", nullable = false)
+    private User assignedBy;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "task_status", nullable = false, length = 20)
+    @Builder.Default
+    private TaskStatus taskStatus = TaskStatus.PENDING;
+
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
+
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+}
