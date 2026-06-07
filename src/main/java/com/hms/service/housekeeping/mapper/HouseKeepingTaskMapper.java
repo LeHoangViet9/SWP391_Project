@@ -12,6 +12,7 @@ public interface HouseKeepingTaskMapper {
 
     @Mapping(source = "room.id",             target = "roomId")
     @Mapping(source = "room.roomNumber",      target = "roomNumber")
+    @Mapping(source = "room.roomState",       target = "roomState")
     @Mapping(source = "assignedTo.id",        target = "assignedToId")
     @Mapping(source = "assignedTo.fullName",  target = "assignedToName")
     @Mapping(source = "assignedBy.id",        target = "assignedById")
@@ -19,4 +20,4 @@ public interface HouseKeepingTaskMapper {
     HouseKeepingTaskResponse toResponse(HouseKeepingTask task);
 
     List<HouseKeepingTaskResponse> toResponseList(List<HouseKeepingTask> tasks);
-}
+}

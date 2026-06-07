@@ -1,5 +1,6 @@
 package com.hms.service.housekeeping.impl;
 
+import com.hms.common.enums.RoomState;
 import com.hms.common.enums.TaskStatus;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
@@ -9,9 +10,11 @@ import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
 import com.hms.entity.auth.User;
 import com.hms.entity.hotel.Room;
 import com.hms.entity.housekeeping.HouseKeepingTask;
+import com.hms.entity.housekeeping.RoomStateHistory;
 import com.hms.repository.auth.UserRepository;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.housekeeping.HouseKeepingTaskRepository;
+import com.hms.repository.housekeeping.RoomStateHistoryRepository;
 import com.hms.service.housekeeping.IHouseKeepingTaskService;
 import com.hms.service.housekeeping.mapper.HouseKeepingTaskMapper;
 import lombok.RequiredArgsConstructor;
@@ -33,14 +36,16 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     private final HouseKeepingTaskRepository taskRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final RoomStateHistoryRepository roomStateHistoryRepository;
     private final HouseKeepingTaskMapper taskMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
 
     @Override
-    public Page<HouseKeepingTaskResponse> getAllTasks(Integer page, Integer size) {
+    public Page<HouseKeepingTaskResponse> searchTasks(TaskStatus status, Long assignedToId, Long assignedById, Long roomId, Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "id", null);
-        return taskRepository.findAll(pageable).map(taskMapper::toResponse);
+        return taskRepository.searchTasks(status, assignedToId, assignedById, roomId, pageable)
+                .map(taskMapper::toResponse);
     }
 
     @Override
@@ -72,6 +77,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.user.notfound", null, locale)));
 
+        // Tạo task với status PENDING
         HouseKeepingTask task = HouseKeepingTask.builder()
                 .room(room)
                 .assignedTo(assignedTo)
@@ -81,6 +87,10 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                 .build();
 
         HouseKeepingTask saved = taskRepository.save(task);
+
+        // Đổi room state sang CLEANING khi tạo task
+        changeRoomState(room, RoomState.CLEANING, assignedBy, saved, "Tạo task dọn phòng");
+
         return taskMapper.toResponse(saved);
     }
 
@@ -93,33 +103,59 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.task.notfound", null, locale)));
 
-        // Update Room if provided
-        if (request.getRoomId() != null) {
-            Room room = roomRepository.findById(request.getRoomId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            messageSource.getMessage("error.room.notfound", null, locale)));
-            task.setRoom(room);
-        }
-
-        // Update Assigned To User if provided
-        if (request.getAssignedToId() != null) {
-            User assignedTo = userRepository.findById(request.getAssignedToId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            messageSource.getMessage("error.user.notfound", null, locale)));
-            task.setAssignedTo(assignedTo);
-        }
-
-        // Update Status if provided
-        if (request.getTaskStatus() != null) {
-            task.setTaskStatus(request.getTaskStatus());
-        }
-
-        // Update Notes if provided
+        // 1. Cập nhật notes (nếu có)
         if (request.getNotes() != null) {
             task.setNotes(request.getNotes());
         }
 
+        // 2. Nếu taskStatus == null → chỉ lưu notes, KHÔNG đổi room state
+        if (request.getTaskStatus() == null) {
+            HouseKeepingTask updated = taskRepository.save(task);
+            return taskMapper.toResponse(updated);
+        }
+
+        // 3. Có thay đổi status → xử lý chuyển trạng thái
+        TaskStatus newStatus = request.getTaskStatus();
+        task.setTaskStatus(newStatus);
+
+        // Cập nhật timestamps
+        switch (newStatus) {
+            case IN_PROGRESS:
+                // Dùng startedAt từ request, nếu không có thì auto now()
+                if (request.getStartedAt() != null) {
+                    task.setStartedAt(request.getStartedAt());
+                } else if (task.getStartedAt() == null) {
+                    task.setStartedAt(LocalDateTime.now());
+                }
+                break;
+            case COMPLETED:
+                task.setCompletedAt(LocalDateTime.now());
+                break;
+            default:
+                break;
+        }
+
         HouseKeepingTask updated = taskRepository.save(task);
+
+        // Đổi Room state theo task status
+        Room room = task.getRoom();
+        switch (newStatus) {
+            case IN_PROGRESS:
+                changeRoomState(room, RoomState.CLEANING, task.getAssignedTo(), task, "Task bắt đầu dọn phòng");
+                break;
+            case COMPLETED:
+                changeRoomState(room, RoomState.AVAILABLE, task.getAssignedTo(), task, "Task hoàn thành - phòng sạch");
+                break;
+            case CANCELLED:
+                changeRoomState(room, RoomState.DIRTY, task.getAssignedTo(), task, "Task bị hủy");
+                break;
+            case SKIPPED:
+                changeRoomState(room, RoomState.DIRTY, task.getAssignedTo(), task, "Task bị bỏ qua");
+                break;
+            default:
+                break;
+        }
+
         return taskMapper.toResponse(updated);
     }
 
@@ -131,88 +167,6 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.task.notfound", null, locale)));
         taskRepository.delete(task);
-    }
-
-    @Override
-    public Page<HouseKeepingTaskResponse> getTasksByStatus(TaskStatus status, Integer page, Integer size) {
-        Pageable pageable = pageableUtils.createPageable(page, size, "id", null);
-        return taskRepository.findByTaskStatus(status, pageable).map(taskMapper::toResponse);
-    }
-
-    @Override
-    public Page<HouseKeepingTaskResponse> getTasksByAssignedTo(Long userId, Integer page, Integer size) {
-        Pageable pageable = pageableUtils.createPageable(page, size, "id", null);
-        return taskRepository.findByAssignedToId(userId, pageable).map(taskMapper::toResponse);
-    }
-
-    @Override
-    public Page<HouseKeepingTaskResponse> getTasksByAssignedBy(Long userId, Integer page, Integer size) {
-        Pageable pageable = pageableUtils.createPageable(page, size, "id", null);
-        return taskRepository.findByAssignedById(userId, pageable).map(taskMapper::toResponse);
-    }
-
-    @Override
-    public Page<HouseKeepingTaskResponse> getTasksByRoom(Long roomId, Integer page, Integer size) {
-        Pageable pageable = pageableUtils.createPageable(page, size, "id", null);
-        return taskRepository.findByRoomId(roomId, pageable).map(taskMapper::toResponse);
-    }
-
-    @Override
-    public Page<HouseKeepingTaskResponse> getTasksByStatusAndAssignedTo(TaskStatus status, Long userId, Integer page, Integer size) {
-        Pageable pageable = pageableUtils.createPageable(page, size, "id", null);
-        return taskRepository.findByTaskStatusAndAssignedToId(status, userId, pageable)
-                .map(taskMapper::toResponse);
-    }
-
-    @Override
-    public Page<HouseKeepingTaskResponse> getTasksByStatusAndRoom(TaskStatus status, Long roomId, Integer page, Integer size) {
-        Pageable pageable = pageableUtils.createPageable(page, size, "id", null);
-        return taskRepository.findByTaskStatusAndRoomId(status, roomId, pageable)
-                .map(taskMapper::toResponse);
-    }
-
-    @Override
-    @Transactional
-    public void updateTaskStatus(Long taskId, TaskStatus status) {
-        Locale locale = LocaleContextHolder.getLocale();
-        HouseKeepingTask task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage("error.task.notfound", null, locale)));
-
-        task.setTaskStatus(status);
-
-        // Auto-set timestamps based on status
-        if (status == TaskStatus.IN_PROGRESS && task.getStartedAt() == null) {
-            task.setStartedAt(LocalDateTime.now());
-        } else if (status == TaskStatus.COMPLETED) {
-            task.setCompletedAt(LocalDateTime.now());
-        }
-
-        taskRepository.save(task);
-    }
-
-    @Override
-    @Transactional
-    public void startTask(Long taskId) {
-        updateTaskStatus(taskId, TaskStatus.IN_PROGRESS);
-    }
-
-    @Override
-    @Transactional
-    public void completeTask(Long taskId) {
-        updateTaskStatus(taskId, TaskStatus.COMPLETED);
-    }
-
-    @Override
-    @Transactional
-    public void cancelTask(Long taskId) {
-        updateTaskStatus(taskId, TaskStatus.CANCELLED);
-    }
-
-    @Override
-    @Transactional
-    public void skipTask(Long taskId) {
-        updateTaskStatus(taskId, TaskStatus.SKIPPED);
     }
 
     @Override
@@ -230,5 +184,39 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         List<HouseKeepingTask> tasks = taskRepository.findByAssignedToIdAndTaskStatusIn(userId, uncompletedStatuses);
         return taskMapper.toResponseList(tasks);
     }
+
+    // ==================== PRIVATE HELPERS ====================
+
+    /**
+     * Thay đổi room state và ghi log lịch sử.
+     * Chỉ thay đổi nếu state mới khác state hiện tại.
+     */
+    private void changeRoomState(Room room, RoomState newState, User changedBy, HouseKeepingTask task, String reason) {
+        RoomState previousState = room.getRoomState();
+
+        // Không ghi log nếu state không thay đổi
+        if (previousState == newState) {
+            return;
+        }
+
+        // Cập nhật room state
+        room.setRoomState(newState);
+        roomRepository.save(room);
+
+        // Ghi log lịch sử
+        RoomStateHistory history = RoomStateHistory.builder()
+                .room(room)
+                .previousState(previousState)
+                .newState(newState)
+                .changedBy(changedBy)
+                .task(task)
+                .changedAt(LocalDateTime.now())
+                .reason(reason)
+                .build();
+
+        roomStateHistoryRepository.save(history);
+    }
 }
+
+
 

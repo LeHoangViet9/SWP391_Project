@@ -1,5 +1,6 @@
 package com.hms.dto.housekeeping.response;
 
+import com.hms.common.enums.RoomState;
 import com.hms.common.enums.TaskStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,6 +21,8 @@ public class HouseKeepingTaskResponse {
 
     private String roomNumber;
 
+    private RoomState roomState;
+
     private Long assignedToId;
 
     private String assignedToName;
@@ -38,4 +41,5 @@ public class HouseKeepingTaskResponse {
 
     private LocalDateTime createdAt;
 }
+
 
