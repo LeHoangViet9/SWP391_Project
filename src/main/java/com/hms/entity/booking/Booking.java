@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
 public class Booking {
 
     @Id
@@ -52,7 +53,6 @@ public class Booking {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "booking_status", nullable = false)
-    @Enumerated(EnumType.STRING)
     private BookingStatus bookingStatus;
 
     @Column(name = "total_price", nullable = false)
