@@ -38,5 +38,9 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     @Query("SELECT r.roomStatus, COUNT(r) FROM Room r GROUP BY r.roomStatus")
     List<Object[]> countRoomsGroupedByStatus();
+
+    // Đếm số phòng AVAILABLE thuộc một loại phòng – dùng để kiểm tra số lượng booking
+    long countByRoomTypeIdAndRoomStatus(Long roomTypeId, RoomStatus roomStatus);
+
 }
 

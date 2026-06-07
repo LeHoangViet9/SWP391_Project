@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="#{ui.login.title} + ' - ' + #{ui.login.button.submit}">Đăng Nhập - HMS Hotel</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-glow: rgba(99, 102, 241, 0.35);
+            --bg-dark: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent-error: #ef4444;
+            --accent-success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-main);
+            overflow-x: hidden;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            position: relative;
+        }
+
+        /* Glassmorphism Container */
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 2;
+        }
+
+        .glass-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            border-radius: 24px 24px 0 0;
+        }
+
+        /* Language Switcher */
+        .lang-switcher {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            z-index: 10;
+        }
+
+        .lang-btn {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            border: 1px solid transparent;
+        }
+
+        .lang-btn:hover {
+            color: white;
+        }
+
+        .lang-btn.active {
+            color: white;
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .lang-divider {
+            color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Header UI */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-area {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .logo-area i {
+            font-size: 1.8rem;
+            color: white;
+        }
+
+        .header h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, #d1d5db);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.4rem;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 1.25rem;
+            position: relative;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.3px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper i.input-icon {
+            position: absolute;
+            left: 1rem;
+            color: var(--text-muted);
+            font-size: 1rem;
+            pointer-events: none;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.85rem 1rem 0.85rem 2.8rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.8);
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        /* Eye Icon for Password Masking */
+        .toggle-password {
+            position: absolute;
+            right: 1rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.2rem;
+            font-size: 0.95rem;
+        }
+
+        .toggle-password:hover {
+            color: white;
+        }
+
+        /* Validation error styles */
+        .error-message {
+            color: var(--accent-error);
+            font-size: 0.8rem;
+            margin-top: 0.4rem;
+            display: none;
+            align-items: center;
+            gap: 0.3rem;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        .has-error .form-control {
+            border-color: var(--accent-error);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+        }
+
+        .has-error .form-label {
+            color: var(--accent-error);
+        }
+
+        /* Buttons */
+        .btn-submit {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 0.9rem;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 16px rgba(99, 102, 241, 0.25);
+            margin-top: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px rgba(99, 102, 241, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .btn-submit .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s ease-in-out infinite;
+            margin-right: 0.5rem;
+        }
+
+        .btn-logout {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 8px 16px rgba(239, 68, 68, 0.25);
+        }
+
+        .btn-logout:hover {
+            box-shadow: 0 12px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Footer Link */
+        .footer-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .footer-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer-link a:hover {
+            color: #8b5cf6;
+            text-decoration: underline;
+        }
+
+        /* Success Panel (Dashboard Mock) */
+        .success-panel {
+            display: none;
+            text-align: center;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .success-icon-wrapper {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 2px solid var(--accent-success);
+            border-radius: 50%;
+            margin-bottom: 1.5rem;
+            color: var(--accent-success);
+            font-size: 2.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        .user-details {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--text-muted);
+        }
+
+        .detail-value {
+            color: white;
+            font-weight: 500;
+            word-break: break-all;
+            max-width: 70%;
+        }
+
+        .detail-value.token {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #38bdf8;
+        }
+
+        .role-badge {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 0.15rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Elegant Toast Notification */
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 9999;
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid var(--card-border);
+            padding: 1rem 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            transform: translateX(120%);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 380px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--accent-success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--accent-error);
+        }
+
+        .toast i {
+            font-size: 1.25rem;
+        }
+
+        .toast.success i { color: var(--accent-success); }
+        .toast.error i { color: var(--accent-error); }
+
+        .toast-content h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 0.1rem;
+        }
+
+        .toast-content p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Animations */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        @media (max-width: 480px) {
+            .glass-card {
+                padding: 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 🌐 Language Switcher -->
+        <div class="lang-switcher">
+            <a href="?lang=vi" class="lang-btn" th:classappend="${#locale.language == 'vi' || #locale.language.startsWith('vi')} ? 'active' : ''">VI</a>
+            <span class="lang-divider">|</span>
+            <a href="?lang=en" class="lang-btn" th:classappend="${#locale.language == 'en' || #locale.language.startsWith('en')} ? 'active' : ''">EN</a>
+        </div>
+
+        <!-- 1. LOGIN CARD -->
+        <div class="glass-card" id="loginCard">
+            <div class="header">
+                <div class="logo-area">
+                    <i class="fa-solid fa-hotel"></i>
+                </div>
+                <h1 th:text="#{ui.login.title}">HMS HOTEL</h1>
+                <p th:text="#{ui.login.subtitle}">Hệ thống Quản lý Khách sạn Cao cấp</p>
+            </div>
+
+            <form id="loginForm" novalidate>
+                <!-- Username -->
+                <div class="form-group" id="group-username">
+                    <label class="form-label" for="username" th:text="#{ui.login.label.username}">Tên đăng nhập</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-user input-icon"></i>
+                        <input type="text" id="username" class="form-control" th:placeholder="#{ui.login.placeholder.username}" required>
+                    </div>
+                    <div class="error-message" id="error-username">
+                        <i class="fa-solid fa-circle-exclamation"></i> <span>Thông báo lỗi</span>
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="form-group" id="group-password">
+                    <label class="form-label" for="password" th:text="#{ui.register.label.password}">Mật khẩu</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+                        <i class="fa-regular fa-eye-slash toggle-password" id="togglePassword"></i>
+                    </div>
+                    <div class="error-message" id="error-password">
+                        <i class="fa-solid fa-circle-exclamation"></i> <span>Thông báo lỗi</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="btnSubmit">
+                    <div class="spinner" id="btnSpinner"></div>
+                    <span id="btnText" th:text="#{ui.login.button.submit}">Đăng Nhập Hệ Thống</span>
+                </button>
+            </form>
+
+            <div class="footer-link">
+                <span th:text="#{ui.login.footer.text}">Chưa có tài khoản?</span> 
+                <a href="/register" th:text="#{ui.login.footer.link}">Đăng ký ngay</a>
+            </div>
+        </div>
+
+        <!-- 2. SUCCESS/LOGGED-IN DASHBOARD MOCK CARD (Dùng để kiểm thử Logic Logout) -->
+        <div class="glass-card success-panel" id="successPanel">
+            <div class="success-icon-wrapper">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            
+            <h2 style="font-family: 'Poppins', sans-serif; font-size: 1.6rem; font-weight: 700; margin-bottom: 0.2rem;" th:text="#{ui.dashboard.title}">Đăng Nhập Thành Công!</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;" th:text="#{ui.dashboard.subtitle}">Chào mừng bạn quay trở lại hệ thống HMS</p>
+
+            <div class="user-details">
+                <div class="detail-row">
+                    <span class="detail-label" th:text="#{ui.dashboard.label.fullname}">Họ và tên:</span>
+                    <span class="detail-value" id="display-name">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" th:text="#{ui.dashboard.label.username}">Tên đăng nhập:</span>
+                    <span class="detail-value" id="display-username">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" th:text="#{ui.dashboard.label.email}">Email:</span>
+                    <span class="detail-value" id="display-email">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" th:text="#{ui.dashboard.label.role}">Quyền hạn:</span>
+                    <span class="detail-value"><span class="role-badge" id="display-role">CUSTOMER</span></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label" th:text="#{ui.dashboard.label.token}">JWT Token:</span>
+                    <span class="detail-value token" id="display-token" style="font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; display: block; max-width: 200px;">-</span>
+                </div>
+            </div>
+
+            <!-- CHỮA TRỌNG TÂM: Logic Logout - Nhấn nút để xóa Token -->
+            <button class="btn-submit btn-logout" id="btnLogout">
+                <i class="fa-solid fa-right-from-bracket" style="margin-right: 0.5rem;"></i>
+                <span th:text="#{ui.dashboard.button.logout}">Đăng Xuất Tài Khoản</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Elegant Toast Alerts -->
+    <div class="toast" id="toast">
+        <i class="" id="toastIcon"></i>
+        <div class="toast-content">
+            <h4 id="toastTitle">Thành công</h4>
+            <p id="toastMessage">Đăng nhập thành công!</p>
+        </div>
+    </div>
+
+    <!-- 🌐 Dynamic JavaScript Translation Injection -->
+    <script th:inline="javascript">
+        // Inject Thymeleaf translations directly into JavaScript variables
+        const langMessages = {
+            toastSuccessTitle: [[#{ui.toast.success.title}]],
+            toastErrorTitle: [[#{ui.toast.error.title}]],
+            inputErrorTitle: [[#{ui.toast.inputError.title}]],
+            inputErrorMessage: [[#{ui.toast.inputError.message}]],
+            btnLoginLoading: [[#{ui.button.login.loading}]],
+            btnLoginText: [[#{ui.login.button.submit}]],
+            toastConnectionError: [[#{ui.toast.connection.error}]],
+            toastLogoutSuccessTitle: [[#{ui.toast.logout.success.title}]],
+            toastLogoutSuccessMessage: [[#{ui.toast.logout.success.message}]],
+            
+            // Validation standard fallback
+            errUsernameNotBlank: [[#{login.username.notblank}]],
+            errPasswordNotBlank: [[#{login.password.notblank}]]
+        };
+    </script>
+
+    <!-- UI Logic Script -->
+    <script>
+        // 1. Password Visibility Toggle Logic
+        const passwordInput = document.getElementById('password');
+        const togglePasswordBtn = document.getElementById('togglePassword');
+
+        togglePasswordBtn.addEventListener('click', function () {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        // 2. Elegant Toast Notification Controller
+        const toast = document.getElementById('toast');
+        const toastIcon = document.getElementById('toastIcon');
+        const toastTitle = document.getElementById('toastTitle');
+        const toastMessage = document.getElementById('toastMessage');
+
+        function showToast(type, title, msg, duration = 4000) {
+            toast.className = `toast show ${type}`;
+            toastTitle.innerText = title;
+            toastMessage.innerText = msg;
+            
+            if (type === 'success') {
+                toastIcon.className = 'fa-solid fa-circle-check';
+            } else {
+                toastIcon.className = 'fa-solid fa-circle-xmark';
+            }
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+
+        // 3. Clear errors helper
+        function clearErrors() {
+            const formGroups = document.querySelectorAll('.form-group');
+            formGroups.forEach(group => group.classList.remove('has-error'));
+            
+            const errorMessages = document.querySelectorAll('.error-message');
+            errorMessages.forEach(msg => msg.style.display = 'none');
+        }
+
+        // 4. Show single field validation error
+        function showFieldError(fieldId, errorMsg) {
+            const group = document.getElementById(`group-${fieldId}`);
+            const errorDiv = document.getElementById(`error-${fieldId}`);
+            if (group && errorDiv) {
+                group.classList.add('has-error');
+                errorDiv.querySelector('span').innerText = errorMsg;
+                errorDiv.style.display = 'flex';
+            }
+        }
+
+        // 5. Check Logged-in State on Load
+        const loginCard = document.getElementById('loginCard');
+        const successPanel = document.getElementById('successPanel');
+
+        const displayName = document.getElementById('display-name');
+        const displayUsername = document.getElementById('display-username');
+        const displayEmail = document.getElementById('display-email');
+        const displayRole = document.getElementById('display-role');
+        const displayToken = document.getElementById('display-token');
+
+        function checkLoginState() {
+            const token = localStorage.getItem('accessToken');
+            const userStr = localStorage.getItem('user');
+
+            if (token && userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    displayName.innerText = user.fullName || '-';
+                    displayUsername.innerText = user.userName || '-';
+                    displayEmail.innerText = user.email || '-';
+                    displayRole.innerText = user.role || 'CUSTOMER';
+                    displayToken.innerText = token;
+
+                    loginCard.style.display = 'none';
+                    successPanel.style.display = 'block';
+                } catch (e) {
+                    console.error("Lỗi parse dữ liệu người dùng", e);
+                    clearLocalStorage();
+                }
+            } else {
+                loginCard.style.display = 'block';
+                successPanel.style.display = 'none';
+            }
+        }
+
+        function clearLocalStorage() {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('user');
+        }
+
+        window.addEventListener('DOMContentLoaded', checkLoginState);
+
+        // 6. Submit Login Form AJAX LogicF
+        const form = document.getElementById('loginForm');
+        const btnSubmit = document.getElementById('btnSubmit');
+        const btnSpinner = document.getElementById('btnSpinner');
+        const btnText = document.getElementById('btnText');
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            clearErrors();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            // Client-side simple validation using localizable messages
+            let hasClientError = false;
+            if (!username) { showFieldError('username', langMessages.errUsernameNotBlank); hasClientError = true; }
+            if (!password) { showFieldError('password', langMessages.errPasswordNotBlank); hasClientError = true; }
+
+            if (hasClientError) {
+                showToast('error', langMessages.inputErrorTitle, langMessages.inputErrorMessage);
+                return;
+            }
+
+            // Bắt đầu Loading State
+            btnSubmit.disabled = true;
+            btnSpinner.style.display = 'block';
+            btnText.innerText = langMessages.btnLoginLoading;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentLang = urlParams.get('lang') || 'vi';
+
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept-Language': currentLang
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const resData = await response.json();
+
+                if (response.ok && resData.success) {
+                    showToast('success', langMessages.toastSuccessTitle, resData.message || 'Đăng nhập thành công!');
+                    
+                    localStorage.setItem('accessToken', resData.data.accessToken);
+                    localStorage.setItem('user', JSON.stringify(resData.data));
+
+                    form.reset();
+
+                    setTimeout(() => {
+                        checkLoginState();
+                    }, 1200);
+                } else {
+                    const errMsg = resData.message || 'Tài khoản hoặc mật khẩu không chính xác!';
+                    
+                    if (resData.data && typeof resData.data === 'object') {
+                        Object.keys(resData.data).forEach(field => {
+                            showFieldError(field, resData.data[field]);
+                        });
+                        showToast('error', langMessages.toastErrorTitle, errMsg);
+                    } else {
+                        showFieldError('username', errMsg);
+                        showFieldError('password', errMsg);
+                        showToast('error', langMessages.toastErrorTitle, errMsg);
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('error', langMessages.toastErrorTitle, langMessages.toastConnectionError);
+            } finally {
+                btnSubmit.disabled = false;
+                btnSpinner.style.display = 'none';
+                btnText.innerText = langMessages.btnLoginText;
+            }
+        });
+
+        // 7. TRỌNG TÂM: Logic Đăng Xuất (Logout)
+        const btnLogout = document.getElementById('btnLogout');
+        btnLogout.addEventListener('click', function() {
+            clearLocalStorage();
+            
+            showToast('success', langMessages.toastLogoutSuccessTitle, langMessages.toastLogoutSuccessMessage);
+
+            setTimeout(() => {
+                checkLoginState();
+            }, 1200);
+        });
+    </script>
+</body>
+</html>
