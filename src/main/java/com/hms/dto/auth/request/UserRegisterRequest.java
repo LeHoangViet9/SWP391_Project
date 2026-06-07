@@ -1,7 +1,7 @@
 package com.hms.dto.auth.request;
 
-import com.hms.custom_validator.PasswordConfirmable;
-import com.hms.custom_validator.PasswordMatch;
+import com.hms.common.constant.PasswordConfirmable;
+import com.hms.common.constant.PasswordMatch;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;

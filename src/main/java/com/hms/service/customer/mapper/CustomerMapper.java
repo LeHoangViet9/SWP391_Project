@@ -19,5 +19,5 @@ public interface CustomerMapper {
             CustomerCreateDTO dto,
             @MappingTarget Customer customer
     );
-    List<CustomerResponse> toResponseList(List<Customer> customers);
+
 }

@@ -58,5 +58,11 @@ public interface BookingRepository extends JpaRepository<Booking,Long> {
 
 
     long countBookingByBookingStatus(BookingStatus bookingStatus);
+
+    //Maintenance dashboard
+    long countByBookingStatus(BookingStatus bookingStatus);
+
+    @Query("SELECT COUNT(DISTINCT b.customer.id) FROM Booking b WHERE b.bookingStatus = com.hms.common.enums.BookingStatus.CHECKED_IN")
+    long countActiveCustomers();
 }
 

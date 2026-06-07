@@ -22,8 +22,6 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
 
     boolean existsByIdNumberCard(String idCard);
 
-
-    List<Customer> findByStatus(AccountStatus status);
     @Query("""
 SELECT c FROM Customer c
 WHERE c.status = :status

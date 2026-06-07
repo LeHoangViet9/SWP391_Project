@@ -1,4 +1,4 @@
-package com.hms.custom_validator;
+package com.hms.common.constant;
 
 /**
  * Interface đánh dấu cho các DTO cần xác thực mật khẩu xác nhận.

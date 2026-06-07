@@ -18,6 +18,5 @@ public interface EquipmentMapper {
             @MappingTarget Equipment equipment
     );
 
-    List<EquipmentResponse> toResponseList(List<Equipment> equipments);
 
 }

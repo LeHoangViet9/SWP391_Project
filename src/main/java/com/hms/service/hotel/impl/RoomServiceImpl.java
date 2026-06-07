@@ -10,6 +10,7 @@ import com.hms.common.utils.PageableUtils;
 import com.hms.dto.room.request.RoomRequest;
 import com.hms.dto.room.response.RoomResponse;
 import com.hms.entity.hotel.Room;
+import com.hms.entity.hotel.RoomImage;
 import com.hms.entity.hotel.RoomType;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.Locale;
 
 @Service
@@ -66,24 +68,36 @@ public class RoomServiceImpl implements IRoomService {
     public RoomResponse createRoom(RoomRequest request, MultipartFile file) {
         Locale locale = LocaleContextHolder.getLocale();
 
-
-        // Check if room number already exists
+        // Kiểm tra xem số phòng đã tồn tại chưa
         if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
             throw new ConflictException(messageSource.getMessage("error.room.exists", null, locale));
         }
 
-        // Check if room type exists
+        // Kiểm tra loại phòng
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
         Room room = new Room();
         populateRoomData(room, request, roomType);
+
+        // Khởi tạo list ảnh trống cho đối tượng Room mới tạo
+        room.setRoomImages(new ArrayList<>());
+
+        // XỬ LÝ ẢNH MỚI: Upload lên Cloudinary và lưu vào bảng room_img thay vì lưu cột cũ
         if (file != null && !file.isEmpty()) {
             String imageUrl = cloudinaryUtils.uploadFile(file);
-            room.setImageRoom(imageUrl); // Lưu link URL từ Cloudinary vào thuộc tính entity phòng
+
+            RoomImage roomImage = RoomImage.builder()
+                    .room(room)
+                    .imageUrl(imageUrl)
+                    .description("Ảnh đại diện khi tạo phòng")
+                    .build();
+
+            // Thêm ảnh vào bộ sưu tập của phòng. Nhờ CascadeType.ALL, Hibernate sẽ tự động lưu xuống DB
+            room.getRoomImages().add(roomImage);
         }
 
-        // Set default status = AVAILABLE khi tạo mới
+        // Set mặc định trạng thái phòng sẵn sàng hoạt động
         room.setRoomStatus(RoomStatus.AVAILABLE);
 
         Room saved = roomRepository.save(room);
@@ -92,28 +106,33 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse updateRoom(Long id, RoomRequest request,MultipartFile file) {
+    public RoomResponse updateRoom(Long id, RoomRequest request, MultipartFile file) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        // Lấy phòng và đảm bảo phòng chưa bị soft-delete
         Room room = roomRepository.findById(id)
                 .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
 
-        // Check if room number already exists (excluding current room)
         if (roomRepository.existsByRoomNumberAndIdNot(request.getRoomNumber(), id)) {
             throw new ConflictException(messageSource.getMessage("error.room.exists", null, locale));
         }
 
-        // Check if room type exists
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
         populateRoomData(room, request, roomType);
-        // Giữ nguyên status hiện tại của phòng
+
+        // XỬ LÝ ẢNH CẬP NHẬT: Thêm một ảnh mới vào Album ảnh hiện tại của phòng
         if (file != null && !file.isEmpty()) {
             String imageUrl = cloudinaryUtils.uploadFile(file);
-            room.setImageRoom(imageUrl); // Lưu link URL từ Cloudinary vào thuộc tính entity phòng
+
+            RoomImage roomImage = RoomImage.builder()
+                    .room(room)
+                    .imageUrl(imageUrl)
+                    .description("Ảnh cập nhật bổ sung")
+                    .build();
+
+            room.getRoomImages().add(roomImage);
         }
 
         Room updated = roomRepository.save(room);
