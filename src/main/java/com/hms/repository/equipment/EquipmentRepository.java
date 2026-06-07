@@ -8,23 +8,31 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+
 @Repository
 public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
 
-    // Kiểm tra trùng mã trên mọi bản ghi (ACTIVE/INACTIVE)
     boolean existsByEquipmentCode(String equipmentCode);
 
-    // Kiểm tra trùng mã chỉ với bản ACTIVE (thường dùng khi cho phép tái sử dụng mã của INACTIVE)
     boolean existsByEquipmentCodeAndStatus(String equipmentCode, EquipmentStatus status);
-    boolean existsByEquipmentCodeAndIdNotAndStatus(String equipmentCode, Long id, EquipmentStatus status);
 
-    // Tìm kiếm trang theo tên thiết bị và status (đang dùng ở service)
+    boolean existsByEquipmentCodeAndIdNotAndStatus(
+            String equipmentCode,
+            Long id,
+            EquipmentStatus status
+    );
+
     Page<Equipment> findByEquipmentNameContainingIgnoreCaseAndStatus(
             String keywords,
             EquipmentStatus status,
             Pageable pageable
     );
 
-    //  liệt kê theo status thì giữ, nếu không dùng có thể xóa
+    Page<Equipment> findByEquipmentNameContainingIgnoreCaseAndStatusNot(
+            String keywords,
+            EquipmentStatus status,
+            Pageable pageable
+    );
+
     List<Equipment> findByStatus(EquipmentStatus status);
 }

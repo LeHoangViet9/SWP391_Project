@@ -60,9 +60,9 @@ public class EquipmentServiceImpl implements EquipmentService {
         );
 
         return equipmentRepository
-                .findByEquipmentNameContainingIgnoreCaseAndStatus(
+                .findByEquipmentNameContainingIgnoreCaseAndStatusNot(
                         keywords,
-                        EquipmentStatus.ACTIVE,
+                        EquipmentStatus.INACTIVE,
                         pageable
                 )
                 .map(equipmentMapper::toResponse);
