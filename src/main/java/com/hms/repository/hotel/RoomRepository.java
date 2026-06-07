@@ -1,15 +1,21 @@
 package com.hms.repository.hotel;
 
 import com.hms.common.enums.RoomStatus;
+import com.hms.common.enums.BookingStatus;
 import com.hms.entity.hotel.Room;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {
 
@@ -40,5 +46,25 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Object[]> countRoomsGroupedByStatus();
 
     List<Room> findByRoomTypeIdAndRoomStatus(Long roomTypeId, RoomStatus roomStatus);
-}
 
+    @Query("SELECT r FROM Room r " +
+           "WHERE r.roomType.id = :roomTypeId " +
+           "AND r.roomStatus = :roomStatus " +
+           "AND NOT EXISTS (" +
+           "   SELECT b FROM Booking b WHERE b.room = r " +
+           "   AND b.bookingStatus IN :bookingStatuses " +
+           "   AND b.checkInDate < :checkOutDate " +
+           "   AND b.checkOutDate > :checkInDate" +
+           ")")
+    List<Room> findAvailableRoomsForDateRange(
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("roomStatus") RoomStatus roomStatus,
+            @Param("checkInDate") LocalDateTime checkInDate,
+            @Param("checkOutDate") LocalDateTime checkOutDate,
+            @Param("bookingStatuses") List<BookingStatus> bookingStatuses
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Room r WHERE r.id = :id")
+    Optional<Room> findByIdWithPessimisticWrite(@Param("id") Long id);
+}

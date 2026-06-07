@@ -54,42 +54,46 @@ public class CheckInServiceImpl implements CheckInService {
         }
 
         // 3. Assign Room
-        Room assignedRoom;
-        if (request.getRoomId() != null) {
-            // Manual assign
-            assignedRoom = roomRepository.findById(request.getRoomId())
-                    .orElseThrow(() -> new AppException("Room not found", HttpStatus.NOT_FOUND));
-            
-            if (!assignedRoom.getRoomType().getId().equals(booking.getRoomType().getId())) {
-                throw new AppException("Assigned room type does not match booking room type", HttpStatus.BAD_REQUEST);
-            }
-            if (assignedRoom.getRoomStatus() != RoomStatus.AVAILABLE) {
-                throw new AppException("Assigned room is not ready. Current status: " + assignedRoom.getRoomStatus(), HttpStatus.UNPROCESSABLE_ENTITY);
-            }
-        } else {
-            // Auto assign if booking already has a room
-            if (booking.getRoom() != null) {
-                assignedRoom = booking.getRoom();
-                if (assignedRoom.getRoomStatus() != RoomStatus.AVAILABLE) {
-                    throw new AppException("Previously assigned room is not ready. Status: " + assignedRoom.getRoomStatus(), HttpStatus.UNPROCESSABLE_ENTITY);
-                }
-            } else {
-                // Find an available room of the same type
-                List<Room> availableRooms = roomRepository.findByRoomTypeIdAndRoomStatus(booking.getRoomType().getId(), RoomStatus.AVAILABLE);
-                if (availableRooms.isEmpty()) {
-                    throw new AppException("No available rooms of type " + booking.getRoomType().getTypeName(), HttpStatus.NOT_FOUND);
-                }
-                assignedRoom = availableRooms.get(0);
-            }
+        // Find an available room of the same type avoiding overlap
+        List<Room> availableRooms = roomRepository.findAvailableRoomsForDateRange(
+                booking.getRoomType().getId(), 
+                RoomStatus.AVAILABLE, 
+                booking.getCheckInDate(), 
+                booking.getCheckOutDate(),
+                List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN)
+        );
+        
+        if (availableRooms.isEmpty()) {
+            throw new AppException("No available rooms of type " + booking.getRoomType().getTypeName() + " for this date range", HttpStatus.NOT_FOUND);
+        }
+        Long selectedRoomId = availableRooms.get(0).getId();
+
+        // 4. Lock and Double Check
+        Room assignedRoom = roomRepository.findByIdWithPessimisticWrite(selectedRoomId)
+                .orElseThrow(() -> new AppException("Room not found during lock phase", HttpStatus.NOT_FOUND));
+
+        if (assignedRoom.getRoomStatus() != RoomStatus.AVAILABLE) {
+            throw new AppException("Room " + assignedRoom.getRoomNumber() + " is no longer available. Current status: " + assignedRoom.getRoomStatus(), HttpStatus.CONFLICT);
         }
 
-        // 4. Update Status
+        // Double check overlap after acquiring lock
+        boolean isOverlapping = bookingRepository.existsOverlappingBooking(
+                assignedRoom.getId(),
+                booking.getId(),
+                List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN),
+                booking.getCheckInDate(),
+                booking.getCheckOutDate()
+        );
+        
+        if (isOverlapping) {
+            throw new AppException("Room " + assignedRoom.getRoomNumber() + " is already booked for this date range.", HttpStatus.CONFLICT);
+        }
+
+        // 5. Update Status
         RoomStatus previousRoomStatus = assignedRoom.getRoomStatus();
         
         booking.setBookingStatus(BookingStatus.CHECKED_IN);
         booking.setRoom(assignedRoom);
-        // Note: ERD does not show actual_check_in_time, if you add it, it would be:
-        // booking.setActualCheckInTime(now);
 
         assignedRoom.setRoomStatus(RoomStatus.OCCUPIED);
 
