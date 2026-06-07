@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
 public class Booking {
 
     @Id
@@ -41,14 +42,17 @@ public class Booking {
     @Column(name = "price_per_night", nullable = false)
     private BigDecimal pricePerNight;
 
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity;
+
     @Column(name = "check_in_date", nullable = false)
     private LocalDateTime checkInDate;
 
     @Column(name = "check_out_date", nullable = false)
     private LocalDateTime checkOutDate;
 
-    @Column(name = "booking_status", nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(name = "booking_status", nullable = false)
     private BookingStatus bookingStatus;
 
     @Column(name = "total_price", nullable = false)

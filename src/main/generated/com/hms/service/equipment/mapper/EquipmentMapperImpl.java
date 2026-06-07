@@ -3,14 +3,12 @@ package com.hms.service.equipment.mapper;
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
 import com.hms.dto.equipment.response.EquipmentResponse;
 import com.hms.entity.equipment.Equipment;
-import java.util.ArrayList;
-import java.util.List;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-06-04T14:35:36+0700",
+    date = "2026-06-06T22:23:44+0700",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Oracle Corporation)"
 )
 @Component
@@ -66,19 +64,5 @@ public class EquipmentMapperImpl implements EquipmentMapper {
         equipment.setLocation( dto.getLocation() );
         equipment.setDescription( dto.getDescription() );
         equipment.setImageUrl( dto.getImageUrl() );
-    }
-
-    @Override
-    public List<EquipmentResponse> toResponseList(List<Equipment> equipments) {
-        if ( equipments == null ) {
-            return null;
-        }
-
-        List<EquipmentResponse> list = new ArrayList<EquipmentResponse>( equipments.size() );
-        for ( Equipment equipment : equipments ) {
-            list.add( toResponse( equipment ) );
-        }
-
-        return list;
     }
 }

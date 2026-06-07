@@ -17,18 +17,11 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     boolean existsByRoomNumberAndIdNot(String roomNumber, Long id);
 
-    Optional<Room> findByRoomNumber(String roomNumber);
-
-    Page<Room> findByRoomNumberContainingIgnoreCase(String keywords, Pageable pageable);
-
     Page<Room> findByRoomStatus(RoomStatus roomStatus, Pageable pageable);
 
     // Lấy tất cả phòng KHÔNG có status chỉ định (dùng cho soft delete)
     Page<Room> findByRoomStatusNot(RoomStatus roomStatus, Pageable pageable);
 
-    Page<Room> findByFloorNumber(Integer floorNumber, Pageable pageable);
-
-    Page<Room> findByRoomTypeId(Long roomTypeId, Pageable pageable);
 
     // Lấy phòng theo loại, loại trừ INACTIVE (deleted)
     Page<Room> findByRoomTypeIdAndRoomStatusNot(Long roomTypeId, RoomStatus roomStatus, Pageable pageable);
@@ -38,5 +31,9 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     @Query("SELECT r.roomStatus, COUNT(r) FROM Room r GROUP BY r.roomStatus")
     List<Object[]> countRoomsGroupedByStatus();
+
+    // Đếm số phòng AVAILABLE thuộc một loại phòng – dùng để kiểm tra số lượng booking
+    long countByRoomTypeIdAndRoomStatus(Long roomTypeId, RoomStatus roomStatus);
+
 }
 
