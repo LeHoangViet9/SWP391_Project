@@ -14,6 +14,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize; // Import thư viện phân quyền
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Locale;
@@ -26,6 +27,7 @@ public class CustomerController {
     private final CustomerService customerService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<Page<CustomerResponse>>> findAll(
             @RequestParam(required = false) String keywords,
             @RequestParam(defaultValue = "ACTIVE") AccountStatus status,
@@ -38,12 +40,13 @@ public class CustomerController {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("customer.getall.success", null, locale),
-                customerService.getCustomers(keywords,status,page,size,sortBy,direction),
+                customerService.getCustomers(keywords, status, page, size, sortBy, direction),
                 HttpStatus.OK
-        ),HttpStatus.OK);
+        ), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<CustomerResponse>> findById(@PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
@@ -51,45 +54,46 @@ public class CustomerController {
                 messageSource.getMessage("customer.getbyid.success", null, locale),
                 customerService.findById(id),
                 HttpStatus.OK
-        ),HttpStatus.OK);
+        ), HttpStatus.OK);
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<CustomerResponse>> createCustomer(@Valid @RequestBody CustomerCreateDTO  customerCreateDTO){
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    public ResponseEntity<ApiResponse<CustomerResponse>> createCustomer(@Valid @RequestBody CustomerCreateDTO customerCreateDTO){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("customer.add.success", null, locale),
                 customerService.createCustomer(customerCreateDTO),
                 HttpStatus.CREATED
-        ),HttpStatus.CREATED);
+        ), HttpStatus.CREATED);
     }
-
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(@Valid @RequestBody CustomerCreateDTO  customerCreateDTO, @PathVariable Long id){
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(@Valid @RequestBody CustomerCreateDTO customerCreateDTO, @PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("customer.update.success", null, locale),
-                customerService.updateCustomer(id,customerCreateDTO),
+                customerService.updateCustomer(id, customerCreateDTO),
                 HttpStatus.OK
-        ),HttpStatus.OK);
+        ), HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<Void>> deleteCustomer(
             @PathVariable Long id
     ){
         Locale locale = LocaleContextHolder.getLocale();
         customerService.deleteCustomer(id);
         return new ResponseEntity<>(new ApiResponse<>(
-                        true,
-                        messageSource.getMessage("customer.delete.success", null, locale),
-                        null,
-                        HttpStatus.OK
-                ),
+                true,
+                messageSource.getMessage("customer.delete.success", null, locale),
+                null,
+                HttpStatus.OK
+        ),
                 HttpStatus.OK
         );
     }
-
 }

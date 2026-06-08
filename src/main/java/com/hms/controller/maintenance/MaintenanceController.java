@@ -7,6 +7,7 @@ import com.hms.dto.maintenance.response.MaintenanceResponse;
 import com.hms.service.maintenance.MaintenanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class MaintenanceController {
     private final MaintenanceService maintenanceService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING', 'MAINTENANCE')")
     public ApiResponse<MaintenanceResponse> createRequest(
             @Valid @RequestBody MaintenanceRequestCreateDTO dto
     ) {
@@ -29,6 +31,7 @@ public class MaintenanceController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
     public ApiResponse<List<MaintenanceResponse>> getAllRequests() {
         return ApiResponse.success(
                 "Get maintenance request list successfully",
@@ -37,6 +40,7 @@ public class MaintenanceController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
     public ApiResponse<MaintenanceResponse> getRequestById(
             @PathVariable Long id
     ) {
@@ -47,6 +51,7 @@ public class MaintenanceController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MAINTENANCE')")
     public ApiResponse<MaintenanceResponse> updateRequest(
             @PathVariable Long id,
             @Valid @RequestBody MaintenanceRequestUpdateDTO dto
@@ -58,6 +63,7 @@ public class MaintenanceController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> deleteRequest(
             @PathVariable Long id
     ) {
