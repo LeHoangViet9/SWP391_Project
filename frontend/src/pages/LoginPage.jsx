@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
-import { getDefaultDashboardPath, isStaffRole } from '../utils/roleAccess';
 
 export default function LoginPage() {
   const { t } = useLocale();
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/';
 
   const [form, setForm] = useState({ username: '', password: '' });
   const [showPass, setShowPass] = useState(false);
@@ -23,17 +20,8 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await login(form);
-      const role = res?.data?.roleName;
-      const staffPaths = ['/admin/', '/receptionist/', '/housekeeper/', '/maintenance/'];
-      const isStaffRedirect = staffPaths.some((p) => redirect.startsWith(p));
-      if (isStaffRedirect && isStaffRole(role)) {
-        navigate(redirect);
-      } else if (isStaffRole(role)) {
-        navigate(getDefaultDashboardPath(role));
-      } else {
-        navigate(isStaffRedirect ? '/' : redirect);
-      }
+      await login(form);
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.message || t('auth.loginFailed'));
     } finally {
@@ -107,7 +95,7 @@ export default function LoginPage() {
         <p className="text-center text-sm text-slate-500">
           {t('auth.noAccount')}{' '}
           <Link
-            to={`/register${redirect !== '/' ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}
+            to="/register"
             className="text-[#bfa15f] font-semibold hover:underline"
           >
             {t('auth.register')}

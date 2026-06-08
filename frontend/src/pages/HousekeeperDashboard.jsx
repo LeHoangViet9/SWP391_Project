@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import DashboardLayout from '../components/shared/DashboardLayout';
 import MaintenanceManager from '../components/MaintenanceManager';
 import ChangePassword from '../components/ChangePassword';
-import { Hammer, KeyRound } from 'lucide-react';
+import AccountInfo from '../components/AccountInfo';
+import { Hammer, KeyRound, UserCircle } from 'lucide-react';
 
 const TABS = [
   { key: 'maintenance', label: 'Yêu Cầu Bảo Trì', Icon: Hammer,  component: <MaintenanceManager readOnly />, readOnly: true },
+  { key: 'account',     label: 'Thông Tin Tài Khoản', Icon: UserCircle, component: <AccountInfo /> },
   { key: 'password',    label: 'Đổi Mật Khẩu',   Icon: KeyRound, component: <ChangePassword /> },
 ];
 

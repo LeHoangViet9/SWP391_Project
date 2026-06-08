@@ -99,6 +99,15 @@ public class UserServiceImpl implements IUserService {
 
         return userMapper.toResponse(updatedUser,accessToken);
     }
+
+    @Override
+    public UserResponse getCurrentUser(String userName) {
+        Locale locale = LocaleContextHolder.getLocale();
+        User user = userRepository.findUserByUserName(userName)
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+        return userMapper.toResponse(user, null);
+    }
+
     @Transactional
     @Override
     public void changePassword(String userName, ChangePasswordRequest changePasswordRequest) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { maintenanceService } from '../services/maintenanceService';
+import { useLocale } from '../context/LocaleContext';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -42,6 +43,7 @@ const EMPTY_UPDATE = {
 };
 
 export default function MaintenanceManager({ readOnly = false }) {
+  const { t } = useLocale();
   const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -103,7 +105,7 @@ export default function MaintenanceManager({ readOnly = false }) {
           repairResult: form.repairResult || undefined,
         };
         await maintenanceService.update(modal.editing.id, payload);
-        notify('Cập nhật yêu cầu bảo trì thành công!');
+        notify(t('maintenance.toast.updateSuccess'));
       } else {
         const payload = {
           roomId: form.roomId ? Number(form.roomId) : undefined,
@@ -114,25 +116,25 @@ export default function MaintenanceManager({ readOnly = false }) {
           severity: form.severity,
         };
         await maintenanceService.create(payload);
-        notify('Tạo yêu cầu bảo trì thành công!');
+        notify(t('maintenance.toast.addSuccess'));
       }
       closeModal();
       fetchData();
     } catch (e) {
-      notify(e.status === 403 ? '403 Forbidden - Không có quyền!' : (e.message || 'Lỗi không xác định'), 'error');
+      notify(e.status === 403 ? t('maintenance.toast.forbidden') : (e.message || t('maintenance.toast.loadError')), 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Xóa yêu cầu bảo trì #${item.id}?`)) return;
+    if (!window.confirm(t('maintenance.toast.deleteConfirm', { id: item.id }).replace('{id}', item.id))) return;
     try {
       await maintenanceService.delete(item.id);
-      notify('Đã xóa yêu cầu bảo trì!');
+      notify(t('maintenance.toast.deleteSuccess'));
       fetchData();
     } catch (e) {
-      notify(e.status === 403 ? '403 Forbidden - Không có quyền xóa!' : e.message, 'error');
+      notify(e.status === 403 ? t('maintenance.toast.forbiddenDelete') : e.message, 'error');
     }
   };
 
@@ -149,12 +151,12 @@ export default function MaintenanceManager({ readOnly = false }) {
       <td className="px-4 py-3 text-xs">{item.assignedTo || '-'}</td>
       <td className="px-4 py-3">
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SEVERITY_COLORS[item.severity] || SEVERITY_COLORS.MEDIUM}`}>
-          {item.severity || 'MEDIUM'}
+          {t(`maintenance.severity.${item.severity || 'MEDIUM'}`)}
         </span>
       </td>
       <td className="px-4 py-3">
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] || STATUS_COLORS.PENDING}`}>
-          {item.status || 'PENDING'}
+          {t(`maintenance.status.${item.status || 'PENDING'}`)}
         </span>
       </td>
       <td className="px-4 py-3 text-xs text-slate-400">{formatDate(item.createdAt)}</td>
@@ -169,7 +171,7 @@ export default function MaintenanceManager({ readOnly = false }) {
     </tr>
   ));
 
-  const cols = ['#', 'Tiêu Đề', 'Mô Tả', 'Phòng', 'Thiết Bị', 'Báo Cáo Bởi', 'Phân Công', 'Mức Độ', 'Trạng Thái', 'Ngày Tạo', ...(!readOnly ? ['Thao tác'] : [])];
+  const cols = [t('maintenance.columns.id'), t('maintenance.columns.title'), t('maintenance.columns.description'), t('maintenance.columns.room'), t('maintenance.columns.equipment'), t('maintenance.columns.reportedBy'), t('maintenance.columns.assignedTo'), t('maintenance.columns.severity'), t('maintenance.columns.status'), t('maintenance.columns.createdAt'), ...(!readOnly ? [t('maintenance.columns.actions')] : [])];
 
   return (
     <div>
@@ -179,32 +181,32 @@ export default function MaintenanceManager({ readOnly = false }) {
         <button onClick={fetchData} className="p-2 border rounded hover:bg-stone-100"><RefreshCw size={14} /></button>
         {!readOnly && (
           <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
-            <Plus size={16} /> Tạo yêu cầu
+            <Plus size={16} /> {t('maintenance.addBtn')}
           </button>
         )}
       </div>
 
-      <DataTable columns={cols} rows={rows} loading={loading} emptyText="Không có yêu cầu bảo trì." />
+      <DataTable columns={cols} rows={rows} loading={loading} emptyText={t('maintenance.emptyText')} />
 
-      <Modal open={modal.open} title={modal.editing ? 'Cập Nhật Yêu Cầu Bảo Trì' : 'Tạo Yêu Cầu Bảo Trì'} onClose={closeModal} size="lg">
+      <Modal open={modal.open} title={modal.editing ? t('maintenance.modal.editTitle') : t('maintenance.modal.addTitle')} onClose={closeModal} size="lg">
         <form onSubmit={handleSave} className="space-y-4">
           {modal.editing ? (
             <>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Phân Công Cho</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.assignedTo')}</label>
                   <input type="number" value={form.assignedTo} onChange={e => setForm(f => ({ ...f, assignedTo: e.target.value }))}
                     className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Mức Độ *</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.severity')}</label>
                   <select required value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}
                     className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
                     {SEVERITY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Trạng Thái *</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.status')}</label>
                   <select required value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
                     className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
                     {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -212,12 +214,12 @@ export default function MaintenanceManager({ readOnly = false }) {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Chẩn Đoán</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.diagnosis')}</label>
                 <textarea rows={2} value={form.diagnosis} onChange={e => setForm(f => ({ ...f, diagnosis: e.target.value }))}
                   className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none resize-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Kết Quả Sửa Chữa</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.repairResult')}</label>
                 <textarea rows={2} value={form.repairResult} onChange={e => setForm(f => ({ ...f, repairResult: e.target.value }))}
                   className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none resize-none" />
               </div>
@@ -225,36 +227,36 @@ export default function MaintenanceManager({ readOnly = false }) {
           ) : (
             <>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Tiêu Đề Sự Cố *</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.title')}</label>
                 <input required value={form.issueTitle} onChange={e => setForm(f => ({ ...f, issueTitle: e.target.value }))}
-                  className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder="Điều hòa bị hỏng, đường ống rò rỉ..." />
+                  className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder={t('maintenance.modal.titlePlaceholder')} />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">ID Phòng</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.room')}</label>
                   <input type="number" value={form.roomId} onChange={e => setForm(f => ({ ...f, roomId: e.target.value }))}
                     className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">ID Thiết Bị</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.equipment')}</label>
                   <input type="number" value={form.equipmentId} onChange={e => setForm(f => ({ ...f, equipmentId: e.target.value }))}
                     className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Báo Cáo Bởi *</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.reportedBy')}</label>
                   <input required type="number" value={form.reportedBy} onChange={e => setForm(f => ({ ...f, reportedBy: e.target.value }))}
                     className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Mức Độ *</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.severity')}</label>
                 <select required value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}
                   className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
                   {SEVERITY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Mô Tả Chi Tiết</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.description')}</label>
                 <textarea rows={3} value={form.issueDescription} onChange={e => setForm(f => ({ ...f, issueDescription: e.target.value }))}
                   className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none resize-none" />
               </div>
@@ -262,9 +264,9 @@ export default function MaintenanceManager({ readOnly = false }) {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">Hủy</button>
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">{t('maintenance.modal.cancel')}</button>
             <button type="submit" disabled={saving} className="px-5 py-2 text-sm bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded font-semibold shadow disabled:opacity-60">
-              {saving ? 'Đang lưu...' : modal.editing ? 'Cập nhật' : 'Tạo mới'}
+              {saving ? t('maintenance.modal.saving') : modal.editing ? t('maintenance.modal.update') : t('maintenance.modal.save')}
             </button>
           </div>
         </form>

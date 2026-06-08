@@ -11,7 +11,6 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Locale;
@@ -51,12 +50,25 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal String username) {
+        Locale locale = LocaleContextHolder.getLocale();
+        UserResponse userResponse = userService.getCurrentUser(username);
+        ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message(messageSource.getMessage("auth.me.success", null, "Get current user successfully", locale))
+                .data(userResponse)
+                .status(HttpStatus.OK)
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/change-password")
-    public ResponseEntity<ApiResponse<Void>>  handleChangePassword(@AuthenticationPrincipal UserDetails userDetails,
+    public ResponseEntity<ApiResponse<Void>>  handleChangePassword(@AuthenticationPrincipal String username,
             @Valid @RequestBody ChangePasswordRequest changePasswordRequest){
         Locale locale= LocaleContextHolder.getLocale();
         String successMessage=messageSource.getMessage("auth.changePassword.success", null, locale);
-        userService.changePassword(userDetails.getUsername(),changePasswordRequest);
+        userService.changePassword(username,changePasswordRequest);
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 successMessage,

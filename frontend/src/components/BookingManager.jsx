@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, RefreshCw, CheckCircle, LogOut, Filter, Calendar }
 import { useAuth } from '../context/AuthContext';
 import { getAllBookings, createBooking, updateBooking, deleteBooking, searchBookings } from '../services/bookingService';
 import { apiFetch } from '../services/api';
+import { useLocale } from '../context/LocaleContext';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -37,6 +38,7 @@ function getBookingStatus(item) {
 }
 
 export default function BookingManager({ readOnly = false }) {
+  const { t } = useLocale();
   const { hasRole } = useAuth();
   const isReceptionistOrAbove = hasRole('ADMIN', 'MANAGER', 'RECEPTIONIST');
 
@@ -127,13 +129,13 @@ export default function BookingManager({ readOnly = false }) {
   }, []);
 
   const openCreate = () => {
-    if (!isReceptionistOrAbove) return notify('Bạn không có quyền tạo đặt phòng!', 'error');
+    if (!isReceptionistOrAbove) return notify(t('booking.toast.forbiddenCreate'), 'error');
     setForm(EMPTY);
     setModal({ open: true, editing: null });
   };
 
   const openEdit = (item) => {
-    if (!isReceptionistOrAbove) return notify('Bạn không có quyền sửa đơn đặt phòng!', 'error');
+    if (!isReceptionistOrAbove) return notify(t('booking.toast.forbiddenEdit'), 'error');
     setForm({
       customerId: item.customerId || item.customer?.id || '',
       roomTypeId: item.roomTypeId || item.roomType?.id || '',
@@ -160,29 +162,29 @@ export default function BookingManager({ readOnly = false }) {
     try {
       if (modal.editing) {
         await updateBooking(modal.editing.id, payload);
-        notify('Cập nhật đặt phòng thành công!');
+        notify(t('booking.toast.updateSuccess'));
       } else {
         await createBooking(payload);
-        notify('Tạo đặt phòng thành công!');
+        notify(t('booking.toast.addSuccess'));
       }
       closeModal();
       if (subTab === 'overview') fetchTodayData(); else fetchData(page);
     } catch (e) {
-      notify(e.status === 403 ? '403 Forbidden - Bạn không có quyền!' : (e.message || 'Lỗi không xác định'), 'error');
+      notify(e.status === 403 ? t('booking.toast.forbidden') : (e.message || t('booking.toast.loadError')), 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (item) => {
-    if (!isReceptionistOrAbove) return notify('Bạn không có quyền xóa đặt phòng!', 'error');
-    if (!window.confirm(`Xóa đặt phòng ID ${item.id}?`)) return;
+    if (!isReceptionistOrAbove) return notify(t('booking.toast.forbiddenDelete'), 'error');
+    if (!window.confirm(t('booking.toast.deleteConfirm', { id: item.id }).replace('{id}', item.id))) return;
     try {
       await deleteBooking(item.id);
-      notify('Đã xóa đơn đặt phòng!');
+      notify(t('booking.toast.deleteSuccess'));
       if (subTab === 'overview') fetchTodayData(); else fetchData(page);
     } catch (e) {
-      notify(e.status === 403 ? '403 Forbidden - Không có quyền xóa!' : e.message, 'error');
+      notify(e.status === 403 ? t('booking.toast.forbiddenDelete') : e.message, 'error');
     }
   };
 
@@ -190,7 +192,7 @@ export default function BookingManager({ readOnly = false }) {
 
   const renderStatusBadge = (status) => {
     const opt = STATUS_OPTIONS.find(o => o.value === status) || STATUS_OPTIONS[0];
-    return <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${opt.color}`}>{opt.label}</span>;
+    return <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${opt.color}`}>{t(`booking.status.${opt.value}`)}</span>;
   };
 
   const rows = items.map(item => {
@@ -198,8 +200,8 @@ export default function BookingManager({ readOnly = false }) {
     return (
       <tr key={item.id} className="hover:bg-stone-50">
         <td className="px-4 py-3 font-mono text-xs font-bold">#{item.id}</td>
-        <td className="px-4 py-3 text-sm font-semibold">{item.customerName || item.customer?.fullName || `Khách #${item.customerId}`}</td>
-        <td className="px-4 py-3 text-xs text-slate-500">{item.roomTypeName || item.roomType?.typeName || 'Loại phòng'}</td>
+        <td className="px-4 py-3 text-sm font-semibold">{item.customerName || item.customer?.fullName || `${t('booking.filters.customer')} #${item.customerId}`}</td>
+        <td className="px-4 py-3 text-xs text-slate-500">{item.roomTypeName || item.roomType?.typeName || t('booking.filters.roomType')}</td>
         <td className="px-4 py-3 text-xs text-center">{item.quantity}</td>
         <td className="px-4 py-3 text-xs">{formatDate(item.checkInDate)}</td>
         <td className="px-4 py-3 text-xs">{formatDate(item.checkOutDate)}</td>
@@ -219,7 +221,7 @@ export default function BookingManager({ readOnly = false }) {
     );
   });
 
-  const cols = ['Mã Đơn', 'Khách Hàng', 'Loại Phòng', 'SL Phòng', 'Ngày Nhận', 'Ngày Trả', 'Trạng Thái', 'Tổng Tiền', ...(!readOnly && isReceptionistOrAbove ? ['Thao tác'] : [])];
+  const cols = [t('booking.columns.id'), t('booking.columns.customer'), t('booking.columns.roomType'), t('booking.columns.quantity'), t('booking.columns.checkIn'), t('booking.columns.checkOut'), t('booking.columns.status'), t('booking.columns.totalPrice'), ...(!readOnly && isReceptionistOrAbove ? [t('booking.columns.actions')] : [])];
 
   return (
     <div>
@@ -227,13 +229,13 @@ export default function BookingManager({ readOnly = false }) {
 
       <div className="flex border-b border-stone-200 mb-6 gap-6">
         <button onClick={() => setSubTab('overview')} className={`pb-3 text-sm font-bold flex items-center gap-1.5 transition-colors ${subTab === 'overview' ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]' : 'text-slate-500 hover:text-slate-800'}`}>
-          <Calendar size={16} /> Hôm Nay
+          <Calendar size={16} /> {t('booking.tabs.today')}
         </button>
         <button onClick={() => setSubTab('search')} className={`pb-3 text-sm font-bold flex items-center gap-1.5 transition-colors ${subTab === 'search' ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]' : 'text-slate-500 hover:text-slate-800'}`}>
-          <Filter size={16} /> Bộ Lọc Nâng Cao
+          <Filter size={16} /> {t('booking.tabs.filter')}
         </button>
         <button onClick={() => setSubTab('all')} className={`pb-3 text-sm font-bold flex items-center gap-1.5 transition-colors ${subTab === 'all' ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]' : 'text-slate-500 hover:text-slate-800'}`}>
-          Tất Cả Đặt Phòng
+          {t('booking.tabs.all')}
         </button>
       </div>
 
@@ -241,14 +243,14 @@ export default function BookingManager({ readOnly = false }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white border rounded-xl p-5 shadow-sm space-y-4">
             <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-              <CheckCircle size={18} className="text-emerald-500" /> Nhận Phòng Hôm Nay ({todayCheckIns.length})
+              <CheckCircle size={18} className="text-emerald-500" /> {t('booking.overview.checkInToday', { count: todayCheckIns.length }).replace('{count}', todayCheckIns.length)}
             </h3>
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
               {todayCheckIns.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">Không có lượt nhận phòng hôm nay.</p>
+                <p className="text-sm text-slate-400 text-center py-8">{t('booking.overview.noCheckIn')}</p>
               ) : todayCheckIns.map(item => (
                 <div key={item.id} className="p-3 bg-stone-50 rounded border hover:shadow-sm transition-shadow">
-                  <p className="text-sm font-semibold">{item.customerName || `Khách #${item.customerId}`}</p>
+                  <p className="text-sm font-semibold">{item.customerName || `${t('booking.filters.customer')} #${item.customerId}`}</p>
                   <p className="text-xs text-slate-500">{item.roomTypeName} - SL: <span className="font-bold">{item.quantity}</span></p>
                   <p className="text-xs text-slate-400">{formatDate(item.checkInDate)}</p>
                 </div>
@@ -258,14 +260,14 @@ export default function BookingManager({ readOnly = false }) {
 
           <div className="bg-white border rounded-xl p-5 shadow-sm space-y-4">
             <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-              <LogOut size={18} className="text-blue-500" /> Trả Phòng Hôm Nay ({todayCheckOuts.length})
+              <LogOut size={18} className="text-blue-500" /> {t('booking.overview.checkOutToday', { count: todayCheckOuts.length }).replace('{count}', todayCheckOuts.length)}
             </h3>
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
               {todayCheckOuts.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">Không có lượt trả phòng hôm nay.</p>
+                <p className="text-sm text-slate-400 text-center py-8">{t('booking.overview.noCheckOut')}</p>
               ) : todayCheckOuts.map(item => (
                 <div key={item.id} className="p-3 bg-stone-50 rounded border hover:shadow-sm transition-shadow">
-                  <p className="text-sm font-semibold">{item.customerName || `Khách #${item.customerId}`}</p>
+                  <p className="text-sm font-semibold">{item.customerName || `${t('booking.filters.customer')} #${item.customerId}`}</p>
                   <p className="text-xs text-slate-500">{item.roomTypeName} - SL: <span className="font-bold">{item.quantity}</span></p>
                   <p className="text-xs text-slate-400">{formatDate(item.checkOutDate)}</p>
                 </div>
@@ -279,38 +281,38 @@ export default function BookingManager({ readOnly = false }) {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-stone-50 rounded-lg border">
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Trạng Thái</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">{t('booking.filters.status')}</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full border rounded px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
-                <option value="">-- Tất cả --</option>
-                {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                <option value="">{t('booking.filters.all')}</option>
+                {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{t(`booking.status.${opt.value}`)}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Khách Hàng</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">{t('booking.filters.customer')}</label>
               <select value={filterCustomerId} onChange={e => setFilterCustomerId(e.target.value)} className="w-full border rounded px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
-                <option value="">-- Tất cả --</option>
+                <option value="">{t('booking.filters.all')}</option>
                 {customers.map(c => <option key={c.id} value={c.id}>{c.fullName}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Loại Phòng</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">{t('booking.filters.roomType')}</label>
               <select value={filterRoomTypeId} onChange={e => setFilterRoomTypeId(e.target.value)} className="w-full border rounded px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
-                <option value="">-- Tất cả --</option>
+                <option value="">{t('booking.filters.all')}</option>
                 {roomTypes.map(r => <option key={r.id} value={r.id}>{r.typeName}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">Số Phòng</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">{t('booking.filters.roomNumber')}</label>
               <select value={filterRoomId} onChange={e => setFilterRoomId(e.target.value)} className="w-full border rounded px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
-                <option value="">-- Tất cả --</option>
+                <option value="">{t('booking.filters.all')}</option>
                 {rooms.map(r => <option key={r.id} value={r.id}>{r.roomNumber}</option>)}
               </select>
             </div>
           </div>
 
           <div className="flex justify-end gap-3">
-            <button onClick={() => { setFilterStatus(''); setFilterCustomerId(''); setFilterRoomTypeId(''); setFilterRoomId(''); }} className="px-4 py-2 border rounded text-sm hover:bg-stone-100">Xóa Bộ Lọc</button>
-            <button onClick={() => fetchData(0)} className="px-5 py-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded text-sm font-semibold shadow">Tìm Kiếm</button>
+            <button onClick={() => { setFilterStatus(''); setFilterCustomerId(''); setFilterRoomTypeId(''); setFilterRoomId(''); }} className="px-4 py-2 border rounded text-sm hover:bg-stone-100">{t('booking.filters.clear')}</button>
+            <button onClick={() => fetchData(0)} className="px-5 py-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded text-sm font-semibold shadow">{t('booking.filters.search')}</button>
           </div>
 
           <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
@@ -323,7 +325,7 @@ export default function BookingManager({ readOnly = false }) {
             <button onClick={() => fetchData(0)} className="p-2 border rounded hover:bg-stone-100"><RefreshCw size={14} /></button>
             {!readOnly && isReceptionistOrAbove && (
               <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
-                <Plus size={16} /> Tạo đơn đặt phòng
+                <Plus size={16} /> {t('booking.modal.save')}
               </button>
             )}
           </div>
@@ -331,22 +333,22 @@ export default function BookingManager({ readOnly = false }) {
         </div>
       )}
 
-      <Modal open={modal.open} title={modal.editing ? 'Cập Nhật Đơn Đặt Phòng' : 'Tạo Đơn Đặt Phòng Mới'} onClose={closeModal} size="lg">
+      <Modal open={modal.open} title={modal.editing ? t('booking.modal.editTitle') : t('booking.modal.addTitle')} onClose={closeModal} size="lg">
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Khách Hàng *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.customer')}</label>
               <select required value={form.customerId} onChange={e => setForm(f => ({ ...f, customerId: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
-                <option value="">-- Chọn khách hàng --</option>
+                <option value="">{t('booking.modal.selectCustomer')}</option>
                 {customers.map(c => <option key={c.id} value={c.id}>{c.fullName} ({c.phone || c.email || 'N/A'})</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Loại Phòng *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.roomType')}</label>
               <select required value={form.roomTypeId} onChange={e => setForm(f => ({ ...f, roomTypeId: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
-                <option value="">-- Chọn loại phòng --</option>
+                <option value="">{t('booking.modal.selectRoomType')}</option>
                 {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.typeName}</option>)}
               </select>
             </div>
@@ -354,27 +356,27 @@ export default function BookingManager({ readOnly = false }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Ngày Nhận Phòng *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.checkIn')}</label>
               <input required type="datetime-local" value={form.checkInDate} onChange={e => setForm(f => ({ ...f, checkInDate: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Ngày Trả Phòng *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.checkOut')}</label>
               <input required type="datetime-local" value={form.checkOutDate} onChange={e => setForm(f => ({ ...f, checkOutDate: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Số Phòng Đặt *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.quantity')}</label>
             <input required type="number" min="1" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
               className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">Hủy</button>
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">{t('booking.modal.cancel')}</button>
             <button type="submit" disabled={saving} className="px-5 py-2 text-sm bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded font-semibold shadow disabled:opacity-60">
-              {saving ? 'Đang lưu...' : modal.editing ? 'Cập nhật' : 'Tạo mới'}
+              {saving ? t('booking.modal.saving') : modal.editing ? t('booking.modal.update') : t('booking.modal.save')}
             </button>
           </div>
         </form>

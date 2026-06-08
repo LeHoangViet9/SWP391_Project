@@ -11,9 +11,11 @@ import com.hms.common.utils.BillingUtils;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.booking.request.BookingRequest;
 import com.hms.dto.booking.response.BookingResponse;
+import com.hms.entity.auth.User;
 import com.hms.entity.booking.Booking;
 import com.hms.entity.customer.Customer;
 import com.hms.entity.hotel.RoomType;
+import com.hms.repository.auth.UserRepository;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.customer.CustomerRepository;
 import com.hms.repository.hotel.RoomRepository;
@@ -44,6 +46,7 @@ public class BookingServiceImpl implements BookingService {
     );
 
     private final BookingRepository bookingRepository;
+    private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final RoomRepository roomRepository;
@@ -139,6 +142,20 @@ public class BookingServiceImpl implements BookingService {
         Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.ASC);
 
         return bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable).map(bookingMapper::toResponse);
+    }
+
+    @Override
+    public Page<BookingResponse> getMyBookingHistory(String userName, Integer page, Integer size) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Pageable pageable = pageableUtils.createPageable(page, size, "checkInDate", SortDirection.DESC);
+
+        User user = userRepository.findUserByUserName(userName)
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+
+        return customerRepository.findActiveByEmailOrPhone(user.getEmail(), user.getPhone(), AccountStatus.ACTIVE)
+                .map(customer -> bookingRepository.findHistoryByCustomerId(customer.getId(), pageable)
+                        .map(bookingMapper::toResponse))
+                .orElseGet(() -> Page.empty(pageable));
     }
 
     @Override

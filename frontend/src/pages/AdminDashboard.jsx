@@ -8,9 +8,12 @@ import EquipmentManager from '../components/EquipmentManager';
 import MaintenanceManager from '../components/MaintenanceManager';
 import StaffManager from '../components/StaffManager';
 import ChangePassword from '../components/ChangePassword';
-import { Tag, BedDouble, Users, CalendarCheck, Wrench, Hammer, UserCheck, KeyRound } from 'lucide-react';
+import ReportManager from '../components/ReportManager';
+import AccountInfo from '../components/AccountInfo';
+import { Tag, BedDouble, Users, CalendarCheck, Wrench, Hammer, UserCheck, KeyRound, BarChart2, UserCircle } from 'lucide-react';
 
 const TABS = [
+  { key: 'reports',     label: 'Báo Cáo',       Icon: BarChart2,     component: <ReportManager /> },
   { key: 'room-types',  label: 'Loại Phòng',   Icon: Tag,           component: <RoomTypeManager /> },
   { key: 'rooms',       label: 'Phòng',          Icon: BedDouble,     component: <RoomManager /> },
   { key: 'customers',   label: 'Khách Hàng',    Icon: Users,         component: <CustomerManager /> },
@@ -18,16 +21,20 @@ const TABS = [
   { key: 'equipments',  label: 'Thiết Bị',      Icon: Wrench,        component: <EquipmentManager /> },
   { key: 'maintenance', label: 'Bảo Trì',       Icon: Hammer,        component: <MaintenanceManager /> },
   { key: 'staffs',      label: 'Nhân Viên',     Icon: UserCheck,     component: <StaffManager /> },
+  { key: 'account',     label: 'Thông Tin Tài Khoản', Icon: UserCircle, component: <AccountInfo /> },
   { key: 'password',    label: 'Đổi Mật Khẩu',   Icon: KeyRound,      component: <ChangePassword /> },
 ];
 
+import { useLocale } from '../context/LocaleContext';
+
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('room-types');
+  const [activeTab, setActiveTab] = useState('reports');
+  const { t } = useLocale();
 
   return (
     <DashboardLayout
-      title="Bảng Điều Khiển Admin / Manager"
-      subtitle="Quản trị toàn bộ hệ thống Hotel Management System"
+      title={t('dashboard.title')}
+      subtitle={t('dashboard.subtitle')}
       tabs={TABS}
       activeTab={activeTab}
       setActiveTab={setActiveTab}

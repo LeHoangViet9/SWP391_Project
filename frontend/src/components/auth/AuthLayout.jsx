@@ -16,7 +16,7 @@ export default function AuthLayout({ children, title, subtitle }) {
         />
         <div className="absolute inset-0 bg-gradient-to-br from-royal-dark/90 to-[#bfa15f]/20" />
         <div className="relative z-10 flex flex-col justify-between p-12 text-white">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="w-12 h-12 bg-[#bfa15f] rounded flex items-center justify-center">
               <Crown size={24} />
             </div>
@@ -24,7 +24,7 @@ export default function AuthLayout({ children, title, subtitle }) {
               <p className="font-display text-2xl font-bold">HMS Luxury</p>
               <p className="text-xs uppercase tracking-[0.3em] text-[#cda152]">Hotel & Resort</p>
             </div>
-          </div>
+          </Link>
           <div>
             <h2 className="font-display text-4xl font-bold leading-tight mb-4">
               {locale === 'vi'

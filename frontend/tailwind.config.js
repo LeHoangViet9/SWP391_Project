@@ -15,8 +15,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['"Playfair Display"', 'Georgia', 'serif'],
-        body: ['"Inter"', 'system-ui', 'sans-serif'],
+        display: ['"Segoe UI"', '"Noto Sans"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+        body: ['"Segoe UI"', '"Noto Sans"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
       },
     },
   },

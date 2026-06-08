@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLocale } from '../../context/LocaleContext';
 
 /**
  * Reusable generic table with pagination
@@ -20,8 +21,12 @@ export default function DataTable({
   page = 0,
   totalPages = 1,
   onPageChange,
-  emptyText = 'Không có dữ liệu.',
+  emptyText,
 }) {
+  const { t } = useLocale();
+  const defaultEmptyText = emptyText || t('common.noData') || 'Không có dữ liệu.';
+  const loadingText = t('common.loading') || 'Đang tải...';
+
   return (
     <div>
       <div className="overflow-x-auto border border-stone-200 rounded-lg">
@@ -40,13 +45,13 @@ export default function DataTable({
               <tr>
                 <td colSpan={columns.length} className="py-10 text-center text-slate-400">
                   <div className="inline-block w-6 h-6 border-2 border-[#bfa15f] border-t-transparent rounded-full animate-spin" />
-                  <p className="mt-2 text-xs">Đang tải...</p>
+                  <p className="mt-2 text-xs">{loadingText}</p>
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="py-10 text-center text-slate-400">
-                  {emptyText}
+                  {defaultEmptyText}
                 </td>
               </tr>
             ) : (
@@ -60,7 +65,7 @@ export default function DataTable({
       {totalPages > 1 && onPageChange && (
         <div className="flex items-center justify-between mt-3 text-sm text-slate-600">
           <span>
-            Trang <strong>{page + 1}</strong> / {totalPages}
+            {t('common.page') || 'Trang'} <strong>{page + 1}</strong> / {totalPages}
           </span>
           <div className="flex items-center gap-1">
             <button

@@ -18,6 +18,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -125,5 +126,42 @@ public class CustomerServiceImpl implements CustomerService {
                 ));
 
         return customerMapper.toResponse(customer);
+    }
+
+    @Override
+    @Transactional
+    public void restoreCustomer(Long id) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.customer.notfound", new Object[]{id}, locale)
+                ));
+
+        if (customer.getStatus() == AccountStatus.ACTIVE) {
+            throw new ConflictException(
+                    messageSource.getMessage("error.customer.already_active", null, locale)
+            );
+        }
+
+        customer.setStatus(AccountStatus.ACTIVE);
+        customerRepository.save(customer);
+    }
+
+    @Override
+    @Transactional
+    public void forceDeleteCustomer(Long id) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.customer.notfound", new Object[]{id}, locale)
+                ));
+        try {
+            customerRepository.delete(customer);
+            customerRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new ConflictException(
+                    messageSource.getMessage("error.customer.cannot_delete_has_history", null, locale)
+            );
+        }
     }
 }

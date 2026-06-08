@@ -50,8 +50,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
                 page,
                 size,
                 sortBy.getField(),
-                direction
-        );
+                direction);
 
         if (maxGuests != null) {
             return roomTypeRepository
@@ -59,8 +58,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
                             searchKeywords,
                             maxGuests,
                             AccountStatus.ACTIVE,
-                            pageable
-                    )
+                            pageable)
                     .map(roomTypeMapper::toResponse);
         }
 
@@ -71,20 +69,21 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
     @Override
     @Transactional(readOnly = true)
-    public RoomTypeResponse getRoomTypeById(Long id){
+    public RoomTypeResponse getRoomTypeById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
         RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.roomtype.notfound", null, locale)));
         return roomTypeMapper.toResponse(roomType);
     }
 
     @Override
     @Transactional
-    public RoomTypeResponse createRoomType(RoomTypeRequest request){
+    public RoomTypeResponse createRoomType(RoomTypeRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        if(roomTypeRepository.existsByTypeNameAndStatus(request.getTypeName(), AccountStatus.ACTIVE)){
+        if (roomTypeRepository.existsByTypeNameAndStatus(request.getTypeName(), AccountStatus.ACTIVE)) {
             throw new ConflictException(messageSource.getMessage("error.roomtype.exists", null, locale));
         }
 
@@ -97,14 +96,16 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
     @Override
     @Transactional
-    public RoomTypeResponse updateRoomType(Long id, RoomTypeRequest request){
+    public RoomTypeResponse updateRoomType(Long id, RoomTypeRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
         RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
         if (!roomType.getTypeName().equalsIgnoreCase(request.getTypeName())
-                && roomTypeRepository.existsByTypeNameAndIdNotAndStatus(request.getTypeName(), id, AccountStatus.ACTIVE)) {
+                && roomTypeRepository.existsByTypeNameAndIdNotAndStatus(request.getTypeName(), id,
+                        AccountStatus.ACTIVE)) {
             throw new ConflictException(messageSource.getMessage("error.roomtype.exists", null, locale));
         }
 
@@ -115,11 +116,12 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
     @Override
     @Transactional
-    public void deleteRoomTypeByID(Long id){
+    public void deleteRoomTypeByID(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
         RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.roomtype.notfound", null, locale)));
         roomType.setStatus(AccountStatus.INACTIVE);
         roomTypeRepository.save(roomType);
     }

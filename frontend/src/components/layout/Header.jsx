@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
 import { useAuth } from '../../context/AuthContext';
-import { getDefaultDashboardPath, isStaffRole } from '../../utils/roleAccess';
+import { getDefaultDashboardPath } from '../../utils/roleAccess';
 
 const NAV_ITEMS = [
   { key: 'nav.home', href: '/' },
@@ -30,6 +30,7 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const dashboardPath = getDefaultDashboardPath(user?.roleName);
 
   const toggleLocale = (lang) => {
     setLocale(lang);
@@ -93,7 +94,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 shrink-0">
+            <Link to="/" className="flex items-center gap-3 shrink-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
               <div className="w-10 h-10 md:w-12 md:h-12 bg-[#bfa15f] rounded flex items-center justify-center">
                 <Crown className="text-white" size={24} />
               </div>
@@ -140,13 +141,13 @@ export default function Header() {
                       <p className="px-4 py-2 text-xs text-slate-400 border-b border-stone-100">
                         {user?.roleName}
                       </p>
-                      {isStaffRole(user?.roleName) && (
+                      {dashboardPath !== '/' && (
                         <Link
-                          to={getDefaultDashboardPath(user?.roleName)}
+                          to={dashboardPath}
                           onClick={() => setUserOpen(false)}
                           className="block px-4 py-2 text-sm text-[#bfa15f] hover:bg-stone-50 font-medium"
                         >
-                          Bảng điều khiển
+                          {t('dashboard.openDashboard')}
                         </Link>
                       )}
                       <button
@@ -201,9 +202,20 @@ export default function Header() {
             ))}
             <div className="pt-3 border-t border-stone-200">
               {isAuthenticated ? (
-                <button onClick={logout} className="w-full py-2 text-red-600 text-sm font-medium">
-                  {t('auth.logout')} ({user?.fullName})
-                </button>
+                <div className="space-y-2">
+                  {dashboardPath !== '/' && (
+                    <Link
+                      to={dashboardPath}
+                      onClick={() => setMobileOpen(false)}
+                      className="block w-full rounded border border-[#bfa15f] py-2 text-center text-sm font-semibold text-[#bfa15f]"
+                    >
+                      {t('dashboard.openDashboard')}
+                    </Link>
+                  )}
+                  <button onClick={logout} className="w-full py-2 text-red-600 text-sm font-medium">
+                    {t('auth.logout')} ({user?.fullName})
+                  </button>
+                </div>
               ) : (
                 <div className="flex gap-2">
                   <Link to="/login" className="flex-1 text-center py-2 border border-[#bfa15f] text-[#bfa15f] rounded text-sm font-medium">

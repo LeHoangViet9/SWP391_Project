@@ -23,6 +23,8 @@ public interface BookingService {
 
     Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size);
 
+    Page<BookingResponse> getMyBookingHistory(String userName, Integer page, Integer size);
+
     Page<BookingResponse> getBookingsByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size);
 
     Page<BookingResponse> getBookingsByCheckOutDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size);

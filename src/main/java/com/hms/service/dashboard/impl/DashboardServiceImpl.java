@@ -1,15 +1,19 @@
 package com.hms.service.dashboard.impl;
 
 
+import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.BookingStatus;
 import com.hms.common.enums.MaintenanceStatus;
 import com.hms.dto.dashboard.response.AdminDashboardResponse;
 import com.hms.dto.dashboard.response.MaintenanceDashboardResponse;
 import com.hms.dto.dashboard.response.ManagerDashboardResponse;
 import com.hms.dto.dashboard.response.ReceptionistDashboardResponse;
+import com.hms.repository.auth.UserRepository;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
+import com.hms.repository.customer.CustomerRepository;
 import com.hms.repository.hotel.RoomRepository;
+import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.repository.maintenance.MaintenanceRepository;
 import com.hms.service.dashboard.DashboardService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +39,9 @@ public class DashboardServiceImpl implements DashboardService {
     private final InvoiceRepository invoiceRepository;
     private final RoomRepository roomRepository;
     private final MaintenanceRepository maintenanceRepository;
+    private final CustomerRepository customerRepository;
+    private final RoomTypeRepository roomTypeRepository;
+    private final UserRepository userRepository;
 
 
     @Override
@@ -76,6 +83,10 @@ public class DashboardServiceImpl implements DashboardService {
                 .todayRevenue(todayRevenue)
                 .thisMonthRevenue(thisMonthRevenue)
                 .totalSuccessfulBookings(totalSuccessfulBookings)
+                .totalCustomers(customerRepository.count())
+                .totalRoomTypes(roomTypeRepository.countByStatus(AccountStatus.ACTIVE))
+                .totalRooms(roomRepository.count())
+                .totalStaff(userRepository.count())
                 .bookingsCountByRoomType(bookingsCountByRoomType)
                 .revenueByPaymentMethod(revenueByPaymentMethod)
                 .revenueTrend(revenueTrend)

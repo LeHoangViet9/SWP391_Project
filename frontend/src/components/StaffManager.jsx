@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
+import { useLocale } from '../context/LocaleContext';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -26,6 +27,7 @@ const EMPTY_FORM = {
 };
 
 export default function StaffManager() {
+  const { t } = useLocale();
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -102,38 +104,38 @@ export default function StaffManager() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!modal.editing && !form.password) {
-      return notify('Vui lòng nhập mật khẩu cho tài khoản mới!', 'warning');
+      return notify(t('staff.toast.passwordRequired'), 'warning');
     }
     if ((form.password || form.rePassword) && form.password !== form.rePassword) {
-      return notify('Mật khẩu xác nhận không khớp!', 'warning');
+      return notify(t('staff.toast.passwordMismatch'), 'warning');
     }
 
     setSaving(true);
     try {
       if (modal.editing) {
         await updateUser(modal.editing.id, buildPayload());
-        notify('Cập nhật tài khoản thành công!');
+        notify(t('staff.toast.updateSuccess'));
       } else {
         await createUser(buildPayload());
-        notify('Đăng ký tài khoản nhân viên mới thành công!');
+        notify(t('staff.toast.addSuccess'));
       }
       closeModal();
       fetchData(page);
     } catch (err) {
-      notify(err.message || 'Không thể lưu tài khoản nhân viên.', 'error');
+      notify(err.message || t('staff.toast.loadError'), 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Xóa tài khoản "${item.fullName}"?`)) return;
+    if (!window.confirm(t('staff.toast.deleteConfirm', { name: item.fullName }).replace('{name}', item.fullName))) return;
     try {
       await deleteUser(item.id);
-      notify('Đã xóa tài khoản nhân viên!');
+      notify(t('staff.toast.deleteSuccess'));
       fetchData(page);
     } catch (err) {
-      notify(err.message || 'Không thể xóa tài khoản.', 'error');
+      notify(err.message || t('staff.toast.loadError'), 'error');
     }
   };
 
@@ -171,7 +173,7 @@ export default function StaffManager() {
     </tr>
   ));
 
-  const cols = ['ID', 'Họ Tên', 'Tên Đăng Nhập', 'Email', 'Điện Thoại', 'Vai Trò', 'Trạng Thái', 'Thao tác'];
+  const cols = [t('staff.columns.id'), t('staff.columns.fullName'), t('staff.columns.username'), t('staff.columns.email'), t('staff.columns.phone'), t('staff.columns.role'), t('staff.columns.status'), t('staff.columns.actions')];
 
   return (
     <div>
@@ -186,7 +188,7 @@ export default function StaffManager() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && fetchData(0)}
-              placeholder="Tìm kiếm nhân viên..."
+              placeholder={t('staff.filters.searchPlaceholder')}
               className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
             />
           </div>
@@ -195,29 +197,29 @@ export default function StaffManager() {
             onChange={e => setStatusFilter(e.target.value)}
             className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white"
           >
-            {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.value === '' ? t('staff.filters.allStatus') : opt.value === 'ACTIVE' ? t('staff.filters.active') : opt.value === 'INACTIVE' ? t('staff.filters.inactive') : opt.value === 'BANNED' ? t('staff.filters.banned') : opt.label}</option>)}
           </select>
           <button onClick={() => fetchData(0)} className="p-2 border rounded hover:bg-stone-100">
             <RefreshCw size={14} />
           </button>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
-          <Plus size={16} /> Đăng ký nhân viên
+          <Plus size={16} /> {t('staff.addBtn')}
         </button>
       </div>
 
       <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
 
-      <Modal open={modal.open} title={modal.editing ? 'Cập Nhật Tài Khoản Nhân Viên' : 'Đăng Ký Tài Khoản Nhân Viên Mới'} onClose={closeModal} size="lg">
+      <Modal open={modal.open} title={modal.editing ? t('staff.modal.editTitle') : t('staff.modal.addTitle')} onClose={closeModal} size="lg">
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Họ và Tên *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.fullName')}</label>
               <input required value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Tên Đăng Nhập *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.username')}</label>
               <input required value={form.userName} onChange={e => setForm(f => ({ ...f, userName: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
@@ -226,14 +228,14 @@ export default function StaffManager() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-                {modal.editing ? 'Mật Khẩu Mới' : 'Mật Khẩu *'}
+                {modal.editing ? t('staff.modal.passwordNew') : t('staff.modal.password')}
               </label>
               <input required={!modal.editing} type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-                {modal.editing ? 'Xác Nhận Mật Khẩu Mới' : 'Xác Nhận Mật Khẩu *'}
+                {modal.editing ? t('staff.modal.confirmPasswordNew') : t('staff.modal.confirmPassword')}
               </label>
               <input required={!modal.editing} type="password" value={form.rePassword} onChange={e => setForm(f => ({ ...f, rePassword: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
@@ -242,12 +244,12 @@ export default function StaffManager() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Email *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.email')}</label>
               <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Số Điện Thoại *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.phone')}</label>
               <input required value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
@@ -255,14 +257,14 @@ export default function StaffManager() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Vai Trò Phân Quyền *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.role')}</label>
               <select required value={form.roleName} onChange={e => setForm(f => ({ ...f, roleName: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
                 {ROLES.map(role => <option key={role} value={role}>{role}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Trạng Thái *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.status')}</label>
               <select required value={form.accountStatus} onChange={e => setForm(f => ({ ...f, accountStatus: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
                 <option value="ACTIVE">ACTIVE</option>
@@ -273,9 +275,9 @@ export default function StaffManager() {
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">Hủy</button>
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">{t('staff.modal.cancel')}</button>
             <button type="submit" disabled={saving} className="px-5 py-2 text-sm bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded font-semibold shadow disabled:opacity-60">
-              {saving ? 'Đang lưu...' : modal.editing ? 'Cập nhật' : 'Đăng ký tài khoản'}
+              {saving ? t('staff.modal.saving') : modal.editing ? t('staff.modal.update') : t('staff.modal.save')}
             </button>
           </div>
         </form>

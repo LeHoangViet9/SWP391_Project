@@ -3,6 +3,7 @@ import { Edit2, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { equipmentService } from '../services/equipmentService';
 import { getAllRooms } from '../services/roomService';
+import { useLocale } from '../context/LocaleContext';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -38,6 +39,7 @@ function mapEquipmentToForm(item) {
 }
 
 export default function EquipmentManager() {
+  const { locale, t } = useLocale();
   const { hasRole } = useAuth();
   const canManage = hasRole('ADMIN', 'MANAGER', 'MAINTENANCE');
 
@@ -67,7 +69,7 @@ export default function EquipmentManager() {
       setItems(data?.content ?? []);
       setTotalPages(data?.totalPages ?? 1);
     } catch (error) {
-      notify(getErrorMessage(error, 'Không tải được danh sách thiết bị.'), 'error');
+      notify(getErrorMessage(error, t('equipment.toast.loadError')), 'error');
     } finally {
       setLoading(false);
     }
@@ -93,7 +95,7 @@ export default function EquipmentManager() {
 
   const openCreate = () => {
     if (!canManage) {
-      notify('Bạn không có quyền thêm thiết bị.', 'error');
+      notify(t('equipment.toast.forbiddenCreate'), 'error');
       return;
     }
     setForm(EMPTY_FORM);
@@ -102,7 +104,7 @@ export default function EquipmentManager() {
 
   const openEdit = (item) => {
     if (!canManage) {
-      notify('Bạn không có quyền sửa thiết bị.', 'error');
+      notify(t('equipment.toast.forbiddenEdit'), 'error');
       return;
     }
     setForm(mapEquipmentToForm(item));
@@ -130,15 +132,15 @@ export default function EquipmentManager() {
       const payload = buildPayload();
       if (modal.editing) {
         await equipmentService.update(modal.editing.id, payload);
-        notify('Cập nhật thiết bị thành công.');
+        notify(t('equipment.toast.updateSuccess'));
       } else {
         await equipmentService.create(payload);
-        notify('Thêm thiết bị thành công.');
+        notify(t('equipment.toast.addSuccess'));
       }
       closeModal();
       fetchData(page);
     } catch (error) {
-      notify(getErrorMessage(error, 'Không lưu được thiết bị.'), 'error');
+      notify(getErrorMessage(error, t('equipment.toast.loadError')), 'error');
     } finally {
       setSaving(false);
     }
@@ -146,17 +148,17 @@ export default function EquipmentManager() {
 
   const handleDelete = async (item) => {
     if (!canManage) {
-      notify('Bạn không có quyền xóa thiết bị.', 'error');
+      notify(t('equipment.toast.forbiddenDelete'), 'error');
       return;
     }
-    if (!window.confirm(`Xóa thiết bị "${item.equipmentName}"?`)) return;
+    if (!window.confirm(t('equipment.toast.deleteConfirm', { name: item.equipmentName }).replace('{name}', item.equipmentName))) return;
 
     try {
       await equipmentService.delete(item.id);
-      notify('Đã xóa thiết bị.');
+      notify(t('equipment.toast.deleteSuccess'));
       fetchData(page);
     } catch (error) {
-      notify(getErrorMessage(error, 'Không xóa được thiết bị.'), 'error');
+      notify(getErrorMessage(error, t('equipment.toast.loadError')), 'error');
     }
   };
 
@@ -169,7 +171,7 @@ export default function EquipmentManager() {
     const statusInfo = STATUS_LABELS[status] || { label: status, className: 'bg-stone-100 text-stone-600' };
     return (
       <span className={`inline-flex min-w-[72px] justify-center rounded-full px-2 py-0.5 text-xs font-semibold ${statusInfo.className}`}>
-        {statusInfo.label}
+        {t(`equipment.status.${status}`)}
       </span>
     );
   };
@@ -182,7 +184,7 @@ export default function EquipmentManager() {
       <td className="px-4 py-3 text-sm">{item.location}</td>
       <td className="max-w-xs truncate px-4 py-3 text-sm text-slate-500">{item.description || '-'}</td>
       <td className="px-4 py-3 text-sm text-slate-500">
-        {item.roomNumber || (item.roomId ? `Phòng #${item.roomId}` : 'Chưa gán')}
+        {item.roomNumber || (item.roomId ? `${locale === 'vi' ? 'Phòng' : 'Room'} #${item.roomId}` : t('equipment.noRoom'))}
       </td>
       <td className="px-4 py-3">{statusBadge(item.status)}</td>
       <td className="px-4 py-3">
@@ -212,7 +214,7 @@ export default function EquipmentManager() {
     </tr>
   ));
 
-  const columns = ['ID', 'Tên thiết bị', 'Mã thiết bị', 'Vị trí', 'Mô tả', 'Phòng', 'Trạng thái', 'Thao tác'];
+  const columns = [t('equipment.columns.id'), t('equipment.columns.name'), t('equipment.columns.code'), t('equipment.columns.location'), t('equipment.columns.description'), t('equipment.columns.room'), t('equipment.columns.status'), t('equipment.columns.actions')];
 
   return (
     <div>
@@ -227,7 +229,7 @@ export default function EquipmentManager() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
-              placeholder="Tìm thiết bị..."
+              placeholder={t('equipment.searchPlaceholder')}
               className="w-full rounded border border-stone-300 py-2 pl-8 pr-3 text-sm outline-none focus:border-[#bfa15f]"
             />
           </div>
@@ -248,7 +250,7 @@ export default function EquipmentManager() {
             className="flex items-center gap-2 rounded bg-[#bfa15f] px-4 py-2 text-sm font-semibold text-white shadow transition-colors hover:bg-[#a3854a]"
           >
             <Plus size={16} />
-            Thêm thiết bị
+            {t('equipment.addBtn')}
           </button>
         )}
       </div>
@@ -264,27 +266,27 @@ export default function EquipmentManager() {
 
       <Modal
         open={modal.open}
-        title={modal.editing ? 'Cập nhật thiết bị' : 'Thêm thiết bị'}
+        title={modal.editing ? t('equipment.modal.editTitle') : t('equipment.modal.addTitle')}
         onClose={closeModal}
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-              Tên thiết bị *
+              {t('equipment.modal.name')}
             </label>
             <input
               required
               value={form.equipmentName}
               onChange={(event) => setForm((current) => ({ ...current, equipmentName: event.target.value }))}
               className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-              placeholder="Điều hòa, TV, tủ lạnh..."
+              placeholder={t('equipment.modal.namePlaceholder')}
             />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                Mã thiết bị *
+                {t('equipment.modal.code')}
               </label>
               <input
                 required
@@ -292,34 +294,34 @@ export default function EquipmentManager() {
                 value={form.equipmentCode}
                 onChange={(event) => setForm((current) => ({ ...current, equipmentCode: event.target.value }))}
                 className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-                placeholder="TV-101"
+                placeholder={t('equipment.modal.codePlaceholder')}
               />
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                Vị trí *
+                {t('equipment.modal.location')}
               </label>
               <input
                 required
                 value={form.location}
                 onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
                 className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-                placeholder="Phòng 101, kho tầng 2..."
+                placeholder={t('equipment.modal.locationPlaceholder')}
               />
             </div>
           </div>
 
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-              Gán phòng
+              {t('equipment.modal.room')}
             </label>
             <select
               value={form.roomId}
               onChange={(event) => setForm((current) => ({ ...current, roomId: event.target.value }))}
               className="w-full rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
             >
-              <option value="">Chưa gán phòng</option>
+              <option value="">{t('equipment.noRoomOption')}</option>
               {roomOptions.map((room) => (
                 <option key={room.id} value={room.id}>
                   {room.label}
@@ -330,7 +332,7 @@ export default function EquipmentManager() {
 
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-              Mô tả
+              {t('equipment.modal.description')}
             </label>
             <textarea
               rows={3}
@@ -347,14 +349,14 @@ export default function EquipmentManager() {
               disabled={saving}
               className="rounded border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50 disabled:opacity-60"
             >
-              Hủy
+              {t('equipment.modal.cancel')}
             </button>
             <button
               type="submit"
               disabled={saving}
               className="rounded bg-[#bfa15f] px-5 py-2 text-sm font-semibold text-white shadow hover:bg-[#a3854a] disabled:opacity-60"
             >
-              {saving ? 'Đang lưu...' : modal.editing ? 'Cập nhật' : 'Tạo mới'}
+              {saving ? t('equipment.modal.saving') : modal.editing ? t('equipment.modal.update') : t('equipment.modal.save')}
             </button>
           </div>
         </form>

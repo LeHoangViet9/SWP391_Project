@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 public interface IUserService {
     UserResponse registerNewUser(UserRegisterRequest registerRequest);
     UserResponse login(UserLoginRequest loginRequest);
+    UserResponse getCurrentUser(String userName);
     void changePassword(String userName, ChangePasswordRequest changePasswordRequest);
     void forgotPassword(
             ForgotPasswordRequest request

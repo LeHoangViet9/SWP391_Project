@@ -35,6 +35,16 @@ public interface BookingRepository extends JpaRepository<Booking,Long> {
             Pageable pageable
     );
 
+    @Query("""
+    SELECT b
+    FROM Booking b
+    WHERE b.customer.id = :customerId
+    """)
+    Page<Booking> findHistoryByCustomerId(
+            @Param("customerId") Long customerId,
+            Pageable pageable
+    );
+
     Page<Booking> findByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);
 
     Page<Booking> findByCheckOutDateBetween(LocalDateTime start, LocalDateTime end, Pageable pageable);

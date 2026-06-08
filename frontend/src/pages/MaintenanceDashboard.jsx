@@ -3,11 +3,13 @@ import DashboardLayout from '../components/shared/DashboardLayout';
 import MaintenanceManager from '../components/MaintenanceManager';
 import EquipmentManager from '../components/EquipmentManager';
 import ChangePassword from '../components/ChangePassword';
-import { Hammer, Wrench, KeyRound } from 'lucide-react';
+import AccountInfo from '../components/AccountInfo';
+import { Hammer, Wrench, KeyRound, UserCircle } from 'lucide-react';
 
 const TABS = [
   { key: 'maintenance', label: 'Yêu Cầu Bảo Trì', Icon: Hammer,  component: <MaintenanceManager /> },
   { key: 'equipments',  label: 'Thiết Bị',          Icon: Wrench,  component: <EquipmentManager /> },
+  { key: 'account',     label: 'Thông Tin Tài Khoản', Icon: UserCircle, component: <AccountInfo /> },
   { key: 'password',    label: 'Đổi Mật Khẩu',   Icon: KeyRound, component: <ChangePassword /> },
 ];
 

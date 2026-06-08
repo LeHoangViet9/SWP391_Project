@@ -2,13 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --hms-font-sans: "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body,
+.font-body,
+.font-display,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+button,
+input,
+textarea,
+select {
+  font-family: var(--hms-font-sans) !important;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
+    font-family: var(--hms-font-sans);
   }
 
   body {
     @apply font-body text-slate-800 antialiased;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
   }
 }
 

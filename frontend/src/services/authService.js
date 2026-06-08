@@ -55,3 +55,12 @@ export async function register(payload, locale = 'vi') {
   }, locale);
   return res;
 }
+
+/** GET /api/v1/auth/me */
+export async function getCurrentUser(locale = 'vi') {
+  const res = await apiFetch('/auth/me', {}, locale);
+  if (res?.data) {
+    saveAuth({ ...res.data, token: getStoredToken() });
+  }
+  return res;
+}

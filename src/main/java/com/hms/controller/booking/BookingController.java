@@ -14,6 +14,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -69,6 +70,26 @@ public class BookingController {
         ApiResponse<Page<BookingResponse>> response = ApiResponse.<Page<BookingResponse>>builder()
                 .success(true)
                 .message(message)
+                .data(data)
+                .status(HttpStatus.OK)
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/my-history")
+    public ResponseEntity<ApiResponse<Page<BookingResponse>>> getMyBookingHistory(
+            @AuthenticationPrincipal String username,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Page<BookingResponse> data = bookingService.getMyBookingHistory(username, page, size);
+
+        ApiResponse<Page<BookingResponse>> response = ApiResponse.<Page<BookingResponse>>builder()
+                .success(true)
+                .message(messageSource.getMessage("success.booking.history", null, "Booking history retrieved successfully", locale))
                 .data(data)
                 .status(HttpStatus.OK)
                 .build();

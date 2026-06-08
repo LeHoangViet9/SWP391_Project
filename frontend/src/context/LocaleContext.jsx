@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { translations } from '../i18n/translations';
+import { supplementalTranslations } from '../i18n/supplementalTranslations';
 
 const LocaleContext = createContext(null);
 const LOCALE_KEY = 'hms_locale';
@@ -14,13 +15,28 @@ export function LocaleProvider({ children }) {
     document.documentElement.lang = locale;
   }, [locale]);
 
-  const t = (key) => {
+  const readKey = (source, key) => {
     const keys = key.split('.');
-    let value = translations[locale];
+    let value = source;
     for (const k of keys) {
       value = value?.[k];
     }
-    return value ?? key;
+    return value;
+  };
+
+  const t = (key, params = {}) => {
+    const value =
+      readKey(translations[locale], key) ??
+      readKey(supplementalTranslations[locale], key) ??
+      readKey(translations.en, key) ??
+      readKey(supplementalTranslations.en, key);
+
+    if (typeof value !== 'string') return key;
+
+    return Object.entries(params).reduce(
+      (text, [name, replacement]) => text.replaceAll(`{${name}}`, String(replacement)),
+      value
+    );
   };
 
   const acceptLanguage = locale === 'vi' ? 'vi-VN' : 'en-US';

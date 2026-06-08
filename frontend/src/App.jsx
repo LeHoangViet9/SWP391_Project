@@ -13,6 +13,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ReceptionistDashboard from './pages/ReceptionistDashboard';
 import HousekeeperDashboard from './pages/HousekeeperDashboard';
 import MaintenanceDashboard from './pages/MaintenanceDashboard';
+import CustomerDashboard from './pages/CustomerDashboard';
 
 export default function App() {
   return (
@@ -84,6 +85,16 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={['MAINTENANCE', 'ADMIN']}>
                   <MaintenanceDashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Customer Dashboard */}
+            <Route
+              path="/customer/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['CUSTOMER']}>
+                  <CustomerDashboard />
                 </ProtectedRoute>
               }
             />

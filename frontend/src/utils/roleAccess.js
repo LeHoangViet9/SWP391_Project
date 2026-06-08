@@ -15,6 +15,8 @@ export function getDefaultDashboardPath(role) {
       return '/housekeeper/dashboard';
     case 'MAINTENANCE':
       return '/maintenance/dashboard';
+    case 'CUSTOMER':
+      return '/customer/dashboard';
     default:
       return '/';
   }

@@ -4,12 +4,14 @@ import BookingManager from '../components/BookingManager';
 import CustomerManager from '../components/CustomerManager';
 import RoomTypeManager from '../components/RoomTypeManager';
 import ChangePassword from '../components/ChangePassword';
-import { CalendarCheck, Users, Tag, KeyRound } from 'lucide-react';
+import AccountInfo from '../components/AccountInfo';
+import { CalendarCheck, Users, Tag, KeyRound, UserCircle } from 'lucide-react';
 
 const TABS = [
   { key: 'bookings',   label: 'Đặt Phòng',  Icon: CalendarCheck, component: <BookingManager /> },
   { key: 'customers',  label: 'Khách Hàng', Icon: Users,         component: <CustomerManager /> },
   { key: 'room-types', label: 'Loại Phòng', Icon: Tag,           component: <RoomTypeManager readOnly />, readOnly: true },
+  { key: 'account',    label: 'Thông Tin Tài Khoản', Icon: UserCircle, component: <AccountInfo /> },
   { key: 'password',   label: 'Đổi Mật Khẩu', Icon: KeyRound,     component: <ChangePassword /> },
 ];
 

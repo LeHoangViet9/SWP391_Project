@@ -13,6 +13,7 @@ export default function DashboardLayout({ title, subtitle, tabs, activeTab, setA
   const [userOpen, setUserOpen] = useState(false);
 
   const active = tabs.find(t => t.key === activeTab);
+  const hasAccountTab = tabs.some(t => t.key === 'account');
 
   const handleLogout = () => {
     logout();
@@ -64,7 +65,7 @@ export default function DashboardLayout({ title, subtitle, tabs, activeTab, setA
         {/* Sidebar Navigation */}
         <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
           <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider px-3 mb-2">
-            Chức Năng
+            {t('dashboard.menu')}
           </p>
           {tabs.map(({ key, label, Icon }) => {
             const isActive = activeTab === key;
@@ -82,7 +83,7 @@ export default function DashboardLayout({ title, subtitle, tabs, activeTab, setA
                 }`}
               >
                 <Icon size={18} className={isActive ? 'text-white' : 'text-[#bfa15f]'} />
-                <span>{label}</span>
+                <span>{t(`dashboard.tabs.${key}`) || label}</span>
               </button>
             );
           })}
@@ -95,14 +96,14 @@ export default function DashboardLayout({ title, subtitle, tabs, activeTab, setA
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
           >
             <Home size={18} className="text-[#bfa15f]" />
-            <span>Về trang chủ</span>
+            <span>{t('dashboard.backHome')}</span>
           </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
           >
             <LogOut size={18} />
-            <span>Đăng xuất</span>
+            <span>{t('auth.logout')}</span>
           </button>
         </div>
       </aside>
@@ -122,7 +123,7 @@ export default function DashboardLayout({ title, subtitle, tabs, activeTab, setA
           {/* Center/Search Placeholder */}
           <div className="hidden sm:flex items-center text-xs text-slate-400 gap-1 bg-stone-100 px-3 py-1.5 rounded-md">
             <ShieldAlert size={14} className="text-[#bfa15f]" />
-            <span>Khu vực quản trị hệ thống HMS Luxury</span>
+            <span>{t('dashboard.adminArea')}</span>
           </div>
 
           {/* Right: Lang & User Dropdown */}
@@ -175,8 +176,19 @@ export default function DashboardLayout({ title, subtitle, tabs, activeTab, setA
               {userOpen && (
                 <div className="absolute right-0 mt-2 bg-white border border-stone-200 shadow-xl rounded-lg min-w-[180px] py-1.5 z-[60] text-xs">
                   <p className="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-stone-100 mb-1">
-                    Tài khoản
+                    {t('dashboard.account')}
                   </p>
+                  {hasAccountTab && (
+                    <button
+                      onClick={() => {
+                        setActiveTab('account');
+                        setUserOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-stone-50 text-slate-700 font-medium transition-colors"
+                    >
+                      {t('dashboard.viewAccount')}
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setActiveTab('password');
@@ -184,13 +196,13 @@ export default function DashboardLayout({ title, subtitle, tabs, activeTab, setA
                     }}
                     className="w-full text-left px-4 py-2 hover:bg-stone-50 text-slate-700 font-medium transition-colors"
                   >
-                    Đổi mật khẩu
+                    {t('dashboard.changePassword')}
                   </button>
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 font-semibold transition-colors border-t border-stone-100 mt-1"
                   >
-                    Đăng xuất
+                    {t('auth.logout')}
                   </button>
                 </div>
               )}
@@ -216,9 +228,11 @@ export default function DashboardLayout({ title, subtitle, tabs, activeTab, setA
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-6">
             <h2 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2 border-b border-stone-100 pb-3">
               {active && <active.Icon size={18} className="text-[#bfa15f]" />}
-              {active?.label}
+              {t(`dashboard.tabs.${active?.key}`) || active?.label}
               {activeTab === 'room-types' && tabs.find(t => t.key === 'room-types')?.readOnly && (
-                <span className="text-xs text-slate-400 font-normal ml-2">(Chỉ xem)</span>
+                <span className="text-xs text-slate-400 font-normal ml-2">
+                  {locale === 'vi' ? '(Chỉ xem)' : '(Read only)'}
+                </span>
               )}
             </h2>
             {active?.component}

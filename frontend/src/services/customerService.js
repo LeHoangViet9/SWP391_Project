@@ -52,6 +52,17 @@ export async function deleteCustomer(id, locale = 'vi') {
   return apiFetch(`/customers/${id}`, { method: 'DELETE' }, locale);
 }
 
+/** PUT /api/v1/customers/{id}/restore */
+export async function restoreCustomer(id, locale = 'vi') {
+  return apiFetch(`/customers/${id}/restore`, { method: 'PUT' }, locale);
+}
+
+/** DELETE /api/v1/customers/{id}/force */
+export async function forceDeleteCustomer(id, locale = 'vi') {
+  return apiFetch(`/customers/${id}/force`, { method: 'DELETE' }, locale);
+}
+
+
 /** GET /api/v1/customers?keywords=email */
 export async function searchCustomerByEmail(email, locale = 'vi') {
   const res = await apiFetch(`/customers?keywords=${encodeURIComponent(email)}&size=1`, {}, locale);

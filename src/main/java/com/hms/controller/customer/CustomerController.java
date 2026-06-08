@@ -92,4 +92,35 @@ public class CustomerController {
         );
     }
 
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<ApiResponse<Void>> restoreCustomer(
+            @PathVariable Long id
+    ){
+        Locale locale = LocaleContextHolder.getLocale();
+        customerService.restoreCustomer(id);
+        return new ResponseEntity<>(new ApiResponse<>(
+                        true,
+                        messageSource.getMessage("customer.restore.success", null, locale),
+                        null,
+                        HttpStatus.OK
+                ),
+                HttpStatus.OK
+        );
+    }
+
+    @DeleteMapping("/{id}/force")
+    public ResponseEntity<ApiResponse<Void>> forceDeleteCustomer(
+            @PathVariable Long id
+    ){
+        Locale locale = LocaleContextHolder.getLocale();
+        customerService.forceDeleteCustomer(id);
+        return new ResponseEntity<>(new ApiResponse<>(
+                        true,
+                        messageSource.getMessage("customer.force_delete.success", null, locale),
+                        null,
+                        HttpStatus.OK
+                ),
+                HttpStatus.OK
+        );
+    }
 }

@@ -16,6 +16,20 @@ import java.util.Optional;
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
     Optional<Customer> findByIdAndStatus(Long id, AccountStatus status);
 
+    @Query("""
+SELECT c FROM Customer c
+WHERE c.status = :status
+AND (
+    LOWER(c.email) = LOWER(:email)
+    OR c.phone = :phone
+)
+""")
+    Optional<Customer> findActiveByEmailOrPhone(
+            @Param("email") String email,
+            @Param("phone") String phone,
+            @Param("status") AccountStatus status
+    );
+
     boolean existsByEmail(String email);
 
     boolean existsByPhone(String phone);

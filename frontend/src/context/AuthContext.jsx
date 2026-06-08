@@ -5,6 +5,7 @@ import {
   clearAuth,
   login as apiLogin,
   register as apiRegister,
+  getCurrentUser as apiGetCurrentUser,
 } from '../services/authService';
 import { useLocale } from './LocaleContext';
 
@@ -25,6 +26,12 @@ export function AuthProvider({ children }) {
     return apiRegister(payload, locale);
   }, [locale]);
 
+  const refreshCurrentUser = useCallback(async () => {
+    const res = await apiGetCurrentUser(locale);
+    if (res?.data) setUser({ ...res.data, token });
+    return res;
+  }, [locale, token]);
+
   const logout = useCallback(() => {
     clearAuth();
     setUser(null);
@@ -39,7 +46,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated, login, register, logout, hasRole }}
+      value={{ user, token, isAuthenticated, login, register, logout, hasRole, refreshCurrentUser }}
     >
       {children}
     </AuthContext.Provider>

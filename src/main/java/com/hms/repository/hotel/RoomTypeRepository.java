@@ -12,18 +12,20 @@ import java.util.Optional;
 @Repository
 public interface RoomTypeRepository extends JpaRepository<RoomType, Long> {
 
-    boolean existsByTypeNameAndStatus(String typeName, AccountStatus status);
+        boolean existsByTypeNameAndStatus(String typeName, AccountStatus status);
 
-    boolean existsByTypeNameAndIdNotAndStatus(String typeName, Long id, AccountStatus status);
+        long countByStatus(AccountStatus status);
 
-    Optional<RoomType> findByIdAndStatus(Long id, AccountStatus status);
+        boolean existsByTypeNameAndIdNotAndStatus(String typeName, Long id, AccountStatus status);
 
-    Page<RoomType> findByTypeNameContainingIgnoreCaseAndStatus(String keywords, AccountStatus status, Pageable pageable);
+        Optional<RoomType> findByIdAndStatus(Long id, AccountStatus status);
 
-    Page<RoomType> findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqualAndStatus(
-            String keywords,
-            Integer maxGuests,
-            AccountStatus status,
-            Pageable pageable
-    );
+        Page<RoomType> findByTypeNameContainingIgnoreCaseAndStatus(String keywords, AccountStatus status,
+                        Pageable pageable);
+
+        Page<RoomType> findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqualAndStatus(
+                        String keywords,
+                        Integer maxGuests,
+                        AccountStatus status,
+                        Pageable pageable);
 }

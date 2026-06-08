@@ -19,6 +19,11 @@ export async function searchBookings(params = {}, locale = 'vi') {
   return apiFetch(`/bookings/search${buildQuery(params)}`, {}, locale);
 }
 
+/** GET /api/v1/bookings/my-history */
+export async function getMyBookingHistory(params = {}, locale = 'vi') {
+  return apiFetch(`/bookings/my-history${buildQuery(params)}`, {}, locale);
+}
+
 /** GET /api/v1/bookings/{id} */
 export async function getBookingById(id, locale = 'vi') {
   return apiFetch(`/bookings/${id}`, {}, locale);

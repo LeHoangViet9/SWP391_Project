@@ -9,6 +9,7 @@ import {
   updateRoomStatus,
 } from '../services/roomService';
 import DataTable from './shared/DataTable';
+import { useLocale } from '../context/LocaleContext';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
@@ -30,6 +31,7 @@ function getRoomTypeId(item) {
 }
 
 export default function RoomManager({ readOnly = false }) {
+  const { locale, t } = useLocale();
   const [items, setItems] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -48,11 +50,11 @@ export default function RoomManager({ readOnly = false }) {
   const fetchData = useCallback(async (p = page) => {
     setLoading(true);
     try {
-      const res = await getAllRooms({ page: p, size: 10, keywords: search || undefined });
+      const res = await getAllRooms({ page: p, size: 10, keywords: search || undefined }, locale);
       setItems(res?.data?.content ?? []);
       setTotalPages(res?.data?.totalPages ?? 1);
     } catch (e) {
-      notify(e.message, 'error');
+      notify(e.message || t('room.toast.loadError'), 'error');
     } finally {
       setLoading(false);
     }
@@ -61,7 +63,7 @@ export default function RoomManager({ readOnly = false }) {
   useEffect(() => { fetchData(page); }, [page, fetchData]);
 
   useEffect(() => {
-    getRoomTypes({ page: 0, size: 100 })
+    getRoomTypes({ page: 0, size: 100 }, locale)
       .then(res => setRoomTypes(res?.data?.content ?? []))
       .catch(() => {});
   }, []);
@@ -87,7 +89,7 @@ export default function RoomManager({ readOnly = false }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!modal.editing && !file) return notify('Vui lòng chọn ảnh phòng!', 'warning');
+    if (!modal.editing && !file) return notify(t('room.toast.imageRequired'), 'warning');
 
     const payload = {
       ...form,
@@ -98,44 +100,45 @@ export default function RoomManager({ readOnly = false }) {
     setSaving(true);
     try {
       if (modal.editing) {
-        await updateRoom(modal.editing.id, payload, file);
-        notify('Cập nhật phòng thành công!');
+        await updateRoom(modal.editing.id, payload, file, locale);
+        notify(t('room.toast.updateSuccess'));
       } else {
-        await createRoom(payload, file);
-        notify('Tạo phòng thành công!');
+        await createRoom(payload, file, locale);
+        notify(t('room.toast.addSuccess'));
       }
       closeModal();
       fetchData(page);
     } catch (e) {
-      notify(e.status === 403 ? '403 Forbidden - Không có quyền!' : e.message, 'error');
+      notify(e.status === 403 ? t('room.toast.forbidden') : e.message, 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Xóa phòng "${item.roomNumber}"?`)) return;
+    if (!window.confirm(t('room.toast.deleteConfirm').replace('{roomNumber}', item.roomNumber))) return;
     try {
-      await deleteRoom(item.id);
-      notify('Đã xóa phòng!');
+      await deleteRoom(item.id, locale);
+      notify(t('room.toast.deleteSuccess'));
       fetchData(page);
     } catch (e) {
-      notify(e.status === 403 ? '403 Forbidden - Không có quyền xóa!' : e.message, 'error');
+      notify(e.status === 403 ? t('room.toast.forbiddenDelete') : e.message, 'error');
     }
   };
 
   const handleStatusChange = async (item, newStatus) => {
     try {
-      await updateRoomStatus(item.id, newStatus);
-      notify('Cập nhật trạng thái thành công!');
+      await updateRoomStatus(item.id, newStatus, locale);
+      notify(t('room.toast.statusSuccess'));
       fetchData(page);
     } catch (e) {
-      notify(e.status === 403 ? '403 Forbidden - Không có quyền!' : e.message, 'error');
+      notify(e.status === 403 ? t('room.toast.forbidden') : e.message, 'error');
     }
   };
 
   const rows = items.map(item => {
     const status = getRoomStatus(item);
+    const displayStatus = status === 'AVAILABLE' ? t('room.status.available') : status === 'OCCUPIED' ? t('room.status.occupied') : status === 'MAINTENANCE' ? t('room.status.maintenance') : t('room.status.inactive');
     return (
       <tr key={item.id} className="hover:bg-stone-50">
         <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
@@ -147,7 +150,7 @@ export default function RoomManager({ readOnly = false }) {
         <td className="px-4 py-3">
           {readOnly ? (
             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-stone-100 text-stone-600'}`}>
-              {status}
+              {displayStatus}
             </span>
           ) : (
             <select
@@ -155,9 +158,10 @@ export default function RoomManager({ readOnly = false }) {
               onChange={e => handleStatusChange(item, e.target.value)}
               className={`text-xs font-semibold px-2 py-1 rounded-full border-0 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
             >
-              {['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'INACTIVE'].map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
+              {['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'INACTIVE'].map(s => {
+                const label = s === 'AVAILABLE' ? t('room.status.available') : s === 'OCCUPIED' ? t('room.status.occupied') : s === 'MAINTENANCE' ? t('room.status.maintenance') : t('room.status.inactive');
+                return <option key={s} value={s}>{label}</option>;
+              })}
             </select>
           )}
         </td>
@@ -165,16 +169,16 @@ export default function RoomManager({ readOnly = false }) {
           {item.imageRoom ? (
             <img src={item.imageRoom} alt="room" className="w-12 h-10 object-cover rounded border" />
           ) : (
-            <span className="text-xs text-slate-400">Chưa có ảnh</span>
+            <span className="text-xs text-slate-400">{t('room.noImage')}</span>
           )}
         </td>
         {!readOnly && (
           <td className="px-4 py-3">
             <div className="flex items-center gap-3 justify-center">
-              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
+              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}>
                 <Edit2 size={15} />
               </button>
-              <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa">
+              <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'Xóa' : 'Delete'}>
                 <Trash2 size={15} />
               </button>
             </div>
@@ -184,7 +188,7 @@ export default function RoomManager({ readOnly = false }) {
     );
   });
 
-  const cols = ['ID', 'Số Phòng', 'Loại Phòng', 'Tầng', 'Trạng Thái', 'Ảnh', ...(!readOnly ? ['Thao tác'] : [])];
+  const cols = [t('room.columns.id'), t('room.columns.roomNumber'), t('room.columns.roomType'), t('room.columns.floor'), t('room.columns.status'), t('room.columns.image'), ...(!readOnly ? [t('room.columns.actions')] : [])];
 
   return (
     <div>
@@ -199,7 +203,7 @@ export default function RoomManager({ readOnly = false }) {
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && fetchData(0)}
-              placeholder="Tìm kiếm phòng..."
+              placeholder={t('room.searchPlaceholder')}
               className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
             />
           </div>
@@ -209,51 +213,51 @@ export default function RoomManager({ readOnly = false }) {
         </div>
         {!readOnly && (
           <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
-            <Plus size={16} /> Thêm phòng
+            <Plus size={16} /> {t('room.addBtn')}
           </button>
         )}
       </div>
 
       <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
 
-      <Modal open={modal.open} title={modal.editing ? 'Cập Nhật Phòng' : 'Thêm Phòng Mới'} onClose={closeModal}>
+      <Modal open={modal.open} title={modal.editing ? t('room.modal.editTitle') : t('room.modal.addTitle')} onClose={closeModal}>
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Số Phòng *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('room.modal.roomNumber')}</label>
               <input required value={form.roomNumber} onChange={e => setForm(f => ({ ...f, roomNumber: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder="101" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Tầng *</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('room.modal.floor')}</label>
               <input required type="number" min="1" value={form.floorNumber} onChange={e => setForm(f => ({ ...f, floorNumber: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder="1" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Loại Phòng *</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('room.modal.roomType')}</label>
             <select required value={form.roomTypeId} onChange={e => setForm(f => ({ ...f, roomTypeId: e.target.value }))}
               className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
-              <option value="">-- Chọn loại phòng --</option>
+              <option value="">{t('room.modal.selectType')}</option>
               {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.typeName}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-              {modal.editing ? 'Ảnh Phòng Mới' : 'Ảnh Phòng *'}
+              {modal.editing ? t('room.modal.imageNew') : t('room.modal.imageReq')}
             </label>
             <input type="file" accept="image/*" required={!modal.editing} onChange={e => setFile(e.target.files[0])}
               className="w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:border-0 file:bg-[#bfa15f] file:text-white file:rounded file:text-xs file:cursor-pointer" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Mô Tả</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('room.modal.description')}</label>
             <textarea rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none resize-none" />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">Hủy</button>
+            <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">{t('room.modal.cancel')}</button>
             <button type="submit" disabled={saving} className="px-5 py-2 text-sm bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded font-semibold shadow disabled:opacity-60">
-              {saving ? 'Đang lưu...' : modal.editing ? 'Cập nhật' : 'Tạo phòng'}
+              {saving ? t('room.modal.saving') : modal.editing ? t('room.modal.update') : t('room.modal.save')}
             </button>
           </div>
         </form>
