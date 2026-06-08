@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
-import ProtectedRoute from '../components/auth/ProtectedRoute';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 import { roomTypes as mockRoomTypes } from '../data/mockData';
@@ -309,9 +308,5 @@ function BookingContent() {
 }
 
 export default function BookingPage() {
-  return (
-    <ProtectedRoute>
-      <BookingContent />
-    </ProtectedRoute>
-  );
+  return <BookingContent />;
 }

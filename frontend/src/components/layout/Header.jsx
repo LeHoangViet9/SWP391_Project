@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
 import { useAuth } from '../../context/AuthContext';
+import { getDefaultDashboardPath, isStaffRole } from '../../utils/roleAccess';
 
 const NAV_ITEMS = [
   { key: 'nav.home', href: '#home' },
@@ -139,6 +140,15 @@ export default function Header() {
                       <p className="px-4 py-2 text-xs text-slate-400 border-b border-stone-100">
                         {user?.roleName}
                       </p>
+                      {isStaffRole(user?.roleName) && (
+                        <Link
+                          to={getDefaultDashboardPath(user?.roleName)}
+                          onClick={() => setUserOpen(false)}
+                          className="block px-4 py-2 text-sm text-[#bfa15f] hover:bg-stone-50 font-medium"
+                        >
+                          Bảng điều khiển
+                        </Link>
+                      )}
                       <button
                         onClick={() => { logout(); setUserOpen(false); }}
                         className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
