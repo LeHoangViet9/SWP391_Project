@@ -25,6 +25,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     @Override
     public MaintenanceResponse createRequest(MaintenanceRequestCreateDTO dto) {
 
+        // ADDED: bắt buộc phải có ít nhất roomId hoặc equipmentId
+        if (dto.getRoomId() == null && dto.getEquipmentId() == null) {
+            throw new IllegalArgumentException(
+                    "Maintenance request must have roomId or equipmentId"
+            );
+        }
+
         RepairRequest repairRequest = maintenanceMapper.toEntity(dto);
 
         // đảm bảo trạng thái mặc định khi tạo mới
@@ -47,9 +54,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         maintenanceMapper.updateFromDto(dto, repairRequest);
 
-        // nếu chuyển trạng thái sang COMPLETED thì lưu thời gian hoàn tất
+        // ADDED: nếu chuyển trạng thái sang COMPLETED thì lưu thời gian hoàn tất
         if (dto.getStatus() == MaintenanceStatus.COMPLETED) {
             repairRequest.setCompletedAt(LocalDateTime.now());
+        }
+
+        // ADDED: nếu status khác COMPLETED thì bỏ completedAt
+        if (dto.getStatus() != null && dto.getStatus() != MaintenanceStatus.COMPLETED) {
+            repairRequest.setCompletedAt(null);
         }
 
         RepairRequest updated = maintenanceRepository.save(repairRequest);
@@ -71,9 +83,19 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     @Override
-    public List<MaintenanceResponse> getAllRequests() {
-
-        List<RepairRequest> requests = maintenanceRepository.findAll();
+    public List<MaintenanceResponse> getAllRequests(
+            MaintenanceStatus status,
+            Long roomId,
+            Long equipmentId,
+            Long assignedTo
+    ) {
+        // ADDED: dùng query filter thay vì findAll()
+        List<RepairRequest> requests = maintenanceRepository.filterRequests(
+                status,
+                roomId,
+                equipmentId,
+                assignedTo
+        );
 
         return maintenanceMapper.toResponseList(requests);
     }
@@ -88,6 +110,10 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                                         "Maintenance request not found"
                                 ));
 
-        maintenanceRepository.delete(repairRequest);
+        // ADDED: không xóa cứng, đổi trạng thái sang CANCELLED để giữ lịch sử
+        repairRequest.setStatus(MaintenanceStatus.CANCELLED);
+        repairRequest.setCompletedAt(null);
+
+        maintenanceRepository.save(repairRequest);
     }
 }

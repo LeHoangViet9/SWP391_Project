@@ -1,6 +1,7 @@
 package com.hms.controller.maintenance;
 
 import com.hms.common.dto.ApiResponse;
+import com.hms.common.enums.MaintenanceStatus;
 import com.hms.dto.maintenance.request.MaintenanceRequestCreateDTO;
 import com.hms.dto.maintenance.request.MaintenanceRequestUpdateDTO;
 import com.hms.dto.maintenance.response.MaintenanceResponse;
@@ -29,10 +30,27 @@ public class MaintenanceController {
     }
 
     @GetMapping
-    public ApiResponse<List<MaintenanceResponse>> getAllRequests() {
+    public ApiResponse<List<MaintenanceResponse>> getAllRequests(
+            // ADDED: filter theo trạng thái
+            @RequestParam(required = false) MaintenanceStatus status,
+
+            // ADDED: filter theo phòng
+            @RequestParam(required = false) Long roomId,
+
+            // ADDED: filter theo thiết bị
+            @RequestParam(required = false) Long equipmentId,
+
+            // ADDED: filter theo nhân viên được giao
+            @RequestParam(required = false) Long assignedTo
+    ) {
         return ApiResponse.success(
                 "Get maintenance request list successfully",
-                maintenanceService.getAllRequests()
+                maintenanceService.getAllRequests(
+                        status,
+                        roomId,
+                        equipmentId,
+                        assignedTo
+                )
         );
     }
 
@@ -63,6 +81,7 @@ public class MaintenanceController {
     ) {
         maintenanceService.deleteRequest(id);
 
-        return ApiResponse.success("Delete maintenance request successfully");
+        // ADDED: hiện tại service đổi status sang CANCELLED, không xóa cứng
+        return ApiResponse.success("Cancel maintenance request successfully");
     }
 }

@@ -1,6 +1,6 @@
 package com.hms.service.maintenance;
 
-
+import com.hms.common.enums.MaintenanceStatus;
 import com.hms.dto.maintenance.request.MaintenanceRequestCreateDTO;
 import com.hms.dto.maintenance.request.MaintenanceRequestUpdateDTO;
 import com.hms.dto.maintenance.response.MaintenanceResponse;
@@ -15,7 +15,13 @@ public interface MaintenanceService {
 
     MaintenanceResponse getRequestById(Long id);
 
-    List<MaintenanceResponse> getAllRequests();
+    // ADDED: thêm filter theo status, roomId, equipmentId, assignedTo
+    List<MaintenanceResponse> getAllRequests(
+            MaintenanceStatus status,
+            Long roomId,
+            Long equipmentId,
+            Long assignedTo
+    );
 
     void deleteRequest(Long id);
 }
