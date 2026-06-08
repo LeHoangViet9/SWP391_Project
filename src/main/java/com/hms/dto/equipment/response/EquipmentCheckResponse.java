@@ -1,6 +1,7 @@
 package com.hms.dto.equipment.response;
 
 import lombok.*;
+import com.hms.common.enums.EquipmentConditionStatus;
 
 import java.time.LocalDateTime;
 
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 public class EquipmentCheckResponse {
 
     private Long id;
-    private String conditionStatus;
+    private EquipmentConditionStatus conditionStatus;
     private String checkNote;
     private Long checkedById;
     private String checkedByName;

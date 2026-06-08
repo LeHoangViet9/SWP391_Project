@@ -34,9 +34,10 @@ public class Equipment {
     @Column(name = "description")
     private String description;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
-    private EquipmentStatus status;
+    @Column(name = "status", nullable = false)
+    private EquipmentStatus status = EquipmentStatus.ACTIVE;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

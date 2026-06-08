@@ -4,7 +4,7 @@ import com.hms.entity.auth.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-
+import com.hms.common.enums.EquipmentConditionStatus;
 import java.time.LocalDateTime;
 
 @Entity
@@ -19,8 +19,9 @@ public class EquipmentCheck {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "condition_status", nullable = false)
-    private String conditionStatus;
+    private EquipmentConditionStatus conditionStatus;
 
     @Column(name = "check_note", columnDefinition = "TEXT")
     private String checkNote;

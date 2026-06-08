@@ -1,11 +1,9 @@
 package com.hms.service.dashboard.impl;
 
-
 import com.hms.common.enums.BookingStatus;
 import com.hms.common.enums.MaintenanceStatus;
 import com.hms.dto.dashboard.response.AdminDashboardResponse;
 import com.hms.dto.dashboard.response.MaintenanceDashboardResponse;
-import com.hms.dto.dashboard.response.ManagerDashboardResponse;
 import com.hms.dto.dashboard.response.ReceptionistDashboardResponse;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
@@ -16,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,52 +21,41 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class DashboardServiceImpl implements DashboardService {
-
 
     private final BookingRepository bookingRepository;
     private final InvoiceRepository invoiceRepository;
     private final RoomRepository roomRepository;
     private final MaintenanceRepository maintenanceRepository;
 
-
     @Override
     public AdminDashboardResponse getAdminDashboard() {
         LocalDate today = LocalDate.now();
 
-
         LocalDateTime startOfToday = today.atStartOfDay();
         LocalDateTime startOfTomorrow = today.plusDays(1).atStartOfDay();
 
-
         LocalDateTime startOfMonth = today.withDayOfMonth(1).atStartOfDay();
         LocalDateTime startOfNextMonth = today.plusMonths(1).withDayOfMonth(1).atStartOfDay();
-
 
         BigDecimal totalRevenueAllTime = nullToZero(invoiceRepository.calculateTotalRevenueAllTime());
         BigDecimal todayRevenue = nullToZero(invoiceRepository.calculateRevenueBetween(startOfToday, startOfTomorrow));
         BigDecimal thisMonthRevenue = nullToZero(invoiceRepository.calculateRevenueBetween(startOfMonth, startOfNextMonth));
 
-
         long totalSuccessfulBookings = bookingRepository.countBookingByBookingStatus(BookingStatus.CHECKED_OUT);
-
 
         Map<String, Long> bookingsCountByRoomType = convertRoomTypeStats(
                 bookingRepository.countBookingsGroupedByRoomType()
         );
 
-
         Map<String, BigDecimal> revenueByPaymentMethod = convertRevenueByPaymentMethod(
                 invoiceRepository.getRevenueGroupedByPaymentMethod()
         );
 
-
         List<AdminDashboardResponse.RevenueChartPoint> revenueTrend = buildSevenDayRevenueTrend(today);
-
 
         return AdminDashboardResponse.builder()
                 .totalRevenueAllTime(totalRevenueAllTime)
@@ -82,15 +68,12 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
-
     @Override
     public ReceptionistDashboardResponse getReceptionistDashboard() {
         LocalDate today = LocalDate.now();
 
-
         LocalDateTime startOfToday = today.atStartOfDay();
         LocalDateTime startOfTomorrow = today.plusDays(1).atStartOfDay();
-
 
         long expectedCheckIns = bookingRepository.countByBookingStatusAndCheckInDateBetween(
                 BookingStatus.CONFIRMED,
@@ -98,13 +81,11 @@ public class DashboardServiceImpl implements DashboardService {
                 startOfTomorrow
         );
 
-
         long expectedCheckOuts = bookingRepository.countByBookingStatusAndCheckOutDateBetween(
                 BookingStatus.CHECKED_IN,
                 startOfToday,
                 startOfTomorrow
         );
-
 
         long actualCheckIns = bookingRepository.countByBookingStatusAndCheckInDateBetween(
                 BookingStatus.CHECKED_IN,
@@ -112,21 +93,17 @@ public class DashboardServiceImpl implements DashboardService {
                 startOfTomorrow
         );
 
-
         long actualCheckOuts = bookingRepository.countByBookingStatusAndCheckOutDateBetween(
                 BookingStatus.CHECKED_OUT,
                 startOfToday,
                 startOfTomorrow
         );
 
-
         long pendingBookings = bookingRepository.countBookingByBookingStatus(BookingStatus.PENDING);
-
 
         Map<String, Long> roomStatusOverview = convertRoomStatusStats(
                 roomRepository.countRoomsGroupedByStatus()
         );
-
 
         return ReceptionistDashboardResponse.builder()
                 .expectedCheckIns(expectedCheckIns)
@@ -145,20 +122,17 @@ public class DashboardServiceImpl implements DashboardService {
         Long inProgress = maintenanceRepository.countByStatus(MaintenanceStatus.IN_PROGRESS);
         Long completed = maintenanceRepository.countByStatus(MaintenanceStatus.COMPLETED);
 
-        // 2. Tính tổng tiền
-        BigDecimal totalCost = maintenanceRepository.totalMaintenanceCost();
-        if (totalCost == null) {
-            totalCost = BigDecimal.ZERO;
-        }
+        // NOTE: RepairRequest hiện tại chưa có field cost,
+        // nên tạm set = 0 để Dashboard không lỗi khi khởi động app.
+        BigDecimal totalCost = BigDecimal.ZERO;
 
-        // 3. Map dữ liệu Group By Severity thành Map<String, Long>
-        java.util.Map<String, Long> severityMap = new java.util.HashMap<>();
+        Map<String, Long> severityMap = new LinkedHashMap<>();
         List<Object[]> severityData = maintenanceRepository.countRequestsBySeverity();
+
         for (Object[] row : severityData) {
-            severityMap.put(row[0].toString(), (Long) row[1]);
+            severityMap.put(String.valueOf(row[0]), (Long) row[1]);
         }
 
-        // 4. Trả về DTO tổng hợp
         return MaintenanceDashboardResponse.builder()
                 .totalRequests(total)
                 .pendingRequests(pending)
@@ -169,8 +143,6 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
-
-
     private List<AdminDashboardResponse.RevenueChartPoint> buildSevenDayRevenueTrend(LocalDate today) {
         return today.minusDays(6)
                 .datesUntil(today.plusDays(1))
@@ -178,9 +150,7 @@ public class DashboardServiceImpl implements DashboardService {
                     LocalDateTime start = date.atStartOfDay();
                     LocalDateTime end = date.plusDays(1).atStartOfDay();
 
-
                     BigDecimal revenue = nullToZero(invoiceRepository.calculateRevenueBetween(start, end));
-
 
                     return new AdminDashboardResponse.RevenueChartPoint(
                             date.toString(),
@@ -190,10 +160,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .toList();
     }
 
-
     private Map<String, Long> convertRoomTypeStats(List<Object[]> rows) {
         Map<String, Long> result = new LinkedHashMap<>();
-
 
         for (Object[] row : rows) {
             String roomTypeName = String.valueOf(row[0]);
@@ -201,14 +169,11 @@ public class DashboardServiceImpl implements DashboardService {
             result.put(roomTypeName, count);
         }
 
-
         return result;
     }
 
-
     private Map<String, BigDecimal> convertRevenueByPaymentMethod(List<Object[]> rows) {
         Map<String, BigDecimal> result = new LinkedHashMap<>();
-
 
         for (Object[] row : rows) {
             String paymentMethod = String.valueOf(row[0]);
@@ -216,14 +181,11 @@ public class DashboardServiceImpl implements DashboardService {
             result.put(paymentMethod, nullToZero(revenue));
         }
 
-
         return result;
     }
 
-
     private Map<String, Long> convertRoomStatusStats(List<Object[]> rows) {
         Map<String, Long> result = new LinkedHashMap<>();
-
 
         for (Object[] row : rows) {
             String roomStatus = String.valueOf(row[0]);
@@ -231,13 +193,10 @@ public class DashboardServiceImpl implements DashboardService {
             result.put(roomStatus, count);
         }
 
-
         return result;
     }
-
 
     private BigDecimal nullToZero(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
     }
 }
-

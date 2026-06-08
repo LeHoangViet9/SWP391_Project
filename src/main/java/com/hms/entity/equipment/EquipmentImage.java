@@ -21,8 +21,9 @@ public class EquipmentImage {
     @Column(name = "image_url", nullable = false)
     private String imageUrl;
 
-    @Column(name = "is_primary")
-    private Boolean isPrimary;
+    @Builder.Default
+    @Column(name = "is_primary", nullable = false)
+    private Boolean isPrimary = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "equipment_id", nullable = false)

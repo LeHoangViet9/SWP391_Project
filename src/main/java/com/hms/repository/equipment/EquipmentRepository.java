@@ -14,9 +14,11 @@ public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
     // Kiểm tra trùng mã trên mọi bản ghi (ACTIVE/INACTIVE)
     boolean existsByEquipmentCode(String equipmentCode);
 
-    // Kiểm tra trùng mã chỉ với bản ACTIVE (thường dùng khi cho phép tái sử dụng mã của INACTIVE)
-    boolean existsByEquipmentCodeAndStatus(String equipmentCode, EquipmentStatus status);
-    boolean existsByEquipmentCodeAndIdNotAndStatus(String equipmentCode, Long id, EquipmentStatus status);
+    // Kiểm tra trùng mã khi update, loại trừ chính equipment hiện tại
+    boolean existsByEquipmentCodeAndIdNot(
+            String equipmentCode,
+            Long id
+    );
 
     // Tìm kiếm trang theo tên thiết bị và status (đang dùng ở service)
     Page<Equipment> findByEquipmentNameContainingIgnoreCaseAndStatusNot(
