@@ -55,3 +55,35 @@ export async function register(payload, locale = 'vi') {
   }, locale);
   return res;
 }
+
+/** PUT /api/v1/auth/change-password */
+export async function changePassword(payload, locale = 'vi') {
+  return apiFetch('/auth/change-password', {
+    method: 'PUT',
+    body: JSON.stringify({
+      oldPassword: payload.oldPassword,
+      newPassword: payload.newPassword,
+      confirmNewPassword: payload.confirmNewPassword,
+    }),
+  }, locale);
+}
+
+/** POST /api/v1/auth/forgot-password */
+export async function forgotPassword(email, locale = 'vi') {
+  return apiFetch('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  }, locale);
+}
+
+/** POST /api/v1/auth/reset-password */
+export async function resetPassword(payload, locale = 'vi') {
+  return apiFetch('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({
+      token: payload.token,
+      newPassword: payload.newPassword,
+      confirmPassword: payload.confirmPassword,
+    }),
+  }, locale);
+}

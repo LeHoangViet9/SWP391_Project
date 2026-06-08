@@ -5,6 +5,7 @@ import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.dto.customer.request.CustomerCreateDTO;
+import com.hms.dto.customer.request.CustomerUpdateDTO;
 import com.hms.dto.customer.response.CustomerResponse;
 import com.hms.service.customer.CustomerService;
 import jakarta.validation.Valid;
@@ -66,12 +67,12 @@ public class CustomerController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(@Valid @RequestBody CustomerCreateDTO  customerCreateDTO, @PathVariable Long id){
+    public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(@Valid @RequestBody CustomerUpdateDTO dto , @PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("customer.update.success", null, locale),
-                customerService.updateCustomer(id,customerCreateDTO),
+                customerService.updateCustomer(id,dto),
                 HttpStatus.OK
         ),HttpStatus.OK);
     }

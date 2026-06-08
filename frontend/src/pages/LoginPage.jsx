@@ -25,7 +25,7 @@ export default function LoginPage() {
     try {
       const res = await login(form);
       const role = res?.data?.roleName;
-      const staffPaths = ['/admin/', '/receptionist/', '/housekeeper/', '/maintenance/'];
+      const staffPaths = ['/staff/', '/admin/', '/receptionist/', '/housekeeper/', '/maintenance/'];
       const isStaffRedirect = staffPaths.some((p) => redirect.startsWith(p));
       if (isStaffRedirect && isStaffRole(role)) {
         navigate(redirect);
@@ -85,6 +85,12 @@ export default function LoginPage() {
               {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+        </div>
+
+        <div className="text-right">
+          <Link to="/forgot-password" className="text-xs text-[#bfa15f] hover:underline">
+            {t('staff.auth.forgotTitle')}
+          </Link>
         </div>
 
         <button

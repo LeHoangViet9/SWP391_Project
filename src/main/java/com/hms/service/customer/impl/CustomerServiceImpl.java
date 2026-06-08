@@ -4,6 +4,7 @@ import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.customer.request.CustomerCreateDTO;
+import com.hms.dto.customer.request.CustomerUpdateDTO;
 import com.hms.dto.customer.response.CustomerResponse;
 import com.hms.entity.customer.Customer;
 import com.hms.common.enums.AccountStatus;
@@ -54,7 +55,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     @Transactional
-    public CustomerResponse updateCustomer(Long id, CustomerCreateDTO dto) {
+    public CustomerResponse updateCustomer(Long id, CustomerUpdateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Customer customer = customerRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
