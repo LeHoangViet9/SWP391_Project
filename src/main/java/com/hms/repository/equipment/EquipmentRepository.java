@@ -19,7 +19,7 @@ public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
     boolean existsByEquipmentCodeAndIdNotAndStatus(String equipmentCode, Long id, EquipmentStatus status);
 
     // Tìm kiếm trang theo tên thiết bị và status (đang dùng ở service)
-    Page<Equipment> findByEquipmentNameContainingIgnoreCaseAndStatus(
+    Page<Equipment> findByEquipmentNameContainingIgnoreCaseAndStatusNot(
             String keywords,
             EquipmentStatus status,
             Pageable pageable
