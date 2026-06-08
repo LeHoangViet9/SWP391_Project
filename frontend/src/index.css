@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-body text-slate-800 antialiased;
+  }
+}
+
+@layer components {
+  .btn-gold {
+    @apply bg-[#bfa15f] text-white font-semibold uppercase tracking-wider
+           hover:bg-[#cda152] transition-colors duration-300;
+  }
+
+  .section-title {
+    @apply font-display text-3xl md:text-4xl font-semibold text-slate-800;
+  }
+
+  .section-subtitle {
+    @apply text-[#bfa15f] uppercase tracking-[0.2em] text-sm font-medium;
+  }
+}

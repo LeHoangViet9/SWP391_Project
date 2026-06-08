@@ -55,7 +55,7 @@ public class UserServiceImpl implements IUserService {
         }
 
         String defaultRole = "CUSTOMER";
-        Role role = roleRepository.findByRoleName(defaultRole)
+        Role role = roleRepository.findByRoleNameIgnoreCase(defaultRole)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.role.invalid", new Object[]{defaultRole}, locale)
                 ));

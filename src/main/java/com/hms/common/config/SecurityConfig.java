@@ -53,7 +53,7 @@ public class SecurityConfig {
 //                        .requestMatchers("/api/v1/housekeeping/**").hasAnyRole("MANAGER", "HOUSEKEEPER")
 //
 //                        // 7. Module infrastructure & equipment: Quản lý thiết bị, kiểm tra, sửa chữa
-//                        .requestMatchers("/api/v1/equipments/**", "/api/v1/equipment-checks/**").hasAnyRole("ADMIN", "TECHNICIAN")
+//                        .requestMatchers("/api/v1/equipments/**", "/api/v1/equipment-checks/**").hasAnyRole("ADMIN", "MAINTENANCE")
 //
 //                        // Module customer_feedback: Quản lý xem, Lễ tân tiếp nhận phản hồi của khách
 //                        .requestMatchers("/api/v1/feedbacks/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
