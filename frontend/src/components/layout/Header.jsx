@@ -16,12 +16,12 @@ import { useAuth } from '../../context/AuthContext';
 import { getDefaultDashboardPath, isStaffRole } from '../../utils/roleAccess';
 
 const NAV_ITEMS = [
-  { key: 'nav.home', href: '#home' },
-  { key: 'nav.hotels', href: '#hotels' },
-  { key: 'nav.roomTypes', href: '#room-types' },
-  { key: 'nav.promotions', href: '#promotions' },
-  { key: 'nav.amenities', href: '#amenities' },
-  { key: 'nav.news', href: '#news' },
+  { key: 'nav.home', href: '/' },
+  { key: 'nav.hotels', href: '/#hotels' },
+  { key: 'nav.roomTypes', href: '/#room-types' },
+  { key: 'nav.promotions', href: '/#promotions' },
+  { key: 'nav.amenities', href: '/#amenities' },
+  { key: 'nav.news', href: '/#news' },
 ];
 
 export default function Header() {
@@ -69,7 +69,7 @@ export default function Header() {
               <ChevronDown size={14} className="ml-1" />
             </button>
             {langOpen && (
-              <div className="absolute right-0 mt-1 bg-white text-slate-800 rounded shadow-lg overflow-hidden min-w-[120px]">
+              <div className="absolute right-0 mt-1 bg-white text-slate-800 rounded shadow-lg overflow-hidden min-w-[120px] z-[60] border border-stone-200">
                 <button
                   onClick={() => toggleLocale('vi')}
                   className={`block w-full text-left px-4 py-2 hover:bg-stone-100 ${locale === 'vi' ? 'text-[#bfa15f] font-semibold' : ''}`}
@@ -93,7 +93,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
-            <a href="#home" className="flex items-center gap-3 shrink-0">
+            <Link to="/" className="flex items-center gap-3 shrink-0">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-[#bfa15f] rounded flex items-center justify-center">
                 <Crown className="text-white" size={24} />
               </div>
@@ -105,7 +105,7 @@ export default function Header() {
                   Hotel & Resort
                 </p>
               </div>
-            </a>
+            </Link>
 
             {/* Desktop Menu */}
             <ul className="hidden lg:flex items-center gap-1">
@@ -136,7 +136,7 @@ export default function Header() {
                     <ChevronDown size={14} />
                   </button>
                   {userOpen && (
-                    <div className="absolute right-0 mt-1 bg-white border border-stone-200 shadow-lg rounded min-w-[180px] py-1 z-50">
+                    <div className="absolute right-0 mt-1 bg-white border border-stone-200 shadow-lg rounded min-w-[180px] py-1 z-[60]">
                       <p className="px-4 py-2 text-xs text-slate-400 border-b border-stone-100">
                         {user?.roleName}
                       </p>

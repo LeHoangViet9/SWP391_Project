@@ -22,7 +22,7 @@ export async function getRoomById(id, locale = 'vi') {
 /** POST /api/v1/rooms — multipart @ModelAttribute + file */
 export async function createRoom(roomRequest, file, locale = 'vi') {
   const formData = new FormData();
-  formData.append('file', file);
+  if (file) formData.append('file', file);
   formData.append('roomNumber', roomRequest.roomNumber);
   formData.append('roomTypeId', String(roomRequest.roomTypeId));
   formData.append('floorNumber', String(roomRequest.floorNumber));
@@ -31,40 +31,15 @@ export async function createRoom(roomRequest, file, locale = 'vi') {
   return apiFormData('/rooms', formData, locale, 'POST');
 }
 
-/**
- * PUT /api/v1/rooms/{id}
- * Backend yêu cầu @RequestParam file + @RequestBody JSON.
- * Ưu tiên gửi JSON; nếu có file mới, gửi kèm qua FormData fallback.
- */
 export async function updateRoom(id, roomRequest, file, locale = 'vi') {
-  const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
-  const headers = {
-    'Accept-Language': locale === 'vi' ? 'vi-VN' : 'en-US',
-    Authorization: `Bearer ${localStorage.getItem('hms_token') || ''}`,
-  };
-
-  if (file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    Object.entries(roomRequest).forEach(([key, value]) => {
-      if (value != null) formData.append(key, String(value));
-    });
-    return apiFormData(`/rooms/${id}`, formData, locale, 'PUT');
-  }
-
-  const response = await fetch(`${API_BASE}/rooms/${id}?file=`, {
-    method: 'PUT',
-    headers: { ...headers, 'Content-Type': 'application/json' },
-    body: JSON.stringify(roomRequest),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || data.success === false) {
-    const err = new Error(data.message || `HTTP ${response.status}`);
-    err.status = response.status;
-    err.data = data;
-    throw err;
-  }
-  return data;
+  const formData = new FormData();
+  if (file) formData.append('file', file);
+  formData.append('roomNumber', roomRequest.roomNumber);
+  formData.append('roomTypeId', String(roomRequest.roomTypeId));
+  formData.append('floorNumber', String(roomRequest.floorNumber));
+  if (roomRequest.description) formData.append('description', roomRequest.description);
+  if (roomRequest.imageRoom) formData.append('imageRoom', roomRequest.imageRoom);
+  return apiFormData(`/rooms/${id}`, formData, locale, 'PUT');
 }
 
 /** DELETE /api/v1/rooms/{id} — soft delete (INACTIVE) */
