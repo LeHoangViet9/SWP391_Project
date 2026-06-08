@@ -1,11 +1,10 @@
 package com.hms.service.customer.mapper;
 
 import com.hms.dto.customer.request.CustomerCreateDTO;
+import com.hms.dto.customer.request.CustomerUpdateDTO;
 import com.hms.dto.customer.response.CustomerResponse;
 import com.hms.entity.customer.Customer;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
+import org.mapstruct.*;
 
 import java.util.List;
 
@@ -19,5 +18,7 @@ public interface CustomerMapper {
             CustomerCreateDTO dto,
             @MappingTarget Customer customer
     );
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    void updateCustomerFromDto(CustomerUpdateDTO dto, @MappingTarget Customer customer);
 
 }

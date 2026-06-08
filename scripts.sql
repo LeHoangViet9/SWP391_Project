@@ -38,10 +38,10 @@ INSERT INTO users (id, user_name, full_name, email, phone, password, account_sta
                                                                                                               (2, 'reception_an', 'Nguyễn Thúy An', 'annt@hms.com', '0900000002', '$2a$10$X...', 'ACTIVE', CURRENT_TIMESTAMP, 3);
 
 -- 6. Bảng Phòng (room) - Liên kết tới bảng room_type
-INSERT INTO room (id, room_number, room_type_id, room_status, floor_number, description, image_room) VALUES
-                                                                                                         (1, '101', 1, 'AVAILABLE', 1, 'Phòng đơn tầng 1 yên tĩnh', 'https://res.cloudinary.com/demo/image/upload/v1/rooms/room101.jpg'),
-                                                                                                         (2, '102', 2, 'AVAILABLE', 1, 'Phòng đôi rộng rãi tầng 1', 'https://res.cloudinary.com/demo/image/upload/v1/rooms/room102.jpg'),
-                                                                                                         (3, '201', 3, 'OCCUPIED', 2, 'Phòng VIP đẳng cấp tầng 2', 'https://res.cloudinary.com/demo/image/upload/v1/rooms/room201.jpg');
+INSERT INTO room (room_number, type_id, room_status, floor_number, description) VALUES
+                                                                                                         (1, '101', 'AVAILABLE', 1, 'Phòng đơn tầng 1 yên tĩnh'),
+                                                                                                         (2, '102', 'AVAILABLE', 1, 'Phòng đôi rộng rãi tầng 1'),
+                                                                                                         (3, '201',  'OCCUPIED', 2, 'Phòng VIP đẳng cấp tầng 2');
 
 
 -- ==========================================

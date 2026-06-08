@@ -15,6 +15,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,6 +31,7 @@ public class RoomController {
     private final CloudinaryUtils cloudinaryUtils;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPING')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getAllRooms(
             @RequestParam(required = false) String keywords,
             @RequestParam(required = false) Integer page,
@@ -51,6 +53,7 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPING')")
     public ResponseEntity<ApiResponse<RoomResponse>> getRoomById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomResponse roomResponse = roomService.getRoomById(id);
@@ -67,7 +70,10 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam("file")MultipartFile file, @ModelAttribute @Valid RoomRequest roomRequest) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(
+            @RequestParam(value="file",required = false)MultipartFile file,
+            @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomResponse created = roomService.createRoom(roomRequest,file);
         String message = messageSource.getMessage("success.room.create", null, locale);
@@ -83,10 +89,11 @@ public class RoomController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
-            @RequestParam("file") MultipartFile file,
+            @RequestParam(value="file",required = false) MultipartFile file,
             @PathVariable Long id,
-            @RequestBody @Valid RoomRequest roomRequest) {
+            @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomResponse updated = roomService.updateRoom(id, roomRequest,file);
         String message = messageSource.getMessage("success.room.update", null, locale);
@@ -102,6 +109,7 @@ public class RoomController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<Void>> deleteRoom(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         roomService.deleteRoomByID(id);
@@ -117,6 +125,7 @@ public class RoomController {
     }
 
     @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPING')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getRoomsByStatus(
             @PathVariable RoomStatus status,
             @RequestParam(required = false) Integer page,
@@ -155,6 +164,7 @@ public class RoomController {
     }
 
     @GetMapping("/room-type/{roomTypeId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getRoomsByRoomType(
             @PathVariable Long roomTypeId,
             @RequestParam(required = false) Integer page,
@@ -174,6 +184,7 @@ public class RoomController {
     }
 
     @GetMapping("/available")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getAvailableRooms(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
@@ -192,6 +203,7 @@ public class RoomController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPING')")
     public ResponseEntity<ApiResponse<Void>> updateRoomStatus(
             @PathVariable Long id,
             @RequestParam RoomStatus status) {

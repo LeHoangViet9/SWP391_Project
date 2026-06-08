@@ -44,3 +44,13 @@ export async function updateBooking(id, payload, locale = 'vi') {
 export async function deleteBooking(id, locale = 'vi') {
   return apiFetch(`/bookings/${id}`, { method: 'DELETE' }, locale);
 }
+
+/** GET /api/v1/bookings/check-in */
+export async function getCheckInBookings(params = {}, locale = 'vi') {
+  return apiFetch(`/bookings/check-in${buildQuery(params)}`, {}, locale);
+}
+
+/** GET /api/v1/bookings/check-out */
+export async function getCheckOutBookings(params = {}, locale = 'vi') {
+  return apiFetch(`/bookings/check-out${buildQuery(params)}`, {}, locale);
+}
