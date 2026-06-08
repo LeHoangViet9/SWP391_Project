@@ -1,6 +1,6 @@
 package com.hms.dto.housekeeping.response;
 
-import com.hms.common.enums.RoomState;
+import com.hms.common.enums.RoomStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,8 +17,8 @@ public class RoomStateHistoryResponse {
     private Long id;
     private Long roomId;
     private String roomNumber;
-    private RoomState previousState;
-    private RoomState newState;
+    private RoomStatus previousState;
+    private RoomStatus newState;
     private Long changedById;
     private String changedByName;
     private Long taskId;

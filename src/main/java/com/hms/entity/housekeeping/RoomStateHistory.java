@@ -1,6 +1,6 @@
 package com.hms.entity.housekeeping;
 
-import com.hms.common.enums.RoomState;
+import com.hms.common.enums.RoomStatus;
 import com.hms.entity.auth.User;
 import com.hms.entity.hotel.Room;
 import jakarta.persistence.*;
@@ -26,11 +26,11 @@ public class RoomStateHistory {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "previous_state", nullable = false, length = 20)
-    private RoomState previousState;
+    private RoomStatus previousState;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "new_state", nullable = false, length = 20)
-    private RoomState newState;
+    private RoomStatus newState;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "changed_by")

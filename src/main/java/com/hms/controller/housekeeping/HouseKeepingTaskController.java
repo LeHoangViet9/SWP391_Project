@@ -33,8 +33,8 @@ public class HouseKeepingTaskController {
             @RequestParam(required = false) Long assignedToId,
             @RequestParam(required = false) Long assignedById,
             @RequestParam(required = false) Long roomId,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
 
         Locale locale = LocaleContextHolder.getLocale();
         String message = messageSource.getMessage("success.task.getall", null, locale);

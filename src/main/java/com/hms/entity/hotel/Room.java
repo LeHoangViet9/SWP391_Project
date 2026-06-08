@@ -1,6 +1,5 @@
 package com.hms.entity.hotel;
 
-import com.hms.common.enums.RoomState;
 import com.hms.common.enums.RoomStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -28,12 +27,8 @@ public class Room {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "room_status", nullable = false)
-    private RoomStatus roomStatus;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "room_state", nullable = false)
     @Builder.Default
-    private RoomState roomState = RoomState.AVAILABLE;
+    private RoomStatus roomStatus = RoomStatus.AVAILABLE; // Đặt mặc định khi tạo phòng mới là trống sẵn sàng
 
     @Column(name = "floor_number", nullable = false)
     private Integer floorNumber;
@@ -41,5 +36,3 @@ public class Room {
     @Column(name = "description")
     private String description;
 }
-
-

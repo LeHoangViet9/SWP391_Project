@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTask, Long> {
@@ -30,4 +31,14 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
             @Param("assignedById") Long assignedById,
             @Param("roomId") Long roomId,
             Pageable pageable);
+    List<HouseKeepingTask> findByRoom_IdAndTaskStatus(Long roomId, TaskStatus status);
+
+    List<HouseKeepingTask> findByAssignedTo_IdAndTaskStatusIn(Long userId, List<TaskStatus> statuses);
+
+    @Query("SELECT t FROM HouseKeepingTask t " +
+           "JOIN FETCH t.room " +
+           "JOIN FETCH t.assignedTo " +
+           "JOIN FETCH t.assignedBy " +
+           "WHERE t.id = :id")
+    Optional<HouseKeepingTask> findByIdWithDetails(@Param("id") Long id);
 }
