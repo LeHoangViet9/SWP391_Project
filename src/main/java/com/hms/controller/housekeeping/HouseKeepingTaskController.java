@@ -5,6 +5,7 @@ import com.hms.common.enums.TaskStatus;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskUpdateRequest;
 import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
+import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import com.hms.service.housekeeping.IHouseKeepingTaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -92,6 +93,22 @@ public class HouseKeepingTaskController {
                 .success(true)
                 .message(message)
                 .data(taskService.getUncompletedTasksByUser(userId))
+                .status(HttpStatus.OK)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+
+    @GetMapping("/rooms/{roomId}/state-history")
+    public ResponseEntity<ApiResponse<List<RoomStateHistoryResponse>>> getRoomStateHistory(
+            @PathVariable Long roomId) {
+
+        // FIX: API mới để xem lịch sử đổi trạng thái phòng liên quan housekeeping.
+        ApiResponse<List<RoomStateHistoryResponse>> response = ApiResponse.<List<RoomStateHistoryResponse>>builder()
+                .success(true)
+                .message("Get room state history successfully")
+                .data(taskService.getRoomStateHistory(roomId))
                 .status(HttpStatus.OK)
                 .build();
 

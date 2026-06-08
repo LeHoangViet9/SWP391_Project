@@ -1,10 +1,11 @@
 package com.hms.dto.housekeeping.request;
 
-import com.hms.common.enums.TaskStatus;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -21,5 +22,9 @@ public class HouseKeepingTaskRequest {
     private Long assignedById;
 
     private String notes;
+
+    // FIX: Request tạo task có thể truyền thời điểm bắt đầu dọn.
+    // Nếu startedAt != null thì task được tạo ở trạng thái IN_PROGRESS.
+    private LocalDateTime startedAt;
 }
 

@@ -40,6 +40,7 @@ public class HouseKeepingTaskResponse {
     private LocalDateTime completedAt;
 
     private LocalDateTime createdAt;
+
+    // FIX: Trả thêm updatedAt để frontend biết task vừa được cập nhật lúc nào.
+    private LocalDateTime updatedAt;
 }
-
-

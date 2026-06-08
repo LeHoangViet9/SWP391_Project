@@ -44,4 +44,26 @@ public class HouseKeepingTask {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    // FIX: Bổ sung createdAt vì response đã có field này nhưng entity chưa lưu.
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    // FIX: Bổ sung updatedAt để biết lần cuối task được cập nhật.
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    // FIX: Tự set mốc thời gian tạo/cập nhật, tránh bị null khi save.
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    // FIX: Tự cập nhật updatedAt mỗi lần update task.
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

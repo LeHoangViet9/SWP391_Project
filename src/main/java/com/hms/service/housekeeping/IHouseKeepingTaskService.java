@@ -4,6 +4,7 @@ import com.hms.common.enums.TaskStatus;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskUpdateRequest;
 import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
+import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -26,6 +27,9 @@ public interface IHouseKeepingTaskService {
     List<HouseKeepingTaskResponse> getPendingTasksByRoom(Long roomId);
 
     List<HouseKeepingTaskResponse> getUncompletedTasksByUser(Long userId);
+
+    // FIX: Thêm hàm lấy lịch sử đổi trạng thái phòng cho housekeeping audit.
+    List<RoomStateHistoryResponse> getRoomStateHistory(Long roomId);
 }
 
 
