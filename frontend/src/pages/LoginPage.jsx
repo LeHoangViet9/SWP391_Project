@@ -4,6 +4,7 @@ import { Eye, EyeOff, LogIn } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
+import { getDefaultDashboardPath, isStaffRole } from '../utils/roleAccess';
 
 export default function LoginPage() {
   const { t } = useLocale();
@@ -22,8 +23,17 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login(form);
-      navigate(redirect);
+      const res = await login(form);
+      const role = res?.data?.roleName;
+      const staffPaths = ['/admin/', '/receptionist/', '/housekeeper/', '/maintenance/'];
+      const isStaffRedirect = staffPaths.some((p) => redirect.startsWith(p));
+      if (isStaffRedirect && isStaffRole(role)) {
+        navigate(redirect);
+      } else if (isStaffRole(role)) {
+        navigate(getDefaultDashboardPath(role));
+      } else {
+        navigate(isStaffRedirect ? '/' : redirect);
+      }
     } catch (err) {
       setError(err.message || t('auth.loginFailed'));
     } finally {
@@ -75,6 +85,14 @@ export default function LoginPage() {
               {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+        </div>
+        <div className="flex justify-end text-sm">
+          <Link
+            to="/forgot-password"
+            className="text-slate-500 hover:text-slate-800 transition-colors font-medium"
+          >
+            Quên mật khẩu?
+          </Link>
         </div>
 
         <button

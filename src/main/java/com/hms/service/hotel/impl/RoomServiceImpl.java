@@ -31,6 +31,7 @@ import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class RoomServiceImpl implements IRoomService {
 
     private final RoomRepository roomRepository;

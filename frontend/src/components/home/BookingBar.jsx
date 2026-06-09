@@ -128,62 +128,62 @@ export default function BookingBar() {
         <div className="lg:col-span-3 p-4 border-b md:border-b-0 md:border-r border-stone-200">
           <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2">
             <Users size={14} />
-            {t('booking.rooms')} & {t('booking.adults')}
+            Khách & Phòng
           </label>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2 xl:gap-2.5">
+            <div className="flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={() => update('rooms', Math.max(1, form.rooms - 1))}
-                className="w-7 h-7 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f]"
+                className="w-6 h-6 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f] flex items-center justify-center font-bold text-xs"
               >
                 −
               </button>
-              <span className="w-6 text-center font-medium">{form.rooms}</span>
+              <span className="w-4 text-center font-bold text-xs">{form.rooms}</span>
               <button
                 type="button"
                 onClick={() => update('rooms', form.rooms + 1)}
-                className="w-7 h-7 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f]"
+                className="w-6 h-6 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f] flex items-center justify-center font-bold text-xs"
               >
                 +
               </button>
-              <span className="text-xs text-slate-500 ml-1">{t('booking.rooms')}</span>
+              <span className="text-[10px] text-slate-500 ml-0.5">Phòng</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={() => update('adults', Math.max(1, form.adults - 1))}
-                className="w-7 h-7 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f]"
+                className="w-6 h-6 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f] flex items-center justify-center font-bold text-xs"
               >
                 −
               </button>
-              <span className="w-6 text-center font-medium">{form.adults}</span>
+              <span className="w-4 text-center font-bold text-xs">{form.adults}</span>
               <button
                 type="button"
                 onClick={() => update('adults', form.adults + 1)}
-                className="w-7 h-7 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f]"
+                className="w-6 h-6 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f] flex items-center justify-center font-bold text-xs"
               >
                 +
               </button>
-              <span className="text-xs text-slate-500 ml-1">{t('booking.adults')}</span>
+              <span className="text-[10px] text-slate-500 ml-0.5">Lớn</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={() => update('children', Math.max(0, form.children - 1))}
-                className="w-7 h-7 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f]"
+                className="w-6 h-6 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f] flex items-center justify-center font-bold text-xs"
               >
                 −
               </button>
-              <span className="w-6 text-center font-medium">{form.children}</span>
+              <span className="w-4 text-center font-bold text-xs">{form.children}</span>
               <button
                 type="button"
                 onClick={() => update('children', form.children + 1)}
-                className="w-7 h-7 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f]"
+                className="w-6 h-6 border border-stone-300 rounded text-slate-600 hover:border-[#bfa15f] flex items-center justify-center font-bold text-xs"
               >
                 +
               </button>
-              <span className="text-xs text-slate-500 ml-1">{t('booking.children')}</span>
+              <span className="text-[10px] text-slate-500 ml-0.5">Trẻ</span>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ package com.hms.advise;
 
 import com.hms.common.dto.ApiResponse;
 import com.hms.common.exception.AppException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -17,6 +18,7 @@ import java.util.Locale;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
     @Autowired
     private MessageSource messageSource;
@@ -70,6 +72,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleException(
             Exception exception
     ) {
+        log.error("Unhandled exception", exception);
         Locale locale = LocaleContextHolder.getLocale();
 
         String message = messageSource.getMessage("error.internal.server", null, "Internal Server Error", locale);

@@ -32,8 +32,15 @@ export function AuthProvider({ children }) {
 
   const isAuthenticated = Boolean(token && user);
 
+  const hasRole = useCallback(
+    (...roles) => roles.includes(user?.roleName),
+    [user?.roleName]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, token, isAuthenticated, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, isAuthenticated, login, register, logout, hasRole }}
+    >
       {children}
     </AuthContext.Provider>
   );

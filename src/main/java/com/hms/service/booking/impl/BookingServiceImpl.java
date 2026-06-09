@@ -26,6 +26,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -65,6 +66,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public BookingResponse createBooking(BookingRequest request){
         Locale locale = LocaleContextHolder.getLocale();
         validateBookingDate(request, locale);
@@ -92,6 +94,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public BookingResponse updateBooking(Long id, BookingRequest request){
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -121,6 +124,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public void deleteBooking(Long id){
         Locale locale = LocaleContextHolder.getLocale();
 
