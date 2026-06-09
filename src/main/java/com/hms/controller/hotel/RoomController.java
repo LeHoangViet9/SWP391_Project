@@ -89,9 +89,9 @@ public class RoomController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
-            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "file", required = false) MultipartFile file,
             @PathVariable Long id,
-            @RequestBody @Valid RoomRequest roomRequest) {
+            @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomResponse updated = roomService.updateRoom(id, roomRequest,file);
         String message = messageSource.getMessage("success.room.update", null, locale);
