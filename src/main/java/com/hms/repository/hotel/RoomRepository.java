@@ -35,5 +35,6 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     // Đếm số phòng AVAILABLE thuộc một loại phòng – dùng để kiểm tra số lượng booking
     long countByRoomTypeIdAndRoomStatus(Long roomTypeId, RoomStatus roomStatus);
 
+    boolean existsByRoomTypeIdAndRoomStatusNot(Long roomTypeId, RoomStatus roomStatus);
 }
 

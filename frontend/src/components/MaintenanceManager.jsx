@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, Edit2, Trash2, RefreshCw, Check, ChevronDown, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { maintenanceService } from '../services/maintenanceService';
 import { useLocale } from '../context/LocaleContext';
+import { getAllRooms } from '../services/roomService';
+import { equipmentService } from '../services/equipmentService';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -51,6 +53,100 @@ export default function MaintenanceManager({ readOnly = false }) {
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_CREATE);
   const [saving, setSaving] = useState(false);
+
+  const [rooms, setRooms] = useState([]);
+  const [equipments, setEquipments] = useState([]);
+  const [roomSearchQuery, setRoomSearchQuery] = useState('');
+  const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
+  const [equipmentSearchQuery, setEquipmentSearchQuery] = useState('');
+  const [isEquipmentDropdownOpen, setIsEquipmentDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    getAllRooms({ page: 0, size: 200 })
+      .then((response) => setRooms(response?.data?.content ?? []))
+      .catch(() => setRooms([]));
+
+    equipmentService.getAll({ page: 0, size: 1000 })
+      .then((response) => setEquipments(response?.data?.content ?? []))
+      .catch(() => setEquipments([]));
+  }, []);
+
+  useEffect(() => {
+    if (form.roomId) {
+      const selectedRoom = rooms.find((r) => String(r.id) === String(form.roomId));
+      if (selectedRoom) {
+        setRoomSearchQuery(`${selectedRoom.roomNumber}${selectedRoom.roomTypeName ? ` - ${selectedRoom.roomTypeName}` : ''}`);
+      } else {
+        setRoomSearchQuery(String(form.roomId));
+      }
+    } else {
+      setRoomSearchQuery('');
+    }
+  }, [form.roomId, rooms]);
+
+  useEffect(() => {
+    if (form.equipmentId) {
+      const selectedEquip = equipments.find((e) => String(e.id) === String(form.equipmentId));
+      if (selectedEquip) {
+        setEquipmentSearchQuery(`${selectedEquip.equipmentName}${selectedEquip.equipmentCode ? ` (${selectedEquip.equipmentCode})` : ''}`);
+      } else {
+        setEquipmentSearchQuery(String(form.equipmentId));
+      }
+    } else {
+      setEquipmentSearchQuery('');
+    }
+  }, [form.equipmentId, equipments]);
+
+  const filteredRooms = useMemo(() => {
+    let list = rooms;
+
+    if (form.equipmentId) {
+      const selectedEquip = equipments.find((e) => String(e.id) === String(form.equipmentId));
+      if (selectedEquip && selectedEquip.roomId) {
+        list = list.filter((r) => String(r.id) === String(selectedEquip.roomId));
+      }
+    }
+
+    const query = roomSearchQuery.trim().toLowerCase();
+    if (!query) return list;
+
+    const selectedRoom = list.find((r) => String(r.id) === String(form.roomId));
+    const selectedLabel = selectedRoom ? `${selectedRoom.roomNumber}${selectedRoom.roomTypeName ? ` - ${selectedRoom.roomTypeName}` : ''}`.toLowerCase() : '';
+
+    if (query === selectedLabel) {
+      return list;
+    }
+
+    return list.filter((room) => {
+      const roomNum = String(room.roomNumber).toLowerCase();
+      const typeName = (room.roomTypeName || '').toLowerCase();
+      return roomNum.includes(query) || typeName.includes(query);
+    });
+  }, [rooms, roomSearchQuery, form.roomId, form.equipmentId, equipments]);
+
+  const filteredEquipments = useMemo(() => {
+    let list = equipments;
+
+    if (form.roomId) {
+      list = list.filter((e) => String(e.roomId) === String(form.roomId));
+    }
+
+    const query = equipmentSearchQuery.trim().toLowerCase();
+    if (!query) return list;
+
+    const selectedEquip = list.find((e) => String(e.id) === String(form.equipmentId));
+    const selectedLabel = selectedEquip ? `${selectedEquip.equipmentName}${selectedEquip.equipmentCode ? ` (${selectedEquip.equipmentCode})` : ''}`.toLowerCase() : '';
+
+    if (query === selectedLabel) {
+      return list;
+    }
+
+    return list.filter((equip) => {
+      const name = (equip.equipmentName || '').toLowerCase();
+      const code = (equip.equipmentCode || '').toLowerCase();
+      return name.includes(query) || code.includes(query);
+    });
+  }, [equipments, equipmentSearchQuery, form.equipmentId, form.roomId]);
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -232,16 +328,207 @@ export default function MaintenanceManager({ readOnly = false }) {
                   className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder={t('maintenance.modal.titlePlaceholder')} />
               </div>
               <div className="grid grid-cols-3 gap-4">
-                <div>
+                <div className="relative">
                   <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.room')}</label>
-                  <input type="number" value={form.roomId} onChange={e => setForm(f => ({ ...f, roomId: e.target.value }))}
-                    className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={roomSearchQuery}
+                      onFocus={() => setIsRoomDropdownOpen(true)}
+                      onChange={(event) => {
+                        setRoomSearchQuery(event.target.value);
+                        setIsRoomDropdownOpen(true);
+                        const matched = rooms.find(
+                          (r) =>
+                            `${r.roomNumber}${r.roomTypeName ? ` - ${r.roomTypeName}` : ''}`.toLowerCase() ===
+                            event.target.value.toLowerCase()
+                        );
+                        if (matched) {
+                          setForm((current) => ({ ...current, roomId: String(matched.id) }));
+                        } else {
+                          setForm((current) => ({ ...current, roomId: '' }));
+                        }
+                      }}
+                      placeholder="Chọn phòng..."
+                      className="w-full border border-stone-300 rounded pl-3 pr-8 py-2 text-sm focus:border-[#bfa15f] outline-none"
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      {form.roomId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRoomSearchQuery('');
+                            setForm((current) => ({ ...current, roomId: '', equipmentId: '' }));
+                          }}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                      <ChevronDown size={14} className="text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {isRoomDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsRoomDropdownOpen(false)}
+                      />
+                      <div className="absolute left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded border border-stone-200 bg-white py-1 shadow-lg">
+                        <div
+                          onClick={() => {
+                            setForm((current) => ({ ...current, roomId: '', equipmentId: '' }));
+                            setIsRoomDropdownOpen(false);
+                          }}
+                          className={`flex items-center justify-between cursor-pointer px-3 py-1.5 text-xs hover:bg-stone-50 ${
+                            !form.roomId ? 'bg-stone-100 font-semibold text-[#bfa15f]' : 'text-slate-600'
+                          }`}
+                        >
+                          <span>Không chọn</span>
+                          {!form.roomId && <Check size={12} className="text-[#bfa15f]" />}
+                        </div>
+                        {filteredRooms.length > 0 ? (
+                          filteredRooms.map((room) => {
+                            const isSelected = String(form.roomId) === String(room.id);
+                            return (
+                              <div
+                                key={room.id}
+                                onClick={() => {
+                                  setForm((current) => {
+                                    const updated = { ...current, roomId: String(room.id) };
+                                    const currentEquip = equipments.find((e) => String(e.id) === String(current.equipmentId));
+                                    if (currentEquip && String(currentEquip.roomId) !== String(room.id)) {
+                                      updated.equipmentId = '';
+                                    }
+                                    return updated;
+                                  });
+                                  setIsRoomDropdownOpen(false);
+                                }}
+                                className={`flex items-center justify-between cursor-pointer px-3 py-1.5 text-xs hover:bg-stone-50 ${
+                                  isSelected ? 'bg-amber-50 font-semibold text-[#bfa15f]' : 'text-slate-700'
+                                }`}
+                              >
+                                <span>
+                                  {room.roomNumber} {room.roomTypeName ? ` - ${room.roomTypeName}` : ''}
+                                </span>
+                                {isSelected && <Check size={12} className="text-[#bfa15f]" />}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="px-3 py-1.5 text-xs text-slate-400 italic">
+                            Không tìm thấy phòng
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div>
+
+                <div className="relative">
                   <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.equipment')}</label>
-                  <input type="number" value={form.equipmentId} onChange={e => setForm(f => ({ ...f, equipmentId: e.target.value }))}
-                    className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={equipmentSearchQuery}
+                      onFocus={() => setIsEquipmentDropdownOpen(true)}
+                      onChange={(event) => {
+                        setEquipmentSearchQuery(event.target.value);
+                        setIsEquipmentDropdownOpen(true);
+                        const matched = equipments.find(
+                          (e) =>
+                            `${e.equipmentName}${e.equipmentCode ? ` (${e.equipmentCode})` : ''}`.toLowerCase() ===
+                            event.target.value.toLowerCase()
+                        );
+                        if (matched) {
+                          setForm((current) => {
+                            const updated = { ...current, equipmentId: String(matched.id) };
+                            if (matched.roomId) {
+                              updated.roomId = String(matched.roomId);
+                            }
+                            return updated;
+                          });
+                        } else {
+                          setForm((current) => ({ ...current, equipmentId: '' }));
+                        }
+                      }}
+                      placeholder="Chọn thiết bị..."
+                      className="w-full border border-stone-300 rounded pl-3 pr-8 py-2 text-sm focus:border-[#bfa15f] outline-none"
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      {form.equipmentId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEquipmentSearchQuery('');
+                            setForm((current) => ({ ...current, equipmentId: '' }));
+                          }}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                      <ChevronDown size={14} className="text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {isEquipmentDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsEquipmentDropdownOpen(false)}
+                      />
+                      <div className="absolute left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded border border-stone-200 bg-white py-1 shadow-lg">
+                        <div
+                          onClick={() => {
+                            setForm((current) => ({ ...current, equipmentId: '' }));
+                            setIsEquipmentDropdownOpen(false);
+                          }}
+                          className={`flex items-center justify-between cursor-pointer px-3 py-1.5 text-xs hover:bg-stone-50 ${
+                            !form.equipmentId ? 'bg-stone-100 font-semibold text-[#bfa15f]' : 'text-slate-600'
+                          }`}
+                        >
+                          <span>Không chọn</span>
+                          {!form.equipmentId && <Check size={12} className="text-[#bfa15f]" />}
+                        </div>
+                        {filteredEquipments.length > 0 ? (
+                          filteredEquipments.map((equip) => {
+                            const isSelected = String(form.equipmentId) === String(equip.id);
+                            return (
+                              <div
+                                key={equip.id}
+                                onClick={() => {
+                                  setForm((current) => {
+                                    const updated = { ...current, equipmentId: String(equip.id) };
+                                    if (equip.roomId) {
+                                      updated.roomId = String(equip.roomId);
+                                    }
+                                    return updated;
+                                  });
+                                  setIsEquipmentDropdownOpen(false);
+                                }}
+                                className={`flex items-center justify-between cursor-pointer px-3 py-1.5 text-xs hover:bg-stone-50 ${
+                                  isSelected ? 'bg-amber-50 font-semibold text-[#bfa15f]' : 'text-slate-700'
+                                }`}
+                              >
+                                <span>
+                                  {equip.equipmentName} {equip.equipmentCode ? ` (${equip.equipmentCode})` : ''}
+                                </span>
+                                {isSelected && <Check size={12} className="text-[#bfa15f]" />}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="px-3 py-1.5 text-xs text-slate-400 italic">
+                            Không tìm thấy thiết bị
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.reportedBy')}</label>
                   <input required type="number" value={form.reportedBy} onChange={e => setForm(f => ({ ...f, reportedBy: e.target.value }))}

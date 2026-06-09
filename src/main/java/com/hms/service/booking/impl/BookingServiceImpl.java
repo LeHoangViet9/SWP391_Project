@@ -55,12 +55,14 @@ public class BookingServiceImpl implements BookingService {
     private final PageableUtils pageableUtils;
 
     @Override
+    @Transactional(readOnly = true)
     public Page<BookingResponse> getAllBookings(Integer page, Integer size, SortField sortBy, SortDirection direction){
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
         return bookingRepository.findAll(pageable).map(bookingMapper::toResponse);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public BookingResponse getBookingById(Long id){
         Locale locale = LocaleContextHolder.getLocale();
         Booking booking = bookingRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(messageSource

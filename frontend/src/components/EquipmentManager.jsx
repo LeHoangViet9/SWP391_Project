@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Edit2, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, Edit2, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { equipmentService } from '../services/equipmentService';
 import { getAllRooms } from '../services/roomService';
@@ -53,6 +53,23 @@ export default function EquipmentManager() {
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [existingCodes, setExistingCodes] = useState([]);
+  const [existingLocations, setExistingLocations] = useState([]);
+  const [roomSearchQuery, setRoomSearchQuery] = useState('');
+  const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
+
+  const fetchSuggestions = useCallback(async () => {
+    try {
+      const response = await equipmentService.getAll({ page: 0, size: 1000 });
+      const allItems = response?.data?.content ?? [];
+      const codes = [...new Set(allItems.map((item) => item.equipmentCode).filter(Boolean))];
+      const locations = [...new Set(allItems.map((item) => item.location).filter(Boolean))];
+      setExistingCodes(codes);
+      setExistingLocations(locations);
+    } catch (error) {
+      console.error('Failed to fetch equipment suggestions:', error);
+    }
+  }, []);
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast((current) => ({ ...current, message: '' }));
@@ -85,6 +102,10 @@ export default function EquipmentManager() {
       .catch(() => setRooms([]));
   }, []);
 
+  useEffect(() => {
+    fetchSuggestions();
+  }, [fetchSuggestions]);
+
   const roomOptions = useMemo(
     () => rooms.map((room) => ({
       id: room.id,
@@ -92,6 +113,37 @@ export default function EquipmentManager() {
     })),
     [rooms]
   );
+
+  useEffect(() => {
+    if (form.roomId) {
+      const selectedRoom = rooms.find((r) => String(r.id) === String(form.roomId));
+      if (selectedRoom) {
+        setRoomSearchQuery(`${selectedRoom.roomNumber}${selectedRoom.roomTypeName ? ` - ${selectedRoom.roomTypeName}` : ''}`);
+      } else {
+        setRoomSearchQuery('');
+      }
+    } else {
+      setRoomSearchQuery('');
+    }
+  }, [form.roomId, rooms]);
+
+  const filteredRooms = useMemo(() => {
+    const query = roomSearchQuery.trim().toLowerCase();
+    if (!query) return rooms;
+
+    const selectedRoom = rooms.find((r) => String(r.id) === String(form.roomId));
+    const selectedLabel = selectedRoom ? `${selectedRoom.roomNumber}${selectedRoom.roomTypeName ? ` - ${selectedRoom.roomTypeName}` : ''}`.toLowerCase() : '';
+
+    if (query === selectedLabel) {
+      return rooms;
+    }
+
+    return rooms.filter((room) => {
+      const roomNum = String(room.roomNumber).toLowerCase();
+      const typeName = (room.roomTypeName || '').toLowerCase();
+      return roomNum.includes(query) || typeName.includes(query);
+    });
+  }, [rooms, roomSearchQuery, form.roomId]);
 
   const openCreate = () => {
     if (!canManage) {
@@ -139,6 +191,7 @@ export default function EquipmentManager() {
       }
       closeModal();
       fetchData(page);
+      fetchSuggestions();
     } catch (error) {
       notify(getErrorMessage(error, t('equipment.toast.loadError')), 'error');
     } finally {
@@ -157,6 +210,7 @@ export default function EquipmentManager() {
       await equipmentService.delete(item.id);
       notify(t('equipment.toast.deleteSuccess'));
       fetchData(page);
+      fetchSuggestions();
     } catch (error) {
       notify(getErrorMessage(error, t('equipment.toast.loadError')), 'error');
     }
@@ -295,7 +349,13 @@ export default function EquipmentManager() {
                 onChange={(event) => setForm((current) => ({ ...current, equipmentCode: event.target.value }))}
                 className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
                 placeholder={t('equipment.modal.codePlaceholder')}
+                list="existing-codes"
               />
+              <datalist id="existing-codes">
+                {existingCodes.map((code) => (
+                  <option key={code} value={code} />
+                ))}
+              </datalist>
             </div>
 
             <div>
@@ -308,26 +368,108 @@ export default function EquipmentManager() {
                 onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
                 className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
                 placeholder={t('equipment.modal.locationPlaceholder')}
+                list="existing-locations"
               />
+              <datalist id="existing-locations">
+                {existingLocations.map((loc) => (
+                  <option key={loc} value={loc} />
+                ))}
+              </datalist>
             </div>
           </div>
 
-          <div>
+          <div className="relative">
             <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
               {t('equipment.modal.room')}
             </label>
-            <select
-              value={form.roomId}
-              onChange={(event) => setForm((current) => ({ ...current, roomId: event.target.value }))}
-              className="w-full rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-            >
-              <option value="">{t('equipment.noRoomOption')}</option>
-              {roomOptions.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <input
+                type="text"
+                value={roomSearchQuery}
+                onFocus={() => setIsRoomDropdownOpen(true)}
+                onChange={(event) => {
+                  setRoomSearchQuery(event.target.value);
+                  setIsRoomDropdownOpen(true);
+                  const matched = rooms.find(
+                    (r) =>
+                      `${r.roomNumber}${r.roomTypeName ? ` - ${r.roomTypeName}` : ''}`.toLowerCase() ===
+                      event.target.value.toLowerCase()
+                  );
+                  if (matched) {
+                    setForm((current) => ({ ...current, roomId: String(matched.id) }));
+                  } else {
+                    setForm((current) => ({ ...current, roomId: '' }));
+                  }
+                }}
+                placeholder={t('equipment.noRoomOption')}
+                className="w-full rounded border border-stone-300 py-2 pl-3 pr-10 text-sm outline-none focus:border-[#bfa15f]"
+              />
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                {form.roomId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRoomSearchQuery('');
+                      setForm((current) => ({ ...current, roomId: '' }));
+                    }}
+                    className="text-slate-400 hover:text-slate-600"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+                <ChevronDown size={16} className="text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {isRoomDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setIsRoomDropdownOpen(false)}
+                />
+
+                <div className="absolute left-0 right-0 z-20 mt-1 max-h-60 overflow-y-auto rounded border border-stone-200 bg-white py-1 shadow-lg animate-in fade-in slide-in-from-top-1 duration-150">
+                  <div
+                    onClick={() => {
+                      setForm((current) => ({ ...current, roomId: '' }));
+                      setIsRoomDropdownOpen(false);
+                    }}
+                    className={`flex items-center justify-between cursor-pointer px-3 py-2 text-sm hover:bg-stone-50 ${
+                      !form.roomId ? 'bg-stone-100 font-semibold text-[#bfa15f]' : 'text-slate-600'
+                    }`}
+                  >
+                    <span>{t('equipment.noRoomOption')}</span>
+                    {!form.roomId && <Check size={14} className="text-[#bfa15f]" />}
+                  </div>
+                  {filteredRooms.length > 0 ? (
+                    filteredRooms.map((room) => {
+                      const isSelected = String(form.roomId) === String(room.id);
+                      return (
+                        <div
+                          key={room.id}
+                          onClick={() => {
+                            setForm((current) => ({ ...current, roomId: String(room.id) }));
+                            setIsRoomDropdownOpen(false);
+                          }}
+                          className={`flex items-center justify-between cursor-pointer px-3 py-2 text-sm hover:bg-stone-50 ${
+                            isSelected ? 'bg-amber-50 font-semibold text-[#bfa15f]' : 'text-slate-700'
+                          }`}
+                        >
+                          <span>
+                            {room.roomNumber} {room.roomTypeName ? ` - ${room.roomTypeName}` : ''}
+                          </span>
+                          {isSelected && <Check size={14} className="text-[#bfa15f]" />}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="px-3 py-2 text-sm text-slate-400 italic">
+                      Không tìm thấy phòng phù hợp
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div>

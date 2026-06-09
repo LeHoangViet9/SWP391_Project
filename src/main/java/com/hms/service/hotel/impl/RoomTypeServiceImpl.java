@@ -17,6 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.hms.common.enums.RoomStatus;
+import com.hms.repository.hotel.RoomRepository;
+import com.hms.repository.booking.BookingRepository;
+
 import com.hms.dto.roomtype.response.RoomTypeResponse;
 import com.hms.dto.roomtype.request.RoomTypeRequest;
 import com.hms.entity.hotel.RoomType;
@@ -33,6 +37,8 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     private final RoomTypeMapper roomTypeMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
+    private final RoomRepository roomRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -122,6 +128,15 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
         RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.roomtype.notfound", null, locale)));
+
+        if (roomRepository.existsByRoomTypeIdAndRoomStatusNot(id, RoomStatus.INACTIVE)) {
+            throw new ConflictException(messageSource.getMessage("error.roomtype.inuse.rooms", null, locale));
+        }
+
+        if (bookingRepository.existsByRoomTypeId(id)) {
+            throw new ConflictException(messageSource.getMessage("error.roomtype.inuse.bookings", null, locale));
+        }
+
         roomType.setStatus(AccountStatus.INACTIVE);
         roomTypeRepository.save(roomType);
     }
