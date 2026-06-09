@@ -4,6 +4,7 @@ import com.hms.common.enums.MaintenanceStatus;
 import com.hms.entity.maintenance.RepairRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param; // ADDED
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -45,9 +46,9 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
             ORDER BY r.createdAt DESC
             """)
     List<RepairRequest> filterRequests(
-            MaintenanceStatus status,
-            Long roomId,
-            Long equipmentId,
-            Long assignedTo
+            @Param("status") MaintenanceStatus status,
+            @Param("roomId") Long roomId,
+            @Param("equipmentId") Long equipmentId,
+            @Param("assignedTo") Long assignedTo
     );
 }
