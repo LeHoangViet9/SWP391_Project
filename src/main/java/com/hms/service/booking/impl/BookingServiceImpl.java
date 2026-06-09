@@ -137,6 +137,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size) {
 
         Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.ASC);
@@ -145,6 +146,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<BookingResponse> getMyBookingHistory(String userName, Integer page, Integer size) {
         Locale locale = LocaleContextHolder.getLocale();
         Pageable pageable = pageableUtils.createPageable(page, size, "checkInDate", SortDirection.DESC);
@@ -159,6 +161,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<BookingResponse> getBookingsByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size){
         Pageable pageable = pageableUtils.createPageable(page, size, "checkInDate", SortDirection.ASC);
         return bookingRepository.findByCheckInDateBetween(start, end, pageable)
@@ -166,6 +169,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<BookingResponse> getBookingsByCheckOutDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size){
         Pageable pageable = pageableUtils.createPageable(page,size, "checkOutDate", SortDirection.ASC);
         return bookingRepository.findByCheckOutDateBetween(start, end, pageable)

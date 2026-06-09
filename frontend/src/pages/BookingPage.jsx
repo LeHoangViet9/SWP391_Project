@@ -74,6 +74,9 @@ function BookingContent() {
     nationality: locale === 'vi' ? 'Việt Nam' : 'Vietnam',
   });
 
+  // Email dùng để lookup customer phải là email tài khoản đang login (nếu có)
+  const lookupEmail = user?.email || customerForm.email;
+
   useEffect(() => {
     const mock = mockRoomTypes.find((r) => String(r.id) === roomTypeId);
     setRoomType(mock || mockRoomTypes[0]);
@@ -105,12 +108,28 @@ function BookingContent() {
   const totalEstimate = pricePerNight * nights * booking.quantity;
 
   const ensureCustomerId = async () => {
+    // Dùng email tài khoản login để tra cứu/tạo customer profile
+    // Đảm bảo lịch sử đặt phòng được liên kết đúng với tài khoản
+    const emailToUse = lookupEmail;
+
+    if (emailToUse) {
+      try {
+        const found = await searchCustomerByEmail(emailToUse, locale);
+        if (found?.id) {
+          saveCustomerId(found.id);
+          return Number(found.id);
+        }
+      } catch (_) { /* tiếp tục tạo mới */ }
+    }
+
+    // Kiểm tra localStorage
     const stored = getStoredCustomerId();
     if (stored) return Number(stored);
 
+    // Tạo mới customer profile với email tài khoản login
     const res = await createCustomer({
       fullName: customerForm.fullName,
-      email: customerForm.email,
+      email: emailToUse || customerForm.email,
       phone: customerForm.phone,
       idType: customerForm.idType,
       idNumberCard: customerForm.idNumberCard,
@@ -242,7 +261,14 @@ function BookingContent() {
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">Email</label>
-                <input type="email" required value={customerForm.email} onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                <input
+                  type="email" required
+                  value={lookupEmail || customerForm.email}
+                  onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
+                  readOnly={!!user?.email}
+                  className={`w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f] ${user?.email ? 'bg-stone-50 text-slate-500 cursor-not-allowed' : ''}`}
+                />
+                {user?.email && <p className="text-xs text-slate-400 mt-0.5">{locale === 'vi' ? 'Email tài khoản đăng nhập' : 'Logged-in account email'}</p>}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('auth.phone')}</label>

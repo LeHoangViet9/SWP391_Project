@@ -45,10 +45,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/rooms/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
 
                         // 4. Module customer: Lễ tân và Quản lý quản lý hồ sơ khách hàng
+                        // Customer tự lookup/tạo profile của mình, staff CRUD toàn bộ
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/customers/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST", "CUSTOMER")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/customers").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST", "CUSTOMER")
                         .requestMatchers("/api/v1/customers/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
 
-                        // 5. Module booking_reception: Check-in, Check-out, Gán phòng
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/bookings/my-history").authenticated()
+                        // 5. Module booking: Customer tự đặt phòng + xem lịch sử, Staff quản lý toàn bộ
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/bookings/my-history").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST", "CUSTOMER")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/v1/bookings").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST", "CUSTOMER")
                         .requestMatchers("/api/v1/bookings/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
 
                         // 6. Module billing: Hóa đơn, thanh toán

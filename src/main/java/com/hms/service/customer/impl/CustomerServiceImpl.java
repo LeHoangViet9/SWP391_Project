@@ -37,9 +37,17 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional
     public CustomerResponse createCustomer(CustomerCreateDTO customerDTO) {
         Locale locale = LocaleContextHolder.getLocale();
-        if(customerRepository.existsByEmail(customerDTO.getEmail())) {
-            throw new ConflictException(messageSource.getMessage("error.email.existed", new Object[]{customerDTO.getEmail()}, locale));
+
+        // Nếu email đã tồn tại → trả về customer hiện tại (self-service booking flow)
+        if (customerRepository.existsByEmail(customerDTO.getEmail())) {
+            return customerRepository.findByEmailAndStatus(customerDTO.getEmail(), AccountStatus.ACTIVE)
+                    .map(customerMapper::toResponse)
+                    .orElseThrow(() ->
+                            new ConflictException(messageSource.getMessage("error.email.existed",
+                                    new Object[]{customerDTO.getEmail()}, locale))
+                    );
         }
+
         if(customerRepository.existsByPhone(customerDTO.getPhone())){
             throw new ConflictException(messageSource.getMessage("error.phone.existed", new Object[]{customerDTO.getPhone()}, locale));
         }

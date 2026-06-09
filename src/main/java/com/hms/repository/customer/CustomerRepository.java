@@ -16,6 +16,8 @@ import java.util.Optional;
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
     Optional<Customer> findByIdAndStatus(Long id, AccountStatus status);
 
+    Optional<Customer> findByEmailAndStatus(String email, AccountStatus status);
+
     @Query("""
 SELECT c FROM Customer c
 WHERE c.status = :status
@@ -43,6 +45,7 @@ AND (
     LOWER(c.fullName) LIKE LOWER(CONCAT('%', :keywords, '%'))
     OR c.phone LIKE CONCAT('%', :keywords, '%')
     OR c.idNumberCard LIKE CONCAT('%', :keywords, '%')
+    OR LOWER(c.email) LIKE LOWER(CONCAT('%', :keywords, '%'))
 )
 """)
     Page<Customer> searchCustomer(
