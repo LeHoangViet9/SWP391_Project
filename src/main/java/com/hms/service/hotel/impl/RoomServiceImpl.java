@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -66,7 +67,7 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse createRoom(RoomRequest request, MultipartFile file) {
+    public RoomResponse createRoom(RoomRequest request, List<MultipartFile> files) {
         Locale locale = LocaleContextHolder.getLocale();
 
         // Kiểm tra xem số phòng đã tồn tại chưa
@@ -85,17 +86,26 @@ public class RoomServiceImpl implements IRoomService {
         room.setRoomImages(new ArrayList<>());
 
         // XỬ LÝ ẢNH MỚI: Upload lên Cloudinary và lưu vào bảng room_img thay vì lưu cột cũ
-        if (file != null && !file.isEmpty()) {
-            String imageUrl = cloudinaryUtils.uploadFile(file);
+        if (files != null && !files.isEmpty()) {
+            // Đảm bảo list ảnh không bị null trước khi add
+            if (room.getRoomImages() == null) {
+                room.setRoomImages(new ArrayList<>());
+            }
 
-            RoomImage roomImage = RoomImage.builder()
-                    .room(room)
-                    .imageUrl(imageUrl)
-                    .description("Ảnh đại diện khi tạo phòng")
-                    .build();
+            for (MultipartFile singleFile : files) {
+                if (!singleFile.isEmpty()) {
+                    String imageUrl = cloudinaryUtils.uploadFile(singleFile);
 
-            // Thêm ảnh vào bộ sưu tập của phòng. Nhờ CascadeType.ALL, Hibernate sẽ tự động lưu xuống DB
-            room.getRoomImages().add(roomImage);
+                    // Khởi tạo thông thường thay vì dùng Builder nếu dính lỗi Constructor
+                    RoomImage roomImage = new RoomImage();
+                    roomImage.setImageUrl(imageUrl);
+                    roomImage.setDescription("Ảnh phòng khách sạn");
+                    roomImage.setRoom(room); // Bắt buộc thiết lập mối quan hệ ngược về Room cha
+
+                    // Thêm vào danh sách của Room cha
+                    room.getRoomImages().add(roomImage);
+                }
+            }
         }
 
         // Set mặc định trạng thái phòng sẵn sàng hoạt động
@@ -107,7 +117,7 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse updateRoom(Long id, RoomRequest request, MultipartFile file) {
+    public RoomResponse updateRoom(Long id, RoomRequest request, List<MultipartFile> files) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Room room = roomRepository.findById(id)
@@ -124,16 +134,26 @@ public class RoomServiceImpl implements IRoomService {
         populateRoomData(room, request, roomType);
 
         // XỬ LÝ ẢNH CẬP NHẬT: Thêm một ảnh mới vào Album ảnh hiện tại của phòng
-        if (file != null && !file.isEmpty()) {
-            String imageUrl = cloudinaryUtils.uploadFile(file);
+        if (files != null && !files.isEmpty()) {
+            // Đảm bảo list ảnh không bị null trước khi add
+            if (room.getRoomImages() == null) {
+                room.setRoomImages(new ArrayList<>());
+            }
 
-            RoomImage roomImage = RoomImage.builder()
-                    .room(room)
-                    .imageUrl(imageUrl)
-                    .description("Ảnh cập nhật bổ sung")
-                    .build();
+            for (MultipartFile singleFile : files) {
+                if (!singleFile.isEmpty()) {
+                    String imageUrl = cloudinaryUtils.uploadFile(singleFile);
 
-            room.getRoomImages().add(roomImage);
+                    // Khởi tạo thông thường thay vì dùng Builder nếu dính lỗi Constructor
+                    RoomImage roomImage = new RoomImage();
+                    roomImage.setImageUrl(imageUrl);
+                    roomImage.setDescription("Ảnh phòng khách sạn");
+                    roomImage.setRoom(room); // Bắt buộc thiết lập mối quan hệ ngược về Room cha
+
+                    // Thêm vào danh sách của Room cha
+                    room.getRoomImages().add(roomImage);
+                }
+            }
         }
 
         Room updated = roomRepository.save(room);

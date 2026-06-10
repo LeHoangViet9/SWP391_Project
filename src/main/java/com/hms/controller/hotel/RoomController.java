@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Locale;
 
 @RestController
@@ -67,9 +68,10 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam("file")MultipartFile file, @ModelAttribute @Valid RoomRequest roomRequest) {
+    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam(value = "files", required = false) List<MultipartFile> files,
+                                                                @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomResponse created = roomService.createRoom(roomRequest,file);
+        RoomResponse created = roomService.createRoom(roomRequest,files);
         String message = messageSource.getMessage("success.room.create", null, locale);
 
         ApiResponse<RoomResponse> response = ApiResponse.<RoomResponse>builder()
@@ -84,11 +86,11 @@ public class RoomController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
-            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @PathVariable Long id,
             @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomResponse updated = roomService.updateRoom(id, roomRequest,file);
+        RoomResponse updated = roomService.updateRoom(id, roomRequest,files);
         String message = messageSource.getMessage("success.room.update", null, locale);
 
         ApiResponse<RoomResponse> response = ApiResponse.<RoomResponse>builder()

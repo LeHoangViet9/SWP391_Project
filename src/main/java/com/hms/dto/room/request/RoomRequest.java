@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class RoomRequest {
 
@@ -23,6 +25,6 @@ public class RoomRequest {
     private Integer floorNumber;
 
     private String description;
-    private String imageRoom;
+   private List<String> imageUrls;
 }
 

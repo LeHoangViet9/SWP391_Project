@@ -21,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
 
@@ -69,7 +70,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     }
 
     @Override
-    public EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO) {
+    public EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO, MultipartFile file) {
         Locale locale = LocaleContextHolder.getLocale();
 
         if (equipmentRepository.existsByEquipmentCodeAndStatus(
@@ -107,7 +108,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     }
 
     @Override
-    public EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto) {
+    public EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto, MultipartFile file) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Equipment equipment = equipmentRepository.findById(id)
