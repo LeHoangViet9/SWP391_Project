@@ -208,5 +208,30 @@ public class RoomController {
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    @GetMapping("/housekeeping")
+    public ResponseEntity<ApiResponse<Page<RoomResponse>>> getHousekeepingRooms(
+            @RequestParam(required = false) java.util.List<RoomStatus> statuses,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+
+        // Mặc định hiển thị các phòng liên quan housekeeping nếu không truyền
+        if (statuses == null || statuses.isEmpty()) {
+            statuses = java.util.Arrays.asList(RoomStatus.DIRTY, RoomStatus.CLEANING, RoomStatus.READY);
+        }
+
+        Locale locale = LocaleContextHolder.getLocale();
+        // Dùng tạm message getbystatus hoặc message chung
+        String message = messageSource.getMessage("success.room.getall", null, locale);
+
+        ApiResponse<Page<RoomResponse>> response = ApiResponse.<Page<RoomResponse>>builder()
+                .success(true)
+                .message(message)
+                .data(roomService.getRoomsByStatuses(statuses, page, size))
+                .status(HttpStatus.OK)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }
 

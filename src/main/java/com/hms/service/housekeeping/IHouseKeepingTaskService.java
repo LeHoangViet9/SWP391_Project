@@ -30,6 +30,8 @@ public interface IHouseKeepingTaskService {
 
     // FIX: Thêm hàm lấy lịch sử đổi trạng thái phòng cho housekeeping audit.
     List<RoomStateHistoryResponse> getRoomStateHistory(Long roomId);
+
+    void reportRoomIssue(Long roomId, com.hms.dto.housekeeping.request.ReportRoomIssueRequest request);
 }
 
 

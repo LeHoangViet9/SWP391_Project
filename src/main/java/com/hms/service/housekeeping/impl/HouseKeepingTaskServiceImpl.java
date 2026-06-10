@@ -265,5 +265,22 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
         roomStateHistoryRepository.save(history);
     }
+    @Override
+    @Transactional
+    public void reportRoomIssue(Long roomId, com.hms.dto.housekeeping.request.ReportRoomIssueRequest request) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.room.notfound", null, locale)));
+
+        User reportedBy = null;
+        if (request.getReportedById() != null) {
+            reportedBy = userRepository.findById(request.getReportedById())
+                    .orElse(null);
+        }
+
+        // Đổi trạng thái phòng thành MAINTENANCE và ghi nhận lịch sử với reason
+        changeRoomStatus(room, RoomStatus.MAINTENANCE, reportedBy, null, request.getReason());
+    }
 
 }

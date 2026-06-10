@@ -164,4 +164,19 @@ public class HouseKeepingTaskController {
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+    @PostMapping("/rooms/{roomId}/report-issue")
+    public ResponseEntity<ApiResponse<Void>> reportRoomIssue(
+            @PathVariable Long roomId,
+            @RequestBody @Valid com.hms.dto.housekeeping.request.ReportRoomIssueRequest request) {
+
+        taskService.reportRoomIssue(roomId, request);
+
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(true)
+                .message("Room issue reported successfully")
+                .status(HttpStatus.OK)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }
