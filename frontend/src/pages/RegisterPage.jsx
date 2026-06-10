@@ -25,6 +25,7 @@ export default function RegisterPage() {
     rePassword: '',
   });
   const [showPass, setShowPass] = useState(false);
+  const [showRePass, setShowRePass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -79,13 +80,13 @@ export default function RegisterPage() {
 
         <div>
           <label className={labelClass}>{t('auth.username')}</label>
-          <input type="text" required minLength={4} maxLength={50} value={form.userName} onChange={(e) => update('userName', e.target.value)} className={inputClass} placeholder="user_name" />
+          <input type="text" required minLength={4} maxLength={50} value={form.userName} onChange={(e) => update('userName', e.target.value)} className={inputClass} />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Email</label>
-            <input type="email" required value={form.email} onChange={(e) => update('email', e.target.value)} className={inputClass} />
+            <input type="email" required value={form.email} onChange={(e) => update('email', e.target.value)} className={inputClass} placeholder="example@gmail.com" />
           </div>
           <div>
             <label className={labelClass}>{t('auth.phone')}</label>
@@ -113,7 +114,24 @@ export default function RegisterPage() {
 
         <div>
           <label className={labelClass}>{t('auth.rePassword')}</label>
-          <input type="password" required value={form.rePassword} onChange={(e) => update('rePassword', e.target.value)} className={inputClass} />
+
+          <div className="relative">
+            <input
+                type={showRePass ? 'text' : 'password'}
+                required
+                value={form.rePassword}
+                onChange={(e) => update('rePassword', e.target.value)}
+                className={`${inputClass} pr-12`}
+            />
+
+            <button
+                type="button"
+                onClick={() => setShowRePass(!showRePass)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+            >
+              {showRePass ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         <button type="submit" disabled={loading} className="w-full btn-gold py-3.5 rounded flex items-center justify-center gap-2 disabled:opacity-60">
