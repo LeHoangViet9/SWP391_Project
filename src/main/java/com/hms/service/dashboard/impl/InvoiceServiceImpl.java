@@ -14,7 +14,6 @@ import com.hms.repository.hotel.RoomRepository;
 import com.hms.service.dashboard.InvoiceService;
 import com.hms.service.dashboard.mapper.InvoiceMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.data.autoconfigure.web.DataWebProperties;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;

@@ -27,4 +27,6 @@ public interface IUserService {
     UserResponse updateUser(Long id, UserManagementRequest request);
 
     void deleteUser(Long id);
+
+    void activeUser(String email, String otpCode);
 }

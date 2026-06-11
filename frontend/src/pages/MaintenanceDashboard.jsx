@@ -11,6 +11,7 @@ const TABS = [
   { key: 'equipments',  label: 'Thiết Bị',          Icon: Wrench,  component: <EquipmentManager /> },
   { key: 'account',     label: 'Thông Tin Tài Khoản', Icon: UserCircle, component: <AccountInfo /> },
   { key: 'password',    label: 'Đổi Mật Khẩu',   Icon: KeyRound, component: <ChangePassword /> },
+
 ];
 
 export default function MaintenanceDashboard() {

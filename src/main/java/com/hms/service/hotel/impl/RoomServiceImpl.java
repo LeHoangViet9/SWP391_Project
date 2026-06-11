@@ -16,8 +16,8 @@ import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.hotel.IRoomService;
 import com.hms.service.hotel.mapper.RoomMapper;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NonNull;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
@@ -43,7 +43,7 @@ public class RoomServiceImpl implements IRoomService {
     private final CloudinaryUtils  cloudinaryUtils;
 
     @Override
-    public Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, @NonNull SortField sortBy, SortDirection direction) {
+    public Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, @NotNull SortField sortBy, SortDirection direction) {
         // Không sử dụng keywords - lấy tất cả phòng theo status (không phải INACTIVE)
         Pageable pageable = pageableUtils.createPageable(
                 page,

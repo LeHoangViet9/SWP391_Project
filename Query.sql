@@ -12,3 +12,6 @@ SELECT * FROM customers WHERE full_name ILIKE '%tran%';
 
 SELECT * FROM customers
 
+select * from users
+
+                  DELETE FROM users WHERE email = 'vitle1509@gmail.com';
