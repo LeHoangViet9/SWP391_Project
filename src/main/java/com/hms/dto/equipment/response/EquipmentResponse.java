@@ -12,27 +12,18 @@ import java.util.List;
 public class EquipmentResponse {
 
     private Long id;
-
     private String equipmentName;
-
     private String equipmentCode;
 
-    private String location;
-
     private String description;
-
     private EquipmentStatus status;
-
     private LocalDateTime createdAt;
 
     private List<EquipmentImageResponse> images;
-
     private List<EquipmentCheckResponse> checks;
 
-    private Long roomId;
-    private String roomNumber;
-
-    private Long roomTypeId;
-    private String roomTypeName;
-
+    //  MỚI:
+    // Equipment không còn thuộc trực tiếp 1 phòng.
+    // Trả về danh sách phòng đang dùng thiết bị này.
+    private List<RoomEquipmentResponse> assignedRooms;
 }
