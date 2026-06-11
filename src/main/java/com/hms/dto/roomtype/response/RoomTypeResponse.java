@@ -13,7 +13,7 @@ public class RoomTypeResponse {
     private Long id;
     private String typeName;
     private String description;
-    private BigDecimal basePrice;
+    private Integer basePrice;
     private Integer maxGuests;
     private String status;
 }

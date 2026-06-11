@@ -62,7 +62,37 @@ export default function RoomTypeManager({ readOnly = false }) {
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
-    const payload = { typeName: form.typeName, description: form.description, basePrice: Number(form.basePrice), maxGuests: Number(form.maxGuests) };
+
+    const name = form.typeName?.trim();
+    if (!name) {
+      notify(locale === 'vi' ? 'Tên loại phòng không được để trống!' : 'Room type name cannot be blank!', 'error');
+      setSaving(false);
+      return;
+    }
+    const basePrice = Number(form.basePrice);
+    if (isNaN(basePrice) || basePrice <= 0 || !Number.isInteger(basePrice)) {
+      notify(locale === 'vi' ? 'Giá cơ bản phải là số nguyên dương!' : 'Base price must be a positive integer!', 'error');
+      setSaving(false);
+      return;
+    }
+    if (basePrice > 2147483647) {
+      notify(locale === 'vi' ? 'Giá cơ bản không được vượt quá 2.147.483.647!' : 'Base price must not exceed 2147483647!', 'error');
+      setSaving(false);
+      return;
+    }
+    const maxGuests = Number(form.maxGuests);
+    if (isNaN(maxGuests) || maxGuests < 1 || maxGuests > 20 || !Number.isInteger(maxGuests)) {
+      notify(locale === 'vi' ? 'Số khách tối đa phải là số nguyên từ 1 đến 20!' : 'Maximum guests must be an integer between 1 and 20!', 'error');
+      setSaving(false);
+      return;
+    }
+    if (form.description && form.description.length > 255) {
+      notify(locale === 'vi' ? 'Ghi chú không được vượt quá 255 ký tự!' : 'Description must not exceed 255 characters!', 'error');
+      setSaving(false);
+      return;
+    }
+
+    const payload = { typeName: name, description: form.description, basePrice, maxGuests };
     try {
       if (modal.editing) {
         const res = await apiFetch(`/room-types/${modal.editing.id}`, { method: 'PUT', body: JSON.stringify(payload) }, locale);
@@ -171,18 +201,18 @@ export default function RoomTypeManager({ readOnly = false }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('roomType.modal.basePrice')}</label>
-              <input required type="number" min="0" value={form.basePrice} onChange={e => setForm(f => ({ ...f, basePrice: e.target.value }))}
+              <input required type="number" min="0" max="2147483647" value={form.basePrice} onChange={e => setForm(f => ({ ...f, basePrice: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder="1200000" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('roomType.modal.maxGuests')}</label>
-              <input required type="number" min="1" value={form.maxGuests} onChange={e => setForm(f => ({ ...f, maxGuests: e.target.value }))}
+              <input required type="number" min="1" max="20" value={form.maxGuests} onChange={e => setForm(f => ({ ...f, maxGuests: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder="2" />
             </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('roomType.modal.description')}</label>
-            <textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            <textarea rows={3} value={form.description} maxLength={255} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none resize-none" placeholder="Mô tả tiện nghi, tầm nhìn..." />
           </div>
           <div className="flex justify-end gap-3 pt-2">
