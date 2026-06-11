@@ -30,21 +30,25 @@ public class RoomTypeController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<RoomTypeResponse>>> getAllRoomType(
-            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String typeName,
+            @RequestParam(required = false) java.math.BigDecimal price,
             @RequestParam(required = false) Integer maxGuests,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
             @RequestParam(defaultValue = "ASC") SortDirection direction) {
 
-        Locale locale =LocaleContextHolder.getLocale();
+        Locale locale = LocaleContextHolder.getLocale();
         String message = messageSource.getMessage("success.roomtype.getall", null, locale);
 
         ApiResponse<Page<RoomTypeResponse>> response = ApiResponse.<Page<RoomTypeResponse>>builder()
                 .success(true)
                 .message(message)
                 .data(roomTypeService.getAllRoomType(
-                        keywords,
+                        id,
+                        typeName,
+                        price,
                         maxGuests,
                         page,
                         size,

@@ -27,7 +27,12 @@ public class EquipmentController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<EquipmentResponse>>> getAllEquipments(
-            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String equipmentName,
+            @RequestParam(required = false) String equipmentCode,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) Long roomId,
+            @RequestParam(required = false) com.hms.common.enums.EquipmentStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
@@ -36,7 +41,12 @@ public class EquipmentController {
         Locale locale = LocaleContextHolder.getLocale();
 
         Page<EquipmentResponse> data = equipmentService.getAllEquipments(
-                keywords,
+                id,
+                equipmentName,
+                equipmentCode,
+                location,
+                roomId,
+                status,
                 page,
                 size,
                 sortBy,

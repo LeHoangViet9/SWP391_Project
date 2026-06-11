@@ -109,20 +109,103 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public Page<CustomerResponse> getCustomers(String keywords, AccountStatus status, Integer page, Integer size, SortField sortBy, SortDirection direction) {
-        if (keywords == null) {
-            keywords = "";
+    public Page<CustomerResponse> getCustomers(
+            Long id,
+            String fullName,
+            String email,
+            String phone,
+            String idNumberCard,
+            String nationality,
+            AccountStatus status,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction) {
+
+        java.util.List<Customer> list = customerRepository.findAll();
+
+        java.util.List<Customer> filteredList = filterCustomers(list, id, fullName, email, phone, idNumberCard, nationality, status);
+
+        sortCustomers(filteredList, sortBy, direction);
+
+        return paginateCustomers(filteredList, page, size, sortBy, direction);
+    }
+
+    private java.util.List<Customer> filterCustomers(
+            java.util.List<Customer> list,
+            Long id,
+            String fullName,
+            String email,
+            String phone,
+            String idNumberCard,
+            String nationality,
+            AccountStatus status) {
+
+        java.util.stream.Stream<Customer> stream = list.stream();
+
+        if (status != null) {
+            stream = stream.filter(c -> c.getStatus() == status);
+        }
+        if (id != null) {
+            stream = stream.filter(c -> c.getId().equals(id));
+        }
+        if (org.springframework.util.StringUtils.hasText(fullName)) {
+            String cleanName = fullName.trim().toLowerCase();
+            stream = stream.filter(c -> c.getFullName() != null && c.getFullName().toLowerCase().contains(cleanName));
+        }
+        if (org.springframework.util.StringUtils.hasText(email)) {
+            String cleanEmail = email.trim().toLowerCase();
+            stream = stream.filter(c -> c.getEmail() != null && c.getEmail().toLowerCase().contains(cleanEmail));
+        }
+        if (org.springframework.util.StringUtils.hasText(phone)) {
+            String cleanPhone = phone.trim().toLowerCase();
+            stream = stream.filter(c -> c.getPhone() != null && c.getPhone().toLowerCase().contains(cleanPhone));
+        }
+        if (org.springframework.util.StringUtils.hasText(idNumberCard)) {
+            String cleanIdCard = idNumberCard.trim().toLowerCase();
+            stream = stream.filter(c -> c.getIdNumberCard() != null && c.getIdNumberCard().toLowerCase().contains(cleanIdCard));
+        }
+        if (org.springframework.util.StringUtils.hasText(nationality)) {
+            String cleanNationality = nationality.trim().toLowerCase();
+            stream = stream.filter(c -> c.getNationality() != null && c.getNationality().toLowerCase().contains(cleanNationality));
         }
 
-        Pageable pageable = pageableUtils.createPageable(
-                page,
-                size,
-                sortBy.getField(),
-                direction
-        );
-        return customerRepository
-                .searchCustomer(keywords, status, pageable)
-                .map(customerMapper::toResponse);
+        return stream.collect(java.util.stream.Collectors.toList());
+    }
+
+    private void sortCustomers(
+            java.util.List<Customer> list,
+            SortField sortBy,
+            SortDirection direction) {
+
+        java.util.Map<String, java.util.function.Function<Customer, Comparable<?>>> extractors = new java.util.HashMap<>();
+        extractors.put("id", Customer::getId);
+        extractors.put("fullName", Customer::getFullName);
+        extractors.put("email", Customer::getEmail);
+        extractors.put("phone", Customer::getPhone);
+
+        pageableUtils.sortList(list, sortBy, direction, extractors);
+    }
+
+    private Page<CustomerResponse> paginateCustomers(
+            java.util.List<Customer> list,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction) {
+
+        int total = list.size();
+        int startPage = (page != null) ? page : 0;
+        int pageSize = (size != null) ? size : 10;
+        int start = Math.min(startPage * pageSize, total);
+        int end = Math.min(start + pageSize, total);
+
+        java.util.List<CustomerResponse> pageContent = list.subList(start, end).stream()
+                .map(customerMapper::toResponse)
+                .collect(java.util.stream.Collectors.toList());
+
+        Pageable pageable = pageableUtils.createPageable(startPage, pageSize, sortBy.getField(), direction);
+        return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, total);
     }
 
     @Override

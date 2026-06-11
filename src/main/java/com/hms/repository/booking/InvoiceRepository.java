@@ -22,7 +22,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice,Long> {
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
-    @Query("Select SUM(i.amount) From Invoice i " +
+    @Query("Select i.paymentMethod, SUM(i.amount) From Invoice i " +
             "Where i.paymentStatus= com.hms.common.enums.PaymentStatus.PAID " +
             "group by i.paymentMethod")
     List<Object[]> getRevenueGroupedByPaymentMethod();
