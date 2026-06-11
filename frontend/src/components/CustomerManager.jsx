@@ -43,6 +43,7 @@ export default function CustomerManager() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
+  const [searchOpt, setSearchOpt] = useState('fullName');
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
@@ -52,15 +53,27 @@ export default function CustomerManager() {
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
 
-  const fetchData = useCallback(async (p = page) => {
+  const fetchDataDirect = useCallback(async (p, opt, val, statusVal = statusFilter) => {
     setLoading(true);
     try {
-      const res = await getCustomers({
-        page: p,
-        size: 10,
-        status: statusFilter,
-        keywords: search || undefined,
-      }, locale);
+      const params = { page: p, size: 10, status: statusVal };
+      const trimmed = val ? String(val).trim() : '';
+      if (trimmed) {
+        if (opt === 'id') {
+          params.id = trimmed;
+        } else if (opt === 'fullName') {
+          params.fullName = trimmed;
+        } else if (opt === 'email') {
+          params.email = trimmed;
+        } else if (opt === 'phone') {
+          params.phone = trimmed;
+        } else if (opt === 'idNumberCard') {
+          params.idNumberCard = trimmed;
+        } else if (opt === 'nationality') {
+          params.nationality = trimmed;
+        }
+      }
+      const res = await getCustomers(params, locale);
       setItems(res?.data?.content ?? []);
       setTotalPages(res?.data?.totalPages ?? 1);
     } catch (e) {
@@ -68,7 +81,11 @@ export default function CustomerManager() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, page, locale]);
+  }, [locale, t, statusFilter]);
+
+  const fetchData = useCallback(async (p = page) => {
+    await fetchDataDirect(p, searchOpt, search, statusFilter);
+  }, [page, searchOpt, search, statusFilter, fetchDataDirect]);
 
   useEffect(() => {
     fetchData(page);
@@ -237,18 +254,47 @@ export default function CustomerManager() {
 
       <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-2 flex-1">
+          <select
+            value={searchOpt}
+            onChange={e => {
+              setSearchOpt(e.target.value);
+              setSearch('');
+              fetchDataDirect(0, e.target.value, '', statusFilter);
+            }}
+            className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700"
+          >
+            <option value="fullName">{t('customer.searchOptions.fullName') || 'Họ và tên'}</option>
+            <option value="id">{t('customer.searchOptions.id') || 'Mã (ID)'}</option>
+            <option value="email">{t('customer.searchOptions.email') || 'Email'}</option>
+            <option value="phone">{t('customer.searchOptions.phone') || 'Số điện thoại'}</option>
+            <option value="idNumberCard">{t('customer.searchOptions.idNumberCard') || 'Số giấy tờ'}</option>
+            <option value="nationality">{t('customer.searchOptions.nationality') || 'Quốc tịch'}</option>
+          </select>
+
           <div className="relative flex-1 max-w-xs">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            <input
+              type={searchOpt === 'id' ? 'number' : 'text'}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && fetchData(0)}
-              placeholder={t('customer.searchPlaceholder')}
-              className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none" />
+              placeholder={
+                searchOpt === 'id' ? (t('customer.placeholders.id') || 'Nhập mã ID...') :
+                searchOpt === 'fullName' ? (t('customer.placeholders.fullName') || 'Nhập họ và tên...') :
+                searchOpt === 'email' ? (t('customer.placeholders.email') || 'Nhập email...') :
+                searchOpt === 'phone' ? (t('customer.placeholders.phone') || 'Nhập số điện thoại...') :
+                searchOpt === 'idNumberCard' ? (t('customer.placeholders.idNumberCard') || 'Nhập số giấy tờ...') :
+                searchOpt === 'nationality' ? (t('customer.placeholders.nationality') || 'Nhập quốc tịch...') :
+                (t('customer.searchPlaceholder') || 'Tìm kiếm...')
+              }
+              className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
+            />
           </div>
 
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white"
+            className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700"
           >
             {STATUS_OPTIONS.map(opt => {
               const label = opt.value === 'ACTIVE' ? t('customer.status.active') : opt.value === 'INACTIVE' ? t('customer.status.inactive') : t('customer.status.banned');

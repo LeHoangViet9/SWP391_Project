@@ -10,7 +10,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface IRoomService {
 
-    Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, SortField sortBy, SortDirection direction);
+    Page<RoomResponse> getAllRooms(
+            Long id,
+            String roomNumber,
+            Long roomTypeId,
+            Integer floor,
+            RoomStatus status,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction);
 
     RoomResponse getRoomById(Long id);
 

@@ -9,7 +9,9 @@ import org.springframework.data.domain.Page;
 public interface IRoomTypeService {
 
     Page<RoomTypeResponse> getAllRoomType(
-            String keywords,
+            Long id,
+            String typeName,
+            java.math.BigDecimal price,
             Integer maxGuests,
             Integer page,
             Integer size,

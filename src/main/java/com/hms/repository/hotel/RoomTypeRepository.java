@@ -28,4 +28,7 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, Long> {
                         Integer maxGuests,
                         AccountStatus status,
                         Pageable pageable);
+
+
+        java.util.List<RoomType> findAllByStatus(AccountStatus status);
 }
