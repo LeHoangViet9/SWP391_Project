@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Locale;
 
 @RestController
-@RequestMapping("/api/v1/housekeeping-tasks")
+@RequestMapping("/api/v1/housekeeping")
 @RequiredArgsConstructor
 public class HouseKeepingTaskController {
 
@@ -115,7 +115,7 @@ public class HouseKeepingTaskController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @PostMapping
+    @PostMapping("/create-task")
     public ResponseEntity<ApiResponse<HouseKeepingTaskResponse>> createTask(
             @RequestBody @Valid HouseKeepingTaskRequest request) {
         Locale locale = LocaleContextHolder.getLocale();

@@ -1,5 +1,6 @@
 package com.hms.service.housekeeping.impl;
 
+import com.hms.common.enums.ProcessTrigger;
 import com.hms.common.enums.TaskStatus;
 import com.hms.common.enums.RoomStatus; // Thay đổi import sang RoomStatus
 import com.hms.common.exception.ResourceNotFoundException;
@@ -10,8 +11,8 @@ import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
 import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import com.hms.entity.auth.User;
 import com.hms.entity.hotel.Room;
+import com.hms.entity.hotel.RoomStateHistory;
 import com.hms.entity.housekeeping.HouseKeepingTask;
-import com.hms.entity.housekeeping.HousekeepingRoomStateHistory;
 import com.hms.repository.auth.UserRepository;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.housekeeping.HouseKeepingTaskRepository;
@@ -92,7 +93,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         HouseKeepingTask saved = taskRepository.save(task);
 
         // Chuyển sang RoomStatus.CLEANING khi tạo task dọn phòng
-        changeRoomStatus(room, RoomStatus.CLEANING, assignedBy, saved, "Tạo task dọn phòng");
+        changeRoomStatus(room, RoomStatus.CLEANING, assignedBy, saved, "Tạo task dọn phòng",ProcessTrigger.TASK_CLEANING);
 
         return taskMapper.toResponse(saved);
     }
@@ -170,18 +171,16 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
     // ==================== PRIVATE HELPERS ====================
 
-    private RoomStateHistoryResponse toRoomStateHistoryResponse(HousekeepingRoomStateHistory history) {
-        User changedBy = history.getChangedBy();
+    private RoomStateHistoryResponse toRoomStateHistoryResponse(RoomStateHistory history) {
+        User changedBy = history.getTriggeredByUser();
         HouseKeepingTask task = history.getTask();
         return RoomStateHistoryResponse.builder()
                 .id(history.getId())
                 .roomId(history.getRoom().getId())
                 .roomNumber(history.getRoom().getRoomNumber())
-                // Sửa mapper gọi các getter mới của RoomStateHistory
                 .previousState(history.getPreviousState())
-                .newState(history.getNewState())
-                .changedById(changedBy != null ? changedBy.getId() : null)
-                .changedByName(changedBy != null ? changedBy.getFullName() : null)
+                .currentState(history.getCurrentState())
+                .triggeredByUserName(changedBy != null ? changedBy.getFullName() : null)
                 .taskId(task != null ? task.getId() : null)
                 .changedAt(history.getChangedAt())
                 .reason(history.getReason())
@@ -218,16 +217,16 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         Room room = task.getRoom();
         switch (newStatus) {
             case IN_PROGRESS:
-                changeRoomStatus(room, RoomStatus.CLEANING, task.getAssignedTo(), task, "Task bắt đầu dọn phòng");
+                changeRoomStatus(room, RoomStatus.CLEANING, task.getAssignedTo(), task, "Task bắt đầu dọn phòng", ProcessTrigger.TASK_CLEANING);
                 break;
             case COMPLETED:
-                changeRoomStatus(room, RoomStatus.READY, task.getAssignedTo(), task, "Task hoàn thành - phòng đã sạch/chờ sẵn sàng");
+                changeRoomStatus(room, RoomStatus.READY, task.getAssignedTo(), task, "Task hoàn thành", ProcessTrigger.TASK_COMPLETION);
                 break;
             case CANCELLED:
-                changeRoomStatus(room, RoomStatus.DIRTY, task.getAssignedTo(), task, "Task bị hủy");
+                changeRoomStatus(room, RoomStatus.DIRTY, task.getAssignedTo(), task, "Task bị hủy", ProcessTrigger.TASK_CANCELLATION);
                 break;
             case SKIPPED:
-                changeRoomStatus(room, RoomStatus.DIRTY, task.getAssignedTo(), task, "Task bị bỏ qua");
+                changeRoomStatus(room, RoomStatus.DIRTY, task.getAssignedTo(), task, "Task bị bỏ qua", ProcessTrigger.TASK_SKIPPED);
                 break;
             default:
                 break;
@@ -236,14 +235,14 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
 
     private void changeRoomStatus(Room room, RoomStatus newStatus, User changedBy,
-                                  HouseKeepingTask task, String reason) {
+                                  HouseKeepingTask task, String reason, ProcessTrigger processName) {
         RoomStatus previousStatus = room.getRoomStatus();
 
         if (previousStatus == newStatus) {
             return;
         }
 
-        // THÊM: guard không cho housekeeping ghi đè trạng thái của module khác
+        // Bảo vệ: không cho housekeeping ghi đè trạng thái của module khác
         if (previousStatus == RoomStatus.OCCUPIED || previousStatus == RoomStatus.MAINTENANCE) {
             log.warn("Skipping room status change for room {}: currently {} — housekeeping cannot override",
                     room.getId(), previousStatus);
@@ -253,14 +252,15 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         room.setRoomStatus(newStatus);
         roomRepository.save(room);
 
-        HousekeepingRoomStateHistory history = HousekeepingRoomStateHistory.builder()
+        RoomStateHistory history = RoomStateHistory.builder()
                 .room(room)
                 .previousState(previousStatus)
-                .newState(newStatus)
-                .changedBy(changedBy)
+                .currentState(newStatus)
+                .triggeredByUser(changedBy)
                 .task(task)
                 .changedAt(LocalDateTime.now())
                 .reason(reason)
+                .triggeredByProcess(processName)
                 .build();
 
         roomStateHistoryRepository.save(history);
@@ -280,7 +280,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         }
 
         // Đổi trạng thái phòng thành MAINTENANCE và ghi nhận lịch sử với reason
-        changeRoomStatus(room, RoomStatus.MAINTENANCE, reportedBy, null, request.getReason());
+        changeRoomStatus(room, RoomStatus.MAINTENANCE, reportedBy, null, request.getReason(),ProcessTrigger.TASK_MAINTENANCE);
     }
 
 }

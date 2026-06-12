@@ -17,6 +17,10 @@ public interface HouseKeepingTaskMapper {
     @Mapping(source = "assignedTo.fullName",  target = "assignedToName")
     @Mapping(source = "assignedBy.id",        target = "assignedById")
     @Mapping(source = "assignedBy.fullName",  target = "assignedByName")
+    // FIX: Đảm bảo các thuộc tính thời gian mới thêm ở Entity (createdAt, updatedAt)
+    // tự động mapping chính xác sang DTO Response mà không bị bỏ sót khi Reflection chạy ngầm.
+    @Mapping(source = "createdAt",            target = "createdAt")
+    @Mapping(source = "updatedAt",            target = "updatedAt")
     HouseKeepingTaskResponse toResponse(HouseKeepingTask task);
 
     List<HouseKeepingTaskResponse> toResponseList(List<HouseKeepingTask> tasks);

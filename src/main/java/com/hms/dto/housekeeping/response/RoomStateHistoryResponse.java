@@ -1,6 +1,11 @@
 package com.hms.dto.housekeeping.response;
 
+import com.hms.common.enums.ProcessTrigger;
 import com.hms.common.enums.RoomStatus;
+import com.hms.entity.auth.User;
+import com.hms.entity.hotel.Room;
+import com.hms.entity.housekeeping.HouseKeepingTask;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,13 +20,19 @@ import java.time.LocalDateTime;
 public class RoomStateHistoryResponse {
 
     private Long id;
+
     private Long roomId;
     private String roomNumber;
+
     private RoomStatus previousState;
-    private RoomStatus newState;
-    private Long changedById;
-    private String changedByName;
-    private Long taskId;
+    private RoomStatus currentState;
+    private ProcessTrigger triggeredByProcess;
+
+    private Long triggeredByUserId;
+    private String triggeredByUserName;
+
     private LocalDateTime changedAt;
     private String reason;
+
+    private Long taskId;
 }
