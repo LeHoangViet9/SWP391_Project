@@ -1,6 +1,6 @@
 package com.hms.repository.housekeeping;
 
-import com.hms.entity.housekeeping.HousekeepingRoomStateHistory;
+import com.hms.entity.hotel.RoomStateHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,14 +9,14 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface RoomStateHistoryRepository extends JpaRepository<HousekeepingRoomStateHistory, Long> {
+public interface RoomStateHistoryRepository extends JpaRepository<RoomStateHistory, Long> {
 
-    List<HousekeepingRoomStateHistory> findByRoomIdOrderByChangedAtDesc(Long roomId);
+    List<RoomStateHistory> findByRoomIdOrderByChangedAtDesc(Long roomId);
 
-    @Query("SELECT h FROM HousekeepingRoomStateHistory h " +
-            "LEFT JOIN FETCH h.changedBy " +
+    @Query("SELECT h FROM RoomStateHistory h " +
+            "LEFT JOIN FETCH h.triggeredByUser " +
             "LEFT JOIN FETCH h.task " +
             "WHERE h.room.id = :roomId " +
             "ORDER BY h.changedAt DESC")
-    List<HousekeepingRoomStateHistory> findByRoomIdWithDetails(@Param("roomId") Long roomId);
+    List<RoomStateHistory> findByRoomIdWithDetails(@Param("roomId") Long roomId);
 }
