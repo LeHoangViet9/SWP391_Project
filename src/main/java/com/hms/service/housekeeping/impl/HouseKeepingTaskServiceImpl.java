@@ -1,8 +1,6 @@
 package com.hms.service.housekeeping.impl;
 
-import com.hms.common.enums.ProcessTrigger;
-import com.hms.common.enums.TaskStatus;
-import com.hms.common.enums.RoomStatus; // Thay đổi import sang RoomStatus
+import com.hms.common.enums.*;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
@@ -48,8 +46,8 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<HouseKeepingTaskResponse> searchTasks(TaskStatus status, Long assignedToId, Long assignedById, Long roomId, Integer page, Integer size) {
-        Pageable pageable = pageableUtils.createPageable(page, size, "id", null);
+    public Page<HouseKeepingTaskResponse> searchTasks(TaskStatus status, Long assignedToId, Long assignedById, Long roomId, Integer page, Integer size, SortField sortField, SortDirection direction) {
+        Pageable pageable = pageableUtils.createPageable(page, size, sortField.getField(), direction);
         return taskRepository.searchTasks(status, Collections.emptyList(), false, assignedToId, assignedById, roomId, pageable)
                 .map(taskMapper::toResponse);
     }
@@ -162,11 +160,10 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoomStateHistoryResponse> getRoomStateHistory(Long roomId) {
-        return roomStateHistoryRepository.findByRoomIdWithDetails(roomId)
-                .stream()
-                .map(this::toRoomStateHistoryResponse)
-                .toList();
+    public Page<RoomStateHistoryResponse> getRoomStateHistory(Long roomId,Integer page, Integer size,SortField sortField,SortDirection sortDirection) {
+        Pageable pageable=pageableUtils.createPageable(page,size,sortField.getField(),sortDirection);
+        Page<RoomStateHistory> historyPage=  roomStateHistoryRepository.findByRoomIdWithDetails(roomId,pageable);
+        return historyPage.map(this::toRoomStateHistoryResponse);
     }
 
     // ==================== PRIVATE HELPERS ====================

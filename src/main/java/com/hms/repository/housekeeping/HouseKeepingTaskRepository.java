@@ -1,6 +1,7 @@
 package com.hms.repository.housekeeping;
 
 import com.hms.common.enums.TaskStatus;
+import com.hms.entity.hotel.RoomStateHistory;
 import com.hms.entity.housekeeping.HouseKeepingTask;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
