@@ -1,6 +1,8 @@
 package com.hms.controller.housekeeping;
 
 import com.hms.common.dto.ApiResponse;
+import com.hms.common.enums.SortDirection;
+import com.hms.common.enums.SortField;
 import com.hms.common.enums.TaskStatus;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskUpdateRequest;
@@ -33,8 +35,12 @@ public class HouseKeepingTaskController {
             @RequestParam(required = false) Long assignedToId,
             @RequestParam(required = false) Long assignedById,
             @RequestParam(required = false) Long roomId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(defaultValue = "ID") SortField sortBy,
+            @RequestParam(defaultValue = "ASC") SortDirection direction
+
+    ) {
 
         Locale locale = LocaleContextHolder.getLocale();
         String message = messageSource.getMessage("success.task.getall", null, locale);
@@ -42,7 +48,7 @@ public class HouseKeepingTaskController {
         ApiResponse<Page<HouseKeepingTaskResponse>> response = ApiResponse.<Page<HouseKeepingTaskResponse>>builder()
                 .success(true)
                 .message(message)
-                .data(taskService.searchTasks(status, assignedToId, assignedById, roomId, page, size))
+                .data(taskService.searchTasks(status, assignedToId, assignedById, roomId, page, size,sortBy,direction))
                 .status(HttpStatus.OK)
                 .build();
 
@@ -101,18 +107,20 @@ public class HouseKeepingTaskController {
 
 
   @GetMapping("/rooms/{roomId}/state-history")
-    public ResponseEntity<ApiResponse<List<RoomStateHistoryResponse>>> getRoomStateHistory(
-            @PathVariable Long roomId) {
+    public ResponseEntity<ApiResponse<Page<RoomStateHistoryResponse>>> getRoomStateHistory(
+            @PathVariable Long roomId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(defaultValue = "ID") SortField sortBy,
+            @RequestParam(defaultValue = "ASC") SortDirection direction) {
+        Locale locale = LocaleContextHolder.getLocale();
 
-        // FIX: API mới để xem lịch sử đổi trạng thái phòng liên quan housekeeping.
-        ApiResponse<List<RoomStateHistoryResponse>> response = ApiResponse.<List<RoomStateHistoryResponse>>builder()
-                .success(true)
-                .message("Get room state history successfully")
-                .data(taskService.getRoomStateHistory(roomId))
-                .status(HttpStatus.OK)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.task.byId",null,locale),
+                taskService.getRoomStateHistory(roomId, page, size, sortBy, direction),
+                HttpStatus.OK
+        ),HttpStatus.OK);
     }
 
     @PostMapping
