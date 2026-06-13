@@ -30,7 +30,7 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     Optional<User> findUserByEmail(String email);
 
-    Optional<User> findByResetPasswordToken(String resetPasswordToken);
+    Optional<User> findByOtpCodeAndEmail(String otpCode, String email);
 
     @Query("""
             select u from User u

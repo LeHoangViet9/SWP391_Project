@@ -38,9 +38,23 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<UserResponse>> handleLogin(@Valid @RequestBody UserLoginRequest loginRequest){
+    public ResponseEntity<ApiResponse<Void>> handleLogin(@Valid @RequestBody UserLoginRequest loginRequest){
         Locale locale= LocaleContextHolder.getLocale();
-        UserResponse userResponse = userService.login(loginRequest);
+        userService.requestLoginOtp(loginRequest);
+        String successMessage = "Mã OTP đã được gửi đến email của bạn. Vui lòng xác thực để hoàn tất đăng nhập.";
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(true)
+                .message(successMessage)
+                .data(null)
+                .status(HttpStatus.OK)
+                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping("/login/verify")
+    public ResponseEntity<ApiResponse<UserResponse>> handleVerifyLogin(@Valid @RequestBody LoginOtpRequest loginOtpRequest){
+        Locale locale= LocaleContextHolder.getLocale();
+        UserResponse userResponse = userService.verifyLoginOtp(loginOtpRequest);
         String successMessage = messageSource.getMessage("auth.login.success", null, locale);
         ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
                 .success(true)
@@ -89,6 +103,36 @@ public class AuthController {
                 null,
                 HttpStatus.OK
         ),HttpStatus.OK);
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<ApiResponse<Void>> handleResendOtp(@RequestParam String identifier) {
+        userService.resendOtp(identifier);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Mã OTP mới đã được gửi.")
+                .status(HttpStatus.OK)
+                .build());
+    }
+
+    @PostMapping("/profile/resend-otp")
+    public ResponseEntity<ApiResponse<Void>> handleResendProfileOtp(@AuthenticationPrincipal UserDetails userDetails) {
+        userService.resendOtp(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Mã OTP mới đã được gửi đến email của bạn.")
+                .status(HttpStatus.OK)
+                .build());
+    }
+
+    @PostMapping("/profile/request-otp")
+    public ResponseEntity<ApiResponse<Void>> handleRequestProfileOtp(@AuthenticationPrincipal UserDetails userDetails) {
+        userService.resendOtp(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Mã OTP đã được gửi đến email của bạn.")
+                .status(HttpStatus.OK)
+                .build());
     }
 
 

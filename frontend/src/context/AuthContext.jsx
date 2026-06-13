@@ -4,7 +4,9 @@ import {
   getStoredToken,
   clearAuth,
   login as apiLogin,
+  verifyLogin as apiVerifyLogin,
   register as apiRegister,
+  resendOtp as apiResendOtp,
 } from '../services/authService';
 import { useLocale } from './LocaleContext';
 
@@ -16,13 +18,21 @@ export function AuthProvider({ children }) {
   const token = getStoredToken();
 
   const login = useCallback(async (credentials) => {
-    const res = await apiLogin(credentials, locale);
+    return apiLogin(credentials, locale);
+  }, [locale]);
+
+  const verifyLogin = useCallback(async (payload) => {
+    const res = await apiVerifyLogin(payload, locale);
     if (res?.data) setUser(res.data);
     return res;
   }, [locale]);
 
   const register = useCallback(async (payload) => {
     return apiRegister(payload, locale);
+  }, [locale]);
+
+  const resendOtp = useCallback(async (identifier) => {
+    return apiResendOtp(identifier, locale);
   }, [locale]);
 
   const logout = useCallback(() => {
@@ -39,7 +49,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated, login, register, logout, hasRole }}
+      value={{ user, token, isAuthenticated, login, verifyLogin, register, resendOtp, logout, hasRole }}
     >
       {children}
     </AuthContext.Provider>

@@ -30,3 +30,14 @@ export function updateUser(id, payload, locale = 'vi') {
 export function deleteUser(id, locale = 'vi') {
   return apiFetch(`/users/${id}`, { method: 'DELETE' }, locale);
 }
+
+export function requestPasswordChangeOtp(locale = 'vi') {
+  return apiFetch('/users/change-password-otp', { method: 'POST' }, locale);
+}
+
+export function changePassword(payload, locale = 'vi') {
+  return apiFetch('/users/change-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, locale);
+}

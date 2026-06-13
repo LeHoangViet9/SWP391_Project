@@ -18,22 +18,14 @@ import java.util.Locale;
 public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
     private final MessageSource messageSource;
+
     @Override
-    public void sendForgotPasswordMail(String to, String token) {
-        String resetLink =
-                "http://localhost:3000/reset-password?token=" + token;
-
+    public void sendOtpMail(String to, String otp, String subjectKey, String bodyKey) {
         Locale locale = LocaleContextHolder.getLocale();
-
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
-
-        String subject = messageSource.getMessage("reset.password", null, locale);
-        message.setSubject(subject);
-
-        String bodyText = messageSource.getMessage("link.reset.password", null, locale);
-        message.setText(bodyText + "\n" + resetLink);
-
+        message.setSubject(messageSource.getMessage(subjectKey, null, locale));
+        message.setText(messageSource.getMessage(bodyKey, new Object[]{otp}, locale));
         mailSender.send(message);
     }
 }

@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -99,12 +100,73 @@ public class UserServiceImpl implements IUserService {
 
         return userMapper.toResponse(updatedUser,accessToken);
     }
+
+    @Override
+    @Transactional
+    public void requestLoginOtp(UserLoginRequest loginRequest) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        User user = userRepository.findUserByUserName(loginRequest.getUsername())
+                .orElseThrow(() -> new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale)));
+
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale));
+        }
+
+        validateAccountStatus(user, locale);
+
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+        user.setOtpCode(otp);
+        user.setOtpExpiredAt(LocalDateTime.now().plusMinutes(5));
+        userRepository.save(user);
+
+        emailService.sendOtpMail(user.getEmail(), otp, "mail.otp.subject", "mail.otp.body");
+    }
+
+    @Override
+    @Transactional
+    public UserResponse verifyLoginOtp(LoginOtpRequest loginOtpRequest) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        User user = userRepository.findUserByUserName(loginOtpRequest.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+
+        if (user.getOtpCode() == null || !user.getOtpCode().equals(loginOtpRequest.getOtp())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.otp.invalid", null, locale));
+        }
+
+        if (user.getOtpExpiredAt().isBefore(LocalDateTime.now())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.otp.expired", null, locale));
+        }
+
+        user.setLastLoginAt(LocalDateTime.now());
+        user.setOtpCode(null);
+        user.setOtpExpiredAt(null);
+        User updatedUser = userRepository.save(user);
+
+        String accessToken = jwtTokenProvider.generateToken(
+                updatedUser.getUserName(),
+                updatedUser.getRole().getRoleName()
+        );
+
+        return userMapper.toResponse(updatedUser, accessToken);
+    }
+
     @Transactional
     @Override
     public void changePassword(String userName, ChangePasswordRequest changePasswordRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findUserByUserName(userName)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+
+        // Verify OTP
+        if (user.getOtpCode() == null || !user.getOtpCode().equals(changePasswordRequest.getOtp())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.otp.invalid", null, locale));
+        }
+        if (user.getOtpExpiredAt().isBefore(LocalDateTime.now())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.otp.expired", null, locale));
+        }
+
         if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
             throw new UnauthorizedException(messageSource.getMessage("error.password.incorrect", null, locale));
         }
@@ -113,20 +175,26 @@ public class UserServiceImpl implements IUserService {
         }
 
         user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
+        user.setOtpCode(null);
+        user.setOtpExpiredAt(null);
         userRepository.save(user);
     }
+
     @Transactional
     @Override
     public void forgotPassword(ForgotPasswordRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
-        User user = userRepository.findUserByEmail(request.getEmail()).orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.email.invalid", null, locale)));
-        String token = UUID.randomUUID().toString();
-        user.setResetPasswordToken(token);
-        user.setResetPasswordExpiredAt(LocalDateTime.now().plusMinutes(15));
-        userRepository.save(user);
-        emailService.sendForgotPasswordMail(user.getEmail(), token);
+        User user = userRepository.findUserByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.email.invalid", null, locale)));
 
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+        user.setOtpCode(otp);
+        user.setOtpExpiredAt(LocalDateTime.now().plusMinutes(5));
+        userRepository.save(user);
+
+        emailService.sendOtpMail(user.getEmail(), otp, "mail.otp.subject", "mail.otp.body");
     }
+
     @Transactional
     @Override
     public void resetPassword(ResetPasswordRequest request) {
@@ -134,17 +202,40 @@ public class UserServiceImpl implements IUserService {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new ConflictException(messageSource.getMessage("user.repassword.message", null, locale));
         }
-        User user=userRepository.findByResetPasswordToken(request.getToken()).orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.token.invalid", null, locale)));
-        if(user.getResetPasswordExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new UnauthorizedException(messageSource.getMessage("error.token.expired", null, locale));
+
+        User user = userRepository.findByOtpCodeAndEmail(request.getOtp(), request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.otp.invalid", null, locale)));
+
+        if (user.getOtpExpiredAt().isBefore(LocalDateTime.now())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.otp.expired", null, locale));
         }
-        if(passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new ConflictException(messageSource.getMessage("error.password.invalid", null, locale));
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new ConflictException(messageSource.getMessage("error.password.sameAsOld", null, locale));
         }
+
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        user.setResetPasswordToken(null);
-        user.setResetPasswordExpiredAt(null);
+        user.setOtpCode(null);
+        user.setOtpExpiredAt(null);
         userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void resendOtp(String emailOrUsername) {
+        Locale locale = LocaleContextHolder.getLocale();
+        User user = userRepository.findUserByUserName(emailOrUsername)
+                .or(() -> userRepository.findUserByEmail(emailOrUsername))
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+
+        validateAccountStatus(user, locale);
+
+        String otp = String.format("%06d", new Random().nextInt(1000000));
+        user.setOtpCode(otp);
+        user.setOtpExpiredAt(LocalDateTime.now().plusMinutes(5));
+        userRepository.save(user);
+
+        emailService.sendOtpMail(user.getEmail(), otp, "mail.otp.subject", "mail.otp.body");
     }
 
     private void validateAccountStatus(User user, Locale locale) {

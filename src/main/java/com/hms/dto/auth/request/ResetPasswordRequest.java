@@ -5,8 +5,11 @@ import lombok.Data;
 
 @Data
 public class ResetPasswordRequest {
-    @NotBlank(message = "{user.token.notblank}")
-    private String token;
+    @NotBlank(message = "{user.otp.notblank}")
+    private String otp;
+
+    @NotBlank(message = "{user.email.notblank}")
+    private String email;
 
     @NotBlank(message = "{user.password.notblank}")
     @Size(min = 6, message = "{user.password.size}")

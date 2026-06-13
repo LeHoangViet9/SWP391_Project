@@ -26,6 +26,9 @@ public class ChangePasswordRequest implements PasswordConfirmable {
     @NotBlank(message = "{user.confirmPassword.notblank}")
     private String confirmNewPassword;
 
+    @NotBlank(message = "{user.otp.notblank}")
+    private String otp;
+
     // Implement PasswordConfirmable interface
     @Override
     public String getPassword() {

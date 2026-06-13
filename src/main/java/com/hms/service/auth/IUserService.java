@@ -10,6 +10,8 @@ import org.springframework.data.domain.Page;
 public interface IUserService {
     UserResponse registerNewUser(UserRegisterRequest registerRequest);
     UserResponse login(UserLoginRequest loginRequest);
+    void requestLoginOtp(UserLoginRequest loginRequest);
+    UserResponse verifyLoginOtp(LoginOtpRequest loginOtpRequest);
     void changePassword(String userName, ChangePasswordRequest changePasswordRequest);
     void forgotPassword(
             ForgotPasswordRequest request
@@ -18,6 +20,8 @@ public interface IUserService {
     void resetPassword(
             ResetPasswordRequest request
     );
+
+    void resendOtp(String emailOrUsername);
 
     Page<UserResponse> getUsers(String keywords, AccountStatus status, Integer page, Integer size, SortField sortBy, SortDirection direction);
 

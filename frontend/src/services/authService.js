@@ -40,6 +40,26 @@ export async function login(credentials, locale = 'vi') {
   return res;
 }
 
+/** POST /api/v1/auth/login/verify */
+export async function verifyLogin(payload, locale = 'vi') {
+  const res = await apiFetch('/auth/login/verify', {
+    method: 'POST',
+    body: JSON.stringify({
+      username: payload.username,
+      otp: payload.otp,
+    }),
+  }, locale);
+  if (res?.data) saveAuth(res.data);
+  return res;
+}
+
+/** POST /api/v1/auth/resend-otp */
+export async function resendOtp(identifier, locale = 'vi') {
+  return apiFetch(`/auth/resend-otp?identifier=${encodeURIComponent(identifier)}`, {
+    method: 'POST',
+  }, locale);
+}
+
 /** POST /api/v1/auth/register */
 export async function register(payload, locale = 'vi') {
   const res = await apiFetch('/auth/register', {
