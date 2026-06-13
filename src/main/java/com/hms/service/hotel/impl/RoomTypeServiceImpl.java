@@ -45,7 +45,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     public Page<RoomTypeResponse> getAllRoomType(
             Long id,
             String typeName,
-            java.math.BigDecimal price,
+            Integer price,
             Integer maxGuests,
             Integer page,
             Integer size,
@@ -65,7 +65,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
             java.util.List<RoomType> list,
             Long id,
             String typeName,
-            java.math.BigDecimal price,
+            Integer price,
             Integer maxGuests) {
 
         java.util.stream.Stream<RoomType> stream = list.stream();
@@ -78,7 +78,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
             stream = stream.filter(rt -> rt.getTypeName() != null && rt.getTypeName().toLowerCase().contains(cleanTypeName));
         }
         if (price != null) {
-            stream = stream.filter(rt -> rt.getBasePrice() != null && rt.getBasePrice().compareTo(price) <= 0);
+            stream = stream.filter(rt -> rt.getBasePrice() != null && rt.getBasePrice() <= price);
         }
         if (maxGuests != null) {
             stream = stream.filter(rt -> rt.getMaxGuests() != null && rt.getMaxGuests() >= maxGuests);

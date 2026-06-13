@@ -32,7 +32,7 @@ public class RoomTypeController {
     public ResponseEntity<ApiResponse<Page<RoomTypeResponse>>> getAllRoomType(
             @RequestParam(required = false) Long id,
             @RequestParam(required = false) String typeName,
-            @RequestParam(required = false) java.math.BigDecimal price,
+            @RequestParam(required = false) Integer price,
             @RequestParam(required = false) Integer maxGuests,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,

@@ -11,7 +11,7 @@ public interface IRoomTypeService {
     Page<RoomTypeResponse> getAllRoomType(
             Long id,
             String typeName,
-            java.math.BigDecimal price,
+            Integer price,
             Integer maxGuests,
             Integer page,
             Integer size,
