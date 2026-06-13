@@ -3,9 +3,10 @@ package com.hms.service.hotel.impl;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
+import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
-import com.hms.common.utils.CloudinaryUtils;
+import com.hms.common.utils.LocalFileUtils;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.room.request.RoomRequest;
 import com.hms.dto.room.response.RoomResponse;
@@ -39,7 +40,7 @@ public class RoomServiceImpl implements IRoomService {
     private final RoomMapper roomMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
-    private final CloudinaryUtils  cloudinaryUtils;
+    private final LocalFileUtils localFileUtils;
 
     @Override
     public Page<RoomResponse> getAllRooms(
@@ -162,7 +163,7 @@ public class RoomServiceImpl implements IRoomService {
 
         // XỬ LÝ ẢNH MỚI: Upload lên Cloudinary và lưu vào bảng room_img thay vì lưu cột cũ
         if (file != null && !file.isEmpty()) {
-            String imageUrl = cloudinaryUtils.uploadFile(file);
+            String imageUrl = localFileUtils.uploadFile(file);
 
             RoomImage roomImage = RoomImage.builder()
                     .room(room)
@@ -201,7 +202,7 @@ public class RoomServiceImpl implements IRoomService {
 
         // XỬ LÝ ẢNH CẬP NHẬT: Thêm một ảnh mới vào Album ảnh hiện tại của phòng
         if (file != null && !file.isEmpty()) {
-            String imageUrl = cloudinaryUtils.uploadFile(file);
+            String imageUrl = localFileUtils.uploadFile(file);
 
             RoomImage roomImage = RoomImage.builder()
                     .room(room)
@@ -256,6 +257,12 @@ public class RoomServiceImpl implements IRoomService {
     @Transactional
     public void updateRoomStatus(Long roomId, RoomStatus status) {
         Locale locale = LocaleContextHolder.getLocale();
+        // Chặn việc đặt INACTIVE qua API status — INACTIVE chỉ dành cho soft delete (deleteRoomByID)
+        if (status == RoomStatus.INACTIVE) {
+            throw new BadRequestException(
+                messageSource.getMessage("error.room.status.inactive.forbidden", null,
+                    "Không thể đặt trạng thái INACTIVE trực tiếp. Hãy dùng chức năng xóa phòng.", locale));
+        }
         Room room = roomRepository.findById(roomId)
                 .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));

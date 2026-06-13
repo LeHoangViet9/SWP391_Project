@@ -4,7 +4,6 @@ import com.hms.common.dto.ApiResponse;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
-import com.hms.common.utils.CloudinaryUtils;
 import com.hms.dto.room.request.RoomRequest;
 import com.hms.dto.room.response.RoomResponse;
 import com.hms.service.hotel.IRoomService;
@@ -27,7 +26,6 @@ public class RoomController {
 
     private final IRoomService roomService;
     private final MessageSource messageSource;
-    private final CloudinaryUtils cloudinaryUtils;
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getAllRooms(

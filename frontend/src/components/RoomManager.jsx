@@ -15,9 +15,7 @@ import Toast from './shared/Toast';
 
 const STATUS_COLORS = {
   AVAILABLE: 'bg-emerald-100 text-emerald-700',
-  OCCUPIED: 'bg-blue-100 text-blue-700',
   MAINTENANCE: 'bg-amber-100 text-amber-700',
-  INACTIVE: 'bg-red-100 text-red-700',
 };
 
 const EMPTY_FORM = { roomNumber: '', roomTypeId: '', floorNumber: '', description: '' };
@@ -158,7 +156,7 @@ export default function RoomManager({ readOnly = false }) {
 
   const rows = items.map(item => {
     const status = getRoomStatus(item);
-    const displayStatus = status === 'AVAILABLE' ? t('room.status.available') : status === 'OCCUPIED' ? t('room.status.occupied') : status === 'MAINTENANCE' ? t('room.status.maintenance') : t('room.status.inactive');
+    const displayStatus = status === 'AVAILABLE' ? t('room.status.available') : t('room.status.maintenance');
     return (
       <tr key={item.id} className="hover:bg-stone-50">
         <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
@@ -178,8 +176,8 @@ export default function RoomManager({ readOnly = false }) {
               onChange={e => handleStatusChange(item, e.target.value)}
               className={`text-xs font-semibold px-2 py-1 rounded-full border-0 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
             >
-              {['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'INACTIVE'].map(s => {
-                const label = s === 'AVAILABLE' ? t('room.status.available') : s === 'OCCUPIED' ? t('room.status.occupied') : s === 'MAINTENANCE' ? t('room.status.maintenance') : t('room.status.inactive');
+              {['AVAILABLE', 'MAINTENANCE'].map(s => {
+                const label = s === 'AVAILABLE' ? t('room.status.available') : t('room.status.maintenance');
                 return <option key={s} value={s}>{label}</option>;
               })}
             </select>
@@ -256,9 +254,8 @@ export default function RoomManager({ readOnly = false }) {
               className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700 max-w-xs flex-1"
             >
               <option value="">{t('booking.filters.all') || 'Tất cả'}</option>
-              <option value="AVAILABLE">{t('room.status.available') || 'Còn trống'}</option>
-              <option value="OCCUPIED">{t('room.status.occupied') || 'Đang ở'}</option>
-              <option value="MAINTENANCE">{t('room.status.maintenance') || 'Bảo trì'}</option>
+              <option value="AVAILABLE">{t('room.status.available') || 'Sẵn sàng'}</option>
+              <option value="MAINTENANCE">{t('room.status.maintenance') || 'Đang sửa chữa'}</option>
             </select>
           ) : (
             <div className="relative flex-1 max-w-xs">

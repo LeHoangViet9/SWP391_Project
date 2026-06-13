@@ -144,10 +144,8 @@ export const supplementalTranslations = {
         actions: 'Thao tác',
       },
       status: {
-        available: 'Còn trống',
-        occupied: 'Đang ở',
-        maintenance: 'Bảo trì',
-        inactive: 'Ngừng dùng',
+        available: 'Sẵn sàng',
+        maintenance: 'Đang sửa chữa',
       },
       noImage: 'Chưa có ảnh',
       searchPlaceholder: 'Tìm phòng...',
@@ -575,9 +573,7 @@ export const supplementalTranslations = {
       },
       status: {
         available: 'Available',
-        occupied: 'Occupied',
-        maintenance: 'Maintenance',
-        inactive: 'Inactive',
+        maintenance: 'Under Maintenance',
       },
       noImage: 'No image',
       searchPlaceholder: 'Search rooms...',
