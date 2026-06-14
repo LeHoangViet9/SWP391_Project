@@ -8,15 +8,17 @@ import com.hms.dto.room.response.RoomResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 public interface IRoomService {
 
     Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, SortField sortBy, SortDirection direction);
 
     RoomResponse getRoomById(Long id);
 
-    RoomResponse createRoom(RoomRequest roomRequest, MultipartFile file);
+    RoomResponse createRoom(RoomRequest roomRequest, List<MultipartFile> files);
 
-    RoomResponse updateRoom(Long id, RoomRequest roomRequest,MultipartFile file);
+    RoomResponse updateRoom(Long id, RoomRequest roomRequest,List<MultipartFile> files);
 
     void deleteRoomByID(Long id);
 

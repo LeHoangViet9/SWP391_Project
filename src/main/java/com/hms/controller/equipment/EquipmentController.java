@@ -13,7 +13,9 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
 
@@ -26,6 +28,7 @@ public class EquipmentController {
     private final MessageSource messageSource;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'MAINTENANCE', 'RECEPTIONIST', 'HOUSEKEEPING')")
     public ResponseEntity<ApiResponse<Page<EquipmentResponse>>> getAllEquipments(
             @RequestParam(required = false) String keywords,
             @RequestParam(required = false) Integer page,
@@ -36,11 +39,7 @@ public class EquipmentController {
         Locale locale = LocaleContextHolder.getLocale();
 
         Page<EquipmentResponse> data = equipmentService.getAllEquipments(
-                keywords,
-                page,
-                size,
-                sortBy,
-                direction
+                keywords, page, size, sortBy, direction
         );
 
         String message = messageSource.getMessage("equipment.getall.success", null, locale);
@@ -56,6 +55,7 @@ public class EquipmentController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'MAINTENANCE', 'RECEPTIONIST', 'HOUSEKEEPING')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> findById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -72,13 +72,15 @@ public class EquipmentController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping
+    @PostMapping(consumes = {"multipart/form-data"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> createEquipment(
-            @Valid @RequestBody EquipmentCreateDTO dto) {
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @Valid @ModelAttribute EquipmentCreateDTO dto) {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        EquipmentResponse data = equipmentService.createEquipment(dto);
+        EquipmentResponse data = equipmentService.createEquipment(dto, file);
         String message = messageSource.getMessage("equipment.add.success", null, locale);
 
         ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
@@ -91,14 +93,16 @@ public class EquipmentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'MAINTENANCE')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> updateEquipment(
             @PathVariable Long id,
-            @Valid @RequestBody EquipmentCreateDTO dto) {
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @Valid @ModelAttribute EquipmentCreateDTO dto) {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        EquipmentResponse data = equipmentService.updateEquipment(id, dto);
+        EquipmentResponse data = equipmentService.updateEquipment(id, dto, file);
         String message = messageSource.getMessage("equipment.update.success", null, locale);
 
         ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
@@ -112,6 +116,7 @@ public class EquipmentController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<Void>> deleteEquipment(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
