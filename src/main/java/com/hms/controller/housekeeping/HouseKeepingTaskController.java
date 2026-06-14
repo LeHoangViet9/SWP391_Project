@@ -140,7 +140,7 @@ public class HouseKeepingTaskController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/updateTask/{id}")
     public ResponseEntity<ApiResponse<HouseKeepingTaskResponse>> updateTask(
             @PathVariable Long id,
             @RequestBody HouseKeepingTaskUpdateRequest request) {
@@ -158,7 +158,7 @@ public class HouseKeepingTaskController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/deleteTask/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         Locale locale = LocaleContextHolder.getLocale();
