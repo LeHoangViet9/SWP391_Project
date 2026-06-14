@@ -226,5 +226,10 @@ public class RoomServiceImpl implements IRoomService {
         Pageable pageable = pageableUtils.createPageable(page, size, "roomNumber", SortDirection.ASC);
         return roomRepository.findByRoomStatus(RoomStatus.AVAILABLE, pageable).map(roomMapper::toResponse);
     }
+    @Override
+    public Page<RoomResponse> getRoomsByStatuses(java.util.List<RoomStatus> statuses, Integer page, Integer size) {
+        Pageable pageable = pageableUtils.createPageable(page, size, "roomNumber", SortDirection.ASC);
+        return roomRepository.findByRoomStatusIn(statuses, pageable).map(roomMapper::toResponse);
+    }
 }
 

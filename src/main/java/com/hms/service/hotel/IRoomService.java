@@ -32,5 +32,8 @@ public interface IRoomService {
     Page<RoomResponse> getAvailableRooms(Integer page, Integer size);
 
     void updateRoomStatus(Long roomId, RoomStatus status);
+    
+    Page<RoomResponse> getRoomsByStatuses(java.util.List<RoomStatus> statuses, Integer page, Integer size);
+
 }
 
