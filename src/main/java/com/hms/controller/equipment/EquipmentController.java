@@ -37,12 +37,7 @@ public class EquipmentController {
             @RequestParam(required = false) Long id,
             @RequestParam(required = false) String equipmentName,
             @RequestParam(required = false) String equipmentCode,
-
-            // GIỮ:
-            // roomId không nằm trực tiếp trong Equipment.
-            // Service filter thông qua bảng room_equipments.
             @RequestParam(required = false) Long roomId,
-
             @RequestParam(required = false) EquipmentStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -55,7 +50,6 @@ public class EquipmentController {
                 id,
                 equipmentName,
                 equipmentCode,
-
                 roomId,
                 status,
                 page,
@@ -99,9 +93,6 @@ public class EquipmentController {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        // SỬA:
-        // API này chỉ tạo thiết bị vào danh sách.
-        // Không chọn/gán phòng ở đây nữa.
         EquipmentResponse data = equipmentService.createEquipment(dto);
 
         String message = messageSource.getMessage("equipment.add.success", null, locale);
@@ -123,9 +114,6 @@ public class EquipmentController {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        // SỬA:
-        // API này chỉ sửa thông tin thiết bị.
-        // Không sửa phòng ở đây nữa.
         EquipmentResponse data = equipmentService.updateEquipment(id, dto);
 
         String message = messageSource.getMessage("equipment.update.success", null, locale);
@@ -156,10 +144,6 @@ public class EquipmentController {
         return ResponseEntity.ok(response);
     }
 
-    // =====================================================
-    // SỬA MỚI: API GÁN THIẾT BỊ VÀO PHÒNG
-    // =====================================================
-
     @PostMapping("/{id}/assign-room")
     public ResponseEntity<ApiResponse<RoomEquipmentResponse>> assignToRoom(
             @PathVariable Long id,
@@ -177,10 +161,6 @@ public class EquipmentController {
         return ResponseEntity.ok(response);
     }
 
-    // =====================================================
-    // SỬA MỚI: API GỠ THIẾT BỊ KHỎI PHÒNG
-    // =====================================================
-
     @DeleteMapping("/{id}/rooms/{roomId}")
     public ResponseEntity<ApiResponse<Void>> removeFromRoom(
             @PathVariable Long id,
@@ -196,10 +176,6 @@ public class EquipmentController {
 
         return ResponseEntity.ok(response);
     }
-
-    // =====================================================
-    // SỬA MỚI: API LẤY THIẾT BỊ THEO PHÒNG
-    // =====================================================
 
     @GetMapping("/rooms/{roomId}")
     public ResponseEntity<ApiResponse<List<RoomEquipmentResponse>>> getEquipmentsByRoom(
@@ -217,21 +193,17 @@ public class EquipmentController {
         return ResponseEntity.ok(response);
     }
 
-    // =====================================================
-    // SỬA MỚI: API UPLOAD ẢNH LOCAL CHO THIẾT BỊ
-    // =====================================================
-
+    // Upload nhiều ảnh local cho 1 thiết bị
     @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<EquipmentImageResponse>> uploadImage(
+    public ResponseEntity<ApiResponse<List<EquipmentImageResponse>>> uploadImages(
             @PathVariable Long id,
-            @RequestParam("image") MultipartFile image,
-            @RequestParam(defaultValue = "false") Boolean isPrimary) {
+            @RequestParam("images") List<MultipartFile> images) {
 
-        EquipmentImageResponse data = equipmentService.uploadImage(id, image, isPrimary);
+        List<EquipmentImageResponse> data = equipmentService.uploadImages(id, images);
 
-        ApiResponse<EquipmentImageResponse> response = ApiResponse.<EquipmentImageResponse>builder()
+        ApiResponse<List<EquipmentImageResponse>> response = ApiResponse.<List<EquipmentImageResponse>>builder()
                 .success(true)
-                .message("Upload equipment image successfully")
+                .message("Upload equipment images successfully")
                 .data(data)
                 .status(HttpStatus.CREATED)
                 .build();

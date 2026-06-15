@@ -10,8 +10,9 @@ import com.hms.dto.equipment.response.EquipmentResponse;
 import com.hms.dto.equipment.response.RoomEquipmentResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
+
+
 
 public interface EquipmentService {
 
@@ -59,7 +60,9 @@ public interface EquipmentService {
     // Lấy danh sách thiết bị đang có trong một phòng.
     List<RoomEquipmentResponse> getEquipmentsByRoom(Long roomId);
 
-    // SỬA MỚI:
-    // Upload ảnh local cho thiết bị.
-    EquipmentImageResponse uploadImage(Long equipmentId, MultipartFile image, Boolean isPrimary);
+    // THÊM MỚI: Upload nhiều ảnh local cho 1 thiết bị
+    List<EquipmentImageResponse> uploadImages(
+            Long equipmentId,
+            List<MultipartFile> images
+    );
 }

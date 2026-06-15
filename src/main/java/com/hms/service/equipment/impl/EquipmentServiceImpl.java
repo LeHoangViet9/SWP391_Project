@@ -51,31 +51,24 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     private final EquipmentRepository equipmentRepository;
     private final RoomRepository roomRepository;
-
-    // THÊM MỚI: repository cho bảng room_equipments
     private final RoomEquipmentRepository roomEquipmentRepository;
-
-    // THÊM MỚI: repository cho bảng equipment_images
     private final EquipmentImageRepository equipmentImageRepository;
-
     private final EquipmentMapper equipmentMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
 
     @Override
-
     public Page<EquipmentResponse> getAllEquipments(
             Long id,
             String equipmentName,
             String equipmentCode,
-
             Long roomId,
             EquipmentStatus status,
             Integer page,
             Integer size,
             SortField sortBy,
-            SortDirection direction) {
-
+            SortDirection direction
+    ) {
         List<Equipment> list = equipmentRepository.findAll();
         java.util.stream.Stream<Equipment> stream = list.stream();
 
@@ -99,11 +92,6 @@ public class EquipmentServiceImpl implements EquipmentService {
             );
         }
 
-
-
-        // SỬA:
-        // Equipment không còn e.getRoom().
-        // Nếu muốn filter theo phòng, kiểm tra trong danh sách roomEquipments.
         if (roomId != null) {
             stream = stream.filter(e ->
                     e.getRoomEquipments() != null
@@ -127,12 +115,8 @@ public class EquipmentServiceImpl implements EquipmentService {
         extractors.put("id", Equipment::getId);
         extractors.put("equipmentName", Equipment::getEquipmentName);
         extractors.put("equipmentCode", Equipment::getEquipmentCode);
-
         extractors.put("status", e -> e.getStatus() != null ? e.getStatus().name() : "");
 
-        // SỬA:
-        // Không còn sort theo roomNumber trực tiếp.
-        // Nếu vẫn sortBy roomNumber thì lấy room đầu tiên trong roomEquipments.
         extractors.put("roomNumber", e -> {
             if (e.getRoomEquipments() == null || e.getRoomEquipments().isEmpty()) {
                 return "";
@@ -142,9 +126,15 @@ public class EquipmentServiceImpl implements EquipmentService {
             return room != null && room.getRoomNumber() != null ? room.getRoomNumber() : "";
         });
 
+        Pageable pageable = pageableUtils.createPageable(
+                page,
+                size,
+                sortBy.getField(),
+                direction
+        );
+
         pageableUtils.sortList(filteredList, sortBy, direction, extractors);
 
-        Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
         return pageableUtils.paginate(filteredList, pageable)
                 .map(equipmentMapper::toResponse);
     }
@@ -166,9 +156,6 @@ public class EquipmentServiceImpl implements EquipmentService {
             );
         }
 
-        // SỬA:
-        // Chỉ tạo thiết bị vào danh sách Equipment.
-        // Không gán phòng trong create nữa.
         Equipment equipment = equipmentMapper.toEntity(equipmentDTO);
         equipment.setStatus(EquipmentStatus.ACTIVE);
 
@@ -198,9 +185,6 @@ public class EquipmentServiceImpl implements EquipmentService {
             );
         }
 
-        // SỬA:
-        // Chỉ update thông tin thiết bị.
-        // Không update room ở đây nữa.
         equipmentMapper.updateEquipmentFromDto(dto, equipment);
 
         Equipment updatedEquipment = equipmentRepository.save(equipment);
@@ -227,8 +211,6 @@ public class EquipmentServiceImpl implements EquipmentService {
         return equipmentMapper.toResponse(equipment);
     }
 
-    // THÊM MỚI:
-    // API cho màn hình Assign Equipment To Room.
     @Override
     public RoomEquipmentResponse assignToRoom(Long equipmentId, AssignEquipmentToRoomDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -244,8 +226,6 @@ public class EquipmentServiceImpl implements EquipmentService {
                         )
                 ));
 
-        // Nếu phòng đã có thiết bị này rồi thì update quantity.
-        // Nếu chưa có thì tạo mới.
         RoomEquipment roomEquipment = roomEquipmentRepository
                 .findByRoomIdAndEquipmentId(dto.getRoomId(), equipmentId)
                 .orElse(RoomEquipment.builder()
@@ -260,8 +240,6 @@ public class EquipmentServiceImpl implements EquipmentService {
         return equipmentMapper.toRoomEquipmentResponse(saved);
     }
 
-    // THÊM MỚI:
-    // Gỡ thiết bị khỏi phòng.
     @Override
     public void removeFromRoom(Long equipmentId, Long roomId) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -277,8 +255,6 @@ public class EquipmentServiceImpl implements EquipmentService {
         roomEquipmentRepository.delete(roomEquipment);
     }
 
-    // THÊM MỚI:
-    // Lấy danh sách thiết bị trong 1 phòng.
     @Override
     @Transactional(readOnly = true)
     public List<RoomEquipmentResponse> getEquipmentsByRoom(Long roomId) {
@@ -288,60 +264,75 @@ public class EquipmentServiceImpl implements EquipmentService {
                 .collect(Collectors.toList());
     }
 
-    // THÊM MỚI:
-    // Upload ảnh local cho thiết bị.
     @Override
-    public EquipmentImageResponse uploadImage(Long equipmentId, MultipartFile image, Boolean isPrimary) {
+    public List<EquipmentImageResponse> uploadImages(
+            Long equipmentId,
+            List<MultipartFile> images
+    ) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Equipment equipment = findActiveEquipment(equipmentId, locale);
 
-        if (image == null || image.isEmpty()) {
-            throw new ConflictException("Image file is required");
+        if (images == null || images.isEmpty()) {
+            throw new ConflictException("Image files are required");
         }
 
+        List<EquipmentImageResponse> result = new java.util.ArrayList<>();
+
         try {
-            // Ảnh sẽ được lưu tại thư mục:
-            // uploads/equipments/
             Path uploadPath = Paths.get("uploads/equipments")
                     .toAbsolutePath()
                     .normalize();
 
             Files.createDirectories(uploadPath);
 
-            String originalName = image.getOriginalFilename() == null
-                    ? "equipment-image"
-                    : image.getOriginalFilename();
+            boolean firstImage = true;
 
-            originalName = StringUtils.cleanPath(originalName);
+            for (MultipartFile image : images) {
+                if (image == null || image.isEmpty()) {
+                    continue;
+                }
 
-            String fileName = UUID.randomUUID() + "_" + originalName;
+                String originalName = image.getOriginalFilename() == null
+                        ? "equipment-image"
+                        : image.getOriginalFilename();
 
-            Path targetPath = uploadPath.resolve(fileName).normalize();
+                originalName = StringUtils.cleanPath(originalName);
 
-            Files.copy(
-                    image.getInputStream(),
-                    targetPath,
-                    StandardCopyOption.REPLACE_EXISTING
-            );
+                String fileName = UUID.randomUUID() + "_" + originalName;
 
-            EquipmentImage equipmentImage = EquipmentImage.builder()
-                    .equipment(equipment)
-                    .imageUrl("/uploads/equipments/" + fileName)
-                    .isPrimary(Boolean.TRUE.equals(isPrimary))
-                    .build();
+                Path targetPath = uploadPath.resolve(fileName).normalize();
 
-            EquipmentImage savedImage = equipmentImageRepository.save(equipmentImage);
+                Files.copy(
+                        image.getInputStream(),
+                        targetPath,
+                        StandardCopyOption.REPLACE_EXISTING
+                );
 
-            return equipmentMapper.toImageResponse(savedImage);
+                EquipmentImage equipmentImage = EquipmentImage.builder()
+                        .equipment(equipment)
+                        .imageUrl("/uploads/equipments/" + fileName)
+                        .isPrimary(firstImage)
+                        .build();
+
+                EquipmentImage savedImage = equipmentImageRepository.save(equipmentImage);
+
+                result.add(equipmentMapper.toImageResponse(savedImage));
+
+                firstImage = false;
+            }
+
+            if (result.isEmpty()) {
+                throw new ConflictException("Image files are required");
+            }
+
+            return result;
 
         } catch (IOException ex) {
-            throw new ConflictException("Could not save equipment image");
+            throw new ConflictException("Could not save equipment images");
         }
     }
 
-    // THÊM MỚI:
-    // Dùng chung cho các hàm cần kiểm tra Equipment ACTIVE.
     private Equipment findActiveEquipment(Long id, Locale locale) {
         return equipmentRepository.findById(id)
                 .filter(e -> e.getStatus() == EquipmentStatus.ACTIVE)

@@ -7,13 +7,6 @@ import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
-/*
-  Form Equipment hiện tại chỉ quản lý danh mục thiết bị.
-
-  Đã bỏ:
-  - roomId: vì gán phòng chuyển sang màn AssignEquipmentToRoom
-  - location: vì vị trí thực tế nằm ở RoomEquipment, không nằm ở Equipment
-*/
 const EMPTY_FORM = {
   equipmentName: '',
   equipmentCode: '',
@@ -32,10 +25,6 @@ function getErrorMessage(error, fallback) {
   return error?.message || fallback;
 }
 
-/*
-  Map dữ liệu row sang form edit.
-  Không còn map location.
-*/
 function mapEquipmentToForm(item) {
   return {
     equipmentName: item.equipmentName || '',
@@ -44,11 +33,6 @@ function mapEquipmentToForm(item) {
   };
 }
 
-/*
-  Lấy ảnh đại diện.
-  Backend lưu imageUrl dạng /uploads/equipments/...
-  Frontend cần nối với host backend localhost:9999.
-*/
 function getImageUrl(item) {
   const imageUrl =
       item?.images?.find((img) => img.isPrimary)?.imageUrl ||
@@ -81,26 +65,15 @@ export default function EquipmentManager() {
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
 
-  /*
-    Ảnh không gửi chung JSON.
-    Sau khi create/update xong mới upload riêng bằng multipart/form-data.
-  */
-  const [imageFile, setImageFile] = useState(null);
+  // SỬA: dùng mảng ảnh thay vì 1 file
+  const [imageFiles, setImageFiles] = useState([]);
 
   const [saving, setSaving] = useState(false);
-
-  /*
-    Giữ gợi ý mã thiết bị.
-    Đã bỏ existingLocations vì không còn location.
-  */
   const [existingCodes, setExistingCodes] = useState([]);
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast((current) => ({ ...current, message: '' }));
 
-  /*
-    Lấy danh sách lớn để tạo gợi ý mã thiết bị.
-  */
   const fetchSuggestions = useCallback(async () => {
     try {
       const response = await equipmentService.getAll({ page: 0, size: 1000 }, locale);
@@ -114,16 +87,6 @@ export default function EquipmentManager() {
     }
   }, [locale]);
 
-  /*
-    Lấy danh sách equipment.
-
-    Đã bỏ filter location.
-    Chỉ còn:
-    - id
-    - equipmentName
-    - equipmentCode
-    - status
-  */
   const fetchDataDirect = useCallback(
       async (p, opt, val, statusVal) => {
         setLoading(true);
@@ -183,7 +146,7 @@ export default function EquipmentManager() {
     }
 
     setForm(EMPTY_FORM);
-    setImageFile(null);
+    setImageFiles([]);
     setModal({ open: true, editing: null });
   };
 
@@ -194,20 +157,16 @@ export default function EquipmentManager() {
     }
 
     setForm(mapEquipmentToForm(item));
-    setImageFile(null);
+    setImageFiles([]);
     setModal({ open: true, editing: item });
   };
 
   const closeModal = () => {
     setModal({ open: false, editing: null });
     setForm(EMPTY_FORM);
-    setImageFile(null);
+    setImageFiles([]);
   };
 
-  /*
-    Payload gửi backend.
-    Đã bỏ location.
-  */
   const buildPayload = () => ({
     equipmentName: form.equipmentName.trim(),
     equipmentCode: form.equipmentCode.trim(),
@@ -224,8 +183,12 @@ export default function EquipmentManager() {
       if (modal.editing) {
         await equipmentService.update(modal.editing.id, payload, locale);
 
-        if (imageFile) {
-          await equipmentService.uploadImage(modal.editing.id, imageFile, true, locale);
+        if (imageFiles.length > 0) {
+          await equipmentService.uploadImages(
+              modal.editing.id,
+              imageFiles,
+              locale
+          );
         }
 
         notify(t('equipment.toast.updateSuccess') || 'Cập nhật thiết bị thành công');
@@ -233,8 +196,12 @@ export default function EquipmentManager() {
         const created = await equipmentService.create(payload, locale);
         const equipmentId = created?.data?.id;
 
-        if (imageFile && equipmentId) {
-          await equipmentService.uploadImage(equipmentId, imageFile, true, locale);
+        if (imageFiles.length > 0 && equipmentId) {
+          await equipmentService.uploadImages(
+              equipmentId,
+              imageFiles,
+              locale
+          );
         }
 
         notify(t('equipment.toast.addSuccess') || 'Thêm thiết bị thành công');
@@ -292,10 +259,6 @@ export default function EquipmentManager() {
     );
   };
 
-  /*
-    assignedRooms là danh sách phòng đã gán thiết bị này.
-    Nếu rỗng thì hiện "Chưa gán phòng".
-  */
   const rows = items.map((item) => {
     const imageUrl = getImageUrl(item);
     const assignedRoomCount = item.assignedRooms?.length || 0;
@@ -372,9 +335,6 @@ export default function EquipmentManager() {
     );
   });
 
-  /*
-    Đã bỏ cột location.
-  */
   const columns = [
     t('equipment.columns.id') || 'ID',
     t('equipment.columns.name') || 'Tên thiết bị',
@@ -526,16 +486,27 @@ export default function EquipmentManager() {
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
                 Ảnh thiết bị
               </label>
+
               <input
                   type="file"
+                  multiple
                   accept="image/*"
-                  onChange={(event) => setImageFile(event.target.files?.[0] || null)}
+                  onChange={(event) =>
+                      setImageFiles(Array.from(event.target.files || []))
+                  }
                   className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
               />
+
+              {imageFiles.length > 0 && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Đã chọn {imageFiles.length} ảnh
+                  </p>
+              )}
+
               <p className="mt-1 text-xs text-slate-400">
                 {modal.editing
-                    ? 'Nếu chọn ảnh mới, hệ thống sẽ upload thêm ảnh cho thiết bị này.'
-                    : 'Ảnh sẽ được upload sau khi tạo thiết bị thành công.'}
+                    ? 'Nếu chọn ảnh mới, hệ thống sẽ upload thêm các ảnh cho thiết bị này.'
+                    : 'Các ảnh sẽ được upload sau khi tạo thiết bị thành công.'}
               </p>
             </div>
 
