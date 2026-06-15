@@ -8,17 +8,24 @@ import com.hms.dto.room.response.RoomResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 public interface IRoomService {
 
-    Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, SortField sortBy, SortDirection direction);
+    Page<RoomResponse> getAllRooms(
+            Long id,
+            String roomNumber,
+            Long roomTypeId,
+            Integer floor,
+            RoomStatus status,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction);
 
     RoomResponse getRoomById(Long id);
 
-    RoomResponse createRoom(RoomRequest roomRequest, List<MultipartFile> files);
+    RoomResponse createRoom(RoomRequest roomRequest, MultipartFile file);
 
-    RoomResponse updateRoom(Long id, RoomRequest roomRequest,List<MultipartFile> files);
+    RoomResponse updateRoom(Long id, RoomRequest roomRequest,MultipartFile file);
 
     void deleteRoomByID(Long id);
 
@@ -32,8 +39,5 @@ public interface IRoomService {
     Page<RoomResponse> getAvailableRooms(Integer page, Integer size);
 
     void updateRoomStatus(Long roomId, RoomStatus status);
-    
-    Page<RoomResponse> getRoomsByStatuses(java.util.List<RoomStatus> statuses, Integer page, Integer size);
-
 }
 

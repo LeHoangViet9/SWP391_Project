@@ -7,8 +7,6 @@ import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
-import java.util.List;
-
 @Data
 public class RoomRequest {
 
@@ -23,12 +21,8 @@ public class RoomRequest {
     @Size(max = 500, message = "{room.description.size}")
     @Pattern(regexp = "^(?!\\s+$)[\\s\\S]*$", message = "{room.description.notblank}")
     private String description;
-<<<<<<< HEAD
 
     private String imageRoom;
-=======
-   private List<String> imageUrls;
->>>>>>> main
 }
 
 

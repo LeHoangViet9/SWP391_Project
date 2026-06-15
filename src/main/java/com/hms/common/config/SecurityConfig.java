@@ -3,7 +3,6 @@ package com.hms.common.config; // Nếu đã chuyển vào common thì đổi th
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -32,7 +31,8 @@ public class SecurityConfig {
                 .cors(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
+                        // 1. Tài nguyên tĩnh và luồng Auth tự do
+                        .requestMatchers("/login", "/register", "/css/**", "/js/**", "/images/**", "/uploads/**").permitAll()
                         .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password").permitAll()
                         .requestMatchers("/api/v1/auth/**").authenticated()
 
@@ -41,11 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/room-types/**").hasAnyRole("ADMIN", "MANAGER")
 
                         // 3. Module room & auth_user: Chỉ Admin/Manager được CRUD, Lễ tân chỉ được Xem (Read)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/users/**")
-                        .hasAnyRole("ADMIN", "MANAGER")
-
-                        .requestMatchers("/api/v1/users/**")
-                        .hasRole("ADMIN")
+                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/rooms/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
 
                         // 4. Module customer: Lễ tân và Quản lý quản lý hồ sơ khách hàng
@@ -74,12 +70,10 @@ public class SecurityConfig {
 
                         // Module customer_feedback: Quản lý xem, Lễ tân tiếp nhận phản hồi của khách
                         .requestMatchers("/api/v1/feedbacks/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
-                        // Dashboard
-                        .requestMatchers(("/api/v1/dashboards/**")).hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
-                        .anyRequest().authenticated())
-//                        .anyRequest().permitAll())
 
-                ;
+                        // Tất cả các request khác phải đăng nhập
+                        .anyRequest().authenticated()
+                );
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

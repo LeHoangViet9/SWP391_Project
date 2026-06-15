@@ -48,6 +48,7 @@ public class UserDataInitializer implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public void run(ApplicationArguments args) {
         log.info("========== HMS TEST ACCOUNTS (plain passwords) ==========");
         for (TestUser tu : TEST_USERS) {

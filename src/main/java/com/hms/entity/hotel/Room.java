@@ -2,7 +2,10 @@ package com.hms.entity.hotel;
 
 import com.hms.common.enums.RoomStatus;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +40,6 @@ public class Room {
 
     @Builder.Default
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude              // <--- THÊM DÒNG NÀY
-    @EqualsAndHashCode.Exclude
     private List<RoomImage> roomImages = new ArrayList<>();
 }
 
