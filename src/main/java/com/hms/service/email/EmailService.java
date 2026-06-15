@@ -5,4 +5,9 @@ public interface EmailService {
             String to,
             String token
     );
+
+    // Thêm hàm này vào interface của bạn
+    void sendActiveUserMail(String to, String fullName, String otpCode);
+
+    void sendForgotPasswordOtpMail(String to, String fullName, String otpCode);
 }

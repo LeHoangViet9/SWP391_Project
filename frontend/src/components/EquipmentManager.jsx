@@ -49,8 +49,6 @@ export default function EquipmentManager() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
-  const [searchOpt, setSearchOpt] = useState('equipmentName');
-  const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
@@ -76,31 +74,14 @@ export default function EquipmentManager() {
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast((current) => ({ ...current, message: '' }));
 
-  const fetchDataDirect = useCallback(async (p, opt, val, statusVal) => {
+  const fetchData = useCallback(async (nextPage = page) => {
     setLoading(true);
     try {
-      const params = {
-        page: p,
+      const response = await equipmentService.getAll({
+        page: nextPage,
         size: 10,
-        status: statusVal || undefined,
-      };
-
-      const trimmed = val ? String(val).trim() : '';
-      if (trimmed) {
-        if (opt === 'id') {
-          params.id = trimmed;
-        } else if (opt === 'equipmentName') {
-          params.equipmentName = trimmed;
-        } else if (opt === 'equipmentCode') {
-          params.equipmentCode = trimmed;
-        } else if (opt === 'location') {
-          params.location = trimmed;
-        } else if (opt === 'roomId') {
-          params.roomId = trimmed;
-        }
-      }
-
-      const response = await equipmentService.getAll(params, locale);
+        keywords: search.trim() || undefined,
+      });
       const data = response?.data;
       setItems(data?.content ?? []);
       setTotalPages(data?.totalPages ?? 1);
@@ -109,15 +90,11 @@ export default function EquipmentManager() {
     } finally {
       setLoading(false);
     }
-  }, [locale, t]);
-
-  const fetchData = useCallback(async (nextPage = page) => {
-    await fetchDataDirect(nextPage, searchOpt, search, statusFilter);
-  }, [page, searchOpt, search, statusFilter, fetchDataDirect]);
+  }, [page, search]);
 
   useEffect(() => {
     fetchData(page);
-  }, [page, statusFilter, fetchData]);
+  }, [fetchData, page]);
 
   useEffect(() => {
     getAllRooms({ page: 0, size: 200 })
@@ -298,49 +275,18 @@ export default function EquipmentManager() {
       <Toast type={toast.type} message={toast.message} onClose={closeToast} />
 
       <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row">
-        <div className="flex flex-1 flex-wrap items-center gap-2">
-          <select
-            value={searchOpt}
-            onChange={(e) => {
-              setSearchOpt(e.target.value);
-              setSearch('');
-            }}
-            className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-          >
-            <option value="equipmentName">{t('equipment.searchOptions.name') || 'Tên thiết bị'}</option>
-            <option value="equipmentCode">{t('equipment.searchOptions.code') || 'Mã thiết bị'}</option>
-            <option value="location">{t('equipment.searchOptions.location') || 'Vị trí'}</option>
-            <option value="roomId">{t('equipment.searchOptions.roomId') || 'Mã phòng'}</option>
-            <option value="id">{t('equipment.searchOptions.id') || 'Mã (ID)'}</option>
-          </select>
-
+        <div className="flex flex-1 items-center gap-2">
           <div className="relative max-w-xs flex-1">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              type={searchOpt === 'id' || searchOpt === 'roomId' ? 'number' : 'text'}
+              type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
-              placeholder={t(`equipment.placeholders.${searchOpt}`) || t('equipment.searchPlaceholder')}
+              placeholder={t('equipment.searchPlaceholder')}
               className="w-full rounded border border-stone-300 py-2 pl-8 pr-3 text-sm outline-none focus:border-[#bfa15f]"
             />
           </div>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(0);
-            }}
-            className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-          >
-            <option value="ACTIVE">{t('equipment.status.ACTIVE') || 'Hoạt động'}</option>
-            <option value="MAINTENANCE">{t('equipment.status.MAINTENANCE') || 'Bảo trì'}</option>
-            <option value="BROKEN">{t('equipment.status.BROKEN') || 'Hỏng'}</option>
-            <option value="INACTIVE">{t('equipment.status.INACTIVE') || 'Ngừng dùng'}</option>
-            <option value="">{t('equipment.status.all') || 'Tất cả trạng thái'}</option>
-          </select>
-
           <button
             type="button"
             onClick={handleSearch}
