@@ -9,11 +9,8 @@ import com.hms.dto.maintenance.response.MaintenanceResponse;
 import com.hms.service.maintenance.MaintenanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-<<<<<<< HEAD
 import org.springframework.security.access.prepost.PreAuthorize;
-=======
 import org.springframework.data.domain.Page;
->>>>>>> ui-react2
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -37,10 +34,7 @@ public class MaintenanceController {
     }
 
     @GetMapping
-<<<<<<< HEAD
     @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
-    public ApiResponse<List<MaintenanceResponse>> getAllRequests() {
-=======
     public ApiResponse<Page<MaintenanceResponse>> getAllRequests(
             @RequestParam(required = false) Long id,
             @RequestParam(required = false) String issueTitle,
@@ -55,7 +49,6 @@ public class MaintenanceController {
             @RequestParam(defaultValue = "ID") SortField sortBy,
             @RequestParam(defaultValue = "ASC") SortDirection direction
     ) {
->>>>>>> ui-react2
         return ApiResponse.success(
                 "Get maintenance request list successfully",
                 maintenanceService.getAllRequests(

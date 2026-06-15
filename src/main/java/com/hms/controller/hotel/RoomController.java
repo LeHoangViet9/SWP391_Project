@@ -70,10 +70,9 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam(value = "files", required = false) List<MultipartFile> files,
-                                                                @ModelAttribute @Valid RoomRequest roomRequest) {
+    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam("imageRoom")List<MultipartFile> file, @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomResponse created = roomService.createRoom(roomRequest,files);
+        RoomResponse created = roomService.createRoom(roomRequest,file);
         String message = messageSource.getMessage("success.room.create", null, locale);
 
         ApiResponse<RoomResponse> response = ApiResponse.<RoomResponse>builder()
@@ -88,11 +87,11 @@ public class RoomController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
-            @RequestParam(value = "files", required = false) List<MultipartFile> files,
+            @RequestParam(value = "imageRoom", required = false) List<MultipartFile> file,
             @PathVariable Long id,
             @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomResponse updated = roomService.updateRoom(id, roomRequest,files);
+        RoomResponse updated = roomService.updateRoom(id, roomRequest,file);
         String message = messageSource.getMessage("success.room.update", null, locale);
 
         ApiResponse<RoomResponse> response = ApiResponse.<RoomResponse>builder()
@@ -207,31 +206,6 @@ public class RoomController {
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
                 .message(message)
-                .status(HttpStatus.OK)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-    @GetMapping("/housekeeping")
-    public ResponseEntity<ApiResponse<Page<RoomResponse>>> getHousekeepingRooms(
-            @RequestParam(required = false) java.util.List<RoomStatus> statuses,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size) {
-
-        // Mặc định hiển thị các phòng liên quan housekeeping nếu không truyền
-        if (statuses == null || statuses.isEmpty()) {
-            statuses = java.util.Arrays.asList(RoomStatus.DIRTY, RoomStatus.CLEANING, RoomStatus.READY);
-        }
-
-        Locale locale = LocaleContextHolder.getLocale();
-        // Dùng tạm message getbystatus hoặc message chung
-        String message = messageSource.getMessage("success.room.getall", null, locale);
-
-        ApiResponse<Page<RoomResponse>> response = ApiResponse.<Page<RoomResponse>>builder()
-                .success(true)
-                .message(message)
-                .data(roomService.getRoomsByStatuses(statuses, page, size))
                 .status(HttpStatus.OK)
                 .build();
 
