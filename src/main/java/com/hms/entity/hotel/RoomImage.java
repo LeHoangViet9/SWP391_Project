@@ -1,9 +1,6 @@
 package com.hms.entity.hotel;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -22,6 +19,8 @@ public class RoomImage {
     // Liên kết nhiều ảnh về một phòng (N - 1)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
+    @ToString.Exclude              // <--- THÊM DÒNG NÀY
+    @EqualsAndHashCode.Exclude
     private Room room;
 
     @Column(name = "image_url", nullable = false, length = 1000)

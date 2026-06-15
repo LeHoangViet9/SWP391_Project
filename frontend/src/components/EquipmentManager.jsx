@@ -146,7 +146,6 @@ export default function EquipmentManager() {
     }
 
     setForm(EMPTY_FORM);
-    setImageFiles([]);
     setModal({ open: true, editing: null });
   };
 
@@ -155,22 +154,21 @@ export default function EquipmentManager() {
       notify(t('equipment.toast.forbiddenEdit'), 'error');
       return;
     }
-
     setForm(mapEquipmentToForm(item));
-    setImageFiles([]);
     setModal({ open: true, editing: item });
   };
 
   const closeModal = () => {
     setModal({ open: false, editing: null });
     setForm(EMPTY_FORM);
-    setImageFiles([]);
   };
 
   const buildPayload = () => ({
     equipmentName: form.equipmentName.trim(),
     equipmentCode: form.equipmentCode.trim(),
+    location: form.location.trim(),
     description: form.description.trim() || null,
+    roomId: form.roomId ? Number(form.roomId) : null,
   });
 
   const handleSave = async (event) => {

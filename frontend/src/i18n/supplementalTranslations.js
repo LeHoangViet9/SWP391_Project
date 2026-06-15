@@ -101,18 +101,6 @@ export const supplementalTranslations = {
         actions: 'Thao tác',
       },
       searchPlaceholder: 'Tìm loại phòng...',
-      searchOptions: {
-        name: 'Tên loại phòng',
-        id: 'Mã (ID)',
-        price: 'Giá tối đa (VND)',
-        maxGuests: 'Số khách tối thiểu',
-      },
-      placeholders: {
-        id: 'Nhập mã ID...',
-        name: 'Nhập tên loại phòng...',
-        price: 'Nhập giá tối đa...',
-        maxGuests: 'Nhập số khách tối thiểu...',
-      },
       addBtn: 'Thêm loại phòng',
       modal: {
         addTitle: 'Thêm loại phòng',
@@ -151,18 +139,6 @@ export const supplementalTranslations = {
       },
       noImage: 'Chưa có ảnh',
       searchPlaceholder: 'Tìm phòng...',
-      searchOptions: {
-        roomNumber: 'Số phòng',
-        id: 'Mã (ID)',
-        roomTypeId: 'Loại phòng',
-        floor: 'Tầng',
-        status: 'Trạng thái',
-      },
-      placeholders: {
-        id: 'Nhập mã ID...',
-        roomNumber: 'Nhập số phòng...',
-        floor: 'Nhập số tầng...',
-      },
       addBtn: 'Thêm phòng',
       modal: {
         addTitle: 'Thêm phòng',
@@ -219,22 +195,6 @@ export const supplementalTranslations = {
         titleForceDelete: 'Xác nhận xóa vĩnh viễn',
       },
       searchPlaceholder: 'Tìm khách hàng...',
-      searchOptions: {
-        fullName: 'Họ và tên',
-        id: 'Mã (ID)',
-        email: 'Email',
-        phone: 'Số điện thoại',
-        idNumberCard: 'Số giấy tờ',
-        nationality: 'Quốc tịch',
-      },
-      placeholders: {
-        id: 'Nhập mã ID...',
-        fullName: 'Nhập họ và tên...',
-        email: 'Nhập email...',
-        phone: 'Nhập số điện thoại...',
-        idNumberCard: 'Nhập số giấy tờ...',
-        nationality: 'Nhập quốc tịch...',
-      },
       addBtn: 'Thêm khách hàng',
       modal: {
         addTitle: 'Thêm khách hàng',
@@ -352,50 +312,10 @@ export const supplementalTranslations = {
         IN_PROGRESS: 'Đang xử lý',
         COMPLETED: 'Hoàn tất',
         CANCELLED: 'Đã hủy',
-        all: 'Tất cả trạng thái',
       },
-      searchOptions: {
-        title: 'Tiêu đề lỗi',
-        roomId: 'Mã phòng',
-        equipmentId: 'Mã thiết bị',
-        reportedBy: 'Mã người báo',
-        assignedTo: 'Mã người sửa',
-        id: 'Mã yêu cầu',
-      },
-      placeholders: {
-        issueTitle: 'Nhập tiêu đề lỗi...',
-        roomId: 'Nhập mã phòng...',
-        equipmentId: 'Nhập mã thiết bị...',
-        reportedBy: 'Nhập mã người báo...',
-        assignedTo: 'Nhập mã người sửa...',
-        id: 'Nhập mã yêu cầu...',
-      },
-      searchPlaceholder: 'Tìm kiếm yêu cầu...',
     },
 
     equipment: {
-      searchPlaceholder: 'Tìm thiết bị...',
-      searchOptions: {
-        name: 'Tên thiết bị',
-        code: 'Mã thiết bị',
-        location: 'Vị trí',
-        roomId: 'Mã phòng',
-        id: 'Mã (ID)',
-      },
-      placeholders: {
-        equipmentName: 'Nhập tên thiết bị...',
-        equipmentCode: 'Nhập mã thiết bị...',
-        location: 'Nhập vị trí...',
-        roomId: 'Nhập mã phòng...',
-        id: 'Nhập mã ID...',
-      },
-      status: {
-        ACTIVE: 'Hoạt động',
-        MAINTENANCE: 'Bảo trì',
-        BROKEN: 'Hỏng',
-        INACTIVE: 'Ngừng dùng',
-        all: 'Tất cả trạng thái',
-      },
       toast: {
         forbiddenCreate: 'Bạn không có quyền thêm thiết bị.',
         forbiddenEdit: 'Bạn không có quyền sửa thiết bị.',
@@ -403,25 +323,6 @@ export const supplementalTranslations = {
     },
 
     staff: {
-      searchOptions: {
-        fullName: 'Họ và tên',
-        userName: 'Tên đăng nhập',
-        email: 'Email',
-        phone: 'Số điện thoại',
-        roleName: 'Vai trò',
-        id: 'Mã (ID)',
-      },
-      placeholders: {
-        fullName: 'Nhập họ và tên...',
-        userName: 'Nhập tên đăng nhập...',
-        email: 'Nhập email...',
-        phone: 'Nhập số điện thoại...',
-        roleName: 'Nhập vai trò...',
-        id: 'Nhập mã ID...',
-      },
-      filters: {
-        searchPlaceholder: 'Tìm nhân viên...',
-      },
       toast: {
         passwordRequired: 'Vui lòng nhập mật khẩu cho tài khoản mới.',
         passwordMismatch: 'Mật khẩu xác nhận không khớp.',
@@ -531,18 +432,6 @@ export const supplementalTranslations = {
         actions: 'Actions',
       },
       searchPlaceholder: 'Search room types...',
-      searchOptions: {
-        name: 'Room Type Name',
-        id: 'ID',
-        price: 'Max Price',
-        maxGuests: 'Min Guests',
-      },
-      placeholders: {
-        id: 'Enter ID...',
-        name: 'Enter room type name...',
-        price: 'Enter max price...',
-        maxGuests: 'Enter min guests...',
-      },
       addBtn: 'Add Room Type',
       modal: {
         addTitle: 'Add Room Type',
@@ -581,18 +470,6 @@ export const supplementalTranslations = {
       },
       noImage: 'No image',
       searchPlaceholder: 'Search rooms...',
-      searchOptions: {
-        roomNumber: 'Room Number',
-        id: 'ID',
-        roomTypeId: 'Room Type',
-        floor: 'Floor',
-        status: 'Status',
-      },
-      placeholders: {
-        id: 'Enter ID...',
-        roomNumber: 'Enter room number...',
-        floor: 'Enter floor...',
-      },
       addBtn: 'Add Room',
       modal: {
         addTitle: 'Add Room',
@@ -649,22 +526,6 @@ export const supplementalTranslations = {
         titleForceDelete: 'Confirm permanent delete',
       },
       searchPlaceholder: 'Search customers...',
-      searchOptions: {
-        fullName: 'Full Name',
-        id: 'ID',
-        email: 'Email',
-        phone: 'Phone',
-        idNumberCard: 'ID Card',
-        nationality: 'Nationality',
-      },
-      placeholders: {
-        id: 'Enter ID...',
-        fullName: 'Enter full name...',
-        email: 'Enter email...',
-        phone: 'Enter phone number...',
-        idNumberCard: 'Enter ID card number...',
-        nationality: 'Enter nationality...',
-      },
       addBtn: 'Add Customer',
       modal: {
         addTitle: 'Add Customer',
@@ -782,50 +643,10 @@ export const supplementalTranslations = {
         IN_PROGRESS: 'In Progress',
         COMPLETED: 'Completed',
         CANCELLED: 'Cancelled',
-        all: 'All Statuses',
       },
-      searchOptions: {
-        title: 'Issue Title',
-        roomId: 'Room ID',
-        equipmentId: 'Equipment ID',
-        reportedBy: 'Reported By ID',
-        assignedTo: 'Assigned To ID',
-        id: 'Request ID',
-      },
-      placeholders: {
-        issueTitle: 'Enter issue title...',
-        roomId: 'Enter room ID...',
-        equipmentId: 'Enter equipment ID...',
-        reportedBy: 'Enter reporter ID...',
-        assignedTo: 'Enter assignee ID...',
-        id: 'Enter request ID...',
-      },
-      searchPlaceholder: 'Search requests...',
     },
 
     equipment: {
-      searchPlaceholder: 'Search equipment...',
-      searchOptions: {
-        name: 'Equipment Name',
-        code: 'Equipment Code',
-        location: 'Location',
-        roomId: 'Room ID',
-        id: 'ID',
-      },
-      placeholders: {
-        equipmentName: 'Enter equipment name...',
-        equipmentCode: 'Enter equipment code...',
-        location: 'Enter location...',
-        roomId: 'Enter room ID...',
-        id: 'Enter ID...',
-      },
-      status: {
-        ACTIVE: 'Active',
-        MAINTENANCE: 'Maintenance',
-        BROKEN: 'Broken',
-        INACTIVE: 'Inactive',
-        all: 'All Statuses',
-      },
       toast: {
         forbiddenCreate: 'You do not have permission to add equipment.',
         forbiddenEdit: 'You do not have permission to edit equipment.',
@@ -833,25 +654,6 @@ export const supplementalTranslations = {
     },
 
     staff: {
-      searchOptions: {
-        fullName: 'Full Name',
-        userName: 'Username',
-        email: 'Email',
-        phone: 'Phone',
-        roleName: 'Role',
-        id: 'ID',
-      },
-      placeholders: {
-        fullName: 'Enter full name...',
-        userName: 'Enter username...',
-        email: 'Enter email...',
-        phone: 'Enter phone number...',
-        roleName: 'Enter role name...',
-        id: 'Enter ID...',
-      },
-      filters: {
-        searchPlaceholder: 'Search staff...',
-      },
       toast: {
         passwordRequired: 'Please enter a password for the new account.',
         passwordMismatch: 'Confirm password does not match.',

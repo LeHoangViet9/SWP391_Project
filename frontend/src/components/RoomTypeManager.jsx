@@ -15,7 +15,6 @@ export default function RoomTypeManager({ readOnly = false }) {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
-  const [searchOpt, setSearchOpt] = useState('typeName');
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY);
@@ -28,17 +27,7 @@ export default function RoomTypeManager({ readOnly = false }) {
     setLoading(true);
     try {
       const q = new URLSearchParams({ page: p, size: 10 });
-      if (search.trim()) {
-        if (searchOpt === 'id') {
-          q.set('id', search.trim());
-        } else if (searchOpt === 'typeName') {
-          q.set('typeName', search.trim());
-        } else if (searchOpt === 'basePrice') {
-          q.set('price', search.trim());
-        } else if (searchOpt === 'maxGuests') {
-          q.set('maxGuests', search.trim());
-        }
-      }
+      if (search) q.set('keywords', search);
       const res = await apiFetch(`/room-types?${q}`, {}, locale);
       const content = res?.data?.content ?? [];
       setItems(content);
@@ -48,7 +37,7 @@ export default function RoomTypeManager({ readOnly = false }) {
     } finally {
       setLoading(false);
     }
-  }, [search, searchOpt, page]);
+  }, [search, page]);
 
   useEffect(() => { fetchData(page); }, [page]);
 
@@ -120,32 +109,14 @@ export default function RoomTypeManager({ readOnly = false }) {
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 flex-1">
-          <select
-            value={searchOpt}
-            onChange={e => {
-              setSearchOpt(e.target.value);
-              setSearch('');
-            }}
-            className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700"
-          >
-            <option value="typeName">{t('roomType.searchOptions.name') || 'Tên loại phòng'}</option>
-            <option value="id">{t('roomType.searchOptions.id') || 'Mã (ID)'}</option>
-            <option value="basePrice">{t('roomType.searchOptions.price') || 'Giá tối đa (VND)'}</option>
-            <option value="maxGuests">{t('roomType.searchOptions.maxGuests') || 'Số khách tối thiểu'}</option>
-          </select>
           <div className="relative flex-1 max-w-xs">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              type={searchOpt === 'id' || searchOpt === 'basePrice' || searchOpt === 'maxGuests' ? 'number' : 'text'}
+              type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && fetchData(0)}
-              placeholder={
-                searchOpt === 'id' ? (t('roomType.placeholders.id') || 'Nhập mã ID...') :
-                searchOpt === 'basePrice' ? (t('roomType.placeholders.price') || 'Nhập giá tối đa...') :
-                searchOpt === 'maxGuests' ? (t('roomType.placeholders.maxGuests') || 'Nhập số khách tối thiểu...') :
-                (t('roomType.placeholders.name') || t('roomType.searchPlaceholder') || 'Nhập tên loại phòng...')
-              }
+              placeholder={t('roomType.searchPlaceholder')}
               className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
             />
           </div>

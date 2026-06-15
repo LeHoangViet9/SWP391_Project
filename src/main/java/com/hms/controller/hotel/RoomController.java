@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Locale;
 
 @RestController
@@ -31,11 +32,7 @@ public class RoomController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getAllRooms(
-            @RequestParam(required = false) Long id,
-            @RequestParam(required = false) String roomNumber,
-            @RequestParam(required = false) Long roomTypeId,
-            @RequestParam(required = false) Integer floor,
-            @RequestParam(required = false) RoomStatus status,
+            @RequestParam(required = false) String keywords,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
@@ -47,7 +44,7 @@ public class RoomController {
         ApiResponse<Page<RoomResponse>> response = ApiResponse.<Page<RoomResponse>>builder()
                 .success(true)
                 .message(message)
-                .data(roomService.getAllRooms(id, roomNumber, roomTypeId, floor, status, page, size, sortBy, direction))
+                .data(roomService.getAllRooms(keywords, page, size, sortBy, direction))
                 .status(HttpStatus.OK)
                 .build();
 
@@ -71,9 +68,10 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam("file")MultipartFile file, @ModelAttribute @Valid RoomRequest roomRequest) {
+    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam(value = "files", required = false) List<MultipartFile> files,
+                                                                @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomResponse created = roomService.createRoom(roomRequest,file);
+        RoomResponse created = roomService.createRoom(roomRequest,files);
         String message = messageSource.getMessage("success.room.create", null, locale);
 
         ApiResponse<RoomResponse> response = ApiResponse.<RoomResponse>builder()
@@ -88,11 +86,11 @@ public class RoomController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
-            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "files", required = false) List<MultipartFile> files,
             @PathVariable Long id,
             @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomResponse updated = roomService.updateRoom(id, roomRequest,file);
+        RoomResponse updated = roomService.updateRoom(id, roomRequest,files);
         String message = messageSource.getMessage("success.room.update", null, locale);
 
         ApiResponse<RoomResponse> response = ApiResponse.<RoomResponse>builder()
@@ -207,6 +205,31 @@ public class RoomController {
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
                 .message(message)
+                .status(HttpStatus.OK)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping("/housekeeping")
+    public ResponseEntity<ApiResponse<Page<RoomResponse>>> getHousekeepingRooms(
+            @RequestParam(required = false) java.util.List<RoomStatus> statuses,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+
+        // Mặc định hiển thị các phòng liên quan housekeeping nếu không truyền
+        if (statuses == null || statuses.isEmpty()) {
+            statuses = java.util.Arrays.asList(RoomStatus.DIRTY, RoomStatus.CLEANING, RoomStatus.READY);
+        }
+
+        Locale locale = LocaleContextHolder.getLocale();
+        // Dùng tạm message getbystatus hoặc message chung
+        String message = messageSource.getMessage("success.room.getall", null, locale);
+
+        ApiResponse<Page<RoomResponse>> response = ApiResponse.<Page<RoomResponse>>builder()
+                .success(true)
+                .message(message)
+                .data(roomService.getRoomsByStatuses(statuses, page, size))
                 .status(HttpStatus.OK)
                 .build();
 
