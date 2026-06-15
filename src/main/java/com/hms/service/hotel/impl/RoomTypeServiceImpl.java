@@ -43,34 +43,83 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     @Override
     @Transactional(readOnly = true)
     public Page<RoomTypeResponse> getAllRoomType(
-            String keywords,
+            Long id,
+            String typeName,
+            Integer price,
             Integer maxGuests,
             Integer page,
             Integer size,
             SortField sortBy,
             SortDirection direction) {
 
-        String searchKeywords = StringUtils.hasText(keywords) ? keywords.trim() : "";
+        java.util.List<RoomType> list = roomTypeRepository.findAllByStatus(AccountStatus.ACTIVE);
 
-        Pageable pageable = pageableUtils.createPageable(
-                page,
-                size,
-                sortBy.getField(),
-                direction);
+        java.util.List<RoomType> filteredList = filterRoomTypes(list, id, typeName, price, maxGuests);
 
+        sortRoomTypes(filteredList, sortBy, direction);
+
+        return paginateRoomTypes(filteredList, page, size, sortBy, direction);
+    }
+
+    private java.util.List<RoomType> filterRoomTypes(
+            java.util.List<RoomType> list,
+            Long id,
+            String typeName,
+            Integer price,
+            Integer maxGuests) {
+
+        java.util.stream.Stream<RoomType> stream = list.stream();
+
+        if (id != null) {
+            stream = stream.filter(rt -> rt.getId().equals(id));
+        }
+        if (org.springframework.util.StringUtils.hasText(typeName)) {
+            String cleanTypeName = typeName.trim().toLowerCase();
+            stream = stream.filter(rt -> rt.getTypeName() != null && rt.getTypeName().toLowerCase().contains(cleanTypeName));
+        }
+        if (price != null) {
+            stream = stream.filter(rt -> rt.getBasePrice() != null && rt.getBasePrice() <= price);
+        }
         if (maxGuests != null) {
-            return roomTypeRepository
-                    .findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqualAndStatus(
-                            searchKeywords,
-                            maxGuests,
-                            AccountStatus.ACTIVE,
-                            pageable)
-                    .map(roomTypeMapper::toResponse);
+            stream = stream.filter(rt -> rt.getMaxGuests() != null && rt.getMaxGuests() >= maxGuests);
         }
 
-        return roomTypeRepository
-                .findByTypeNameContainingIgnoreCaseAndStatus(searchKeywords, AccountStatus.ACTIVE, pageable)
-                .map(roomTypeMapper::toResponse);
+        return stream.collect(java.util.stream.Collectors.toList());
+    }
+
+    private void sortRoomTypes(
+            java.util.List<RoomType> list,
+            SortField sortBy,
+            SortDirection direction) {
+
+        java.util.Map<String, java.util.function.Function<RoomType, Comparable<?>>> extractors = new java.util.HashMap<>();
+        extractors.put("id", RoomType::getId);
+        extractors.put("typeName", RoomType::getTypeName);
+        extractors.put("basePrice", RoomType::getBasePrice);
+        extractors.put("maxGuests", RoomType::getMaxGuests);
+
+        pageableUtils.sortList(list, sortBy, direction, extractors);
+    }
+
+    private Page<RoomTypeResponse> paginateRoomTypes(
+            java.util.List<RoomType> list,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction) {
+
+        int total = list.size();
+        int startPage = (page != null) ? page : 0;
+        int pageSize = (size != null) ? size : 10;
+        int start = Math.min(startPage * pageSize, total);
+        int end = Math.min(start + pageSize, total);
+
+        java.util.List<RoomTypeResponse> pageContent = list.subList(start, end).stream()
+                .map(roomTypeMapper::toResponse)
+                .collect(java.util.stream.Collectors.toList());
+
+        Pageable pageable = pageableUtils.createPageable(startPage, pageSize, sortBy.getField(), direction);
+        return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, total);
     }
 
     @Override

@@ -10,7 +10,12 @@ import org.springframework.web.multipart.MultipartFile;
 public interface EquipmentService {
 
     Page<EquipmentResponse> getAllEquipments(
-            String keywords,
+            Long id,
+            String equipmentName,
+            String equipmentCode,
+            String location,
+            Long roomId,
+            com.hms.common.enums.EquipmentStatus status,
             Integer page,
             Integer size,
             SortField sortBy,

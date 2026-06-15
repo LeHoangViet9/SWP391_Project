@@ -90,7 +90,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setCustomer(customer);
         booking.setRoomType(roomType);
         booking.setBookingStatus(BookingStatus.PENDING);
-        booking.setPricePerNight(roomType.getBasePrice());
+        booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
 
         Booking saved = bookingRepository.save(booking);
@@ -121,7 +121,7 @@ public class BookingServiceImpl implements BookingService {
         bookingMapper.updateBookingFromRequest(request, booking);
         booking.setCustomer(customer);
         booking.setRoomType(roomType);
-        booking.setPricePerNight(roomType.getBasePrice());
+        booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
 
         Booking updated = bookingRepository.save(booking);
@@ -213,7 +213,7 @@ public class BookingServiceImpl implements BookingService {
 
     private BigDecimal calculateTotalPrice(RoomType roomType, BookingRequest request){
         long nights = ChronoUnit.DAYS.between(request.getCheckInDate().toLocalDate(), request.getCheckOutDate().toLocalDate());
-        BigDecimal roomCharge = BillingUtils.calculateRoomChargePerNight(roomType.getBasePrice(), nights);
+        BigDecimal roomCharge = BillingUtils.calculateRoomChargePerNight(BigDecimal.valueOf(roomType.getBasePrice()), nights);
         return roomCharge.multiply(BigDecimal.valueOf(request.getQuantity()));
     }
 }

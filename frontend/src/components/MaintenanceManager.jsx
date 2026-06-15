@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Edit2, Trash2, RefreshCw, Check, ChevronDown, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, RefreshCw, Check, ChevronDown, X, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { maintenanceService } from '../services/maintenanceService';
 import { useLocale } from '../context/LocaleContext';
 import { getAllRooms } from '../services/roomService';
 import { equipmentService } from '../services/equipmentService';
+import { getUsers } from '../services/userService';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -49,6 +50,11 @@ export default function MaintenanceManager({ readOnly = false }) {
   const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState('');
+  const [searchOpt, setSearchOpt] = useState('issueTitle');
+  const [statusFilter, setStatusFilter] = useState('');
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_CREATE);
@@ -56,10 +62,15 @@ export default function MaintenanceManager({ readOnly = false }) {
 
   const [rooms, setRooms] = useState([]);
   const [equipments, setEquipments] = useState([]);
+  const [usersList, setUsersList] = useState([]);
   const [roomSearchQuery, setRoomSearchQuery] = useState('');
   const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
   const [equipmentSearchQuery, setEquipmentSearchQuery] = useState('');
   const [isEquipmentDropdownOpen, setIsEquipmentDropdownOpen] = useState(false);
+  const [reportedBySearchQuery, setReportedBySearchQuery] = useState('');
+  const [isReportedByDropdownOpen, setIsReportedByDropdownOpen] = useState(false);
+  const [assignedToSearchQuery, setAssignedToSearchQuery] = useState('');
+  const [isAssignedToDropdownOpen, setIsAssignedToDropdownOpen] = useState(false);
 
   useEffect(() => {
     getAllRooms({ page: 0, size: 200 })
@@ -69,6 +80,10 @@ export default function MaintenanceManager({ readOnly = false }) {
     equipmentService.getAll({ page: 0, size: 1000 })
       .then((response) => setEquipments(response?.data?.content ?? []))
       .catch(() => setEquipments([]));
+
+    getUsers({ page: 0, size: 1000 })
+      .then((response) => setUsersList(response?.data?.content ?? []))
+      .catch(() => setUsersList([]));
   }, []);
 
   useEffect(() => {
@@ -96,6 +111,68 @@ export default function MaintenanceManager({ readOnly = false }) {
       setEquipmentSearchQuery('');
     }
   }, [form.equipmentId, equipments]);
+
+  useEffect(() => {
+    if (form.reportedBy) {
+      const selectedReporter = usersList.find((u) => String(u.id) === String(form.reportedBy));
+      if (selectedReporter) {
+        setReportedBySearchQuery(`${selectedReporter.fullName} (${selectedReporter.userName || selectedReporter.username || ''})`);
+      } else {
+        setReportedBySearchQuery(String(form.reportedBy));
+      }
+    } else {
+      setReportedBySearchQuery('');
+    }
+  }, [form.reportedBy, usersList]);
+
+  useEffect(() => {
+    if (form.assignedTo) {
+      const selectedAssignee = usersList.find((u) => String(u.id) === String(form.assignedTo));
+      if (selectedAssignee) {
+        setAssignedToSearchQuery(`${selectedAssignee.fullName} (${selectedAssignee.userName || selectedAssignee.username || ''})`);
+      } else {
+        setAssignedToSearchQuery(String(form.assignedTo));
+      }
+    } else {
+      setAssignedToSearchQuery('');
+    }
+  }, [form.assignedTo, usersList]);
+
+  const filteredReporters = useMemo(() => {
+    const query = reportedBySearchQuery.trim().toLowerCase();
+    if (!query) return usersList;
+
+    const selectedReporter = usersList.find((u) => String(u.id) === String(form.reportedBy));
+    const selectedLabel = selectedReporter ? `${selectedReporter.fullName} (${selectedReporter.userName || selectedReporter.username || ''})`.toLowerCase() : '';
+
+    if (query === selectedLabel) {
+      return usersList;
+    }
+
+    return usersList.filter((u) => {
+      const name = (u.fullName || '').toLowerCase();
+      const uname = (u.userName || u.username || '').toLowerCase();
+      return name.includes(query) || uname.includes(query);
+    });
+  }, [usersList, reportedBySearchQuery, form.reportedBy]);
+
+  const filteredAssignees = useMemo(() => {
+    const query = assignedToSearchQuery.trim().toLowerCase();
+    if (!query) return usersList;
+
+    const selectedAssignee = usersList.find((u) => String(u.id) === String(form.assignedTo));
+    const selectedLabel = selectedAssignee ? `${selectedAssignee.fullName} (${selectedAssignee.userName || selectedAssignee.username || ''})`.toLowerCase() : '';
+
+    if (query === selectedLabel) {
+      return usersList;
+    }
+
+    return usersList.filter((u) => {
+      const name = (u.fullName || '').toLowerCase();
+      const uname = (u.userName || u.username || '').toLowerCase();
+      return name.includes(query) || uname.includes(query);
+    });
+  }, [usersList, assignedToSearchQuery, form.assignedTo]);
 
   const filteredRooms = useMemo(() => {
     let list = rooms;
@@ -151,12 +228,36 @@ export default function MaintenanceManager({ readOnly = false }) {
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
 
-  const fetchData = useCallback(async () => {
+  const fetchDataDirect = useCallback(async (p, opt, val, statusVal) => {
     setLoading(true);
     try {
-      const res = await maintenanceService.getAll();
-      const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-      setItems(list);
+      const params = {
+        page: p,
+        size: 10,
+        status: statusVal || undefined,
+      };
+
+      const trimmed = val ? String(val).trim() : '';
+      if (trimmed) {
+        if (opt === 'id') {
+          params.id = trimmed;
+        } else if (opt === 'issueTitle') {
+          params.issueTitle = trimmed;
+        } else if (opt === 'roomId') {
+          params.roomId = trimmed;
+        } else if (opt === 'equipmentId') {
+          params.equipmentId = trimmed;
+        } else if (opt === 'reportedBy') {
+          params.reportedBy = trimmed;
+        } else if (opt === 'assignedTo') {
+          params.assignedTo = trimmed;
+        }
+      }
+
+      const res = await maintenanceService.getAll(params);
+      const data = res?.data;
+      setItems(data?.content ?? []);
+      setTotalPages(data?.totalPages ?? 1);
     } catch (e) {
       notify(e.message, 'error');
     } finally {
@@ -164,7 +265,18 @@ export default function MaintenanceManager({ readOnly = false }) {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const fetchData = useCallback(async (p = page) => {
+    await fetchDataDirect(p, searchOpt, search, statusFilter);
+  }, [page, searchOpt, search, statusFilter, fetchDataDirect]);
+
+  useEffect(() => {
+    fetchData(page);
+  }, [page, statusFilter, fetchData]);
+
+  const handleSearch = () => {
+    setPage(0);
+    fetchDataDirect(0, searchOpt, search, statusFilter);
+  };
 
   const openCreate = () => {
     setForm({
@@ -203,6 +315,11 @@ export default function MaintenanceManager({ readOnly = false }) {
         await maintenanceService.update(modal.editing.id, payload);
         notify(t('maintenance.toast.updateSuccess'));
       } else {
+        if (!form.reportedBy) {
+          notify('Vui lòng chọn nhân viên báo cáo từ danh sách.', 'error');
+          setSaving(false);
+          return;
+        }
         const payload = {
           roomId: form.roomId ? Number(form.roomId) : undefined,
           equipmentId: form.equipmentId ? Number(form.equipmentId) : undefined,
@@ -236,36 +353,51 @@ export default function MaintenanceManager({ readOnly = false }) {
 
   const formatDate = (dt) => dt ? new Date(dt).toLocaleDateString('vi-VN') : '-';
 
-  const rows = items.map(item => (
-    <tr key={item.id} className="hover:bg-stone-50">
-      <td className="px-4 py-3 font-mono text-xs font-bold">#{item.id}</td>
-      <td className="px-4 py-3 font-semibold text-sm">{item.issueTitle}</td>
-      <td className="px-4 py-3 text-xs text-slate-500 max-w-xs truncate">{item.issueDescription || '-'}</td>
-      <td className="px-4 py-3 text-xs">{item.roomId ? `Phòng #${item.roomId}` : '-'}</td>
-      <td className="px-4 py-3 text-xs">{item.equipmentId ? `TB #${item.equipmentId}` : '-'}</td>
-      <td className="px-4 py-3 text-xs">{item.reportedBy || '-'}</td>
-      <td className="px-4 py-3 text-xs">{item.assignedTo || '-'}</td>
-      <td className="px-4 py-3">
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SEVERITY_COLORS[item.severity] || SEVERITY_COLORS.MEDIUM}`}>
-          {t(`maintenance.severity.${item.severity || 'MEDIUM'}`)}
-        </span>
-      </td>
-      <td className="px-4 py-3">
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] || STATUS_COLORS.PENDING}`}>
-          {t(`maintenance.status.${item.status || 'PENDING'}`)}
-        </span>
-      </td>
-      <td className="px-4 py-3 text-xs text-slate-400">{formatDate(item.createdAt)}</td>
-      {!readOnly && (
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-3">
-            <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700"><Edit2 size={15} /></button>
-            <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700"><Trash2 size={15} /></button>
-          </div>
+  const rows = items.map(item => {
+    const room = rooms.find(r => String(r.id) === String(item.roomId));
+    const equip = equipments.find(e => String(e.id) === String(item.equipmentId));
+    const reporter = usersList.find(u => String(u.id) === String(item.reportedBy));
+    const assignee = usersList.find(u => String(u.id) === String(item.assignedTo));
+
+    return (
+      <tr key={item.id} className="hover:bg-stone-50">
+        <td className="px-4 py-3 font-mono text-xs font-bold">#{item.id}</td>
+        <td className="px-4 py-3 font-semibold text-sm">{item.issueTitle}</td>
+        <td className="px-4 py-3 text-xs text-slate-500 max-w-xs truncate">{item.issueDescription || '-'}</td>
+        <td className="px-4 py-3 text-xs">
+          {room ? `Phòng ${room.roomNumber}` : (item.roomId ? `Phòng #${item.roomId}` : '-')}
         </td>
-      )}
-    </tr>
-  ));
+        <td className="px-4 py-3 text-xs">
+          {equip ? `${equip.equipmentName} (${equip.equipmentCode})` : (item.equipmentId ? `TB #${item.equipmentId}` : '-')}
+        </td>
+        <td className="px-4 py-3 text-xs">
+          {reporter ? `${reporter.fullName} (${reporter.userName || reporter.username || ''})` : (item.reportedBy || '-')}
+        </td>
+        <td className="px-4 py-3 text-xs">
+          {assignee ? `${assignee.fullName} (${assignee.userName || assignee.username || ''})` : (item.assignedTo || '-')}
+        </td>
+        <td className="px-4 py-3">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SEVERITY_COLORS[item.severity] || SEVERITY_COLORS.MEDIUM}`}>
+            {t(`maintenance.severity.${item.severity || 'MEDIUM'}`)}
+          </span>
+        </td>
+        <td className="px-4 py-3">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[item.status] || STATUS_COLORS.PENDING}`}>
+            {t(`maintenance.status.${item.status || 'PENDING'}`)}
+          </span>
+        </td>
+        <td className="px-4 py-3 text-xs text-slate-400">{formatDate(item.createdAt)}</td>
+        {!readOnly && (
+          <td className="px-4 py-3">
+            <div className="flex items-center gap-3">
+              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700"><Edit2 size={15} /></button>
+              <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700"><Trash2 size={15} /></button>
+            </div>
+          </td>
+        )}
+      </tr>
+    );
+  });
 
   const cols = [t('maintenance.columns.id'), t('maintenance.columns.title'), t('maintenance.columns.description'), t('maintenance.columns.room'), t('maintenance.columns.equipment'), t('maintenance.columns.reportedBy'), t('maintenance.columns.assignedTo'), t('maintenance.columns.severity'), t('maintenance.columns.status'), t('maintenance.columns.createdAt'), ...(!readOnly ? [t('maintenance.columns.actions')] : [])];
 
@@ -273,26 +405,170 @@ export default function MaintenanceManager({ readOnly = false }) {
     <div>
       <Toast type={toast.type} message={toast.message} onClose={closeToast} />
 
-      <div className="flex justify-between gap-3 mb-4">
-        <button onClick={fetchData} className="p-2 border rounded hover:bg-stone-100"><RefreshCw size={14} /></button>
+      <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row">
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <select
+            value={searchOpt}
+            onChange={(e) => {
+              setSearchOpt(e.target.value);
+              setSearch('');
+            }}
+            className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+          >
+            <option value="issueTitle">{t('maintenance.searchOptions.title') || 'Tiêu đề lỗi'}</option>
+            <option value="roomId">{t('maintenance.searchOptions.roomId') || 'Mã phòng'}</option>
+            <option value="equipmentId">{t('maintenance.searchOptions.equipmentId') || 'Mã thiết bị'}</option>
+            <option value="reportedBy">{t('maintenance.searchOptions.reportedBy') || 'Mã người báo'}</option>
+            <option value="assignedTo">{t('maintenance.searchOptions.assignedTo') || 'Mã người sửa'}</option>
+            <option value="id">{t('maintenance.searchOptions.id') || 'Mã yêu cầu'}</option>
+          </select>
+
+          <div className="relative max-w-xs flex-1">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type={searchOpt === 'issueTitle' ? 'text' : 'number'}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
+              placeholder={t(`maintenance.placeholders.${searchOpt}`) || t('maintenance.searchPlaceholder') || 'Tìm kiếm...'}
+              className="w-full rounded border border-stone-300 py-2 pl-8 pr-3 text-sm outline-none focus:border-[#bfa15f]"
+            />
+          </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(0);
+            }}
+            className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+          >
+            <option value="">{t('maintenance.status.all') || 'Tất cả trạng thái'}</option>
+            {STATUS_OPTIONS.map(opt => (
+              <option key={opt} value={opt}>
+                {t(`maintenance.status.${opt}`) || opt}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={handleSearch}
+            className="rounded border p-2 hover:bg-stone-100"
+            title="Tải lại"
+          >
+            <RefreshCw size={14} />
+          </button>
+        </div>
+
         {!readOnly && (
-          <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
-            <Plus size={16} /> {t('maintenance.addBtn')}
+          <button
+            type="button"
+            onClick={openCreate}
+            className="flex items-center gap-2 rounded bg-[#bfa15f] px-4 py-2 text-sm font-semibold text-white shadow transition-colors hover:bg-[#a3854a]"
+          >
+            <Plus size={16} />
+            {t('maintenance.addBtn')}
           </button>
         )}
       </div>
 
-      <DataTable columns={cols} rows={rows} loading={loading} emptyText={t('maintenance.emptyText')} />
+      <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} emptyText={t('maintenance.emptyText')} />
 
       <Modal open={modal.open} title={modal.editing ? t('maintenance.modal.editTitle') : t('maintenance.modal.addTitle')} onClose={closeModal} size="lg">
         <form onSubmit={handleSave} className="space-y-4">
           {modal.editing ? (
             <>
               <div className="grid grid-cols-3 gap-4">
-                <div>
+                <div className="relative">
                   <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.assignedTo')}</label>
-                  <input type="number" value={form.assignedTo} onChange={e => setForm(f => ({ ...f, assignedTo: e.target.value }))}
-                    className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={assignedToSearchQuery}
+                      onFocus={() => setIsAssignedToDropdownOpen(true)}
+                      onChange={(event) => {
+                        setAssignedToSearchQuery(event.target.value);
+                        setIsAssignedToDropdownOpen(true);
+                        const matched = usersList.find(
+                          (u) =>
+                            `${u.fullName} (${u.userName || u.username || ''})`.toLowerCase() ===
+                            event.target.value.toLowerCase()
+                        );
+                        if (matched) {
+                          setForm((current) => ({ ...current, assignedTo: String(matched.id) }));
+                        } else {
+                          setForm((current) => ({ ...current, assignedTo: '' }));
+                        }
+                      }}
+                      placeholder="Chọn nhân viên..."
+                      className="w-full border border-stone-300 rounded pl-3 pr-8 py-2 text-sm focus:border-[#bfa15f] outline-none"
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      {form.assignedTo && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAssignedToSearchQuery('');
+                            setForm((current) => ({ ...current, assignedTo: '' }));
+                          }}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                      <ChevronDown size={14} className="text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {isAssignedToDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsAssignedToDropdownOpen(false)}
+                      />
+                      <div className="absolute left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded border border-stone-200 bg-white py-1 shadow-lg">
+                        <div
+                          onClick={() => {
+                            setForm((current) => ({ ...current, assignedTo: '' }));
+                            setIsAssignedToDropdownOpen(false);
+                          }}
+                          className={`flex items-center justify-between cursor-pointer px-3 py-1.5 text-xs hover:bg-stone-50 ${
+                            !form.assignedTo ? 'bg-stone-100 font-semibold text-[#bfa15f]' : 'text-slate-600'
+                          }`}
+                        >
+                          <span>Không chọn</span>
+                          {!form.assignedTo && <Check size={12} className="text-[#bfa15f]" />}
+                        </div>
+                        {filteredAssignees.length > 0 ? (
+                          filteredAssignees.map((u) => {
+                            const isSelected = String(form.assignedTo) === String(u.id);
+                            return (
+                              <div
+                                key={u.id}
+                                onClick={() => {
+                                  setForm((current) => ({ ...current, assignedTo: String(u.id) }));
+                                  setIsAssignedToDropdownOpen(false);
+                                }}
+                                className={`flex items-center justify-between cursor-pointer px-3 py-1.5 text-xs hover:bg-stone-50 ${
+                                  isSelected ? 'bg-amber-50 font-semibold text-[#bfa15f]' : 'text-slate-700'
+                                }`}
+                              >
+                                <span>
+                                  {u.fullName} ({u.userName || u.username || ''})
+                                </span>
+                                {isSelected && <Check size={12} className="text-[#bfa15f]" />}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="px-3 py-1.5 text-xs text-slate-400 italic">
+                            Không tìm thấy nhân viên
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.severity')}</label>
@@ -529,10 +805,84 @@ export default function MaintenanceManager({ readOnly = false }) {
                   )}
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.reportedBy')}</label>
-                  <input required type="number" value={form.reportedBy} onChange={e => setForm(f => ({ ...f, reportedBy: e.target.value }))}
-                    className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+                  <div className="relative">
+                    <input
+                      required
+                      type="text"
+                      value={reportedBySearchQuery}
+                      onFocus={() => setIsReportedByDropdownOpen(true)}
+                      onChange={(event) => {
+                        setReportedBySearchQuery(event.target.value);
+                        setIsReportedByDropdownOpen(true);
+                        const matched = usersList.find(
+                          (u) =>
+                            `${u.fullName} (${u.userName || u.username || ''})`.toLowerCase() ===
+                            event.target.value.toLowerCase()
+                        );
+                        if (matched) {
+                          setForm((current) => ({ ...current, reportedBy: String(matched.id) }));
+                        } else {
+                          setForm((current) => ({ ...current, reportedBy: '' }));
+                        }
+                      }}
+                      placeholder="Chọn nhân viên..."
+                      className="w-full border border-stone-300 rounded pl-3 pr-8 py-2 text-sm focus:border-[#bfa15f] outline-none"
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      {form.reportedBy && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReportedBySearchQuery('');
+                            setForm((current) => ({ ...current, reportedBy: '' }));
+                          }}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                      <ChevronDown size={14} className="text-slate-400 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {isReportedByDropdownOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsReportedByDropdownOpen(false)}
+                      />
+                      <div className="absolute left-0 right-0 z-20 mt-1 max-h-48 overflow-y-auto rounded border border-stone-200 bg-white py-1 shadow-lg font-normal">
+                        {filteredReporters.length > 0 ? (
+                          filteredReporters.map((u) => {
+                            const isSelected = String(form.reportedBy) === String(u.id);
+                            return (
+                              <div
+                                key={u.id}
+                                onClick={() => {
+                                  setForm((current) => ({ ...current, reportedBy: String(u.id) }));
+                                  setIsReportedByDropdownOpen(false);
+                                }}
+                                className={`flex items-center justify-between cursor-pointer px-3 py-1.5 text-xs hover:bg-stone-50 ${
+                                  isSelected ? 'bg-amber-50 font-semibold text-[#bfa15f]' : 'text-slate-700'
+                                }`}
+                              >
+                                <span>
+                                  {u.fullName} ({u.userName || u.username || ''})
+                                </span>
+                                {isSelected && <Check size={12} className="text-[#bfa15f]" />}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="px-3 py-1.5 text-xs text-slate-400 italic">
+                            Không tìm thấy nhân viên
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <div>

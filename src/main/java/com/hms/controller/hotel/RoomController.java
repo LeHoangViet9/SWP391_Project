@@ -4,7 +4,6 @@ import com.hms.common.dto.ApiResponse;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
-import com.hms.common.utils.CloudinaryUtils;
 import com.hms.dto.room.request.RoomRequest;
 import com.hms.dto.room.response.RoomResponse;
 import com.hms.service.hotel.IRoomService;
@@ -28,11 +27,14 @@ public class RoomController {
 
     private final IRoomService roomService;
     private final MessageSource messageSource;
-    private final CloudinaryUtils cloudinaryUtils;
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getAllRooms(
-            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String roomNumber,
+            @RequestParam(required = false) Long roomTypeId,
+            @RequestParam(required = false) Integer floor,
+            @RequestParam(required = false) RoomStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
@@ -44,7 +46,7 @@ public class RoomController {
         ApiResponse<Page<RoomResponse>> response = ApiResponse.<Page<RoomResponse>>builder()
                 .success(true)
                 .message(message)
-                .data(roomService.getAllRooms(keywords, page, size, sortBy, direction))
+                .data(roomService.getAllRooms(id, roomNumber, roomTypeId, floor, status, page, size, sortBy, direction))
                 .status(HttpStatus.OK)
                 .build();
 

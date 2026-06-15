@@ -22,10 +22,10 @@ public class RoomType {
     private Long id;
     @Column(name = "type_name",nullable = false, unique = true, length = 100)
     private String typeName;
-    @Column(name = "description")
+    @Column(name = "description", length = 255)
     private String description;
     @Column(name ="base_price", nullable = false)
-    private BigDecimal basePrice;
+    private Integer basePrice;
     @Column(name ="max_guests", nullable = false)
     private Integer maxGuests;
     @Enumerated(EnumType.STRING)

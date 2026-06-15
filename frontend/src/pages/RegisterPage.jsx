@@ -60,19 +60,20 @@ export default function RegisterPage() {
   };
 
   const inputClass =
-    'w-full border border-stone-300 px-4 py-3 text-slate-800 outline-none focus:border-[#bfa15f] transition-colors';
+      'w-full border border-stone-300 px-4 py-3 text-slate-800 outline-none focus:border-[#bfa15f] transition-colors';
   const labelClass = 'block text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2';
 
   return (
-    <AuthLayout title={t('auth.register')} subtitle={t('auth.registerSubtitle')}>
-      <form onSubmit={handleSubmit} className="bg-white border border-stone-200 shadow-lg p-8 space-y-4">
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded">{error}</div>
-        )}
-        {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded">{success}</div>
-        )}
+      <AuthLayout title={t('auth.register')} subtitle={t('auth.registerSubtitle')}>
+        <form onSubmit={handleSubmit} className="bg-white border border-stone-200 shadow-lg p-8 space-y-4">
+          {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded">{error}</div>
+          )}
+          {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded">{success}</div>
+          )}
 
+<<<<<<< HEAD
         <div>
           <label className={labelClass}>{t('auth.fullName')}</label>
           <input type="text" required value={form.fullName} onChange={(e) => update('fullName', e.target.value)} className={inputClass} />
@@ -87,31 +88,30 @@ export default function RegisterPage() {
           <div>
             <label className={labelClass}>Email</label>
             <input type="email" required value={form.email} onChange={(e) => update('email', e.target.value)} className={inputClass} placeholder="example@gmail.com" />
-          </div>
+=======
           <div>
-            <label className={labelClass}>{t('auth.phone')}</label>
-            <input type="tel" required value={form.phone} onChange={(e) => update('phone', e.target.value)} className={inputClass} placeholder="0912345678" />
+            <label className={labelClass}>{t('auth.fullName')}</label>
+            <input type="text" required value={form.fullName} onChange={(e) => update('fullName', e.target.value)} className={inputClass} />
+>>>>>>> ui-react2
           </div>
-        </div>
 
-        <div>
-          <label className={labelClass}>{t('auth.password')}</label>
-          <div className="relative">
-            <input
-              type={showPass ? 'text' : 'password'}
-              required
-              minLength={6}
-              value={form.password}
-              onChange={(e) => update('password', e.target.value)}
-              className={`${inputClass} pr-12`}
-            />
-            <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-              {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+          <div>
+            <label className={labelClass}>{t('auth.username')}</label>
+            <input type="text" required minLength={4} maxLength={50} value={form.userName} onChange={(e) => update('userName', e.target.value)} className={inputClass} />
           </div>
-          <p className="text-xs text-slate-400 mt-1">{t('auth.passwordHint')}</p>
-        </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Email</label>
+              <input type="email" required value={form.email} onChange={(e) => update('email', e.target.value)} className={inputClass} placeholder="example@gmail.com" />
+            </div>
+            <div>
+              <label className={labelClass}>{t('auth.phone')}</label>
+              <input type="tel" required value={form.phone} onChange={(e) => update('phone', e.target.value)} className={inputClass} placeholder="0912345678" />
+            </div>
+          </div>
+
+<<<<<<< HEAD
         <div>
           <label className={labelClass}>{t('auth.rePassword')}</label>
 
@@ -133,17 +133,58 @@ export default function RegisterPage() {
             </button>
           </div>
         </div>
+=======
+          <div>
+            <label className={labelClass}>{t('auth.password')}</label>
+            <div className="relative">
+              <input
+                  type={showPass ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  value={form.password}
+                  onChange={(e) => update('password', e.target.value)}
+                  className={`${inputClass} pr-12`}
+              />
+              <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">{t('auth.passwordHint')}</p>
+          </div>
+>>>>>>> ui-react2
 
-        <button type="submit" disabled={loading} className="w-full btn-gold py-3.5 rounded flex items-center justify-center gap-2 disabled:opacity-60">
-          <UserPlus size={18} />
-          {loading ? '...' : t('auth.register')}
-        </button>
+          <div>
+            <label className={labelClass}>{t('auth.rePassword')}</label>
 
-        <p className="text-center text-sm text-slate-500">
-          {t('auth.hasAccount')}{' '}
-          <Link to="/login" className="text-[#bfa15f] font-semibold hover:underline">{t('auth.login')}</Link>
-        </p>
-      </form>
-    </AuthLayout>
+            <div className="relative">
+              <input
+                  type={showRePass ? 'text' : 'password'}
+                  required
+                  value={form.rePassword}
+                  onChange={(e) => update('rePassword', e.target.value)}
+                  className={`${inputClass} pr-12`}
+              />
+
+              <button
+                  type="button"
+                  onClick={() => setShowRePass(!showRePass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              >
+                {showRePass ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" disabled={loading} className="w-full btn-gold py-3.5 rounded flex items-center justify-center gap-2 disabled:opacity-60">
+            <UserPlus size={18} />
+            {loading ? '...' : t('auth.register')}
+          </button>
+
+          <p className="text-center text-sm text-slate-500">
+            {t('auth.hasAccount')}{' '}
+            <Link to="/login" className="text-[#bfa15f] font-semibold hover:underline">{t('auth.login')}</Link>
+          </p>
+        </form>
+      </AuthLayout>
   );
 }

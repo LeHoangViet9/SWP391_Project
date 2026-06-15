@@ -20,7 +20,19 @@ public interface IUserService {
             ResetPasswordRequest request
     );
 
-    Page<UserResponse> getUsers(String keywords, AccountStatus status, Integer page, Integer size, SortField sortBy, SortDirection direction);
+    Page<UserResponse> getUsers(
+            Long id,
+            String fullName,
+            String userName,
+            String email,
+            String phone,
+            String roleName,
+            AccountStatus status,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction
+    );
 
     UserResponse createUser(UserManagementRequest request);
 

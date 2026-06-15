@@ -14,11 +14,18 @@ public interface CustomerService {
     CustomerResponse createCustomer(CustomerCreateDTO customer);
     CustomerResponse updateCustomer(Long id,CustomerCreateDTO dto);
     void deleteCustomer(Long id);
-    Page<CustomerResponse> getCustomers(String keywords, AccountStatus status,
-                                         Integer page,
-                                        Integer size,
-                                        SortField sortBy,
-                                        SortDirection direction);
+    Page<CustomerResponse> getCustomers(
+            Long id,
+            String fullName,
+            String email,
+            String phone,
+            String idNumberCard,
+            String nationality,
+            AccountStatus status,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction);
     CustomerResponse findById(Long id);
     void restoreCustomer(Long id);
     void forceDeleteCustomer(Long id);
