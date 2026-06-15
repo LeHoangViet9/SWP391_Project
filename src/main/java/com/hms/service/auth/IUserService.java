@@ -8,17 +8,6 @@ import com.hms.dto.auth.response.UserResponse;
 import org.springframework.data.domain.Page;
 
 public interface IUserService {
-    UserResponse registerNewUser(UserRegisterRequest registerRequest);
-    UserResponse login(UserLoginRequest loginRequest);
-    UserResponse getCurrentUser(String userName);
-    void changePassword(String userName, ChangePasswordRequest changePasswordRequest);
-    void forgotPassword(
-            ForgotPasswordRequest request
-    );
-
-    void resetPassword(
-            ResetPasswordRequest request
-    );
 
     Page<UserResponse> getUsers(String keywords, AccountStatus status, Integer page, Integer size, SortField sortBy, SortDirection direction);
 

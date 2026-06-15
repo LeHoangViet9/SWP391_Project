@@ -232,4 +232,3 @@ public class RoomServiceImpl implements IRoomService {
         return roomRepository.findByRoomStatusIn(statuses, pageable).map(roomMapper::toResponse);
     }
 }
-
