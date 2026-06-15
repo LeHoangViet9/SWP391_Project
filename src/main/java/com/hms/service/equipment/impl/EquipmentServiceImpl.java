@@ -46,60 +46,31 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     @Override
     public Page<EquipmentResponse> getAllEquipments(
-            Long id,
-            String equipmentName,
-            String equipmentCode,
-            String location,
-            Long roomId,
-            EquipmentStatus status,
+            String keywords,
             Integer page,
             Integer size,
             SortField sortBy,
             SortDirection direction) {
 
-        java.util.List<Equipment> list = equipmentRepository.findAll();
-        java.util.stream.Stream<Equipment> stream = list.stream();
-
-        if (id != null) {
-            stream = stream.filter(e -> e.getId().equals(id));
-        }
-        if (org.springframework.util.StringUtils.hasText(equipmentName)) {
-            String cleanName = equipmentName.trim().toLowerCase();
-            stream = stream.filter(e -> e.getEquipmentName() != null && e.getEquipmentName().toLowerCase().contains(cleanName));
-        }
-        if (org.springframework.util.StringUtils.hasText(equipmentCode)) {
-            String cleanCode = equipmentCode.trim().toLowerCase();
-            stream = stream.filter(e -> e.getEquipmentCode() != null && e.getEquipmentCode().toLowerCase().contains(cleanCode));
-        }
-        if (org.springframework.util.StringUtils.hasText(location)) {
-            String cleanLoc = location.trim().toLowerCase();
-            stream = stream.filter(e -> e.getLocation() != null && e.getLocation().toLowerCase().contains(cleanLoc));
-        }
-        if (roomId != null) {
-            stream = stream.filter(e -> e.getRoom() != null && e.getRoom().getId().equals(roomId));
-        }
-        if (status != null) {
-            stream = stream.filter(e -> e.getStatus() == status);
+        if (keywords == null) {
+            keywords = "";
         } else {
-            stream = stream.filter(e -> e.getStatus() != EquipmentStatus.INACTIVE);
+            keywords = keywords.trim();
         }
 
-        java.util.List<Equipment> filteredList = stream.collect(java.util.stream.Collectors.toList());
+        Pageable pageable = pageableUtils.createPageable(
+                page,
+                size,
+                sortBy.getField(),
+                direction
+        );
 
-        // Sorting
-        java.util.Map<String, java.util.function.Function<Equipment, Comparable<?>>> extractors = new java.util.HashMap<>();
-        extractors.put("id", Equipment::getId);
-        extractors.put("equipmentName", Equipment::getEquipmentName);
-        extractors.put("equipmentCode", Equipment::getEquipmentCode);
-        extractors.put("location", Equipment::getLocation);
-        extractors.put("status", e -> e.getStatus() != null ? e.getStatus().name() : "");
-        extractors.put("roomNumber", e -> e.getRoom() != null ? e.getRoom().getRoomNumber() : "");
-
-        pageableUtils.sortList(filteredList, sortBy, direction, extractors);
-
-        // Pagination
-        Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
-        return pageableUtils.paginate(filteredList, pageable)
+        return equipmentRepository
+                .findByEquipmentNameContainingIgnoreCaseAndStatusNot(
+                        keywords,
+                        EquipmentStatus.INACTIVE,
+                        pageable
+                )
                 .map(equipmentMapper::toResponse);
     }
 

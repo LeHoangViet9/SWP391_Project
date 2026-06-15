@@ -99,7 +99,6 @@ public class UserServiceImpl implements IUserService {
         Locale locale = LocaleContextHolder.getLocale();
 
         User user = userRepository.findUserByUserName(loginRequest.getUsername())
-                .or(() -> userRepository.findUserByEmail(loginRequest.getUsername()))
                 .orElseThrow(() -> new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale)));
 
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
@@ -214,65 +213,16 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public Page<UserResponse> getUsers(
-            Long id,
-            String fullName,
-            String userName,
-            String email,
-            String phone,
-            String roleName,
+            String keywords,
             AccountStatus status,
             Integer page,
             Integer size,
             SortField sortBy,
             SortDirection direction) {
 
-        java.util.List<User> list = userRepository.findAll();
-        java.util.stream.Stream<User> stream = list.stream();
-
-        if (id != null) {
-            stream = stream.filter(u -> u.getId().equals(id));
-        }
-        if (org.springframework.util.StringUtils.hasText(fullName)) {
-            String cleanName = fullName.trim().toLowerCase();
-            stream = stream.filter(u -> u.getFullName() != null && u.getFullName().toLowerCase().contains(cleanName));
-        }
-        if (org.springframework.util.StringUtils.hasText(userName)) {
-            String cleanUser = userName.trim().toLowerCase();
-            stream = stream.filter(u -> u.getUserName() != null && u.getUserName().toLowerCase().contains(cleanUser));
-        }
-        if (org.springframework.util.StringUtils.hasText(email)) {
-            String cleanEmail = email.trim().toLowerCase();
-            stream = stream.filter(u -> u.getEmail() != null && u.getEmail().toLowerCase().contains(cleanEmail));
-        }
-        if (org.springframework.util.StringUtils.hasText(phone)) {
-            String cleanPhone = phone.trim().toLowerCase();
-            stream = stream.filter(u -> u.getPhone() != null && u.getPhone().toLowerCase().contains(cleanPhone));
-        }
-        if (org.springframework.util.StringUtils.hasText(roleName)) {
-            String cleanRole = roleName.trim().toLowerCase();
-            stream = stream.filter(u -> u.getRole() != null && u.getRole().getRoleName() != null && u.getRole().getRoleName().toLowerCase().contains(cleanRole));
-        }
-        if (status != null) {
-            stream = stream.filter(u -> u.getAccountStatus() == status);
-        }
-
-        java.util.List<User> filteredList = stream.collect(java.util.stream.Collectors.toList());
-
-        // Sorting
-        java.util.Map<String, java.util.function.Function<User, Comparable<?>>> extractors = new java.util.HashMap<>();
-        extractors.put("id", User::getId);
-        extractors.put("fullName", User::getFullName);
-        extractors.put("username", User::getUserName);
-        extractors.put("email", User::getEmail);
-        extractors.put("phone", User::getPhone);
-        extractors.put("roleName", u -> u.getRole() != null ? u.getRole().getRoleName() : "");
-        extractors.put("accountStatus", u -> u.getAccountStatus() != null ? u.getAccountStatus().name() : "");
-
-        pageableUtils.sortList(filteredList, sortBy, direction, extractors);
-
-        // Pagination
+        String normalizedKeywords = keywords == null ? "" : keywords.trim();
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
-        return pageableUtils.paginate(filteredList, pageable)
+        return userRepository.searchUsers(normalizedKeywords, status, pageable)
                 .map(user -> userMapper.toResponse(user, null));
     }
 
@@ -281,10 +231,6 @@ public class UserServiceImpl implements IUserService {
     public UserResponse createUser(UserManagementRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
         validatePasswordForManagement(request, true, locale);
-
-        if ("CUSTOMER".equalsIgnoreCase(request.getRoleName())) {
-            throw new ForbiddenException(messageSource.getMessage("error.user.create.customer.disabled", null, locale));
-        }
 
         if (userRepository.existsUserByUserName(request.getUserName())) {
             throw new ConflictException(messageSource.getMessage("error.username.exists", null, locale));
