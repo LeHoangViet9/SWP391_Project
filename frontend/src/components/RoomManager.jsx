@@ -15,7 +15,9 @@ import Toast from './shared/Toast';
 
 const STATUS_COLORS = {
   AVAILABLE: 'bg-emerald-100 text-emerald-700',
+  OCCUPIED: 'bg-blue-100 text-blue-700',
   MAINTENANCE: 'bg-amber-100 text-amber-700',
+  INACTIVE: 'bg-red-100 text-red-700',
 };
 
 const EMPTY_FORM = { roomNumber: '', roomTypeId: '', floorNumber: '', description: '' };
@@ -36,7 +38,6 @@ export default function RoomManager({ readOnly = false }) {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
-  const [searchOpt, setSearchOpt] = useState('roomNumber');
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
@@ -46,25 +47,10 @@ export default function RoomManager({ readOnly = false }) {
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
 
-  const fetchDataDirect = useCallback(async (p, opt, val) => {
+  const fetchData = useCallback(async (p = page) => {
     setLoading(true);
     try {
-      const params = { page: p, size: 10 };
-      const trimmed = val ? String(val).trim() : '';
-      if (trimmed) {
-        if (opt === 'id') {
-          params.id = trimmed;
-        } else if (opt === 'roomNumber') {
-          params.roomNumber = trimmed;
-        } else if (opt === 'roomTypeId') {
-          params.roomTypeId = trimmed;
-        } else if (opt === 'floor') {
-          params.floor = trimmed;
-        } else if (opt === 'status') {
-          params.status = trimmed;
-        }
-      }
-      const res = await getAllRooms(params, locale);
+      const res = await getAllRooms({ page: p, size: 10, keywords: search || undefined }, locale);
       setItems(res?.data?.content ?? []);
       setTotalPages(res?.data?.totalPages ?? 1);
     } catch (e) {
@@ -72,11 +58,7 @@ export default function RoomManager({ readOnly = false }) {
     } finally {
       setLoading(false);
     }
-  }, [locale, t]);
-
-  const fetchData = useCallback(async (p = page) => {
-    await fetchDataDirect(p, searchOpt, search);
-  }, [page, searchOpt, search, fetchDataDirect]);
+  }, [search, page]);
 
   useEffect(() => { fetchData(page); }, [page, fetchData]);
 
@@ -156,7 +138,7 @@ export default function RoomManager({ readOnly = false }) {
 
   const rows = items.map(item => {
     const status = getRoomStatus(item);
-    const displayStatus = status === 'AVAILABLE' ? t('room.status.available') : t('room.status.maintenance');
+    const displayStatus = status === 'AVAILABLE' ? t('room.status.available') : status === 'OCCUPIED' ? t('room.status.occupied') : status === 'MAINTENANCE' ? t('room.status.maintenance') : t('room.status.inactive');
     return (
       <tr key={item.id} className="hover:bg-stone-50">
         <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
@@ -176,8 +158,8 @@ export default function RoomManager({ readOnly = false }) {
               onChange={e => handleStatusChange(item, e.target.value)}
               className={`text-xs font-semibold px-2 py-1 rounded-full border-0 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
             >
-              {['AVAILABLE', 'MAINTENANCE'].map(s => {
-                const label = s === 'AVAILABLE' ? t('room.status.available') : t('room.status.maintenance');
+              {['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'INACTIVE'].map(s => {
+                const label = s === 'AVAILABLE' ? t('room.status.available') : s === 'OCCUPIED' ? t('room.status.occupied') : s === 'MAINTENANCE' ? t('room.status.maintenance') : t('room.status.inactive');
                 return <option key={s} value={s}>{label}</option>;
               })}
             </select>
@@ -214,66 +196,17 @@ export default function RoomManager({ readOnly = false }) {
 
       <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
         <div className="flex items-center gap-2 flex-1">
-          <select
-            value={searchOpt}
-            onChange={e => {
-              setSearchOpt(e.target.value);
-              setSearch('');
-              fetchDataDirect(0, e.target.value, '');
-            }}
-            className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700"
-          >
-            <option value="roomNumber">{t('room.searchOptions.roomNumber') || 'Số phòng'}</option>
-            <option value="id">{t('room.searchOptions.id') || 'Mã (ID)'}</option>
-            <option value="roomTypeId">{t('room.searchOptions.roomTypeId') || 'Loại phòng'}</option>
-            <option value="floor">{t('room.searchOptions.floor') || 'Tầng'}</option>
-            <option value="status">{t('room.searchOptions.status') || 'Trạng thái'}</option>
-          </select>
-
-          {searchOpt === 'roomTypeId' ? (
-            <select
+          <div className="relative flex-1 max-w-xs">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
               value={search}
-              onChange={e => {
-                setSearch(e.target.value);
-                fetchDataDirect(0, searchOpt, e.target.value);
-              }}
-              className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700 max-w-xs flex-1"
-            >
-              <option value="">{t('room.modal.selectType') || 'Chọn loại phòng'}</option>
-              {roomTypes.map(rt => (
-                <option key={rt.id} value={rt.id}>{rt.typeName}</option>
-              ))}
-            </select>
-          ) : searchOpt === 'status' ? (
-            <select
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value);
-                fetchDataDirect(0, searchOpt, e.target.value);
-              }}
-              className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700 max-w-xs flex-1"
-            >
-              <option value="">{t('booking.filters.all') || 'Tất cả'}</option>
-              <option value="AVAILABLE">{t('room.status.available') || 'Sẵn sàng'}</option>
-              <option value="MAINTENANCE">{t('room.status.maintenance') || 'Đang sửa chữa'}</option>
-            </select>
-          ) : (
-            <div className="relative flex-1 max-w-xs">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type={searchOpt === 'id' || searchOpt === 'floor' ? 'number' : 'text'}
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && fetchData(0)}
-                placeholder={
-                  searchOpt === 'id' ? (t('room.placeholders.id') || 'Nhập mã ID...') :
-                  searchOpt === 'floor' ? (t('room.placeholders.floor') || 'Nhập số tầng...') :
-                  (t('room.placeholders.roomNumber') || t('room.searchPlaceholder') || 'Nhập số phòng...')
-                }
-                className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
-              />
-            </div>
-          )}
+              onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && fetchData(0)}
+              placeholder={t('room.searchPlaceholder')}
+              className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
+            />
+          </div>
           <button onClick={() => fetchData(0)} className="p-2 border rounded hover:bg-stone-100">
             <RefreshCw size={14} />
           </button>
