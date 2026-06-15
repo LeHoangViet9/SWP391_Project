@@ -9,14 +9,9 @@ import com.hms.dto.maintenance.response.MaintenanceResponse;
 import com.hms.service.maintenance.MaintenanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-<<<<<<< HEAD
-import org.springframework.security.access.prepost.PreAuthorize;
-=======
 import org.springframework.data.domain.Page;
->>>>>>> ui-react2
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/maintenance-requests")
@@ -37,10 +32,7 @@ public class MaintenanceController {
     }
 
     @GetMapping
-<<<<<<< HEAD
     @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
-    public ApiResponse<List<MaintenanceResponse>> getAllRequests() {
-=======
     public ApiResponse<Page<MaintenanceResponse>> getAllRequests(
             @RequestParam(required = false) Long id,
             @RequestParam(required = false) String issueTitle,
@@ -50,12 +42,12 @@ public class MaintenanceController {
             @RequestParam(required = false) Long assignedTo,
             @RequestParam(required = false) com.hms.common.enums.MaintenanceSeverity severity,
             @RequestParam(required = false) com.hms.common.enums.MaintenanceStatus status,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
             @RequestParam(defaultValue = "ASC") SortDirection direction
     ) {
->>>>>>> ui-react2
+
         return ApiResponse.success(
                 "Get maintenance request list successfully",
                 maintenanceService.getAllRequests(
@@ -105,6 +97,8 @@ public class MaintenanceController {
     ) {
         maintenanceService.deleteRequest(id);
 
-        return ApiResponse.success("Delete maintenance request successfully");
+        return ApiResponse.success(
+                "Delete maintenance request successfully"
+        );
     }
 }

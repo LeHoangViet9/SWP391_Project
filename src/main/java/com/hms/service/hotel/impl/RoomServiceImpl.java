@@ -44,7 +44,7 @@ public class RoomServiceImpl implements IRoomService {
     private final LocalFileUtils localFileUtils;
 
     @Override
-<<<<<<< HEAD
+
     public Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, @NotNull SortField sortBy, SortDirection direction) {
         // Không sử dụng keywords - lấy tất cả phòng theo status (không phải INACTIVE)
         Pageable pageable = pageableUtils.createPageable(
@@ -55,7 +55,7 @@ public class RoomServiceImpl implements IRoomService {
         );
         // Chỉ lấy các phòng không bị xóa (status != INACTIVE)
         return roomRepository.findByRoomStatusNot(RoomStatus.INACTIVE, pageable).map(roomMapper::toResponse);
-=======
+
     public Page<RoomResponse> getAllRooms(
             Long id,
             String roomNumber,
@@ -176,16 +176,14 @@ public class RoomServiceImpl implements IRoomService {
         room.setRoomImages(new ArrayList<>());
 
         // XỬ LÝ ẢNH MỚI: Upload lên Cloudinary và lưu vào bảng room_img thay vì lưu cột cũ
-<<<<<<< HEAD
         if (files != null && !files.isEmpty()) {
             // Đảm bảo list ảnh không bị null trước khi add
             if (room.getRoomImages() == null) {
                 room.setRoomImages(new ArrayList<>());
             }
-=======
+
         if (file != null && !file.isEmpty()) {
             String imageUrl = localFileUtils.uploadFile(file);
->>>>>>> ui-react2
 
             for (MultipartFile singleFile : files) {
                 if (!singleFile.isEmpty()) {
@@ -229,16 +227,15 @@ public class RoomServiceImpl implements IRoomService {
         populateRoomData(room, request, roomType);
 
         // XỬ LÝ ẢNH CẬP NHẬT: Thêm một ảnh mới vào Album ảnh hiện tại của phòng
-<<<<<<< HEAD
+
         if (files != null && !files.isEmpty()) {
             // Đảm bảo list ảnh không bị null trước khi add
             if (room.getRoomImages() == null) {
                 room.setRoomImages(new ArrayList<>());
             }
-=======
+
         if (file != null && !file.isEmpty()) {
             String imageUrl = localFileUtils.uploadFile(file);
->>>>>>> ui-react2
 
             for (MultipartFile singleFile : files) {
                 if (!singleFile.isEmpty()) {

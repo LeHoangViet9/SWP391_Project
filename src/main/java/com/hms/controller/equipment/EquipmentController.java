@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
 
+
 @RestController
 @RequestMapping("/api/v1/equipments")
 @RequiredArgsConstructor
@@ -44,9 +45,7 @@ public class EquipmentController {
         Locale locale = LocaleContextHolder.getLocale();
 
         Page<EquipmentResponse> data = equipmentService.getAllEquipments(
-<<<<<<< HEAD
-                keywords, page, size, sortBy, direction
-=======
+                keywords, page, size, sortBy, direction,
                 id,
                 equipmentName,
                 equipmentCode,
@@ -57,7 +56,6 @@ public class EquipmentController {
                 size,
                 sortBy,
                 direction
->>>>>>> ui-react2
         );
 
         String message = messageSource.getMessage("equipment.getall.success", null, locale);
