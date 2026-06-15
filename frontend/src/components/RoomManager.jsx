@@ -18,7 +18,7 @@ const STATUS_COLORS = {
   MAINTENANCE: 'bg-amber-100 text-amber-700',
 };
 
-const EMPTY_FORM = { roomNumber: '', roomTypeId: '', floorNumber: '', description: '' };
+const EMPTY_FORM = { roomTypeId: '', floorNumber: '', description: '' };
 
 function getRoomStatus(item) {
   return item.roomStatus || item.status || 'AVAILABLE';
@@ -94,7 +94,6 @@ export default function RoomManager({ readOnly = false }) {
 
   const openEdit = (item) => {
     setForm({
-      roomNumber: item.roomNumber || '',
       roomTypeId: getRoomTypeId(item),
       floorNumber: item.floorNumber || '',
       description: item.description || '',
@@ -110,9 +109,9 @@ export default function RoomManager({ readOnly = false }) {
     if (!modal.editing && !file) return notify(t('room.toast.imageRequired'), 'warning');
 
     const payload = {
-      ...form,
       roomTypeId: Number(form.roomTypeId),
       floorNumber: Number(form.floorNumber),
+      description: form.description,
     };
 
     setSaving(true);
@@ -291,23 +290,18 @@ export default function RoomManager({ readOnly = false }) {
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('room.modal.roomNumber')}</label>
-              <input required value={form.roomNumber} onChange={e => setForm(f => ({ ...f, roomNumber: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder="101" />
-            </div>
-            <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('room.modal.floor')}</label>
               <input required type="number" min="1" value={form.floorNumber} onChange={e => setForm(f => ({ ...f, floorNumber: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder="1" />
             </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('room.modal.roomType')}</label>
-            <select required value={form.roomTypeId} onChange={e => setForm(f => ({ ...f, roomTypeId: e.target.value }))}
-              className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
-              <option value="">{t('room.modal.selectType')}</option>
-              {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.typeName}</option>)}
-            </select>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('room.modal.roomType')}</label>
+              <select required value={form.roomTypeId} onChange={e => setForm(f => ({ ...f, roomTypeId: e.target.value }))}
+                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
+                <option value="">{t('room.modal.selectType')}</option>
+                {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.typeName}</option>)}
+              </select>
+            </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">

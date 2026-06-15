@@ -28,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+
 
 @Service
 @RequiredArgsConstructor
@@ -146,11 +148,6 @@ public class RoomServiceImpl implements IRoomService {
     public RoomResponse createRoom(RoomRequest request, MultipartFile file) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        // Kiểm tra xem số phòng đã tồn tại chưa
-        if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
-            throw new ConflictException(messageSource.getMessage("error.room.exists", null, locale));
-        }
-
         // Kiểm tra loại phòng
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
@@ -158,10 +155,14 @@ public class RoomServiceImpl implements IRoomService {
         Room room = new Room();
         populateRoomData(room, request, roomType);
 
+        // Sinh số phòng tự động theo thứ tự tăng dần dựa trên floorNumber
+        String generatedRoomNumber = generateRoomNumber(request.getFloorNumber());
+        room.setRoomNumber(generatedRoomNumber);
+
         // Khởi tạo list ảnh trống cho đối tượng Room mới tạo
         room.setRoomImages(new ArrayList<>());
 
-        // XỬ LÝ ẢNH MỚI: Upload lên Cloudinary và lưu vào bảng room_img thay vì lưu cột cũ
+        // XỬ LÝ ẢNH MỚI: Upload lên Local Storage và lưu vào bảng room_img thay vì lưu cột cũ
         if (file != null && !file.isEmpty()) {
             String imageUrl = localFileUtils.uploadFile(file);
 
@@ -191,12 +192,14 @@ public class RoomServiceImpl implements IRoomService {
                 .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
 
-        if (roomRepository.existsByRoomNumberAndIdNot(request.getRoomNumber(), id)) {
-            throw new ConflictException(messageSource.getMessage("error.room.exists", null, locale));
-        }
-
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+
+        // Nếu thay đổi tầng, tự động cập nhật số phòng theo tầng mới
+        if (!room.getFloorNumber().equals(request.getFloorNumber())) {
+            String generatedRoomNumber = generateRoomNumber(request.getFloorNumber());
+            room.setRoomNumber(generatedRoomNumber);
+        }
 
         populateRoomData(room, request, roomType);
 
@@ -271,11 +274,29 @@ public class RoomServiceImpl implements IRoomService {
     }
 
     /**
+     * Method private để sinh số phòng tự động dựa trên floorNumber
+     */
+    private String generateRoomNumber(Integer floorNumber) {
+        List<Room> roomsOnFloor = roomRepository.findByFloorNumber(floorNumber);
+        int maxNumber = floorNumber * 100 - 1;
+        for (Room r : roomsOnFloor) {
+            try {
+                int num = Integer.parseInt(r.getRoomNumber());
+                if (num > maxNumber) {
+                    maxNumber = num;
+                }
+            } catch (NumberFormatException e) {
+                // Bỏ qua nếu số phòng không phải định dạng số
+            }
+        }
+        return String.valueOf(maxNumber + 1);
+    }
+
+    /**
      * Method private để fill data từ request vào entity
      * Tái sử dụng trong cả create và update
      */
     private void populateRoomData(Room room, RoomRequest request, RoomType roomType) {
-        room.setRoomNumber(request.getRoomNumber());
         room.setRoomType(roomType);
         room.setFloorNumber(request.getFloorNumber());
         room.setDescription(request.getDescription());

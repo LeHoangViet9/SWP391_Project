@@ -23,7 +23,6 @@ export async function getRoomById(id, locale = 'vi') {
 export async function createRoom(roomRequest, file, locale = 'vi') {
   const formData = new FormData();
   if (file) formData.append('file', file);
-  formData.append('roomNumber', roomRequest.roomNumber);
   formData.append('roomTypeId', String(roomRequest.roomTypeId));
   formData.append('floorNumber', String(roomRequest.floorNumber));
   if (roomRequest.description) formData.append('description', roomRequest.description);
@@ -34,7 +33,6 @@ export async function createRoom(roomRequest, file, locale = 'vi') {
 export async function updateRoom(id, roomRequest, file, locale = 'vi') {
   const formData = new FormData();
   if (file) formData.append('file', file);
-  formData.append('roomNumber', roomRequest.roomNumber);
   formData.append('roomTypeId', String(roomRequest.roomTypeId));
   formData.append('floorNumber', String(roomRequest.floorNumber));
   if (roomRequest.description) formData.append('description', roomRequest.description);

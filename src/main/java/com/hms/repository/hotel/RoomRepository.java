@@ -29,6 +29,10 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     // Lấy phòng theo tầng, loại trừ INACTIVE (deleted)
     Page<Room> findByFloorNumberAndRoomStatusNot(Integer floorNumber, RoomStatus roomStatus, Pageable pageable);
 
+    // Lấy tất cả phòng theo tầng, bao gồm cả các phòng INACTIVE (để sinh số phòng không bị trùng)
+    List<Room> findByFloorNumber(Integer floorNumber);
+
+
     @Query("SELECT r.roomStatus, COUNT(r) FROM Room r GROUP BY r.roomStatus")
     List<Object[]> countRoomsGroupedByStatus();
 
