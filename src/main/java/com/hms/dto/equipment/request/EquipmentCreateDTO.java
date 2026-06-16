@@ -21,10 +21,5 @@ public class EquipmentCreateDTO {
     )
     private String equipmentCode;
 
-    @NotBlank(message = "{equipment.location.notblank}")
-    private String location;
-
     private String description;
-
-    private Long roomId;
 }

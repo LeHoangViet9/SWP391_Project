@@ -170,24 +170,42 @@ VALUES
     (14, 800000.00, 'PENDING', NULL, NULL),
     (15, 1800000.00, 'CANCELLED', NULL, NULL);
 
--- 8. BẢNG EQUIPMENTS (15 Thiết bị trong khách sạn)
-INSERT INTO equipments (equipment_name, equipment_code, location, description, status, created_at, room_id)
+-- 8. BẢNG EQUIPMENTS
+INSERT INTO equipments (equipment_name, equipment_code, description, status, created_at)
 VALUES
-    ('Tivi Sony 55 inch', 'TV-101', 'Phòng 101', 'Tivi thông minh Sony 4K', 'ACTIVE', NOW(), 1),
-    ('Điều hòa Daikin 1.5 HP', 'AC-101', 'Phòng 101', 'Điều hòa không khí Daikin', 'ACTIVE', NOW(), 1),
-    ('Tủ lạnh mini Electrolux', 'RF-101', 'Phòng 101', 'Tủ lạnh mini 50 lít', 'ACTIVE', NOW(), 1),
-    ('Máy sấy tóc Panasonic', 'HD-101', 'Phòng 101', 'Máy sấy tóc 1200W', 'ACTIVE', NOW(), 1),
-    ('Điều hòa Panasonic 2 HP', 'AC-202', 'Phòng 202', 'Điều hòa Inverter Panasonic', 'ACTIVE', NOW(), 4),
-    ('Tivi Samsung 65 inch', 'TV-301', 'Phòng 301', 'Tivi QLED Samsung', 'ACTIVE', NOW(), 5),
-    ('Điều hòa Daikin 2.5 HP', 'AC-301', 'Phòng 301', 'Điều hòa công suất lớn Daikin', 'ACTIVE', NOW(), 5),
-    ('Bình nóng lạnh Rossi', 'WH-301', 'Phòng 301', 'Bình nước nóng Rossi 30 lít', 'ACTIVE', NOW(), 5),
-    ('Tivi Sony 75 inch', 'TV-501', 'Phòng 501', 'Tivi Sony Bravia OLED', 'ACTIVE', NOW(), 9),
-    ('Điều hòa trung tâm Daikin', 'AC-701', 'Phòng 701', 'Hệ thống điều hòa trung tâm', 'BROKEN', NOW(), 12),
-    ('Tủ lạnh Panasonic 150 lít', 'RF-701', 'Phòng 701', 'Tủ lạnh hai cánh Panasonic', 'ACTIVE', NOW(), 12),
-    ('Tivi LG 43 inch', 'TV-103', 'Phòng 103', 'Tivi LG Smart Full HD', 'ACTIVE', NOW(), 15),
-    ('Điều hòa Midea 1 HP', 'AC-103', 'Phòng 103', 'Điều hòa Midea tiết kiệm điện', 'ACTIVE', NOW(), 15),
-    ('Ấm siêu tốc Philips', 'KT-101', 'Phòng 101', 'Ấm đun nước siêu tốc 1.8 lít', 'ACTIVE', NOW(), 1),
-    ('Két sắt chống cháy Honeywell', 'SF-501', 'Phòng 501', 'Két sắt vân tay Honeywell', 'ACTIVE', NOW(), 9);
+    ('Tivi Sony 55 inch', 'TV-101', 'Tivi thông minh Sony 4K', 'ACTIVE', NOW()),
+    ('Điều hòa Daikin 1.5 HP', 'AC-101', 'Điều hòa không khí Daikin', 'ACTIVE', NOW()),
+    ('Tủ lạnh mini Electrolux', 'RF-101', 'Tủ lạnh mini 50 lít', 'ACTIVE', NOW()),
+    ('Máy sấy tóc Panasonic', 'HD-101', 'Máy sấy tóc 1200W', 'ACTIVE', NOW()),
+    ('Điều hòa Panasonic 2 HP', 'AC-202', 'Điều hòa Inverter Panasonic', 'ACTIVE', NOW()),
+    ('Tivi Samsung 65 inch', 'TV-301', 'Tivi QLED Samsung', 'ACTIVE', NOW()),
+    ('Điều hòa Daikin 2.5 HP', 'AC-301', 'Điều hòa công suất lớn Daikin', 'ACTIVE', NOW()),
+    ('Bình nóng lạnh Rossi', 'WH-301', 'Bình nước nóng Rossi 30 lít', 'ACTIVE', NOW()),
+    ('Tivi Sony 75 inch', 'TV-501', 'Tivi Sony Bravia OLED', 'ACTIVE', NOW()),
+    ('Điều hòa trung tâm Daikin', 'AC-701', 'Hệ thống điều hòa trung tâm', 'BROKEN', NOW()),
+    ('Tủ lạnh Panasonic 150 lít', 'RF-701', 'Tủ lạnh hai cánh Panasonic', 'ACTIVE', NOW()),
+    ('Tivi LG 43 inch', 'TV-103', 'Tivi LG Smart Full HD', 'ACTIVE', NOW()),
+    ('Điều hòa Midea 1 HP', 'AC-103', 'Điều hòa Midea tiết kiệm điện', 'ACTIVE', NOW()),
+    ('Ấm siêu tốc Philips', 'KT-101', 'Ấm đun nước siêu tốc 1.8 lít', 'ACTIVE', NOW()),
+    ('Két sắt chống cháy Honeywell', 'SF-501', 'Két sắt vân tay Honeywell', 'ACTIVE', NOW());
+
+INSERT INTO room_equipments (room_id, equipment_id, quantity, assigned_at)
+VALUES
+    (1, 1, 1, NOW()),
+    (1, 2, 1, NOW()),
+    (1, 3, 1, NOW()),
+    (1, 4, 1, NOW()),
+    (4, 5, 1, NOW()),
+    (5, 6, 1, NOW()),
+    (5, 7, 1, NOW()),
+    (5, 8, 1, NOW()),
+    (9, 9, 1, NOW()),
+    (12, 10, 1, NOW()),
+    (12, 11, 1, NOW()),
+    (15, 12, 1, NOW()),
+    (15, 13, 1, NOW()),
+    (1, 14, 1, NOW()),
+    (9, 15, 1, NOW());
 
 -- 9. BẢNG EQUIPMENT_CHECKS (15 Lượt kiểm tra thiết bị)
 INSERT INTO equipment_checks (condition_status, check_note, checked_by_id, equipment_id, checked_at)
