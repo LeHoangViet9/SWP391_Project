@@ -19,7 +19,6 @@ export default function BookingBar() {
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
-    hotelId: '',
     checkIn: today(),
     checkOut: tomorrow(),
     rooms: 1,
@@ -32,7 +31,6 @@ export default function BookingBar() {
 
   const handleSearch = async () => {
     const payload = {
-      hotelId: form.hotelId,
       checkIn: form.checkIn,
       checkOut: form.checkOut,
       rooms: form.rooms,
@@ -51,7 +49,6 @@ export default function BookingBar() {
         {
           page: 0,
           size: 10,
-          hotelId: form.hotelId,
           checkIn: form.checkIn,
           checkOut: form.checkOut,
           adults: form.adults,
@@ -74,28 +71,8 @@ export default function BookingBar() {
   return (
     <div className="bg-white shadow-2xl border border-stone-200 rounded-lg overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-0">
-        {/* Destination */}
-        <div className="lg:col-span-3 p-4 border-b md:border-b-0 md:border-r border-stone-200">
-          <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2">
-            <Building2 size={14} />
-            {t('booking.destination')}
-          </label>
-          <select
-            value={form.hotelId}
-            onChange={(e) => update('hotelId', e.target.value)}
-            className="w-full text-slate-800 font-medium bg-transparent outline-none cursor-pointer"
-          >
-            <option value="">{t('booking.selectHotel')}</option>
-            {hotels.map((h) => (
-              <option key={h.id} value={h.id}>
-                {h.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
         {/* Check-in */}
-        <div className="lg:col-span-2 p-4 border-b md:border-b-0 md:border-r border-stone-200">
+        <div className="lg:col-span-3 p-4 border-b md:border-b-0 md:border-r border-stone-200">
           <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2">
             <Calendar size={14} />
             {t('booking.checkIn')}
@@ -110,7 +87,7 @@ export default function BookingBar() {
         </div>
 
         {/* Check-out */}
-        <div className="lg:col-span-2 p-4 border-b md:border-b-0 md:border-r border-stone-200">
+        <div className="lg:col-span-3 p-4 border-b md:border-b-0 md:border-r border-stone-200">
           <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2">
             <Calendar size={14} />
             {t('booking.checkOut')}
@@ -189,7 +166,7 @@ export default function BookingBar() {
         </div>
 
         {/* Promo + Search */}
-        <div className="lg:col-span-2 p-4 flex flex-col justify-between">
+        <div className="lg:col-span-3 p-4 flex flex-col justify-between">
           <div>
             <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2">
               <Tag size={14} />

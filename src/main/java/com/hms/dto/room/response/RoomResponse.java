@@ -5,7 +5,6 @@ import com.hms.dto.roomtype.response.RoomTypeResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.util.List;
 
 @Data
@@ -18,6 +17,7 @@ public class RoomResponse {
     private RoomStatus roomStatus;
     private Integer floorNumber;
     private String description;
-    private List<String> imageUrls;
+    private String imageRoom;
+    private List<String> imageRooms;
 }
 

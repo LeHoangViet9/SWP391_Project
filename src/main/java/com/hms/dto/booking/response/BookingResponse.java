@@ -18,6 +18,10 @@ public class BookingResponse {
 
     private String roomTypeName;
 
+    private Long roomId;
+
+    private String roomNumber;
+
     private BigDecimal pricePerNight;
 
     private Integer quantity;

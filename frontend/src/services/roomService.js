@@ -20,25 +20,29 @@ export async function getRoomById(id, locale = 'vi') {
 }
 
 /** POST /api/v1/rooms — multipart @ModelAttribute + file */
-export async function createRoom(roomRequest, file, locale = 'vi') {
+export async function createRoom(roomRequest, files, locale = 'vi') {
   const formData = new FormData();
-  if (file) formData.append('file', file);
-  formData.append('roomNumber', roomRequest.roomNumber);
+  if (files) {
+    for (let i = 0; i < files.length; i++) {
+      formData.append('imageRoom', files[i]);
+    }
+  }
   formData.append('roomTypeId', String(roomRequest.roomTypeId));
   formData.append('floorNumber', String(roomRequest.floorNumber));
   if (roomRequest.description) formData.append('description', roomRequest.description);
-  if (roomRequest.imageRoom) formData.append('imageRoom', roomRequest.imageRoom);
   return apiFormData('/rooms', formData, locale, 'POST');
 }
 
-export async function updateRoom(id, roomRequest, file, locale = 'vi') {
+export async function updateRoom(id, roomRequest, files, locale = 'vi') {
   const formData = new FormData();
-  if (file) formData.append('file', file);
-  formData.append('roomNumber', roomRequest.roomNumber);
+  if (files) {
+    for (let i = 0; i < files.length; i++) {
+      formData.append('imageRoom', files[i]);
+    }
+  }
   formData.append('roomTypeId', String(roomRequest.roomTypeId));
   formData.append('floorNumber', String(roomRequest.floorNumber));
   if (roomRequest.description) formData.append('description', roomRequest.description);
-  if (roomRequest.imageRoom) formData.append('imageRoom', roomRequest.imageRoom);
   return apiFormData(`/rooms/${id}`, formData, locale, 'PUT');
 }
 

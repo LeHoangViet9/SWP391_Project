@@ -1,12 +1,9 @@
 package com.hms.dto.auth.request;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import lombok.Data;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class UserLoginRequest {
     @NotBlank(message = "{login.username.notblank}")
     private String username;

@@ -5,21 +5,25 @@ import com.hms.common.enums.SortField;
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
 import com.hms.dto.equipment.response.EquipmentResponse;
 import org.springframework.data.domain.Page;
-import org.springframework.web.multipart.MultipartFile;
 
 public interface EquipmentService {
 
     Page<EquipmentResponse> getAllEquipments(
-            String keywords,
+            Long id,
+            String equipmentName,
+            String equipmentCode,
+            String location,
+            Long roomId,
+            com.hms.common.enums.EquipmentStatus status,
             Integer page,
             Integer size,
             SortField sortBy,
             SortDirection direction
     );
 
-    EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO, MultipartFile file);
+    EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO);
 
-    EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto, MultipartFile file);
+    EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto);
 
     void deleteEquipment(Long id);
 

@@ -13,9 +13,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Locale;
 
@@ -28,9 +26,13 @@ public class EquipmentController {
     private final MessageSource messageSource;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'MAINTENANCE', 'RECEPTIONIST', 'HOUSEKEEPING')")
     public ResponseEntity<ApiResponse<Page<EquipmentResponse>>> getAllEquipments(
-            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String equipmentName,
+            @RequestParam(required = false) String equipmentCode,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) Long roomId,
+            @RequestParam(required = false) com.hms.common.enums.EquipmentStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
@@ -39,7 +41,16 @@ public class EquipmentController {
         Locale locale = LocaleContextHolder.getLocale();
 
         Page<EquipmentResponse> data = equipmentService.getAllEquipments(
-                keywords, page, size, sortBy, direction
+                id,
+                equipmentName,
+                equipmentCode,
+                location,
+                roomId,
+                status,
+                page,
+                size,
+                sortBy,
+                direction
         );
 
         String message = messageSource.getMessage("equipment.getall.success", null, locale);
@@ -55,7 +66,6 @@ public class EquipmentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'MAINTENANCE', 'RECEPTIONIST', 'HOUSEKEEPING')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> findById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -72,15 +82,13 @@ public class EquipmentController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(consumes = {"multipart/form-data"})
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PostMapping
     public ResponseEntity<ApiResponse<EquipmentResponse>> createEquipment(
-            @RequestParam(value = "file", required = false) MultipartFile file,
-            @Valid @ModelAttribute EquipmentCreateDTO dto) {
+            @Valid @RequestBody EquipmentCreateDTO dto) {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        EquipmentResponse data = equipmentService.createEquipment(dto, file);
+        EquipmentResponse data = equipmentService.createEquipment(dto);
         String message = messageSource.getMessage("equipment.add.success", null, locale);
 
         ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
@@ -93,16 +101,14 @@ public class EquipmentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'MAINTENANCE')")
+    @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<EquipmentResponse>> updateEquipment(
             @PathVariable Long id,
-            @RequestParam(value = "file", required = false) MultipartFile file,
-            @Valid @ModelAttribute EquipmentCreateDTO dto) {
+            @Valid @RequestBody EquipmentCreateDTO dto) {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        EquipmentResponse data = equipmentService.updateEquipment(id, dto, file);
+        EquipmentResponse data = equipmentService.updateEquipment(id, dto);
         String message = messageSource.getMessage("equipment.update.success", null, locale);
 
         ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
@@ -116,7 +122,6 @@ public class EquipmentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<ApiResponse<Void>> deleteEquipment(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
