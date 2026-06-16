@@ -96,11 +96,77 @@ function BookingContent() {
       .catch(() => {});
   }, [roomTypeId, locale]);
 
+  const [availableRoomsCount, setAvailableRoomsCount] = useState(null);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+
   useEffect(() => {
-    if (!user?.email) return;
-    searchCustomerByEmail(user.email, locale).then((found) => {
-      if (found?.id) saveCustomerId(found.id);
-    }).catch(() => {});
+    if (!booking.checkIn || !booking.checkOut || !roomTypeId) return;
+
+    setCheckingAvailability(true);
+    setError('');
+
+    const checkInDateTime = toCheckIn(booking.checkIn);
+    const checkOutDateTime = toCheckOut(booking.checkOut);
+
+    apiFetch(`/bookings/check-availability?roomTypeId=${roomTypeId}&checkInDate=${encodeURIComponent(checkInDateTime)}&checkOutDate=${encodeURIComponent(checkOutDateTime)}`, {}, locale)
+      .then((res) => {
+        if (res && res.data !== undefined) {
+          setAvailableRoomsCount(res.data);
+          if (res.data < booking.quantity) {
+            setError(locale === 'vi'
+              ? `Hết phòng! Chỉ còn lại ${res.data} phòng trống của hạng phòng này trong khoảng thời gian đã chọn.`
+              : `Sold out! Only ${res.data} rooms left for this room type during the selected dates.`);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Error checking availability:', err);
+      })
+      .finally(() => {
+        setCheckingAvailability(false);
+      });
+  }, [roomTypeId, booking.checkIn, booking.checkOut, booking.quantity, locale]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.email) {
+      searchCustomerByEmail(user.email, locale)
+        .then((found) => {
+          if (found) {
+            saveCustomerId(found.id);
+            setCustomerForm({
+              fullName: found.fullName || user.fullName || '',
+              email: found.email || user.email || '',
+              phone: found.phone || user.phone || '',
+              idType: found.idType || 'CCCD',
+              idNumberCard: found.idNumberCard || '',
+              nationality: found.nationality || (locale === 'vi' ? 'Việt Nam' : 'Vietnam'),
+            });
+          } else {
+            setCustomerForm((prev) => ({
+              ...prev,
+              fullName: user.fullName || prev.fullName,
+              email: user.email || prev.email,
+              phone: user.phone || prev.phone,
+            }));
+          }
+        })
+        .catch(() => {
+          setCustomerForm((prev) => ({
+            ...prev,
+            fullName: user.fullName || prev.fullName,
+            email: user.email || prev.email,
+            phone: user.phone || prev.phone,
+          }));
+        });
+    } else {
+      setCustomerForm((prev) => ({
+        ...prev,
+        fullName: user.fullName || prev.fullName,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+      }));
+    }
   }, [user, locale]);
 
   const nights = nightsBetween(booking.checkIn, booking.checkOut);
@@ -122,11 +188,13 @@ function BookingContent() {
       } catch (_) { /* tiếp tục tạo mới */ }
     }
 
-    // Kiểm tra localStorage
-    const stored = getStoredCustomerId();
-    if (stored) return Number(stored);
+    // Chỉ kiểm tra localStorage nếu KHÔNG có tài khoản đăng nhập
+    if (!user) {
+      const stored = getStoredCustomerId();
+      if (stored) return Number(stored);
+    }
 
-    // Tạo mới customer profile với email tài khoản login
+    // Tạo mới customer profile
     const res = await createCustomer({
       fullName: customerForm.fullName,
       email: emailToUse || customerForm.email,
@@ -227,11 +295,39 @@ function BookingContent() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('booking.checkIn')}</label>
-                <input type="date" value={booking.checkIn} min={today()} onChange={(e) => setBooking({ ...booking, checkIn: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                <input
+                  type="date"
+                  value={booking.checkIn}
+                  min={today()}
+                  onChange={(e) => {
+                    const newCheckIn = e.target.value;
+                    setBooking((prev) => {
+                      const updated = { ...prev, checkIn: newCheckIn };
+                      if (!prev.checkOut || prev.checkOut <= newCheckIn) {
+                        const nextDay = new Date(newCheckIn);
+                        nextDay.setDate(nextDay.getDate() + 1);
+                        updated.checkOut = nextDay.toISOString().split('T')[0];
+                      }
+                      return updated;
+                    });
+                  }}
+                  className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]"
+                />
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('booking.checkOut')}</label>
-                <input type="date" value={booking.checkOut} min={booking.checkIn} onChange={(e) => setBooking({ ...booking, checkOut: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                <input
+                  type="date"
+                  value={booking.checkOut}
+                  min={(() => {
+                    if (!booking.checkIn) return today();
+                    const dt = new Date(booking.checkIn);
+                    dt.setDate(dt.getDate() + 1);
+                    return dt.toISOString().split('T')[0];
+                  })()}
+                  onChange={(e) => setBooking({ ...booking, checkOut: e.target.value })}
+                  className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]"
+                />
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('booking.rooms')}</label>
@@ -242,7 +338,15 @@ function BookingContent() {
               <span className="text-slate-600">{nights} {t('bookingPage.nights')} × {booking.quantity} {t('booking.rooms')}</span>
               <span className="text-xl font-bold text-[#bfa15f]">{formatPrice(totalEstimate, locale)}</span>
             </div>
-            <button onClick={() => setStep(2)} className="w-full btn-gold py-3 rounded">{t('bookingPage.continue')}</button>
+            <button
+              onClick={() => setStep(2)}
+              disabled={checkingAvailability || (availableRoomsCount !== null && availableRoomsCount < booking.quantity)}
+              className="w-full btn-gold py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {checkingAvailability
+                ? (locale === 'vi' ? 'Đang kiểm tra phòng trống...' : 'Checking availability...')
+                : t('bookingPage.continue')}
+            </button>
           </div>
         )}
 
