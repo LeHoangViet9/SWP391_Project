@@ -27,7 +27,12 @@ public class CustomerController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<CustomerResponse>>> findAll(
-            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String fullName,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String idNumberCard,
+            @RequestParam(required = false) String nationality,
             @RequestParam(defaultValue = "ACTIVE") AccountStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -38,7 +43,7 @@ public class CustomerController {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("customer.getall.success", null, locale),
-                customerService.getCustomers(keywords,status,page,size,sortBy,direction),
+                customerService.getCustomers(id, fullName, email, phone, idNumberCard, nationality, status, page, size, sortBy, direction),
                 HttpStatus.OK
         ),HttpStatus.OK);
     }

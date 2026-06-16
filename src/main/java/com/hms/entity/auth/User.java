@@ -49,10 +49,4 @@ public class User {
     private String resetPasswordToken;
     @Column(name = "reset_password_expire_at")
     private LocalDateTime resetPasswordExpiredAt;
-    @Column(name = "enabled")
-    private boolean enabled = false; // Mặc định tài khoản mới tạo sẽ bị khóa
-    @Column(name = "otp_code")
-    private String otpCode;
-    @Column(name = "otp_expriration")
-    private LocalDateTime otpExpiration;
 }

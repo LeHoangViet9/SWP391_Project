@@ -44,7 +44,7 @@ export default function CustomerBookingHistory() {
     setLoading(true);
     setError('');
     try {
-      const res = await getMyBookingHistory({ page: nextPage + 1, size: 10 }, locale);
+      const res = await getMyBookingHistory({ page: nextPage, size: 10 }, locale);
       setItems(res?.data?.content ?? []);
       setTotalPages(res?.data?.totalPages ?? 1);
     } catch (err) {

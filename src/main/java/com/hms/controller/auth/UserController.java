@@ -28,7 +28,12 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<UserResponse>>> getUsers(
-            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String fullName,
+            @RequestParam(required = false) String userName,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String roleName,
             @RequestParam(required = false) AccountStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -38,7 +43,7 @@ public class UserController {
         ApiResponse<Page<UserResponse>> response = ApiResponse.<Page<UserResponse>>builder()
                 .success(true)
                 .message("Get user list successfully")
-                .data(userService.getUsers(keywords, status, page, size, sortBy, direction))
+                .data(userService.getUsers(id, fullName, userName, email, phone, roleName, status, page, size, sortBy, direction))
                 .status(HttpStatus.OK)
                 .build();
 
