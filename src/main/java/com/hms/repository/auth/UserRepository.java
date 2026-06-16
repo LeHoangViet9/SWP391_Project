@@ -14,19 +14,13 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
 
-    boolean existsUserByUserName(String userName);
-
     boolean existsUserByEmail(String email);
 
     boolean existsUserByPhone(String phone);
 
-    boolean existsByUserNameAndIdNot(String userName, Long id);
-
     boolean existsByEmailAndIdNot(String email, Long id);
 
     boolean existsByPhoneAndIdNot(String phone, Long id);
-
-    java.util.Optional<User> findUserByUserName(String userName);
 
     Optional<User> findUserByEmail(String email);
 
@@ -38,7 +32,6 @@ public interface UserRepository extends JpaRepository<User,Long> {
               and (
                 :keywords = ''
                 or lower(u.fullName) like lower(concat('%', :keywords, '%'))
-                or lower(u.userName) like lower(concat('%', :keywords, '%'))
                 or lower(u.email) like lower(concat('%', :keywords, '%'))
                 or lower(u.phone) like lower(concat('%', :keywords, '%'))
               )

@@ -18,9 +18,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override // Khúc này sẽ tự động chuyển sang màu xanh lá cây mượt mà ngay lập tức!
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // Tìm user theo username của dự án bạn
-        User user = userRepository.findUserByUserName(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+        // Tìm user theo email (dùng email làm định danh thay vì username)
+        User user = userRepository.findUserByEmail(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
 
         // Trả về đối tượng bọc UserPrincipal
         return UserPrincipal.create(user);

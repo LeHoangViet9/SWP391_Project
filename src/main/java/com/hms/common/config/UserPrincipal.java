@@ -25,7 +25,7 @@ public class UserPrincipal implements UserDetails {
 
         return new UserPrincipal(
                 user.getId(),
-                user.getUserName(),
+                user.getEmail(),
                 user.getPassword(),
                 user.getEmail(),
                 user.getEnabled(), // 🌟 Gán giá trị true/false của OTP vào đây

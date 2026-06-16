@@ -4,6 +4,7 @@ import com.hms.common.dto.ApiResponse;
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
+import com.hms.dto.auth.request.ActiveAccountRequest;
 import com.hms.dto.auth.request.UserManagementRequest;
 import com.hms.dto.auth.response.UserResponse;
 import com.hms.service.auth.IUserService;
@@ -87,4 +88,7 @@ public class UserController {
 
         return ResponseEntity.ok(response);
     }
+
+
+
 }

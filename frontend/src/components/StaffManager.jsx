@@ -17,7 +17,6 @@ const STATUS_OPTIONS = [
 
 const EMPTY_FORM = {
   fullName: '',
-  userName: '',
   password: '',
   rePassword: '',
   email: '',
@@ -72,7 +71,6 @@ export default function StaffManager() {
   const openEdit = (item) => {
     setForm({
       fullName: item.fullName || '',
-      userName: item.userName || item.username || '',
       password: '',
       rePassword: '',
       email: item.email || '',
@@ -88,7 +86,6 @@ export default function StaffManager() {
   const buildPayload = () => {
     const payload = {
       fullName: form.fullName.trim(),
-      userName: form.userName.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
       roleName: form.roleName,
@@ -143,7 +140,7 @@ export default function StaffManager() {
     <tr key={item.id} className="hover:bg-stone-50">
       <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
       <td className="px-4 py-3 font-semibold">{item.fullName}</td>
-      <td className="px-4 py-3 font-mono text-xs text-[#bfa15f]">{item.userName || item.username}</td>
+      <td className="px-4 py-3 font-mono text-xs text-[#bfa15f]">{item.email}</td>
       <td className="px-4 py-3 text-xs">{item.email}</td>
       <td className="px-4 py-3 text-xs">{item.phone}</td>
       <td className="px-4 py-3">
@@ -173,7 +170,7 @@ export default function StaffManager() {
     </tr>
   ));
 
-  const cols = [t('staff.columns.id'), t('staff.columns.fullName'), t('staff.columns.username'), t('staff.columns.email'), t('staff.columns.phone'), t('staff.columns.role'), t('staff.columns.status'), t('staff.columns.actions')];
+  const cols = [t('staff.columns.id'), t('staff.columns.fullName'), t('staff.columns.email'), t('staff.columns.phone'), t('staff.columns.role'), t('staff.columns.status'), t('staff.columns.actions')];
 
   return (
     <div>
@@ -219,8 +216,8 @@ export default function StaffManager() {
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.username')}</label>
-              <input required value={form.userName} onChange={e => setForm(f => ({ ...f, userName: e.target.value }))}
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.email')}</label>
+              <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
           </div>
@@ -243,11 +240,6 @@ export default function StaffManager() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.email')}</label>
-              <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
-            </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.phone')}</label>
               <input required value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}

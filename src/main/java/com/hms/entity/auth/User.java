@@ -19,8 +19,6 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "user_name", nullable = false, length = 100,unique = true)
-    private String userName;
     @Column(name = "full_name",nullable = false, length = 100)
     private String fullName;
     @Column(name = "email", nullable = false,unique = true,length = 100)
