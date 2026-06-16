@@ -14,6 +14,7 @@ import java.util.List;
 public interface RoomMapper {
 
     @Mapping(target = "imageRoom", expression = "java(getFirstImageUrl(room))")
+    @Mapping(target = "imageRooms", expression = "java(getAllImageUrls(room))")
     RoomResponse toResponse(Room room);
 
     Room toEntity(RoomRequest request);
@@ -27,6 +28,15 @@ public interface RoomMapper {
             return null;
         }
         return room.getRoomImages().get(0).getImageUrl();
+    }
+
+    default List<String> getAllImageUrls(Room room) {
+        if (room.getRoomImages() == null || room.getRoomImages().isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return room.getRoomImages().stream()
+                .map(RoomImage::getImageUrl)
+                .collect(java.util.stream.Collectors.toList());
     }
 }
 
