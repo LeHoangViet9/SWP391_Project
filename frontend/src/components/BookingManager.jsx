@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, RefreshCw, CheckCircle, LogOut, Filter, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getAllBookings, createBooking, updateBooking, deleteBooking, searchBookings } from '../services/bookingService';
+import { getAllBookings, createBooking, updateBooking, deleteBooking, searchBookings, updateBookingStatus, assignRoom } from '../services/bookingService';
 import { apiFetch } from '../services/api';
 import { useLocale } from '../context/LocaleContext';
 import DataTable from './shared/DataTable';
@@ -56,6 +56,13 @@ export default function BookingManager({ readOnly = false }) {
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+
+  // States cho tác vụ gán phòng vật lý
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignTargetBooking, setAssignTargetBooking] = useState(null);
+  const [assignRoomId, setAssignRoomId] = useState('');
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [loadingAvailableRooms, setLoadingAvailableRooms] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCustomerId, setFilterCustomerId] = useState('');
@@ -188,6 +195,51 @@ export default function BookingManager({ readOnly = false }) {
     }
   };
 
+  const openAssignRoom = async (item) => {
+    setAssignTargetBooking(item);
+    setAssignRoomId('');
+    setAvailableRooms([]);
+    setAssignModalOpen(true);
+    setLoadingAvailableRooms(true);
+    try {
+      const targetRoomTypeId = item.roomTypeId || item.roomType?.id;
+      const res = await apiFetch(`/rooms?roomTypeId=${targetRoomTypeId}&status=AVAILABLE&size=200`);
+      setAvailableRooms(res?.data?.content ?? []);
+    } catch (err) {
+      notify(err.message || 'Lỗi tải danh sách phòng khả dụng', 'error');
+    } finally {
+      setLoadingAvailableRooms(false);
+    }
+  };
+
+  const handleAssignRoomSubmit = async (e) => {
+    e.preventDefault();
+    if (!assignRoomId) return notify('Vui lòng chọn phòng', 'error');
+    setSaving(true);
+    try {
+      await assignRoom(assignTargetBooking.id, { roomId: Number(assignRoomId) });
+      notify('Gán phòng thành công!');
+      setAssignModalOpen(false);
+      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
+    } catch (err) {
+      notify(err.message || 'Lỗi gán phòng', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateStatus = async (item, newStatus) => {
+    const statusText = t(`booking.status.${newStatus}`) || newStatus;
+    if (!window.confirm(`Xác nhận chuyển trạng thái đơn đặt phòng sang "${statusText}"?`)) return;
+    try {
+      await updateBookingStatus(item.id, { status: newStatus });
+      notify('Cập nhật trạng thái thành công!');
+      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
+    } catch (err) {
+      notify(err.message || 'Lỗi cập nhật trạng thái', 'error');
+    }
+  };
+
   const formatDate = (dt) => dt ? new Date(dt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : '-';
 
   const renderStatusBadge = (status) => {
@@ -201,7 +253,16 @@ export default function BookingManager({ readOnly = false }) {
       <tr key={item.id} className="hover:bg-stone-50">
         <td className="px-4 py-3 font-mono text-xs font-bold">#{item.id}</td>
         <td className="px-4 py-3 text-sm font-semibold">{item.customerName || item.customer?.fullName || `${t('booking.filters.customer')} #${item.customerId}`}</td>
-        <td className="px-4 py-3 text-xs text-slate-500">{item.roomTypeName || item.roomType?.typeName || t('booking.filters.roomType')}</td>
+        <td className="px-4 py-3 text-xs text-slate-500">
+          <div>{item.roomTypeName || item.roomType?.typeName || t('booking.filters.roomType')}</div>
+          {item.roomNumber && (
+            <div className="mt-1">
+              <span className="inline-flex items-center bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-bold border border-emerald-100">
+                Phòng: {item.roomNumber}
+              </span>
+            </div>
+          )}
+        </td>
         <td className="px-4 py-3 text-xs text-center">{item.quantity}</td>
         <td className="px-4 py-3 text-xs">{formatDate(item.checkInDate)}</td>
         <td className="px-4 py-3 text-xs">{formatDate(item.checkOutDate)}</td>
@@ -209,6 +270,64 @@ export default function BookingManager({ readOnly = false }) {
         <td className="px-4 py-3 text-[#bfa15f] font-bold text-xs">
           {item.totalPrice != null ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.totalPrice) : '-'}
         </td>
+        {!readOnly && isReceptionistOrAbove && (
+          <td className="px-4 py-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {status === 'PENDING' && (
+                <>
+                  <button
+                    onClick={() => handleUpdateStatus(item, 'CONFIRMED')}
+                    className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-1 rounded text-xs font-bold transition-colors"
+                  >
+                    Xác nhận
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus(item, 'CANCELLED')}
+                    className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold transition-colors"
+                  >
+                    Hủy đơn
+                  </button>
+                </>
+              )}
+              {status === 'CONFIRMED' && (
+                <>
+                  {!item.roomId ? (
+                    <button
+                      onClick={() => openAssignRoom(item)}
+                      className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-2 py-1 rounded text-xs font-bold transition-colors"
+                    >
+                      Gán phòng
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleUpdateStatus(item, 'CHECKED_IN')}
+                      className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2 py-1 rounded text-xs font-bold transition-colors"
+                    >
+                      Check-in
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleUpdateStatus(item, 'CANCELLED')}
+                    className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold transition-colors"
+                  >
+                    Hủy đơn
+                  </button>
+                </>
+              )}
+              {status === 'CHECKED_IN' && (
+                <button
+                  onClick={() => handleUpdateStatus(item, 'CHECKED_OUT')}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1 rounded text-xs font-bold transition-colors"
+                >
+                  Check-out
+                </button>
+              )}
+              {['CHECKED_OUT', 'CANCELLED', 'NO_SHOW'].includes(status) && (
+                <span className="text-xs text-slate-400 font-medium italic">Không có tác vụ</span>
+              )}
+            </div>
+          </td>
+        )}
         {!readOnly && isReceptionistOrAbove && (
           <td className="px-4 py-3">
             <div className="flex items-center gap-3">
@@ -221,7 +340,17 @@ export default function BookingManager({ readOnly = false }) {
     );
   });
 
-  const cols = [t('booking.columns.id'), t('booking.columns.customer'), t('booking.columns.roomType'), t('booking.columns.quantity'), t('booking.columns.checkIn'), t('booking.columns.checkOut'), t('booking.columns.status'), t('booking.columns.totalPrice'), ...(!readOnly && isReceptionistOrAbove ? [t('booking.columns.actions')] : [])];
+  const cols = [
+    t('booking.columns.id'),
+    t('booking.columns.customer'),
+    t('booking.columns.roomType'),
+    t('booking.columns.quantity'),
+    t('booking.columns.checkIn'),
+    t('booking.columns.checkOut'),
+    t('booking.columns.status'),
+    t('booking.columns.totalPrice'),
+    ...(!readOnly && isReceptionistOrAbove ? ['Quy trình nhanh', t('booking.columns.actions')] : [])
+  ];
 
   return (
     <div>
@@ -377,6 +506,72 @@ export default function BookingManager({ readOnly = false }) {
             <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">{t('booking.modal.cancel')}</button>
             <button type="submit" disabled={saving} className="px-5 py-2 text-sm bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded font-semibold shadow disabled:opacity-60">
               {saving ? t('booking.modal.saving') : modal.editing ? t('booking.modal.update') : t('booking.modal.save')}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal gán phòng vật lý */}
+      <Modal
+        open={assignModalOpen}
+        title={`Gán phòng vật lý - Đơn #${assignTargetBooking?.id}`}
+        onClose={() => setAssignModalOpen(false)}
+        size="md"
+      >
+        <form onSubmit={handleAssignRoomSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
+              Loại phòng yêu cầu
+            </label>
+            <input
+              type="text"
+              readOnly
+              value={assignTargetBooking?.roomTypeName || ''}
+              className="w-full border border-stone-200 rounded px-3 py-2 text-sm bg-stone-50 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
+              Chọn phòng vật lý khả dụng *
+            </label>
+            {loadingAvailableRooms ? (
+              <div className="text-sm text-slate-500 py-2">Đang tải phòng trống...</div>
+            ) : availableRooms.length === 0 ? (
+              <div className="text-sm text-red-500 py-2 font-bold">
+                Không có phòng trống nào thuộc loại phòng này!
+              </div>
+            ) : (
+              <select
+                required
+                value={assignRoomId}
+                onChange={(e) => setAssignRoomId(e.target.value)}
+                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white"
+              >
+                <option value="">-- Chọn phòng vật lý --</option>
+                {availableRooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    Phòng {r.roomNumber} (Tầng {r.floorNumber})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setAssignModalOpen(false)}
+              className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={saving || availableRooms.length === 0}
+              className="px-5 py-2 text-sm bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded font-semibold shadow disabled:opacity-60"
+            >
+              {saving ? 'Đang gán...' : 'Xác nhận gán phòng'}
             </button>
           </div>
         </form>

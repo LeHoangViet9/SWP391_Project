@@ -63,8 +63,8 @@ export async function forceDeleteCustomer(id, locale = 'vi') {
 }
 
 
-/** GET /api/v1/customers?keywords=email */
+/** GET /api/v1/customers?email=email */
 export async function searchCustomerByEmail(email, locale = 'vi') {
-  const res = await apiFetch(`/customers?keywords=${encodeURIComponent(email)}&size=1`, {}, locale);
+  const res = await apiFetch(`/customers?email=${encodeURIComponent(email)}&size=1`, {}, locale);
   return res?.data?.content?.[0] ?? null;
 }

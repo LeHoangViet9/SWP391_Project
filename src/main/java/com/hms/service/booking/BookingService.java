@@ -4,6 +4,8 @@ import com.hms.common.enums.BookingStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.dto.booking.request.BookingRequest;
+import com.hms.dto.booking.request.BookingRoomAssignRequest;
+import com.hms.dto.booking.request.BookingStatusRequest;
 import com.hms.dto.booking.response.BookingResponse;
 import org.springframework.data.domain.Page;
 
@@ -28,4 +30,8 @@ public interface BookingService {
     Page<BookingResponse> getBookingsByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size);
 
     Page<BookingResponse> getBookingsByCheckOutDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size);
+
+    BookingResponse updateBookingStatus(Long id, BookingStatusRequest request);
+
+    BookingResponse assignRoom(Long bookingId, BookingRoomAssignRequest request);
 }

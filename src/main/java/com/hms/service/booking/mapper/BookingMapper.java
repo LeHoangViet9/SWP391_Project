@@ -29,6 +29,8 @@ public interface BookingMapper {
     @Mapping(source = "customer.fullName", target = "customerName")
     @Mapping(source = "roomType.id", target = "roomTypeId")
     @Mapping(source = "roomType.typeName", target = "roomTypeName")
+    @Mapping(source = "room.id", target = "roomId")
+    @Mapping(source = "room.roomNumber", target = "roomNumber")
     BookingResponse toResponse(Booking booking);
 
     @Mapping(target = "id", ignore = true)

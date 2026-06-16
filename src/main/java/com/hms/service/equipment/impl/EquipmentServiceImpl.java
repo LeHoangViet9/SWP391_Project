@@ -3,17 +3,21 @@ package com.hms.service.equipment.impl;
 import com.hms.common.enums.EquipmentStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
-import com.hms.common.exception.AppException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
-import com.hms.common.utils.CloudinaryUtils;
 import com.hms.common.utils.PageableUtils;
+import com.hms.dto.equipment.request.AssignEquipmentToRoomDTO;
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
+import com.hms.dto.equipment.response.EquipmentImageResponse;
 import com.hms.dto.equipment.response.EquipmentResponse;
+import com.hms.dto.equipment.response.RoomEquipmentResponse;
 import com.hms.entity.equipment.Equipment;
 import com.hms.entity.equipment.EquipmentImage;
+import com.hms.entity.equipment.RoomEquipment;
 import com.hms.entity.hotel.Room;
+import com.hms.repository.equipment.EquipmentImageRepository;
 import com.hms.repository.equipment.EquipmentRepository;
+import com.hms.repository.equipment.RoomEquipmentRepository;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.service.equipment.EquipmentService;
 import com.hms.service.equipment.mapper.EquipmentMapper;
@@ -24,10 +28,18 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Transactional
 @Service
@@ -39,24 +51,80 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     private final EquipmentRepository equipmentRepository;
     private final RoomRepository roomRepository;
+    private final RoomEquipmentRepository roomEquipmentRepository;
+    private final EquipmentImageRepository equipmentImageRepository;
     private final EquipmentMapper equipmentMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
-    private final CloudinaryUtils  cloudinaryUtils;
 
     @Override
     public Page<EquipmentResponse> getAllEquipments(
-            String keywords,
+            Long id,
+            String equipmentName,
+            String equipmentCode,
+            Long roomId,
+            EquipmentStatus status,
             Integer page,
             Integer size,
             SortField sortBy,
-            SortDirection direction) {
+            SortDirection direction
+    ) {
+        List<Equipment> list = equipmentRepository.findAll();
+        java.util.stream.Stream<Equipment> stream = list.stream();
 
-        if (keywords == null) {
-            keywords = "";
-        } else {
-            keywords = keywords.trim();
+        if (id != null) {
+            stream = stream.filter(e -> e.getId().equals(id));
         }
+
+        if (StringUtils.hasText(equipmentName)) {
+            String cleanName = equipmentName.trim().toLowerCase();
+            stream = stream.filter(e ->
+                    e.getEquipmentName() != null
+                            && e.getEquipmentName().toLowerCase().contains(cleanName)
+            );
+        }
+
+        if (StringUtils.hasText(equipmentCode)) {
+            String cleanCode = equipmentCode.trim().toLowerCase();
+            stream = stream.filter(e ->
+                    e.getEquipmentCode() != null
+                            && e.getEquipmentCode().toLowerCase().contains(cleanCode)
+            );
+        }
+
+        if (roomId != null) {
+            stream = stream.filter(e ->
+                    e.getRoomEquipments() != null
+                            && e.getRoomEquipments().stream()
+                            .anyMatch(re -> re.getRoom() != null
+                                    && re.getRoom().getId().equals(roomId))
+            );
+        }
+
+        if (status != null) {
+            stream = stream.filter(e -> e.getStatus() == status);
+        } else {
+            stream = stream.filter(e -> e.getStatus() != EquipmentStatus.INACTIVE);
+        }
+
+        List<Equipment> filteredList = stream.collect(Collectors.toList());
+
+        java.util.Map<String, java.util.function.Function<Equipment, Comparable<?>>> extractors =
+                new java.util.HashMap<>();
+
+        extractors.put("id", Equipment::getId);
+        extractors.put("equipmentName", Equipment::getEquipmentName);
+        extractors.put("equipmentCode", Equipment::getEquipmentCode);
+        extractors.put("status", e -> e.getStatus() != null ? e.getStatus().name() : "");
+
+        extractors.put("roomNumber", e -> {
+            if (e.getRoomEquipments() == null || e.getRoomEquipments().isEmpty()) {
+                return "";
+            }
+
+            Room room = e.getRoomEquipments().get(0).getRoom();
+            return room != null && room.getRoomNumber() != null ? room.getRoomNumber() : "";
+        });
 
         Pageable pageable = pageableUtils.createPageable(
                 page,
@@ -65,130 +133,70 @@ public class EquipmentServiceImpl implements EquipmentService {
                 direction
         );
 
-        return equipmentRepository
-                .findByEquipmentNameContainingIgnoreCaseAndStatusNot(
-                        keywords,
-                        EquipmentStatus.INACTIVE,
-                        pageable
-                )
+        pageableUtils.sortList(filteredList, sortBy, direction, extractors);
+
+        return pageableUtils.paginate(filteredList, pageable)
                 .map(equipmentMapper::toResponse);
     }
 
     @Override
-    @Transactional
-    public EquipmentResponse createEquipment(EquipmentCreateDTO request, MultipartFile file) {
+    public EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        // Kiểm tra xem số/mã thiết bị đã tồn tại chưa
-        if (equipmentRepository.existsByEquipmentCodeAndStatus(request.getEquipmentCode(), EquipmentStatus.ACTIVE)) {
-            throw new ConflictException(messageSource.getMessage("error.equipment.code.existed", new Object[]{request.getEquipmentCode()}, locale));
+        if (equipmentRepository.existsByEquipmentCodeAndStatus(
+                equipmentDTO.getEquipmentCode(),
+                EquipmentStatus.ACTIVE
+        )) {
+            throw new ConflictException(
+                    messageSource.getMessage(
+                            "error.equipment.code.existed",
+                            new Object[]{equipmentDTO.getEquipmentCode()},
+                            locale
+                    )
+            );
         }
 
-        Equipment equipment = equipmentMapper.toEntity(request);
-
-        // Kiểm tra phòng (Room) nếu request có truyền roomId lên
-        if (request.getRoomId() != null) {
-            Room room = roomRepository.findById(request.getRoomId())
-                    .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage(ERROR_ROOM_NOTFOUND, new Object[]{request.getRoomId()}, locale)));
-            equipment.setRoom(room);
-        }
-
-        // Khởi tạo list ảnh trống cho đối tượng Equipment mới tạo
-        equipment.setImages(new ArrayList<>());
-
-        // XỬ LÝ ẢNH MỚI: Upload lên Cloudinary và lưu vào bảng equipment_images
-        if (file != null && !file.isEmpty()) {
-            // Đồng bộ hàm gọi từ CloudinaryUtils giống hàm createRoom của bạn
-            String imageUrl = cloudinaryUtils.uploadFile(file);
-
-            EquipmentImage equipmentImage = EquipmentImage.builder()
-                    .equipment(equipment)
-                    .imageUrl(imageUrl)
-                    .isPrimary(true) // Ảnh đầu tiên tạo mặc định là ảnh chính
-                    .build();
-
-            // Thêm ảnh vào bộ sưu tập của thiết bị. Nhờ CascadeType.ALL, Hibernate sẽ tự động lưu xuống DB
-            equipment.getImages().add(equipmentImage);
-        }
-
-        // Set mặc định trạng thái thiết bị hoạt động bình thường
+        Equipment equipment = equipmentMapper.toEntity(equipmentDTO);
         equipment.setStatus(EquipmentStatus.ACTIVE);
 
-        Equipment saved = equipmentRepository.save(equipment);
-        return equipmentMapper.toResponse(saved);
+        Equipment savedEquipment = equipmentRepository.save(equipment);
+
+        return equipmentMapper.toResponse(savedEquipment);
     }
 
     @Override
-    @Transactional
-    public EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO request, MultipartFile file) {
+    public EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        // 1. Tìm thiết bị theo ID (Bỏ filter ACTIVE để cho phép cập nhật thiết bị đang bảo trì/hỏng)
-        Equipment equipment = equipmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(ERROR_EQUIPMENT_NOTFOUND, new Object[]{id}, locale)));
+        Equipment equipment = findActiveEquipment(id, locale);
 
-        // 2. Kiểm tra trùng mã thiết bị với các thiết bị khác đang hoạt động
-        if (!equipment.getEquipmentCode().equals(request.getEquipmentCode())
+        if (!equipment.getEquipmentCode().equals(dto.getEquipmentCode())
                 && equipmentRepository.existsByEquipmentCodeAndIdNotAndStatus(
-                request.getEquipmentCode(), id, EquipmentStatus.ACTIVE)) {
+                dto.getEquipmentCode(),
+                id,
+                EquipmentStatus.ACTIVE
+        )) {
             throw new ConflictException(
-                    messageSource.getMessage("error.equipment.code.existed", new Object[]{request.getEquipmentCode()}, locale));
+                    messageSource.getMessage(
+                            "error.equipment.code.existed",
+                            new Object[]{dto.getEquipmentCode()},
+                            locale
+                    )
+            );
         }
 
-        // 3. Cập nhật các trường thông tin cơ bản từ DTO vào Entity
-        equipmentMapper.updateEquipmentFromDto(request, equipment);
+        equipmentMapper.updateEquipmentFromDto(dto, equipment);
 
-        // 4. Xử lý gán phòng (Room) cho thiết bị
-        if (request.getRoomId() != null) {
-            Room room = roomRepository.findById(request.getRoomId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            messageSource.getMessage(ERROR_ROOM_NOTFOUND, new Object[]{request.getRoomId()}, locale)));
-            equipment.setRoom(room);
-        } else {
-            equipment.setRoom(null);
-        }
+        Equipment updatedEquipment = equipmentRepository.save(equipment);
 
-        // 5. XỬ LÝ ẢNH MỚI: Nếu client gửi file ảnh mới lên, upload lên Cloudinary và cập nhật
-        if (file != null && !file.isEmpty()) {
-            String imageUrl = cloudinaryUtils.uploadFile(file);
-
-            // Hủy kích hoạt trạng thái "isPrimary" của tất cả ảnh cũ trong list (nếu có)
-            if (equipment.getImages() != null) {
-                equipment.getImages().forEach(img -> img.setIsPrimary(false));
-            } else {
-                equipment.setImages(new ArrayList<>());
-            }
-
-            // Tạo bản ghi ảnh mới và đánh dấu làm ảnh chính (isPrimary = true)
-            EquipmentImage newEquipmentImage = EquipmentImage.builder()
-                    .equipment(equipment)
-                    .imageUrl(imageUrl)
-                    .isPrimary(true)
-                    .build();
-
-            // Thêm vào danh sách để Hibernate tự động cascade lưu xuống DB
-            equipment.getImages().add(newEquipmentImage);
-        }
-
-        // 6. Lưu thực thể đã cập nhật và trả về kết quả
-        Equipment updated = equipmentRepository.save(equipment);
-        return equipmentMapper.toResponse(updated);
+        return equipmentMapper.toResponse(updatedEquipment);
     }
 
     @Override
     public void deleteEquipment(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        Equipment equipment = equipmentRepository.findById(id)
-                .filter(e -> e.getStatus() == EquipmentStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(
-                                ERROR_EQUIPMENT_NOTFOUND,
-                                new Object[]{id},
-                                locale
-                        )
-                ));
+        Equipment equipment = findActiveEquipment(id, locale);
 
         equipment.setStatus(EquipmentStatus.INACTIVE);
         equipmentRepository.save(equipment);
@@ -198,7 +206,135 @@ public class EquipmentServiceImpl implements EquipmentService {
     public EquipmentResponse findById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        Equipment equipment = equipmentRepository.findById(id)
+        Equipment equipment = findActiveEquipment(id, locale);
+
+        return equipmentMapper.toResponse(equipment);
+    }
+
+    @Override
+    public RoomEquipmentResponse assignToRoom(Long equipmentId, AssignEquipmentToRoomDTO dto) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Equipment equipment = findActiveEquipment(equipmentId, locale);
+
+        Room room = roomRepository.findById(dto.getRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage(
+                                ERROR_ROOM_NOTFOUND,
+                                new Object[]{dto.getRoomId()},
+                                locale
+                        )
+                ));
+
+        RoomEquipment roomEquipment = roomEquipmentRepository
+                .findByRoomIdAndEquipmentId(dto.getRoomId(), equipmentId)
+                .orElse(RoomEquipment.builder()
+                        .room(room)
+                        .equipment(equipment)
+                        .build());
+
+        roomEquipment.setQuantity(dto.getQuantity());
+
+        RoomEquipment saved = roomEquipmentRepository.save(roomEquipment);
+
+        return equipmentMapper.toRoomEquipmentResponse(saved);
+    }
+
+    @Override
+    public void removeFromRoom(Long equipmentId, Long roomId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        findActiveEquipment(equipmentId, locale);
+
+        RoomEquipment roomEquipment = roomEquipmentRepository
+                .findByRoomIdAndEquipmentId(roomId, equipmentId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Equipment is not assigned to this room"
+                ));
+
+        roomEquipmentRepository.delete(roomEquipment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoomEquipmentResponse> getEquipmentsByRoom(Long roomId) {
+        return roomEquipmentRepository.findByRoomId(roomId)
+                .stream()
+                .map(equipmentMapper::toRoomEquipmentResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<EquipmentImageResponse> uploadImages(
+            Long equipmentId,
+            List<MultipartFile> images
+    ) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Equipment equipment = findActiveEquipment(equipmentId, locale);
+
+        if (images == null || images.isEmpty()) {
+            throw new ConflictException("Image files are required");
+        }
+
+        List<EquipmentImageResponse> result = new java.util.ArrayList<>();
+
+        try {
+            Path uploadPath = Paths.get("uploads/equipments")
+                    .toAbsolutePath()
+                    .normalize();
+
+            Files.createDirectories(uploadPath);
+
+            boolean firstImage = true;
+
+            for (MultipartFile image : images) {
+                if (image == null || image.isEmpty()) {
+                    continue;
+                }
+
+                String originalName = image.getOriginalFilename() == null
+                        ? "equipment-image"
+                        : image.getOriginalFilename();
+
+                originalName = StringUtils.cleanPath(originalName);
+
+                String fileName = UUID.randomUUID() + "_" + originalName;
+
+                Path targetPath = uploadPath.resolve(fileName).normalize();
+
+                Files.copy(
+                        image.getInputStream(),
+                        targetPath,
+                        StandardCopyOption.REPLACE_EXISTING
+                );
+
+                EquipmentImage equipmentImage = EquipmentImage.builder()
+                        .equipment(equipment)
+                        .imageUrl("/uploads/equipments/" + fileName)
+                        .isPrimary(firstImage)
+                        .build();
+
+                EquipmentImage savedImage = equipmentImageRepository.save(equipmentImage);
+
+                result.add(equipmentMapper.toImageResponse(savedImage));
+
+                firstImage = false;
+            }
+
+            if (result.isEmpty()) {
+                throw new ConflictException("Image files are required");
+            }
+
+            return result;
+
+        } catch (IOException ex) {
+            throw new ConflictException("Could not save equipment images");
+        }
+    }
+
+    private Equipment findActiveEquipment(Long id, Locale locale) {
+        return equipmentRepository.findById(id)
                 .filter(e -> e.getStatus() == EquipmentStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(
@@ -207,7 +343,5 @@ public class EquipmentServiceImpl implements EquipmentService {
                                 locale
                         )
                 ));
-
-        return equipmentMapper.toResponse(equipment);
     }
 }

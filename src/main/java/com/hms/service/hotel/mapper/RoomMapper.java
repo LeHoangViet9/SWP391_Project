@@ -13,18 +13,28 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface RoomMapper {
 
-    // Map trực tiếp từ danh sách object RoomImage sang danh sách String URL
-    @Mapping(target = "imageUrls", expression = "java(getAllImageUrls(room.getRoomImages()))")
+    @Mapping(target = "imageRoom", expression = "java(getFirstImageUrl(room))")
+    @Mapping(target = "imageRooms", expression = "java(getAllImageUrls(room))")
     RoomResponse toResponse(Room room);
 
-    // ... các phương thức khác
+    Room toEntity(RoomRequest request);
 
-    default List<String> getAllImageUrls(List<RoomImage> roomImages) {
-        if (roomImages == null || roomImages.isEmpty()) {
+    void updateRoomFromRequest(RoomRequest request, @MappingTarget Room room);
+
+    List<RoomResponse> toResponseList(List<Room> rooms);
+
+    default String getFirstImageUrl(Room room) {
+        if (room.getRoomImages() == null || room.getRoomImages().isEmpty()) {
             return null;
         }
-        // Dùng Java Stream để trích xuất URL từ các object RoomImage
-        return roomImages.stream()
+        return room.getRoomImages().get(0).getImageUrl();
+    }
+
+    default List<String> getAllImageUrls(Room room) {
+        if (room.getRoomImages() == null || room.getRoomImages().isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return room.getRoomImages().stream()
                 .map(RoomImage::getImageUrl)
                 .collect(java.util.stream.Collectors.toList());
     }

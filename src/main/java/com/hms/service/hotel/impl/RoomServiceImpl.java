@@ -3,9 +3,11 @@ package com.hms.service.hotel.impl;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
+import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.CloudinaryUtils;
+import com.hms.common.utils.LocalFileUtils;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.room.request.RoomRequest;
 import com.hms.dto.room.response.RoomResponse;
@@ -40,19 +42,95 @@ public class RoomServiceImpl implements IRoomService {
     private final RoomMapper roomMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
-    private final CloudinaryUtils  cloudinaryUtils;
+    private final LocalFileUtils localFileUtils;
 
     @Override
-    public Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, @NotNull SortField sortBy, SortDirection direction) {
-        // Không sử dụng keywords - lấy tất cả phòng theo status (không phải INACTIVE)
-        Pageable pageable = pageableUtils.createPageable(
-                page,
-                size,
-                sortBy.getField(),
-                direction
-        );
-        // Chỉ lấy các phòng không bị xóa (status != INACTIVE)
-        return roomRepository.findByRoomStatusNot(RoomStatus.INACTIVE, pageable).map(roomMapper::toResponse);
+    public Page<RoomResponse> getAllRooms(
+            Long id,
+            String roomNumber,
+            Long roomTypeId,
+            Integer floor,
+            RoomStatus status,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction) {
+
+        java.util.List<Room> list = roomRepository.findAll();
+        list = list.stream()
+                .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
+                .collect(java.util.stream.Collectors.toList());
+
+        java.util.List<Room> filteredList = filterRooms(list, id, roomNumber, roomTypeId, floor, status);
+
+        sortRooms(filteredList, sortBy, direction);
+
+        return paginateRooms(filteredList, page, size, sortBy, direction);
+    }
+
+    private java.util.List<Room> filterRooms(
+            java.util.List<Room> list,
+            Long id,
+            String roomNumber,
+            Long roomTypeId,
+            Integer floor,
+            RoomStatus status) {
+
+        java.util.stream.Stream<Room> stream = list.stream();
+
+        if (id != null) {
+            stream = stream.filter(r -> r.getId().equals(id));
+        }
+        if (org.springframework.util.StringUtils.hasText(roomNumber)) {
+            String cleanRoomNumber = roomNumber.trim().toLowerCase();
+            stream = stream.filter(r -> r.getRoomNumber() != null && r.getRoomNumber().toLowerCase().contains(cleanRoomNumber));
+        }
+        if (roomTypeId != null) {
+            stream = stream.filter(r -> r.getRoomType() != null && r.getRoomType().getId().equals(roomTypeId));
+        }
+        if (floor != null) {
+            stream = stream.filter(r -> r.getFloorNumber() != null && r.getFloorNumber().equals(floor));
+        }
+        if (status != null) {
+            stream = stream.filter(r -> r.getRoomStatus() == status);
+        }
+
+        return stream.collect(java.util.stream.Collectors.toList());
+    }
+
+    private void sortRooms(
+            java.util.List<Room> list,
+            SortField sortBy,
+            SortDirection direction) {
+
+        java.util.Map<String, java.util.function.Function<Room, Comparable<?>>> extractors = new java.util.HashMap<>();
+        extractors.put("id", Room::getId);
+        extractors.put("roomNumber", Room::getRoomNumber);
+        extractors.put("floorNumber", Room::getFloorNumber);
+        extractors.put("roomStatus", r -> r.getRoomStatus() != null ? r.getRoomStatus().name() : "");
+
+        pageableUtils.sortList(list, sortBy, direction, extractors);
+    }
+
+    private Page<RoomResponse> paginateRooms(
+            java.util.List<Room> list,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction) {
+
+        int total = list.size();
+        int startPage = (page != null) ? page : 0;
+        int pageSize = (size != null) ? size : 10;
+        int start = Math.min(startPage * pageSize, total);
+        int end = Math.min(start + pageSize, total);
+
+        java.util.List<RoomResponse> pageContent = list.subList(start, end).stream()
+                .map(roomMapper::toResponse)
+                .collect(java.util.stream.Collectors.toList());
+
+        Pageable pageable = pageableUtils.createPageable(startPage, pageSize, sortBy.getField(), direction);
+        return new org.springframework.data.domain.PageImpl<>(pageContent, pageable, total);
     }
 
     @Override
@@ -67,13 +145,8 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse createRoom(RoomRequest request, List<MultipartFile> files) {
+    public RoomResponse createRoom(RoomRequest request, List<MultipartFile> file) {
         Locale locale = LocaleContextHolder.getLocale();
-
-        // Kiểm tra xem số phòng đã tồn tại chưa
-        if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
-            throw new ConflictException(messageSource.getMessage("error.room.exists", null, locale));
-        }
 
         // Kiểm tra loại phòng
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
@@ -82,29 +155,27 @@ public class RoomServiceImpl implements IRoomService {
         Room room = new Room();
         populateRoomData(room, request, roomType);
 
+        // Sinh số phòng tự động theo thứ tự tăng dần dựa trên floorNumber
+        String generatedRoomNumber = generateRoomNumber(request.getFloorNumber());
+        room.setRoomNumber(generatedRoomNumber);
+
         // Khởi tạo list ảnh trống cho đối tượng Room mới tạo
         room.setRoomImages(new ArrayList<>());
 
-        // XỬ LÝ ẢNH MỚI: Upload lên Cloudinary và lưu vào bảng room_img thay vì lưu cột cũ
-        if (files != null && !files.isEmpty()) {
-            // Đảm bảo list ảnh không bị null trước khi add
-            if (room.getRoomImages() == null) {
-                room.setRoomImages(new ArrayList<>());
-            }
+        // XỬ LÝ ẢNH MỚI: Upload lên Local Storage và lưu vào bảng room_img thay vì lưu cột cũ
+        if (file != null && !file.isEmpty()) {
 
-            for (MultipartFile singleFile : files) {
-                if (!singleFile.isEmpty()) {
-                    String imageUrl = cloudinaryUtils.uploadFile(singleFile);
+            for (MultipartFile f : file) {
 
-                    // Khởi tạo thông thường thay vì dùng Builder nếu dính lỗi Constructor
-                    RoomImage roomImage = new RoomImage();
-                    roomImage.setImageUrl(imageUrl);
-                    roomImage.setDescription("Ảnh phòng khách sạn");
-                    roomImage.setRoom(room); // Bắt buộc thiết lập mối quan hệ ngược về Room cha
+                String imageUrl = localFileUtils.uploadFile(f);
 
-                    // Thêm vào danh sách của Room cha
-                    room.getRoomImages().add(roomImage);
-                }
+                RoomImage roomImage = RoomImage.builder()
+                        .room(room)
+                        .imageUrl(imageUrl)
+                        .description("Ảnh khi tạo phòng")
+                        .build();
+
+                room.getRoomImages().add(roomImage);
             }
         }
 
@@ -117,42 +188,38 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse updateRoom(Long id, RoomRequest request, List<MultipartFile> files) {
+    public RoomResponse updateRoom(Long id, RoomRequest request, List<MultipartFile> file) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Room room = roomRepository.findById(id)
                 .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
 
-        if (roomRepository.existsByRoomNumberAndIdNot(request.getRoomNumber(), id)) {
-            throw new ConflictException(messageSource.getMessage("error.room.exists", null, locale));
-        }
-
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+
+        // Nếu thay đổi tầng, tự động cập nhật số phòng theo tầng mới
+        if (!room.getFloorNumber().equals(request.getFloorNumber())) {
+            String generatedRoomNumber = generateRoomNumber(request.getFloorNumber());
+            room.setRoomNumber(generatedRoomNumber);
+        }
 
         populateRoomData(room, request, roomType);
 
         // XỬ LÝ ẢNH CẬP NHẬT: Thêm một ảnh mới vào Album ảnh hiện tại của phòng
-        if (files != null && !files.isEmpty()) {
-            // Đảm bảo list ảnh không bị null trước khi add
-            if (room.getRoomImages() == null) {
-                room.setRoomImages(new ArrayList<>());
-            }
+        if (file != null && !file.isEmpty()) {
 
-            for (MultipartFile singleFile : files) {
-                if (!singleFile.isEmpty()) {
-                    String imageUrl = cloudinaryUtils.uploadFile(singleFile);
+            for (MultipartFile f : file) {
 
-                    // Khởi tạo thông thường thay vì dùng Builder nếu dính lỗi Constructor
-                    RoomImage roomImage = new RoomImage();
-                    roomImage.setImageUrl(imageUrl);
-                    roomImage.setDescription("Ảnh phòng khách sạn");
-                    roomImage.setRoom(room); // Bắt buộc thiết lập mối quan hệ ngược về Room cha
+                String imageUrl = localFileUtils.uploadFile(f);
 
-                    // Thêm vào danh sách của Room cha
-                    room.getRoomImages().add(roomImage);
-                }
+                RoomImage roomImage = RoomImage.builder()
+                        .room(room)
+                        .imageUrl(imageUrl)
+                        .description("Ảnh khi tạo phòng")
+                        .build();
+
+                room.getRoomImages().add(roomImage);
             }
         }
 
@@ -200,6 +267,12 @@ public class RoomServiceImpl implements IRoomService {
     @Transactional
     public void updateRoomStatus(Long roomId, RoomStatus status) {
         Locale locale = LocaleContextHolder.getLocale();
+        // Chặn việc đặt INACTIVE qua API status — INACTIVE chỉ dành cho soft delete (deleteRoomByID)
+        if (status == RoomStatus.INACTIVE) {
+            throw new BadRequestException(
+                    messageSource.getMessage("error.room.status.inactive.forbidden", null,
+                            "Không thể đặt trạng thái INACTIVE trực tiếp. Hãy dùng chức năng xóa phòng.", locale));
+        }
         Room room = roomRepository.findById(roomId)
                 .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
@@ -208,11 +281,29 @@ public class RoomServiceImpl implements IRoomService {
     }
 
     /**
+     * Method private để sinh số phòng tự động dựa trên floorNumber
+     */
+    private String generateRoomNumber(Integer floorNumber) {
+        List<Room> roomsOnFloor = roomRepository.findByFloorNumber(floorNumber);
+        int maxNumber = floorNumber * 100 - 1;
+        for (Room r : roomsOnFloor) {
+            try {
+                int num = Integer.parseInt(r.getRoomNumber());
+                if (num > maxNumber) {
+                    maxNumber = num;
+                }
+            } catch (NumberFormatException e) {
+                // Bỏ qua nếu số phòng không phải định dạng số
+            }
+        }
+        return String.valueOf(maxNumber + 1);
+    }
+
+    /**
      * Method private để fill data từ request vào entity
      * Tái sử dụng trong cả create và update
      */
     private void populateRoomData(Room room, RoomRequest request, RoomType roomType) {
-        room.setRoomNumber(request.getRoomNumber());
         room.setRoomType(roomType);
         room.setFloorNumber(request.getFloorNumber());
         room.setDescription(request.getDescription());
@@ -225,10 +316,5 @@ public class RoomServiceImpl implements IRoomService {
     public Page<RoomResponse> getAvailableRooms(Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "roomNumber", SortDirection.ASC);
         return roomRepository.findByRoomStatus(RoomStatus.AVAILABLE, pageable).map(roomMapper::toResponse);
-    }
-    @Override
-    public Page<RoomResponse> getRoomsByStatuses(java.util.List<RoomStatus> statuses, Integer page, Integer size) {
-        Pageable pageable = pageableUtils.createPageable(page, size, "roomNumber", SortDirection.ASC);
-        return roomRepository.findByRoomStatusIn(statuses, pageable).map(roomMapper::toResponse);
     }
 }

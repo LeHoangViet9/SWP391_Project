@@ -73,6 +73,13 @@ export default function RoomTypesSection() {
                 <div className="absolute top-4 left-4 bg-[#bfa15f] text-white text-xs font-semibold px-3 py-1 uppercase tracking-wider">
                   {room.status === 'ACTIVE' ? '5★' : room.status}
                 </div>
+                {room.totalRooms === 0 && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <span className="bg-red-600 text-white font-bold text-sm px-4 py-2 uppercase tracking-widest rounded-sm">
+                      {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="p-6">
@@ -122,12 +129,21 @@ export default function RoomTypesSection() {
                     >
                       {t('rooms.viewDetail')}
                     </button>
-                    <button
-                      onClick={() => handleBook(room)}
-                      className="px-4 py-2 text-sm btn-gold rounded font-medium"
-                    >
-                      {t('rooms.bookNow')}
-                    </button>
+                    {room.totalRooms === 0 ? (
+                      <button
+                        disabled
+                        className="px-4 py-2 text-sm bg-stone-300 text-stone-500 cursor-not-allowed rounded font-medium"
+                      >
+                        {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleBook(room)}
+                        className="px-4 py-2 text-sm btn-gold rounded font-medium"
+                      >
+                        {t('rooms.bookNow')}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
