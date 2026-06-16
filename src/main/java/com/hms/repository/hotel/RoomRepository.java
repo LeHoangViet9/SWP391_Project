@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.repository.query.Param;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 @Repository
@@ -40,5 +42,21 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     long countByRoomTypeIdAndRoomStatus(Long roomTypeId, RoomStatus roomStatus);
 
     boolean existsByRoomTypeIdAndRoomStatusNot(Long roomTypeId, RoomStatus roomStatus);
+
+    /**
+     * Đếm tổng phòng đang hoạt động của một loại phòng.
+     * Loại trừ INACTIVE (đã xóa mềm) và OUT_OF_ORDER (hỏng hóc).
+     * Dùng để tính công suất thực sự, độc lập với trạng thái phòng tức thời.
+     */
+    @Query("""
+        SELECT COUNT(r)
+        FROM Room r
+        WHERE r.roomType.id = :roomTypeId
+        AND r.roomStatus NOT IN :excludedStatuses
+    """)
+    long countByRoomTypeIdAndRoomStatusNotIn(
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("excludedStatuses") Collection<RoomStatus> excludedStatuses
+    );
 }
 

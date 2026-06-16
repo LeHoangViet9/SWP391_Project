@@ -5,6 +5,8 @@ import com.hms.common.enums.BookingStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.dto.booking.request.BookingRequest;
+import com.hms.dto.booking.request.BookingRoomAssignRequest;
+import com.hms.dto.booking.request.BookingStatusRequest;
 import com.hms.dto.booking.response.BookingResponse;
 import com.hms.service.booking.BookingService;
 import jakarta.validation.Valid;
@@ -221,4 +223,39 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<BookingResponse>> updateBookingStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody BookingStatusRequest request) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+        BookingResponse data = bookingService.updateBookingStatus(id, request);
+        String message = messageSource.getMessage("success.booking.status.updated", null, locale);
+
+        ApiResponse<BookingResponse> response = ApiResponse.<BookingResponse>builder()
+                .success(true)
+                .message(message)
+                .data(data)
+                .status(HttpStatus.OK)
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{id}/assign-room")
+    public ResponseEntity<ApiResponse<BookingResponse>> assignRoom(
+            @PathVariable Long id,
+            @Valid @RequestBody BookingRoomAssignRequest request) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+        BookingResponse data = bookingService.assignRoom(id, request);
+        String message = messageSource.getMessage("success.booking.room.assigned", null, locale);
+
+        ApiResponse<BookingResponse> response = ApiResponse.<BookingResponse>builder()
+                .success(true)
+                .message(message)
+                .data(data)
+                .status(HttpStatus.OK)
+                .build();
+        return ResponseEntity.ok(response);
+    }
 }
