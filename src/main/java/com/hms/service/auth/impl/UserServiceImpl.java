@@ -29,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -78,7 +77,7 @@ public class UserServiceImpl implements IUserService {
         // 🌟 2. Gán các trường bảo mật kích hoạt
         user.setEnabled(false); // Mặc định khóa cho đến khi xác thực OTP thành công
         user.setOtpCode(otp);
-        user.setOtpExpiration(LocalDateTime.now().plusMinutes(5)); // Hết hạn sau 5 phút
+        user.setOtpExpiration(LocalDateTime.now().plusMinutes(1)); // Hết hạn sau 1 phút
 
         User savedUser = userRepository.save(user);
 
@@ -105,7 +104,7 @@ public class UserServiceImpl implements IUserService {
             throw new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale));
         }
 
-        if (!user.isEnabled()) {
+        if (!user.getEnabled()) {
             throw new ForbiddenException("Tài khoản chưa được kích hoạt! Vui lòng xác thực OTP trong Email.");
         }
 
@@ -317,7 +316,7 @@ public class UserServiceImpl implements IUserService {
         User user = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.email.invalid", null, locale)));
 
-        if (user.isEnabled()) {
+        if (user.getEnabled()) {
             throw new ConflictException(messageSource.getMessage("error.account.already.active", null, locale));
         }
 

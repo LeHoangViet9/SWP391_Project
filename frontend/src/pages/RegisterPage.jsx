@@ -33,11 +33,18 @@ export default function RegisterPage() {
   const update = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
   const validate = () => {
+    if (!form.fullName.trim()) return t('auth.errFullNameRequired');
     if (!USERNAME_RE.test(form.userName)) return t('auth.errUsername');
     if (!PASSWORD_RE.test(form.password)) return t('auth.errPassword');
     if (form.password !== form.rePassword) return t('auth.errPasswordMatch');
     if (!PHONE_RE.test(form.phone)) return t('auth.errPhone');
     return null;
+  };
+
+  const handleBlurFullName = () => {
+    if (!form.fullName.trim()) {
+      setError(t('auth.errFullNameRequired'));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -51,7 +58,7 @@ export default function RegisterPage() {
     try {
       const res = await register(form);
       setSuccess(res.message || t('auth.registerSuccess'));
-      setTimeout(() => navigate(redirect), 1500);
+      setTimeout(() => navigate(`/verify-otp?email=${encodeURIComponent(form.email)}`), 1500);
     } catch (err) {
       setError(err.message || t('auth.registerFailed'));
     } finally {
@@ -75,7 +82,14 @@ export default function RegisterPage() {
 
         <div>
           <label className={labelClass}>{t('auth.fullName')}</label>
-          <input type="text" required value={form.fullName} onChange={(e) => update('fullName', e.target.value)} className={inputClass} />
+          <input
+            type="text"
+            required
+            value={form.fullName}
+            onChange={(e) => update('fullName', e.target.value)}
+            onBlur={handleBlurFullName}
+            className={inputClass}
+          />
         </div>
 
         <div>

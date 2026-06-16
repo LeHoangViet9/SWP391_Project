@@ -56,6 +56,18 @@ export async function register(payload, locale = 'vi') {
   return res;
 }
 
+/** POST /api/v1/auth/active-account */
+export async function activeAccount(payload, locale = 'vi') {
+  const res = await apiFetch('/auth/active-account', {
+    method: 'POST',
+    body: JSON.stringify({
+      email: payload.email,
+      otp: payload.otp,
+    }),
+  }, locale);
+  return res;
+}
+
 /** GET /api/v1/auth/me */
 export async function getCurrentUser(locale = 'vi') {
   const res = await apiFetch('/auth/me', {}, locale);

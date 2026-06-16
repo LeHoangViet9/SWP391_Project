@@ -103,6 +103,19 @@ public class AuthController {
         ),HttpStatus.OK);
     }
 
+    @PostMapping("/active-account")
+    public ResponseEntity<ApiResponse<Void>> activeAccount(@Valid @RequestBody ActiveAccountRequest activeAccountRequest){
+        Locale locale= LocaleContextHolder.getLocale();
+        userService.activeUser(activeAccountRequest.getEmail(), activeAccountRequest.getOtp());
+        String successMessage = messageSource.getMessage("auth.active.success", null, "Account activated successfully", locale);
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                successMessage,
+                null,
+                HttpStatus.OK
+        ),HttpStatus.OK);
+    }
+
 
 
 }

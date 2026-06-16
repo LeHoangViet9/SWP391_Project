@@ -25,7 +25,7 @@ public class User {
     private String fullName;
     @Column(name = "email", nullable = false,unique = true,length = 100)
     private String email;
-    @Column(name="phone",nullable = false,unique = false,length = 15)
+    @Column(name="phone",nullable = false,unique = true,length = 15)
     private String phone;
     @Column(name = "password", nullable = false,length = 100)
     private String password;
@@ -50,7 +50,7 @@ public class User {
     @Column(name = "reset_password_expire_at")
     private LocalDateTime resetPasswordExpiredAt;
     @Column(name = "enabled")
-    private boolean enabled = false; // Mặc định tài khoản mới tạo sẽ bị khóa
+    private Boolean enabled = false; // Mặc định tài khoản mới tạo sẽ bị khóa
     @Column(name = "otp_code")
     private String otpCode;
     @Column(name = "otp_expriration")
