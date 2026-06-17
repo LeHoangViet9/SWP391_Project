@@ -10,7 +10,7 @@ const USERNAME_RE = /^[a-zA-Z0-9_]+$/;
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@#$%^&+=!]{6,}$/;
 
 export default function RegisterPage() {
-    const { t } = useLocale();
+    const { t, locale } = useLocale();
     const { register } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -35,9 +35,16 @@ export default function RegisterPage() {
     };
 
     const validate = () => {
+        // Kiểm tra blank/whitespace-only
+        if (!form.fullName.trim()) return locale === 'vi' ? 'Họ và tên không được để trống.' : 'Full name is required.';
+        if (!form.email.trim()) return locale === 'vi' ? 'Email không được để trống.' : 'Email is required.';
+        if (!form.phone.trim()) return locale === 'vi' ? 'Số điện thoại không được để trống.' : 'Phone number is required.';
+        if (!form.password) return locale === 'vi' ? 'Mật khẩu không được để trống.' : 'Password is required.';
+        if (!form.rePassword) return locale === 'vi' ? 'Vui lòng xác nhận mật khẩu.' : 'Please confirm your password.';
+        // Kiểm tra format
         if (!PASSWORD_RE.test(form.password)) return t('auth.errPassword');
         if (form.password !== form.rePassword) return t('auth.errPasswordMatch');
-        if (!PHONE_RE.test(form.phone)) return t('auth.errPhone');
+        if (!PHONE_RE.test(form.phone.trim())) return t('auth.errPhone');
         return null;
     };
 
@@ -54,11 +61,22 @@ export default function RegisterPage() {
 
         setLoading(true);
         try {
-            const res = await register(form);
+            // Trim whitespace trước khi gửi lên server
+            const payload = {
+                ...form,
+                fullName: form.fullName.trim(),
+                email: form.email.trim().toLowerCase(),
+                phone: form.phone.trim(),
+            };
+            const res = await register(payload);
             setSuccess(res.message || t('auth.registerSuccess'));
 
+            // Sau đăng ký → về trang login với email pre-filled
+            // Kèm flag "registered=1" để login hiện banner nhắc xác thực OTP
             setTimeout(() => {
-                navigate(`/verify-otp?email=${encodeURIComponent(form.email)}`);
+                navigate(
+                    `/login?email=${encodeURIComponent(payload.email)}&registered=1`
+                );
             }, 1500);
         } catch (err) {
             setError(err.message || t('auth.registerFailed'));
@@ -66,6 +84,7 @@ export default function RegisterPage() {
             setLoading(false);
         }
     };
+
 
     const inputClass =
         'w-full border border-stone-300 px-4 py-3 text-slate-800 outline-none focus:border-[#bfa15f] transition-colors';

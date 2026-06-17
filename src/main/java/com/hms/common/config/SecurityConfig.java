@@ -48,7 +48,9 @@ public class SecurityConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/forgot-password",
-                                "/api/v1/auth/reset-password"
+                                "/api/v1/auth/reset-password",
+                                "/api/v1/auth/verify-otp",     // ← User chưa login cần xác thực OTP
+                                "/api/v1/auth/resend-otp"      // ← User chưa login cần gửi lại OTP
                         ).permitAll()
 
                         .requestMatchers("/api/v1/auth/**").authenticated()

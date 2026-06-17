@@ -16,6 +16,7 @@ import com.hms.service.auth.IUserService;
 import com.hms.service.auth.mapper.UserMapper;
 import com.hms.service.email.EmailService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
@@ -24,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.UUID;
@@ -31,6 +33,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class UserServiceImpl implements IUserService {
 
 
@@ -65,14 +68,21 @@ public class UserServiceImpl implements IUserService {
         user.setRole(role);
         user.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
         
-        String otp = String.format("%06d", new java.util.Random().nextInt(1000000));
+        String otp = String.format("%06d", new SecureRandom().nextInt(1000000));
         user.setOtpCode(otp);
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
-        
-        User savedUser = userRepository.save(user);
-        emailService.sendRegistrationOtp(savedUser.getEmail(), otp);
 
-        return userMapper.toResponse(savedUser,null);
+        User savedUser = userRepository.save(user);
+
+        // Gửi email SAU KHI save thành công
+        // Nếu email lỗi → user đã được tạo → có thể dùng resend-otp
+        try {
+            emailService.sendRegistrationOtp(savedUser.getEmail(), otp);
+        } catch (Exception e) {
+            log.warn("[WARN] Failed to send OTP email to {} : {}", savedUser.getEmail(), e.getMessage());
+        }
+
+        return userMapper.toResponse(savedUser, null);
     }
 
     @Override
@@ -129,7 +139,7 @@ public class UserServiceImpl implements IUserService {
     public void forgotPassword(ForgotPasswordRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findUserByEmail(request.getEmail()).orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.email.invalid", null, locale)));
-        String token = UUID.randomUUID().toString();
+        String token =  UUID.randomUUID().toString();
         user.setResetPasswordToken(token);
         user.setResetPasswordExpiredAt(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
