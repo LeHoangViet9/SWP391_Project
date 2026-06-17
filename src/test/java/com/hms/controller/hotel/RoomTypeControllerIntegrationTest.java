@@ -1,5 +1,6 @@
 package com.hms.controller.hotel;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hms.common.enums.AccountStatus; // 🛠️ Import enum trạng thái hệ thống của bạn
 import com.hms.dto.roomtype.request.RoomTypeRequest;
 import com.hms.entity.hotel.RoomType;
@@ -7,11 +8,11 @@ import com.hms.repository.hotel.RoomTypeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
 import java.util.Locale;
@@ -21,7 +22,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 @Transactional
+@org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
 public class RoomTypeControllerIntegrationTest {
 
     @Autowired
@@ -31,15 +34,25 @@ public class RoomTypeControllerIntegrationTest {
     private RoomTypeRepository roomTypeRepository;
 
     @Autowired
-    private JsonMapper.Builder jsonMapperBuilder;
+    private com.hms.repository.booking.InvoiceRepository invoiceRepository;
 
-    private JsonMapper jsonMapper;
+    @Autowired
+    private com.hms.repository.booking.BookingRepository bookingRepository;
+
+    @Autowired
+    private com.hms.repository.hotel.RoomRepository roomRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     private RoomType testRoomType1;
     private RoomType testRoomType2;
 
     @BeforeEach
     void setUp() {
-        jsonMapper = jsonMapperBuilder.build();
+        invoiceRepository.deleteAll();
+        bookingRepository.deleteAll();
+        roomRepository.deleteAll();
         roomTypeRepository.deleteAll();
 
         // 🛠️ Cập nhật: Thêm trạng thái ACTIVE để phù hợp với hàm findByIdAndStatus và các bộ lọc tìm kiếm
@@ -117,7 +130,7 @@ public class RoomTypeControllerIntegrationTest {
 
         mockMvc.perform(post("/api/v1/room-types")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
+                        .content(objectMapper.writeValueAsString(request))
                         .locale(Locale.ENGLISH))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success", is(true)))
@@ -134,7 +147,7 @@ public class RoomTypeControllerIntegrationTest {
 
         mockMvc.perform(post("/api/v1/room-types")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
+                        .content(objectMapper.writeValueAsString(request))
                         .header("Accept-Language", "vi")
                         .locale(Locale.forLanguageTag("vi")))
                 .andExpect(status().isBadRequest())
@@ -153,7 +166,7 @@ public class RoomTypeControllerIntegrationTest {
 
         mockMvc.perform(post("/api/v1/room-types")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
+                        .content(objectMapper.writeValueAsString(request))
                         .header("Accept-Language", "vi") // Dùng tiếng Việt kiểm tra lỗi trùng
                         .locale(Locale.forLanguageTag("vi")))
                 .andExpect(status().isConflict()) // 🛠️ SỬA LỖI: Lỗi Conflict trùng lặp phải trả về HTTP 409
@@ -171,7 +184,7 @@ public class RoomTypeControllerIntegrationTest {
 
         mockMvc.perform(put("/api/v1/room-types/" + testRoomType1.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
+                        .content(objectMapper.writeValueAsString(request))
                         .locale(Locale.ENGLISH))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
@@ -188,7 +201,7 @@ public class RoomTypeControllerIntegrationTest {
 
         mockMvc.perform(put("/api/v1/room-types/" + testRoomType1.getId())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
+                        .content(objectMapper.writeValueAsString(request))
                         .header("Accept-Language", "vi")
                         .locale(Locale.forLanguageTag("vi")))
                 .andExpect(status().isConflict()) // 🛠️ SỬA LỖI: Trả về lỗi 409 Conflict trùng lặp dữ liệu
