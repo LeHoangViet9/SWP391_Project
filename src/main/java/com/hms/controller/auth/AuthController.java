@@ -51,9 +51,9 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal String username) {
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal String email) {
         Locale locale = LocaleContextHolder.getLocale();
-        UserResponse userResponse = userService.getCurrentUser(username);
+        UserResponse userResponse = userService.getCurrentUser(email);
         ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
                 .success(true)
                 .message(messageSource.getMessage("auth.me.success", null, "Get current user successfully", locale))
@@ -64,11 +64,11 @@ public class AuthController {
     }
 
     @PutMapping("/change-password")
-    public ResponseEntity<ApiResponse<Void>>  handleChangePassword(@AuthenticationPrincipal String username,
+    public ResponseEntity<ApiResponse<Void>>  handleChangePassword(@AuthenticationPrincipal String email,
             @Valid @RequestBody ChangePasswordRequest changePasswordRequest){
         Locale locale= LocaleContextHolder.getLocale();
         String successMessage=messageSource.getMessage("auth.changePassword.success", null, locale);
-        userService.changePassword(username,changePasswordRequest);
+        userService.changePassword(email,changePasswordRequest);
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 successMessage,
@@ -103,6 +103,19 @@ public class AuthController {
         ),HttpStatus.OK);
     }
 
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse<Void>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request){
+        Locale locale = LocaleContextHolder.getLocale();
+        userService.verifyOtp(request);
+        String successMessage = messageSource.getMessage("auth.verifyOtp.success", null, locale);
+        return ResponseEntity.ok(new ApiResponse<>(true, successMessage, null, HttpStatus.OK));
+    }
 
-
+    @PostMapping("/resend-otp")
+    public ResponseEntity<ApiResponse<Void>> resendOtp(@RequestParam String email){
+        Locale locale = LocaleContextHolder.getLocale();
+        userService.resendOtp(email);
+        String successMessage = messageSource.getMessage("auth.resendOtp.success", null, locale);
+        return ResponseEntity.ok(new ApiResponse<>(true, successMessage, null, HttpStatus.OK));
+    }
 }

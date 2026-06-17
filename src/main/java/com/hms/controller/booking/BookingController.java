@@ -81,13 +81,13 @@ public class BookingController {
 
     @GetMapping("/my-history")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getMyBookingHistory(
-            @AuthenticationPrincipal String username,
+            @AuthenticationPrincipal String email,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        Page<BookingResponse> data = bookingService.getMyBookingHistory(username, page, size);
+        Page<BookingResponse> data = bookingService.getMyBookingHistory(email, page, size);
 
         ApiResponse<Page<BookingResponse>> response = ApiResponse.<Page<BookingResponse>>builder()
                 .success(true)

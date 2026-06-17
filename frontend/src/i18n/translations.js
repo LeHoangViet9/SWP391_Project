@@ -1,580 +1,1 @@
-export const translations = {
-  vi: {
-    hotline: 'Hotline 24/7',
-    email: 'Email',
-    branches: 'Hệ thống chi nhánh',
-    nav: {
-      home: 'Trang chủ',
-      hotels: 'Khách sạn',
-      roomTypes: 'Hạng phòng',
-      promotions: 'Ưu đãi',
-      amenities: 'Tiện ích',
-      news: 'Tin tức',
-    },
-    auth: {
-      login: 'Đăng nhập',
-      register: 'Đăng ký',
-      loginRegister: 'Đăng nhập / Đăng ký',
-      loginSubtitle: 'Đăng nhập để đặt phòng và quản lý đơn đặt của bạn',
-      registerSubtitle: 'Tạo tài khoản để trải nghiệm dịch vụ 5 sao',
-      username: 'Tên đăng nhập',
-      usernamePlaceholder: 'Nhập tên đăng nhập',
-      password: 'Mật khẩu',
-      fullName: 'Họ và tên',
-      phone: 'Số điện thoại',
-      rePassword: 'Xác nhận mật khẩu',
-      passwordHint: 'Tối thiểu 6 ký tự, gồm chữ và số',
-      noAccount: 'Chưa có tài khoản?',
-      hasAccount: 'Đã có tài khoản?',
-      loginFailed: 'Đăng nhập thất bại',
-      registerFailed: 'Đăng ký thất bại',
-      registerSuccess: 'Đăng ký thành công! Đang chuyển hướng...',
-      errUsername: 'Tên đăng nhập chỉ gồm chữ, số và dấu gạch dưới',
-      errPassword: 'Mật khẩu tối thiểu 6 ký tự, gồm chữ và số',
-      errPasswordMatch: 'Mật khẩu xác nhận không khớp',
-      errPhone: 'Số điện thoại không hợp lệ (VD: 0912345678)',
-      logout: 'Đăng xuất',
-      welcome: 'Xin chào',
-    },
-    bookingPage: {
-      title: 'Đặt phòng',
-      subtitle: 'Hoàn tất thông tin để xác nhận đặt phòng của bạn',
-      backHome: 'Về trang chủ',
-      stepDates: 'Chọn ngày & số phòng',
-      stepGuest: 'Thông tin khách hàng',
-      guestHint: 'Thông tin dùng để tạo hồ sơ khách hàng (POST /api/v1/customers) trước khi đặt phòng.',
-      idType: 'Loại giấy tờ',
-      idNumber: 'Số giấy tờ',
-      nationality: 'Quốc tịch',
-      nights: 'đêm',
-      continue: 'Tiếp tục',
-      back: 'Quay lại',
-      confirm: 'Xác nhận đặt phòng',
-      total: 'Tổng cộng',
-      submitFailed: 'Đặt phòng thất bại. Vui lòng thử lại.',
-      successTitle: 'Đặt phòng thành công!',
-      successDesc: 'Đơn đặt phòng của bạn đã được ghi nhận. Chúng tôi sẽ liên hệ xác nhận sớm nhất.',
-      bookingId: 'Mã đặt phòng',
-      roomType: 'Hạng phòng',
-      status: 'Trạng thái',
-    },
-    hero: {
-      title: 'Trải nghiệm đẳng cấp 5 sao',
-      subtitle: 'Khách sạn HMS Luxury',
-      description:
-        'Không gian nghỉ dưỡng sang trọng với tầm nhìn toàn cảnh thành phố, dịch vụ chuẩn quốc tế và bản sắc Á Đông tinh tế.',
-    },
-    booking: {
-      destination: 'Điểm đến / Khách sạn',
-      checkIn: 'Ngày nhận phòng',
-      checkOut: 'Ngày trả phòng',
-      rooms: 'Số phòng',
-      adults: 'Người lớn',
-      children: 'Trẻ em',
-      promoCode: 'Mã giảm giá',
-      promoPlaceholder: 'Nhập mã ưu đãi',
-      search: 'Kiểm tra phòng trống',
-      selectHotel: 'Chọn khách sạn',
-    },
-    rooms: {
-      title: 'Hạng phòng cao cấp',
-      subtitle: 'Lựa chọn hoàn hảo cho kỳ nghỉ của bạn',
-      perNight: '/ đêm',
-      guests: 'khách',
-      viewDetail: 'Xem chi tiết',
-      bookNow: 'Đặt phòng ngay',
-      amenities: 'Tiện nghi',
-    },
-    services: {
-      title: 'Dịch vụ & Tiện ích 5 sao',
-      subtitle: 'Trải nghiệm trọn vẹn tại HMS Luxury',
-      convention: {
-        title: 'Trung tâm Hội nghị & Tiệc cưới',
-        desc: 'Sảnh tiệc rộng 2.000m², sức chứa 1.500 khách, trang bị âm thanh ánh sáng chuẩn quốc tế.',
-      },
-      spa: {
-        title: 'Spa & Massage Thư giãn',
-        desc: 'Liệu pháp trị liệu đông y kết hợp massage Thái, phòng xông hơi và bồn tắm khoáng nóng.',
-      },
-      gym: {
-        title: 'Phòng Gym Hiện đại',
-        desc: 'Thiết bị Technogym mới nhất, huấn luyện viên cá nhân và lớp yoga buổi sáng miễn phí.',
-      },
-      pool: {
-        title: 'Bể bơi vô cực Sky Pool',
-        desc: 'Tầm nhìn panorama toàn cảnh thành phố, bar nước và khu vực thư giãn ngoài trời.',
-      },
-    },
-    footer: {
-      about: 'Về tập đoàn',
-      aboutText:
-        'HMS Luxury là hệ thống khách sạn 5 sao, mang đến trải nghiệm nghỉ dưỡng đẳng cấp quốc tế với dịch vụ chuẩn mực.',
-      contact: 'Liên hệ',
-      policies: 'Chính sách',
-      policyBooking: 'Chính sách đặt phòng',
-      policyPrivacy: 'Bảo mật thông tin',
-      policyCancel: 'Hủy & Hoàn tiền',
-      certifications: 'Chứng nhận',
-      followUs: 'Kết nối với chúng tôi',
-      copyright: '© 2026 HMS Luxury Hotel. Bảo lưu mọi quyền.',
-      branches: 'Trung tâm khách sạn',
-    },
-    common: {
-      noData: 'Không có dữ liệu.',
-      loading: 'Đang tải...',
-      page: 'Trang',
-    },
-    equipment: {
-      columns: {
-        id: 'ID',
-        name: 'Tên thiết bị',
-        code: 'Mã thiết bị',
-        location: 'Vị trí',
-        description: 'Mô tả',
-        room: 'Phòng',
-        status: 'Trạng thái',
-        actions: 'Thao tác',
-      },
-      status: {
-        ACTIVE: 'Hoạt động',
-        MAINTENANCE: 'Bảo trì',
-        BROKEN: 'Hỏng',
-        INACTIVE: 'Ngừng dùng',
-      },
-      noRoom: 'Chưa gán',
-      noRoomOption: 'Chưa gán phòng',
-      searchPlaceholder: 'Tìm thiết bị...',
-      addBtn: 'Thêm thiết bị',
-      modal: {
-        addTitle: 'Thêm thiết bị mới',
-        editTitle: 'Cập nhật thiết bị',
-        name: 'Tên thiết bị *',
-        namePlaceholder: 'Điều hòa, TV, tủ lạnh...',
-        code: 'Mã thiết bị *',
-        codePlaceholder: 'TV-101',
-        location: 'Vị trí *',
-        locationPlaceholder: 'Phòng 101, kho tầng 2...',
-        room: 'Gán phòng',
-        description: 'Mô tả',
-        cancel: 'Hủy',
-        save: 'Tạo mới',
-        update: 'Cập nhật',
-        saving: 'Đang lưu...',
-      },
-      toast: {
-        addSuccess: 'Thêm thiết bị thành công!',
-        updateSuccess: 'Cập nhật thiết bị thành công!',
-        deleteSuccess: 'Đã xóa thiết bị!',
-        statusSuccess: 'Cập nhật trạng thái thành công!',
-        imageRequired: 'Vui lòng chọn hình ảnh thiết bị!',
-        forbidden: '403 Forbidden - Bạn không có quyền!',
-        forbiddenDelete: '403 Forbidden - Không có quyền xóa thiết bị!',
-        loadError: 'Lỗi tải danh sách thiết bị',
-        deleteConfirm: 'Xóa thiết bị "{name}"?',
-      }
-    },
-    maintenance: {
-      columns: {
-        id: 'ID',
-        room: 'Phòng',
-        equipment: 'Thiết bị',
-        title: 'Tiêu Đề',
-        reportedBy: 'Người Báo Cáo',
-        assignedTo: 'Phân Công',
-        severity: 'Mức Độ',
-        status: 'Trạng Thái',
-        actions: 'Thao tác',
-      },
-      tabs: {
-        all: 'Tất Cả Yêu Cầu',
-        mine: 'Yêu Cầu Của Tôi',
-      },
-      filters: {
-        status: 'Trạng Thái',
-        severity: 'Mức Độ',
-        assignedTo: 'Phân Công',
-        roomNumber: 'Số Phòng',
-        clear: 'Xóa Bộ Lọc',
-        search: 'Tìm Kiếm',
-      },
-      modal: {
-        addTitle: 'Tạo Yêu Cầu Bảo Trì Mới',
-        editTitle: 'Cập Nhật Yêu Cầu Bảo Trì',
-        title: 'Tiêu Đề Sự Cố *',
-        titlePlaceholder: 'Điều hòa bị hỏng, đường ống rò rỉ...',
-        room: 'Phòng',
-        equipment: 'Thiết bị',
-        reportedBy: 'Báo Cáo Bởi *',
-        assignedTo: 'Phân công',
-        severity: 'Mức Độ *',
-        status: 'Trạng Thái *',
-        diagnosis: 'Chẩn Đoán',
-        repairResult: 'Kết Quả Sửa Chữa',
-        description: 'Mô Tả Chi Tiết',
-        cancel: 'Hủy',
-        save: 'Tạo mới',
-        update: 'Cập nhật',
-        saving: 'Đang lưu...',
-      },
-      toast: {
-        addSuccess: 'Tạo yêu cầu bảo trì thành công!',
-        updateSuccess: 'Cập nhật yêu cầu bảo trì thành công!',
-        deleteSuccess: 'Đã xóa yêu cầu bảo trì!',
-        forbidden: '403 Forbidden - Bạn không có quyền!',
-        forbiddenDelete: '403 Forbidden - Không có quyền xóa!',
-        loadError: 'Không thể tải dữ liệu bảo trì.',
-        deleteConfirm: 'Xóa yêu cầu bảo trì ID {id}?',
-      }
-    },
-    staff: {
-      columns: {
-        id: 'ID',
-        fullName: 'Họ và tên',
-        username: 'Tên đăng nhập',
-        email: 'Email',
-        phone: 'Số điện thoại',
-        role: 'Vai trò',
-        status: 'Trạng thái',
-        actions: 'Thao tác',
-      },
-      filters: {
-        searchPlaceholder: 'Tìm kiếm nhân viên...',
-        allStatus: 'Tất cả trạng thái',
-        active: 'Hoạt động',
-        inactive: 'Ngừng hoạt động',
-        banned: 'Bị khóa',
-      },
-      addBtn: 'Đăng ký nhân viên',
-      modal: {
-        addTitle: 'Đăng Ký Tài Khoản Nhân Viên Mới',
-        editTitle: 'Cập Nhật Tài Khoản Nhân Viên',
-        fullName: 'Họ và Tên *',
-        username: 'Tên Đăng Nhập *',
-        password: 'Mật Khẩu *',
-        passwordNew: 'Mật Khẩu Mới',
-        confirmPassword: 'Xác Nhận Mật Khẩu *',
-        confirmPasswordNew: 'Xác Nhận Mật Khẩu Mới',
-        email: 'Email *',
-        phone: 'Số Điện Thoại *',
-        role: 'Vai Trò Phân Quyền *',
-        status: 'Trạng Thái *',
-        cancel: 'Hủy',
-        save: 'Đăng ký tài khoản',
-        update: 'Cập nhật',
-        saving: 'Đang lưu...',
-      },
-      toast: {
-        addSuccess: 'Đăng ký tài khoản nhân viên thành công!',
-        updateSuccess: 'Cập nhật tài khoản nhân viên thành công!',
-        deleteSuccess: 'Đã xóa tài khoản nhân viên!',
-        forbidden: '403 Forbidden - Bạn không có quyền!',
-        forbiddenDelete: '403 Forbidden - Không có quyền xóa nhân viên!',
-        loadError: 'Lỗi tải danh sách nhân viên.',
-        deleteConfirm: 'Bạn có chắc chắn muốn xóa nhân viên "{name}"?',
-      }
-    },
-    changePassword: {
-      title: 'Bảo mật tài khoản',
-      hint: 'Mật khẩu mới phải dài ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và chữ số.',
-      oldPassword: 'Mật khẩu hiện tại *',
-      newPassword: 'Mật khẩu mới *',
-      confirmPassword: 'Xác nhận mật khẩu mới *',
-      submitBtn: 'Đổi mật khẩu',
-      updating: 'Đang cập nhật...',
-      toast: {
-        mismatch: 'Mật khẩu xác nhận không trùng khớp!',
-        success: 'Thay đổi mật khẩu thành công!',
-        error: 'Có lỗi xảy ra, vui lòng thử lại.',
-      }
-    }
-  },
-  en: {
-    hotline: '24/7 Hotline',
-    email: 'Email',
-    branches: 'Hotel Network',
-    nav: {
-      home: 'Home',
-      hotels: 'Hotels',
-      roomTypes: 'Room Types',
-      promotions: 'Promotions',
-      amenities: 'Amenities',
-      news: 'News',
-    },
-    auth: {
-      login: 'Login',
-      register: 'Register',
-      loginRegister: 'Login / Register',
-      loginSubtitle: 'Sign in to book rooms and manage your reservations',
-      registerSubtitle: 'Create an account for the 5-star experience',
-      username: 'Username',
-      usernamePlaceholder: 'Enter username',
-      password: 'Password',
-      fullName: 'Full Name',
-      phone: 'Phone Number',
-      rePassword: 'Confirm Password',
-      passwordHint: 'Min 6 characters with letters and numbers',
-      noAccount: "Don't have an account?",
-      hasAccount: 'Already have an account?',
-      loginFailed: 'Login failed',
-      registerFailed: 'Registration failed',
-      registerSuccess: 'Registration successful! Redirecting...',
-      errUsername: 'Username: letters, numbers and underscore only',
-      errPassword: 'Password: min 6 chars with letters and numbers',
-      errPasswordMatch: 'Passwords do not match',
-      errPhone: 'Invalid phone (e.g. 0912345678)',
-      logout: 'Logout',
-      welcome: 'Hello',
-    },
-    bookingPage: {
-      title: 'Book a Room',
-      subtitle: 'Complete your details to confirm your reservation',
-      backHome: 'Back to Home',
-      stepDates: 'Select dates & rooms',
-      stepGuest: 'Guest information',
-      guestHint: 'This creates your customer profile (POST /api/v1/customers) before booking.',
-      idType: 'ID Type',
-      idNumber: 'ID Number',
-      nationality: 'Nationality',
-      nights: 'nights',
-      continue: 'Continue',
-      back: 'Back',
-      confirm: 'Confirm Booking',
-      total: 'Total',
-      submitFailed: 'Booking failed. Please try again.',
-      successTitle: 'Booking Confirmed!',
-      successDesc: 'Your reservation has been recorded. We will contact you shortly.',
-      bookingId: 'Booking ID',
-      roomType: 'Room Type',
-      status: 'Status',
-    },
-    hero: {
-      title: '5-Star Luxury Experience',
-      subtitle: 'HMS Luxury Hotel',
-      description:
-        'Elegant retreat with panoramic city views, world-class service and refined Asian hospitality.',
-    },
-    booking: {
-      destination: 'Destination / Hotel',
-      checkIn: 'Check-in',
-      checkOut: 'Check-out',
-      rooms: 'Rooms',
-      adults: 'Adults',
-      children: 'Children',
-      promoCode: 'Promo Code',
-      promoPlaceholder: 'Enter promo code',
-      search: 'Check Availability',
-      selectHotel: 'Select hotel',
-    },
-    rooms: {
-      title: 'Premium Room Categories',
-      subtitle: 'The perfect choice for your stay',
-      perNight: '/ night',
-      guests: 'guests',
-      viewDetail: 'View Details',
-      bookNow: 'Book Now',
-      amenities: 'Amenities',
-    },
-    services: {
-      title: '5-Star Services & Amenities',
-      subtitle: 'Complete experience at HMS Luxury',
-      convention: {
-        title: 'Convention & Wedding Center',
-        desc: '2,000m² ballroom, capacity 1,500 guests, international-standard AV equipment.',
-      },
-      spa: {
-        title: 'Spa & Relaxation Massage',
-        desc: 'Eastern therapy combined with Thai massage, sauna and mineral hot tub.',
-      },
-      gym: {
-        title: 'Modern Fitness Center',
-        desc: 'Latest Technogym equipment, personal trainers and free morning yoga classes.',
-      },
-      pool: {
-        title: 'Infinity Sky Pool',
-        desc: 'Panoramic city views, pool bar and outdoor relaxation area.',
-      },
-    },
-    footer: {
-      about: 'About Us',
-      aboutText:
-        'HMS Luxury is a premium 5-star hotel system, delivering world-class hospitality and refined service.',
-      contact: 'Contact',
-      policies: 'Policies',
-      policyBooking: 'Booking Policy',
-      policyPrivacy: 'Privacy Policy',
-      policyCancel: 'Cancellation & Refund',
-      certifications: 'Certifications',
-      followUs: 'Follow Us',
-      copyright: '© 2026 HMS Luxury Hotel. All rights reserved.',
-      branches: 'Hotel Centers',
-    },
-    common: {
-      noData: 'No data available.',
-      loading: 'Loading...',
-      page: 'Page',
-    },
-    equipment: {
-      columns: {
-        id: 'ID',
-        name: 'Equipment Name',
-        code: 'Equipment Code',
-        location: 'Location',
-        description: 'Description',
-        room: 'Room',
-        status: 'Status',
-        actions: 'Actions',
-      },
-      status: {
-        ACTIVE: 'Active',
-        MAINTENANCE: 'Maintenance',
-        BROKEN: 'Broken',
-        INACTIVE: 'Inactive',
-      },
-      noRoom: 'Unassigned',
-      noRoomOption: 'Unassigned room',
-      searchPlaceholder: 'Search equipment...',
-      addBtn: 'Add Equipment',
-      modal: {
-        addTitle: 'Add Equipment',
-        editTitle: 'Update Equipment',
-        name: 'Equipment Name *',
-        namePlaceholder: 'Air conditioner, TV, fridge...',
-        code: 'Equipment Code *',
-        codePlaceholder: 'TV-101',
-        location: 'Location *',
-        locationPlaceholder: 'Room 101, 2nd floor warehouse...',
-        room: 'Assign Room',
-        description: 'Description',
-        cancel: 'Cancel',
-        save: 'Create New',
-        update: 'Update',
-        saving: 'Saving...',
-      },
-      toast: {
-        addSuccess: 'Equipment added successfully!',
-        updateSuccess: 'Equipment updated successfully!',
-        deleteSuccess: 'Equipment deleted successfully!',
-        statusSuccess: 'Status updated successfully!',
-        imageRequired: 'Please select an equipment image!',
-        forbidden: '403 Forbidden - Access denied!',
-        forbiddenDelete: '403 Forbidden - No permission to delete equipment!',
-        loadError: 'Failed to load equipment list',
-        deleteConfirm: 'Delete equipment "{name}"?',
-      }
-    },
-    maintenance: {
-      columns: {
-        id: 'ID',
-        room: 'Room',
-        equipment: 'Equipment',
-        title: 'Title',
-        reportedBy: 'Reported By',
-        assignedTo: 'Assigned To',
-        severity: 'Severity',
-        status: 'Status',
-        actions: 'Actions',
-      },
-      tabs: {
-        all: 'All Requests',
-        mine: 'My Requests',
-      },
-      filters: {
-        status: 'Status',
-        severity: 'Severity',
-        assignedTo: 'Assigned To',
-        roomNumber: 'Room Number',
-        clear: 'Clear Filters',
-        search: 'Search',
-      },
-      modal: {
-        addTitle: 'Create New Maintenance Request',
-        editTitle: 'Update Maintenance Request',
-        title: 'Issue Title *',
-        titlePlaceholder: 'Broken AC, pipe leakage...',
-        room: 'Room',
-        equipment: 'Equipment',
-        reportedBy: 'Reported By *',
-        assignedTo: 'Assigned To',
-        severity: 'Severity *',
-        status: 'Status *',
-        diagnosis: 'Diagnosis',
-        repairResult: 'Repair Result',
-        description: 'Detailed Description',
-        cancel: 'Cancel',
-        save: 'Create New',
-        update: 'Update',
-        saving: 'Saving...',
-      },
-      toast: {
-        addSuccess: 'Maintenance request created successfully!',
-        updateSuccess: 'Maintenance request updated successfully!',
-        deleteSuccess: 'Maintenance request deleted!',
-        forbidden: '403 Forbidden - Access denied!',
-        forbiddenDelete: '403 Forbidden - No permission to delete!',
-        loadError: 'Failed to load maintenance data.',
-        deleteConfirm: 'Delete maintenance request ID {id}?',
-      }
-    },
-    staff: {
-      columns: {
-        id: 'ID',
-        fullName: 'Full Name',
-        username: 'Username',
-        email: 'Email',
-        phone: 'Phone Number',
-        role: 'Role',
-        status: 'Status',
-        actions: 'Actions',
-      },
-      filters: {
-        searchPlaceholder: 'Search staff...',
-        allStatus: 'All Statuses',
-        active: 'Active',
-        inactive: 'Inactive',
-        banned: 'Banned',
-      },
-      addBtn: 'Register Staff',
-      modal: {
-        addTitle: 'Register New Staff Account',
-        editTitle: 'Update Staff Account',
-        fullName: 'Full Name *',
-        username: 'Username *',
-        password: 'Password *',
-        passwordNew: 'New Password',
-        confirmPassword: 'Confirm Password *',
-        confirmPasswordNew: 'Confirm New Password',
-        email: 'Email *',
-        phone: 'Phone Number *',
-        role: 'Assigned Role *',
-        status: 'Status *',
-        cancel: 'Cancel',
-        save: 'Register Account',
-        update: 'Update',
-        saving: 'Saving...',
-      },
-      toast: {
-        addSuccess: 'Staff registered successfully!',
-        updateSuccess: 'Staff account updated successfully!',
-        deleteSuccess: 'Staff account deleted!',
-        forbidden: '403 Forbidden - Access denied!',
-        forbiddenDelete: '403 Forbidden - No permission to delete staff!',
-        loadError: 'Failed to load staff list.',
-        deleteConfirm: 'Are you sure you want to delete staff "{name}"?',
-      }
-    },
-    changePassword: {
-      title: 'Account Security',
-      hint: 'New password must be at least 8 characters long, including uppercase, lowercase letters and numbers.',
-      oldPassword: 'Current Password *',
-      newPassword: 'New Password *',
-      confirmPassword: 'Confirm New Password *',
-      submitBtn: 'Change Password',
-      updating: 'Updating...',
-      toast: {
-        mismatch: 'Confirm password does not match!',
-        success: 'Password changed successfully!',
-        error: 'An error occurred, please try again.',
-      }
-    }
-  },
-};
+export const translations = {  vi: {    hotline: 'Hotline 24/7',    email: 'Email',    branches: 'Hệ thống chi nhánh',    nav: {      home: 'Trang chủ',      hotels: 'Khách sạn',      roomTypes: 'Hạng phòng',      promotions: 'Ưu đãi',      amenities: 'Tiện ích',      news: 'Tin tức',    },    auth: {      login: 'Đăng nhập',      register: 'Đăng ký',      loginRegister: 'Đăng nhập / Đăng ký',      loginSubtitle: 'Đăng nhập để đặt phòng và quản lý đơn đặt của bạn',      registerSubtitle: 'Tạo tài khoản để trải nghiệm dịch vụ 5 sao',      email: 'Email',      emailPlaceholder: 'Nhập email của bạn',      password: 'Mật khẩu',      fullName: 'Họ và tên',      phone: 'Số điện thoại',      rePassword: 'Xác nhận mật khẩu',      passwordHint: 'Tối thiểu 6 ký tự, gồm chữ và số',      noAccount: 'Chưa có tài khoản?',      hasAccount: 'Đã có tài khoản?',      loginFailed: 'Đăng nhập thất bại',      registerFailed: 'Đăng ký thất bại',      registerSuccess: 'Đăng ký thành công! Đang chuyển hướng...',      errPassword: 'Mật khẩu tối thiểu 6 ký tự, gồm chữ và số',      errPasswordMatch: 'Mật khẩu xác nhận không khớp',      errPhone: 'Số điện thoại không hợp lệ (VD: 0912345678)',      logout: 'Đăng xuất',      welcome: 'Xin chào',    },    bookingPage: {      title: 'Đặt phòng',      subtitle: 'Hoàn tất thông tin để xác nhận đặt phòng của bạn',      backHome: 'Về trang chủ',      stepDates: 'Chọn ngày & số phòng',      stepGuest: 'Thông tin khách hàng',      guestHint: 'Thông tin dùng để tạo hồ sơ khách hàng (POST /api/v1/customers) trước khi đặt phòng.',      idType: 'Loại giấy tờ',      idNumber: 'Số giấy tờ',      nationality: 'Quốc tịch',      nights: 'đêm',      continue: 'Tiếp tục',      back: 'Quay lại',      confirm: 'Xác nhận đặt phòng',      total: 'Tổng cộng',      submitFailed: 'Đặt phòng thất bại. Vui lòng thử lại.',      successTitle: 'Đặt phòng thành công!',      successDesc: 'Đơn đặt phòng của bạn đã được ghi nhận. Chúng tôi sẽ liên hệ xác nhận sớm nhất.',      bookingId: 'Mã đặt phòng',      roomType: 'Hạng phòng',      status: 'Trạng thái',    },    hero: {      title: 'Trải nghiệm đẳng cấp 5 sao',      subtitle: 'Khách sạn HMS Luxury',      description:        'Không gian nghỉ dưỡng sang trọng với tầm nhìn toàn cảnh thành phố, dịch vụ chuẩn quốc tế và bản sắc Á Đông tinh tế.',    },    booking: {      destination: 'Điểm đến / Khách sạn',      checkIn: 'Ngày nhận phòng',      checkOut: 'Ngày trả phòng',      rooms: 'Số phòng',      adults: 'Người lớn',      children: 'Trẻ em',      promoCode: 'Mã giảm giá',      promoPlaceholder: 'Nhập mã ưu đãi',      search: 'Kiểm tra phòng trống',      selectHotel: 'Chọn khách sạn',    },    rooms: {      title: 'Hạng phòng cao cấp',      subtitle: 'Lựa chọn hoàn hảo cho kỳ nghỉ của bạn',      perNight: '/ đêm',      guests: 'khách',      viewDetail: 'Xem chi tiết',      bookNow: 'Đặt phòng ngay',      amenities: 'Tiện nghi',    },    services: {      title: 'Dịch vụ & Tiện ích 5 sao',      subtitle: 'Trải nghiệm trọn vẹn tại HMS Luxury',      convention: {        title: 'Trung tâm Hội nghị & Tiệc cưới',        desc: 'Sảnh tiệc rộng 2.000m², sức chứa 1.500 khách, trang bị âm thanh ánh sáng chuẩn quốc tế.',      },      spa: {        title: 'Spa & Massage Thư giãn',        desc: 'Liệu pháp trị liệu đông y kết hợp massage Thái, phòng xông hơi và bồn tắm khoáng nóng.',      },      gym: {        title: 'Phòng Gym Hiện đại',        desc: 'Thiết bị Technogym mới nhất, huấn luyện viên cá nhân và lớp yoga buổi sáng miễn phí.',      },      pool: {        title: 'Bể bơi vô cực Sky Pool',        desc: 'Tầm nhìn panorama toàn cảnh thành phố, bar nước và khu vực thư giãn ngoài trời.',      },    },    footer: {      about: 'Về tập đoàn',      aboutText:        'HMS Luxury là hệ thống khách sạn 5 sao, mang đến trải nghiệm nghỉ dưỡng đẳng cấp quốc tế với dịch vụ chuẩn mực.',      contact: 'Liên hệ',      policies: 'Chính sách',      policyBooking: 'Chính sách đặt phòng',      policyPrivacy: 'Bảo mật thông tin',      policyCancel: 'Hủy & Hoàn tiền',      certifications: 'Chứng nhận',      followUs: 'Kết nối với chúng tôi',      copyright: '© 2026 HMS Luxury Hotel. Bảo lưu mọi quyền.',      branches: 'Trung tâm khách sạn',    },    common: {      noData: 'Không có dữ liệu.',      loading: 'Đang tải...',      page: 'Trang',    },    equipment: {      columns: {        id: 'ID',        name: 'Tên thiết bị',        code: 'Mã thiết bị',        location: 'Vị trí',        description: 'Mô tả',        room: 'Phòng',        status: 'Trạng thái',        actions: 'Thao tác',      },      status: {        ACTIVE: 'Hoạt động',        MAINTENANCE: 'Bảo trì',        BROKEN: 'Hỏng',        INACTIVE: 'Ngừng dùng',      },      noRoom: 'Chưa gán',      noRoomOption: 'Chưa gán phòng',      searchPlaceholder: 'Tìm thiết bị...',      addBtn: 'Thêm thiết bị',      modal: {        addTitle: 'Thêm thiết bị mới',        editTitle: 'Cập nhật thiết bị',        name: 'Tên thiết bị *',        namePlaceholder: 'Điều hòa, TV, tủ lạnh...',        code: 'Mã thiết bị *',        codePlaceholder: 'TV-101',        location: 'Vị trí *',        locationPlaceholder: 'Phòng 101, kho tầng 2...',        room: 'Gán phòng',        description: 'Mô tả',        cancel: 'Hủy',        save: 'Tạo mới',        update: 'Cập nhật',        saving: 'Đang lưu...',      },      toast: {        addSuccess: 'Thêm thiết bị thành công!',        updateSuccess: 'Cập nhật thiết bị thành công!',        deleteSuccess: 'Đã xóa thiết bị!',        statusSuccess: 'Cập nhật trạng thái thành công!',        imageRequired: 'Vui lòng chọn hình ảnh thiết bị!',        forbidden: '403 Forbidden - Bạn không có quyền!',        forbiddenDelete: '403 Forbidden - Không có quyền xóa thiết bị!',        loadError: 'Lỗi tải danh sách thiết bị',        deleteConfirm: 'Xóa thiết bị "{name}"?',      }    },    maintenance: {      columns: {        id: 'ID',        room: 'Phòng',        equipment: 'Thiết bị',        title: 'Tiêu Đề',        reportedBy: 'Người Báo Cáo',        assignedTo: 'Phân Công',        severity: 'Mức Độ',        status: 'Trạng Thái',        actions: 'Thao tác',      },      tabs: {        all: 'Tất Cả Yêu Cầu',        mine: 'Yêu Cầu Của Tôi',      },      filters: {        status: 'Trạng Thái',        severity: 'Mức Độ',        assignedTo: 'Phân Công',        roomNumber: 'Số Phòng',        clear: 'Xóa Bộ Lọc',        search: 'Tìm Kiếm',      },      modal: {        addTitle: 'Tạo Yêu Cầu Bảo Trì Mới',        editTitle: 'Cập Nhật Yêu Cầu Bảo Trì',        title: 'Tiêu Đề Sự Cố *',        titlePlaceholder: 'Điều hòa bị hỏng, đường ống rò rỉ...',        room: 'Phòng',        equipment: 'Thiết bị',        reportedBy: 'Báo Cáo Bởi *',        assignedTo: 'Phân công',        severity: 'Mức Độ *',        status: 'Trạng Thái *',        diagnosis: 'Chẩn Đoán',        repairResult: 'Kết Quả Sửa Chữa',        description: 'Mô Tả Chi Tiết',        cancel: 'Hủy',        save: 'Tạo mới',        update: 'Cập nhật',        saving: 'Đang lưu...',      },      toast: {        addSuccess: 'Tạo yêu cầu bảo trì thành công!',        updateSuccess: 'Cập nhật yêu cầu bảo trì thành công!',        deleteSuccess: 'Đã xóa yêu cầu bảo trì!',        forbidden: '403 Forbidden - Bạn không có quyền!',        forbiddenDelete: '403 Forbidden - Không có quyền xóa!',        loadError: 'Không thể tải dữ liệu bảo trì.',        deleteConfirm: 'Xóa yêu cầu bảo trì ID {id}?',      }    },    staff: {      columns: {        id: 'ID',        fullName: 'Họ và tên',        email: 'Email',        phone: 'Số điện thoại',        role: 'Vai trò',        status: 'Trạng thái',        actions: 'Thao tác',      },      filters: {        searchPlaceholder: 'Tìm kiếm nhân viên...',        allStatus: 'Tất cả trạng thái',        active: 'Hoạt động',        inactive: 'Ngừng hoạt động',        banned: 'Bị khóa',      },      addBtn: 'Đăng ký nhân viên',      modal: {        addTitle: 'Đăng Ký Tài Khoản Nhân Viên Mới',        editTitle: 'Cập Nhật Tài Khoản Nhân Viên',        fullName: 'Họ và Tên *',        password: 'Mật Khẩu *',        passwordNew: 'Mật Khẩu Mới',        confirmPassword: 'Xác Nhận Mật Khẩu *',        confirmPasswordNew: 'Xác Nhận Mật Khẩu Mới',        email: 'Email *',        phone: 'Số Điện Thoại *',        role: 'Vai Trò Phân Quyền *',        status: 'Trạng Thái *',        cancel: 'Hủy',        save: 'Đăng ký tài khoản',        update: 'Cập nhật',        saving: 'Đang lưu...',      },      toast: {        addSuccess: 'Đăng ký tài khoản nhân viên thành công!',        updateSuccess: 'Cập nhật tài khoản nhân viên thành công!',        deleteSuccess: 'Đã xóa tài khoản nhân viên!',        forbidden: '403 Forbidden - Bạn không có quyền!',        forbiddenDelete: '403 Forbidden - Không có quyền xóa nhân viên!',        loadError: 'Lỗi tải danh sách nhân viên.',        deleteConfirm: 'Bạn có chắc chắn muốn xóa nhân viên "{name}"?',      }    },    changePassword: {      title: 'Bảo mật tài khoản',      hint: 'Mật khẩu mới phải dài ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và chữ số.',      oldPassword: 'Mật khẩu hiện tại *',      newPassword: 'Mật khẩu mới *',      confirmPassword: 'Xác nhận mật khẩu mới *',      submitBtn: 'Đổi mật khẩu',      updating: 'Đang cập nhật...',      toast: {        mismatch: 'Mật khẩu xác nhận không trùng khớp!',        success: 'Thay đổi mật khẩu thành công!',        error: 'Có lỗi xảy ra, vui lòng thử lại.',      }    }  },  en: {    hotline: '24/7 Hotline',    email: 'Email',    branches: 'Hotel Network',    nav: {      home: 'Home',      hotels: 'Hotels',      roomTypes: 'Room Types',      promotions: 'Promotions',      amenities: 'Amenities',      news: 'News',    },    auth: {      login: 'Login',      register: 'Register',      loginRegister: 'Login / Register',      loginSubtitle: 'Sign in to book rooms and manage your reservations',      registerSubtitle: 'Create an account for the 5-star experience',      email: 'Email',      phone: 'Phone Number',      fullName: 'Full Name',      rePassword: 'Confirm Password',      passwordHint: 'Min 6 characters with letters and numbers',      noAccount: "Don't have an account?",      hasAccount: 'Already have an account?',      loginFailed: 'Login failed',      registerFailed: 'Registration failed',      registerSuccess: 'Registration successful! Redirecting...',      errPassword: 'Password: min 6 chars with letters and numbers',      errPasswordMatch: 'Passwords do not match',      errPhone: 'Invalid phone (e.g. 0912345678)',      logout: 'Logout',      welcome: 'Hello',    },    bookingPage: {      title: 'Book a Room',      subtitle: 'Complete your details to confirm your reservation',      backHome: 'Back to Home',      stepDates: 'Select dates & rooms',      stepGuest: 'Guest information',      guestHint: 'This creates your customer profile (POST /api/v1/customers) before booking.',      idType: 'ID Type',      idNumber: 'ID Number',      nationality: 'Nationality',      nights: 'nights',      continue: 'Continue',      back: 'Back',      confirm: 'Confirm Booking',      total: 'Total',      submitFailed: 'Booking failed. Please try again.',      successTitle: 'Booking Confirmed!',      successDesc: 'Your reservation has been recorded. We will contact you shortly.',      bookingId: 'Booking ID',      roomType: 'Room Type',      status: 'Status',    },    hero: {      title: '5-Star Luxury Experience',      subtitle: 'HMS Luxury Hotel',      description:        'Elegant retreat with panoramic city views, world-class service and refined Asian hospitality.',    },    booking: {      destination: 'Destination / Hotel',      checkIn: 'Check-in',      checkOut: 'Check-out',      rooms: 'Rooms',      adults: 'Adults',      children: 'Children',      promoCode: 'Promo Code',      promoPlaceholder: 'Enter promo code',      search: 'Check Availability',      selectHotel: 'Select hotel',    },    rooms: {      title: 'Premium Room Categories',      subtitle: 'The perfect choice for your stay',      perNight: '/ night',      guests: 'guests',      viewDetail: 'View Details',      bookNow: 'Book Now',      amenities: 'Amenities',    },    services: {      title: '5-Star Services & Amenities',      subtitle: 'Complete experience at HMS Luxury',      convention: {        title: 'Convention & Wedding Center',        desc: '2,000m² ballroom, capacity 1,500 guests, international-standard AV equipment.',      },      spa: {        title: 'Spa & Relaxation Massage',        desc: 'Eastern therapy combined with Thai massage, sauna and mineral hot tub.',      },      gym: {        title: 'Modern Fitness Center',        desc: 'Latest Technogym equipment, personal trainers and free morning yoga classes.',      },      pool: {        title: 'Infinity Sky Pool',        desc: 'Panoramic city views, pool bar and outdoor relaxation area.',      },    },    footer: {      about: 'About Us',      aboutText:        'HMS Luxury is a premium 5-star hotel system, delivering world-class hospitality and refined service.',      contact: 'Contact',      policies: 'Policies',      policyBooking: 'Booking Policy',      policyPrivacy: 'Privacy Policy',      policyCancel: 'Cancellation & Refund',      certifications: 'Certifications',      followUs: 'Follow Us',      copyright: '© 2026 HMS Luxury Hotel. All rights reserved.',      branches: 'Hotel Centers',    },    common: {      noData: 'No data available.',      loading: 'Loading...',      page: 'Page',    },    equipment: {      columns: {        id: 'ID',        name: 'Equipment Name',        code: 'Equipment Code',        location: 'Location',        description: 'Description',        room: 'Room',        status: 'Status',        actions: 'Actions',      },      status: {        ACTIVE: 'Active',        MAINTENANCE: 'Maintenance',        BROKEN: 'Broken',        INACTIVE: 'Inactive',      },      noRoom: 'Unassigned',      noRoomOption: 'Unassigned room',      searchPlaceholder: 'Search equipment...',      addBtn: 'Add Equipment',      modal: {        addTitle: 'Add Equipment',        editTitle: 'Update Equipment',        name: 'Equipment Name *',        namePlaceholder: 'Air conditioner, TV, fridge...',        code: 'Equipment Code *',        codePlaceholder: 'TV-101',        location: 'Location *',        locationPlaceholder: 'Room 101, 2nd floor warehouse...',        room: 'Assign Room',        description: 'Description',        cancel: 'Cancel',        save: 'Create New',        update: 'Update',        saving: 'Saving...',      },      toast: {        addSuccess: 'Equipment added successfully!',        updateSuccess: 'Equipment updated successfully!',        deleteSuccess: 'Equipment deleted successfully!',        statusSuccess: 'Status updated successfully!',        imageRequired: 'Please select an equipment image!',        forbidden: '403 Forbidden - Access denied!',        forbiddenDelete: '403 Forbidden - No permission to delete equipment!',        loadError: 'Failed to load equipment list',        deleteConfirm: 'Delete equipment "{name}"?',      }    },    maintenance: {      columns: {        id: 'ID',        room: 'Room',        equipment: 'Equipment',        title: 'Title',        reportedBy: 'Reported By',        assignedTo: 'Assigned To',        severity: 'Severity',        status: 'Status',        actions: 'Actions',      },      tabs: {        all: 'All Requests',        mine: 'My Requests',      },      filters: {        status: 'Status',        severity: 'Severity',        assignedTo: 'Assigned To',        roomNumber: 'Room Number',        clear: 'Clear Filters',        search: 'Search',      },      modal: {        addTitle: 'Create New Maintenance Request',        editTitle: 'Update Maintenance Request',        title: 'Issue Title *',        titlePlaceholder: 'Broken AC, pipe leakage...',        room: 'Room',        equipment: 'Equipment',        reportedBy: 'Reported By *',        assignedTo: 'Assigned To',        severity: 'Severity *',        status: 'Status *',        diagnosis: 'Diagnosis',        repairResult: 'Repair Result',        description: 'Detailed Description',        cancel: 'Cancel',        save: 'Create New',        update: 'Update',        saving: 'Saving...',      },      toast: {        addSuccess: 'Maintenance request created successfully!',        updateSuccess: 'Maintenance request updated successfully!',        deleteSuccess: 'Maintenance request deleted!',        forbidden: '403 Forbidden - Access denied!',        forbiddenDelete: '403 Forbidden - No permission to delete!',        loadError: 'Failed to load maintenance data.',        deleteConfirm: 'Delete maintenance request ID {id}?',      }    },    staff: {      columns: {        id: 'ID',        fullName: 'Full Name',        email: 'Email',        phone: 'Phone Number',        role: 'Role',        status: 'Status',        actions: 'Actions',      },      filters: {        searchPlaceholder: 'Search staff...',        allStatus: 'All Statuses',        active: 'Active',        inactive: 'Inactive',        banned: 'Banned',      },      addBtn: 'Register Staff',      modal: {        addTitle: 'Register New Staff Account',        editTitle: 'Update Staff Account',        fullName: 'Full Name *',        password: 'Password *',        passwordNew: 'New Password',        confirmPassword: 'Confirm Password *',        confirmPasswordNew: 'Confirm New Password',        email: 'Email *',        phone: 'Phone Number *',        role: 'Assigned Role *',        status: 'Status *',        cancel: 'Cancel',        save: 'Register Account',        update: 'Update',        saving: 'Saving...',      },      toast: {        addSuccess: 'Staff registered successfully!',        updateSuccess: 'Staff account updated successfully!',        deleteSuccess: 'Staff account deleted!',        forbidden: '403 Forbidden - Access denied!',        forbiddenDelete: '403 Forbidden - No permission to delete staff!',        loadError: 'Failed to load staff list.',        deleteConfirm: 'Are you sure you want to delete staff "{name}"?',      }    },    changePassword: {      title: 'Account Security',      hint: 'New password must be at least 8 characters long, including uppercase, lowercase letters and numbers.',      oldPassword: 'Current Password *',      newPassword: 'New Password *',      confirmPassword: 'Confirm New Password *',      submitBtn: 'Change Password',      updating: 'Updating...',      toast: {        mismatch: 'Confirm password does not match!',        success: 'Password changed successfully!',        error: 'An error occurred, please try again.',      }    }  },};

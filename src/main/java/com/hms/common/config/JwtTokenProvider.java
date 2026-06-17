@@ -36,12 +36,12 @@ public class JwtTokenProvider {
                 .getBody();
     }
 
-    public String generateToken(String userName, String roleName) {
+    public String generateToken(String email, String roleName) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
         return Jwts.builder()
-                .setSubject(userName)
+                .setSubject(email)
                 .claim("role", roleName) // Gắn kèm quyền của User vào trong token luôn
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)

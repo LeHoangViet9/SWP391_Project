@@ -10,8 +10,8 @@ import org.springframework.data.domain.Page;
 public interface IUserService {
     UserResponse registerNewUser(UserRegisterRequest registerRequest);
     UserResponse login(UserLoginRequest loginRequest);
-    UserResponse getCurrentUser(String userName);
-    void changePassword(String userName, ChangePasswordRequest changePasswordRequest);
+    UserResponse getCurrentUser(String email);
+    void changePassword(String email, ChangePasswordRequest changePasswordRequest);
     void forgotPassword(
             ForgotPasswordRequest request
     );
@@ -23,7 +23,6 @@ public interface IUserService {
     Page<UserResponse> getUsers(
             Long id,
             String fullName,
-            String userName,
             String email,
             String phone,
             String roleName,
@@ -39,4 +38,8 @@ public interface IUserService {
     UserResponse updateUser(Long id, UserManagementRequest request);
 
     void deleteUser(Long id);
+
+    void verifyOtp(VerifyOtpRequest request);
+
+    void resendOtp(String email);
 }

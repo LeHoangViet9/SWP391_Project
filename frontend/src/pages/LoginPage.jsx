@@ -10,7 +10,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,7 +23,14 @@ export default function LoginPage() {
       await login(form);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err.message || t('auth.loginFailed'));
+      if (err.message && (err.message.includes('pending') || err.message.includes('xác thực'))) {
+        setError(err.message);
+        setTimeout(() => {
+          navigate(`/verify-otp?email=${encodeURIComponent(form.email)}`);
+        }, 1500);
+      } else {
+        setError(err.message || t('auth.loginFailed'));
+      }
     } finally {
       setLoading(false);
     }
@@ -40,15 +47,15 @@ export default function LoginPage() {
 
         <div>
           <label className="block text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2">
-            {t('auth.username')}
+            {t('auth.email')}
           </label>
           <input
-            type="text"
+            type="email"
             required
-            value={form.username}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
             className="w-full border border-stone-300 px-4 py-3 text-slate-800 outline-none focus:border-[#bfa15f] transition-colors"
-            placeholder={t('auth.usernamePlaceholder')}
+            placeholder={t('auth.emailPlaceholder')}
           />
         </div>
 

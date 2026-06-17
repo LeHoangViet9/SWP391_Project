@@ -5,4 +5,9 @@ public interface EmailService {
             String to,
             String token
     );
+
+    void sendRegistrationOtp(
+            String to,
+            String otpCode
+    );
 }

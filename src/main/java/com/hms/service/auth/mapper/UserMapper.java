@@ -17,7 +17,6 @@ public interface UserMapper {
     @Mapping(target = "role", ignore = true)
     User toEntityRegister(UserRegisterRequest userRegisterRequest);
     @Mapping(source = "user.role.roleName", target = "roleName")
-    @Mapping(source = "user.userName", target = "username")
     @Mapping(source = "token", target = "token")
     UserResponse toResponse(User user, String token);
 

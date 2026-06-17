@@ -3,16 +3,13 @@ package com.hms.service.auth.impl;
 import com.hms.common.config.JwtTokenProvider;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
+import com.hms.common.exception.*;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.auth.request.*;
 import com.hms.dto.auth.response.UserResponse;
 import com.hms.common.enums.AccountStatus;
 import com.hms.entity.auth.Role;
 import com.hms.entity.auth.User;
-import com.hms.common.exception.ConflictException;
-import com.hms.common.exception.ForbiddenException;
-import com.hms.common.exception.ResourceNotFoundException;
-import com.hms.common.exception.UnauthorizedException;
 import com.hms.repository.auth.RoleRepository;
 import com.hms.repository.auth.UserRepository;
 import com.hms.service.auth.IUserService;
@@ -50,9 +47,6 @@ public class UserServiceImpl implements IUserService {
     @Override
     public UserResponse registerNewUser(UserRegisterRequest registerRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        if(userRepository.existsUserByUserName(registerRequest.getUserName())) {
-            throw new ConflictException(messageSource.getMessage("error.username.exists", null, locale));
-        }
         if(userRepository.existsUserByEmail(registerRequest.getEmail())) {
             throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
         }
@@ -69,8 +63,14 @@ public class UserServiceImpl implements IUserService {
         User user = userMapper.toEntityRegister(registerRequest);
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setRole(role);
-        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
+        
+        String otp = String.format("%06d", new java.util.Random().nextInt(1000000));
+        user.setOtpCode(otp);
+        user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
+        
         User savedUser = userRepository.save(user);
+        emailService.sendRegistrationOtp(savedUser.getEmail(), otp);
 
         return userMapper.toResponse(savedUser,null);
     }
@@ -80,8 +80,7 @@ public class UserServiceImpl implements IUserService {
     public UserResponse login(UserLoginRequest loginRequest) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        User user = userRepository.findUserByUserName(loginRequest.getUsername())
-                .or(() -> userRepository.findUserByEmail(loginRequest.getUsername()))
+        User user = userRepository.findUserByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale)));
 
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
@@ -94,7 +93,7 @@ public class UserServiceImpl implements IUserService {
         User updatedUser = userRepository.save(user);
 
         String accessToken = jwtTokenProvider.generateToken(
-                updatedUser.getUserName(),
+                updatedUser.getEmail(),
                 updatedUser.getRole().getRoleName()
         );
 
@@ -102,18 +101,18 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    public UserResponse getCurrentUser(String userName) {
+    public UserResponse getCurrentUser(String email) {
         Locale locale = LocaleContextHolder.getLocale();
-        User user = userRepository.findUserByUserName(userName)
+        User user = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
         return userMapper.toResponse(user, null);
     }
 
     @Transactional
     @Override
-    public void changePassword(String userName, ChangePasswordRequest changePasswordRequest) {
+    public void changePassword(String email, ChangePasswordRequest changePasswordRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        User user = userRepository.findUserByUserName(userName)
+        User user = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
         if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
             throw new UnauthorizedException(messageSource.getMessage("error.password.incorrect", null, locale));
@@ -159,6 +158,9 @@ public class UserServiceImpl implements IUserService {
 
     private void validateAccountStatus(User user, Locale locale) {
         AccountStatus status = user.getAccountStatus();
+        if (status == AccountStatus.PENDING_VERIFICATION) {
+            throw new UnauthorizedException(messageSource.getMessage("error.account.pending", null, locale));
+        }
         if (status == AccountStatus.BANNED) {
             throw new ForbiddenException(messageSource.getMessage("error.account.banned", null, locale));
         }
@@ -167,11 +169,54 @@ public class UserServiceImpl implements IUserService {
         }
     }
 
+    @Transactional
+    @Override
+    public void verifyOtp(VerifyOtpRequest request) {
+        Locale locale = LocaleContextHolder.getLocale();
+        User user = userRepository.findUserByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+
+        if (user.getAccountStatus() != AccountStatus.PENDING_VERIFICATION) {
+            throw new BadRequestException(messageSource.getMessage("error.otp.alreadyVerified", null, locale));
+        }
+
+        if (user.getOtpCode() == null || !user.getOtpCode().equals(request.getOtpCode())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.otp.invalid", null, locale));
+        }
+
+        if (user.getOtpExpiry().isBefore(LocalDateTime.now())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.otp.expired", null, locale));
+        }
+
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setOtpCode(null);
+        user.setOtpExpiry(null);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void resendOtp(String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+        User user = userRepository.findUserByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+
+        if (user.getAccountStatus() != AccountStatus.PENDING_VERIFICATION) {
+            throw new BadRequestException(messageSource.getMessage("error.otp.alreadyVerified", null, locale));
+        }
+
+        String otp = String.format("%06d", new java.util.Random().nextInt(1000000));
+        user.setOtpCode(otp);
+        user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
+        userRepository.save(user);
+
+        emailService.sendRegistrationOtp(user.getEmail(), otp);
+    }
+
     @Override
     public Page<UserResponse> getUsers(
             Long id,
             String fullName,
-            String userName,
             String email,
             String phone,
             String roleName,
@@ -190,10 +235,6 @@ public class UserServiceImpl implements IUserService {
         if (org.springframework.util.StringUtils.hasText(fullName)) {
             String cleanName = fullName.trim().toLowerCase();
             stream = stream.filter(u -> u.getFullName() != null && u.getFullName().toLowerCase().contains(cleanName));
-        }
-        if (org.springframework.util.StringUtils.hasText(userName)) {
-            String cleanUser = userName.trim().toLowerCase();
-            stream = stream.filter(u -> u.getUserName() != null && u.getUserName().toLowerCase().contains(cleanUser));
         }
         if (org.springframework.util.StringUtils.hasText(email)) {
             String cleanEmail = email.trim().toLowerCase();
@@ -217,7 +258,6 @@ public class UserServiceImpl implements IUserService {
         java.util.Map<String, java.util.function.Function<User, Comparable<?>>> extractors = new java.util.HashMap<>();
         extractors.put("id", User::getId);
         extractors.put("fullName", User::getFullName);
-        extractors.put("username", User::getUserName);
         extractors.put("email", User::getEmail);
         extractors.put("phone", User::getPhone);
         extractors.put("roleName", u -> u.getRole() != null ? u.getRole().getRoleName() : "");
@@ -241,9 +281,6 @@ public class UserServiceImpl implements IUserService {
             throw new ForbiddenException(messageSource.getMessage("error.user.create.customer.disabled", null, locale));
         }
 
-        if (userRepository.existsUserByUserName(request.getUserName())) {
-            throw new ConflictException(messageSource.getMessage("error.username.exists", null, locale));
-        }
         if (userRepository.existsUserByEmail(request.getEmail())) {
             throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
         }
@@ -253,7 +290,6 @@ public class UserServiceImpl implements IUserService {
 
         Role role = findRole(request.getRoleName(), locale);
         User user = User.builder()
-                .userName(request.getUserName())
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .phone(request.getPhone())
@@ -277,10 +313,6 @@ public class UserServiceImpl implements IUserService {
 
         validatePasswordForManagement(request, false, locale);
 
-        if (!user.getUserName().equals(request.getUserName())
-                && userRepository.existsByUserNameAndIdNot(request.getUserName(), id)) {
-            throw new ConflictException(messageSource.getMessage("error.username.exists", null, locale));
-        }
         if (!user.getEmail().equals(request.getEmail())
                 && userRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
             throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
@@ -290,7 +322,6 @@ public class UserServiceImpl implements IUserService {
             throw new ConflictException(messageSource.getMessage("error.phone.exists", null, locale));
         }
 
-        user.setUserName(request.getUserName());
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());

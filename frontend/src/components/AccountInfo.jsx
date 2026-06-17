@@ -39,7 +39,6 @@ export default function AccountInfo() {
   }, [locale]);
 
   const items = useMemo(() => ([
-    { icon: UserCircle, label: t('accountInfo.username'), value: profile?.username || profile?.userName || '-' },
     { icon: Mail, label: t('accountInfo.email'), value: profile?.email || '-' },
     { icon: Phone, label: t('accountInfo.phone'), value: profile?.phone || '-' },
     { icon: ShieldCheck, label: t('accountInfo.role'), value: profile?.roleName || '-' },

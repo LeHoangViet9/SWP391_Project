@@ -19,8 +19,6 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "user_name", nullable = false, length = 100,unique = true)
-    private String userName;
     @Column(name = "full_name",nullable = false, length = 100)
     private String fullName;
     @Column(name = "email", nullable = false,unique = true,length = 100)
@@ -49,4 +47,10 @@ public class User {
     private String resetPasswordToken;
     @Column(name = "reset_password_expire_at")
     private LocalDateTime resetPasswordExpiredAt;
+
+    @Column(name = "otp_code", length = 6)
+    private String otpCode;
+
+    @Column(name = "otp_expiry")
+    private LocalDateTime otpExpiry;
 }

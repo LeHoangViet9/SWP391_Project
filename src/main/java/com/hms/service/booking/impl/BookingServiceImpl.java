@@ -174,11 +174,11 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BookingResponse> getMyBookingHistory(String userName, Integer page, Integer size) {
+    public Page<BookingResponse> getMyBookingHistory(String email, Integer page, Integer size) {
         Locale locale = LocaleContextHolder.getLocale();
         Pageable pageable = pageableUtils.createPageable(page, size, "checkInDate", SortDirection.DESC);
 
-        User user = userRepository.findUserByUserName(userName)
+        User user = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
 
         return customerRepository.findActiveByEmailOrPhone(user.getEmail(), user.getPhone(), AccountStatus.ACTIVE)

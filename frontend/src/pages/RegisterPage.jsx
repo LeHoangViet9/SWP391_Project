@@ -18,7 +18,6 @@ export default function RegisterPage() {
 
     const [form, setForm] = useState({
         fullName: '',
-        userName: '',
         email: '',
         phone: '',
         password: '',
@@ -36,7 +35,6 @@ export default function RegisterPage() {
     };
 
     const validate = () => {
-        if (!USERNAME_RE.test(form.userName)) return t('auth.errUsername');
         if (!PASSWORD_RE.test(form.password)) return t('auth.errPassword');
         if (form.password !== form.rePassword) return t('auth.errPasswordMatch');
         if (!PHONE_RE.test(form.phone)) return t('auth.errPhone');
@@ -60,7 +58,7 @@ export default function RegisterPage() {
             setSuccess(res.message || t('auth.registerSuccess'));
 
             setTimeout(() => {
-                navigate(redirect);
+                navigate(`/verify-otp?email=${encodeURIComponent(form.email)}`);
             }, 1500);
         } catch (err) {
             setError(err.message || t('auth.registerFailed'));
@@ -101,20 +99,6 @@ export default function RegisterPage() {
                         required
                         value={form.fullName}
                         onChange={(e) => update('fullName', e.target.value)}
-                        className={inputClass}
-                    />
-                </div>
-
-                {/* Username */}
-                <div>
-                    <label className={labelClass}>{t('auth.username')}</label>
-                    <input
-                        type="text"
-                        required
-                        minLength={4}
-                        maxLength={50}
-                        value={form.userName}
-                        onChange={(e) => update('userName', e.target.value)}
                         className={inputClass}
                     />
                 </div>

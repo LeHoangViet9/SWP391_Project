@@ -30,7 +30,6 @@ public class UserController {
     public ResponseEntity<ApiResponse<Page<UserResponse>>> getUsers(
             @RequestParam(required = false) Long id,
             @RequestParam(required = false) String fullName,
-            @RequestParam(required = false) String userName,
             @RequestParam(required = false) String email,
             @RequestParam(required = false) String phone,
             @RequestParam(required = false) String roleName,
@@ -43,7 +42,7 @@ public class UserController {
         ApiResponse<Page<UserResponse>> response = ApiResponse.<Page<UserResponse>>builder()
                 .success(true)
                 .message("Get user list successfully")
-                .data(userService.getUsers(id, fullName, userName, email, phone, roleName, status, page, size, sortBy, direction))
+                .data(userService.getUsers(id, fullName, email, phone, roleName, status, page, size, sortBy, direction))
                 .status(HttpStatus.OK)
                 .build();
 

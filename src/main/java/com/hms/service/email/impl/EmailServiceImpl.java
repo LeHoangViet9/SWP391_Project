@@ -36,4 +36,20 @@ public class EmailServiceImpl implements EmailService {
 
         mailSender.send(message);
     }
+
+    @Override
+    public void sendRegistrationOtp(String to, String otpCode) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+
+        String subject = messageSource.getMessage("otp.registration.subject", null, locale);
+        message.setSubject(subject);
+
+        String bodyText = messageSource.getMessage("otp.registration.body", new Object[]{otpCode}, locale);
+        message.setText(bodyText);
+
+        mailSender.send(message);
+    }
 }
