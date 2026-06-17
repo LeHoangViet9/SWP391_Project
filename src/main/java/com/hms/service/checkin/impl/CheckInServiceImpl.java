@@ -54,19 +54,20 @@ public class CheckInServiceImpl implements CheckInService {
         }
 
         // 3. Assign Room
-        // Find an available room of the same type avoiding overlap
-        List<Room> availableRooms = roomRepository.findAvailableRoomsForDateRange(
-                booking.getRoomType().getId(), 
-                RoomStatus.AVAILABLE, 
-                booking.getCheckInDate(), 
-                booking.getCheckOutDate(),
-                List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN)
-        );
-        
-        if (availableRooms.isEmpty()) {
-            throw new AppException("No available rooms of type " + booking.getRoomType().getTypeName() + " for this date range", HttpStatus.NOT_FOUND);
+        Long selectedRoomId = request.getRoomId();
+        if (selectedRoomId == null) {
+            // Find an available room of the same type avoiding overlap
+            List<Room> availableRooms = roomRepository.findAvailableRoomsForCheckIn(
+                    booking.getRoomType().getId(),
+                    booking.getCheckInDate(),
+                    booking.getCheckOutDate()
+            );
+
+            if (availableRooms.isEmpty()) {
+                throw new AppException("No available rooms of type " + booking.getRoomType().getTypeName() + " for this date range", HttpStatus.NOT_FOUND);
+            }
+            selectedRoomId = availableRooms.get(0).getId();
         }
-        Long selectedRoomId = availableRooms.get(0).getId();
 
         // 4. Lock and Double Check
         Room assignedRoom = roomRepository.findByIdWithPessimisticWrite(selectedRoomId)
@@ -84,23 +85,24 @@ public class CheckInServiceImpl implements CheckInService {
                 booking.getCheckInDate(),
                 booking.getCheckOutDate()
         );
-        
+
         if (isOverlapping) {
             throw new AppException("Room " + assignedRoom.getRoomNumber() + " is already booked for this date range.", HttpStatus.CONFLICT);
         }
 
         // 5. Update Status
         RoomStatus previousRoomStatus = assignedRoom.getRoomStatus();
-        
+
         booking.setBookingStatus(BookingStatus.CHECKED_IN);
         booking.setRoom(assignedRoom);
+        booking.setActualCheckInTime(now);
 
         assignedRoom.setRoomStatus(RoomStatus.OCCUPIED);
 
         bookingRepository.save(booking);
         roomRepository.save(assignedRoom);
 
-        // 5. Audit Log (RoomStateHistory)
+        // 6. Audit Log (RoomStateHistory)
         User triggerUser = null;
         if (userId != null) {
             triggerUser = userRepository.findById(userId).orElse(null);
@@ -113,10 +115,10 @@ public class CheckInServiceImpl implements CheckInService {
                 .triggeredByProcess(ProcessTrigger.CHECKIN)
                 .triggeredByUser(triggerUser)
                 .build();
-        
+
         roomStateHistoryRepository.save(history);
 
-        // 6. Return Response
+        // 7. Return Response
         return CheckInResponseDTO.builder()
                 .bookingId(booking.getId())
                 .customerName(booking.getCustomer().getFullName())
@@ -125,5 +127,17 @@ public class CheckInServiceImpl implements CheckInService {
                 .checkInTime(now)
                 .message("Check-in successful")
                 .build();
+    }
+
+    @Override
+    public List<Room> getAvailableRoomsForBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AppException("Booking not found", HttpStatus.NOT_FOUND));
+
+        return roomRepository.findAvailableRoomsForCheckIn(
+                booking.getRoomType().getId(),
+                booking.getCheckInDate(),
+                booking.getCheckOutDate()
+        );
     }
 }

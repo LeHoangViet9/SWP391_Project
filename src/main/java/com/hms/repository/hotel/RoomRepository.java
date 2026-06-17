@@ -25,7 +25,6 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     Optional<Room> findByRoomNumber(String roomNumber);
 
-    Page<Room> findByRoomNumberContainingIgnoreCase(String keywords, Pageable pageable);
 
     Page<Room> findByRoomStatus(RoomStatus roomStatus, Pageable pageable);
 
@@ -62,6 +61,22 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
             @Param("checkInDate") LocalDateTime checkInDate,
             @Param("checkOutDate") LocalDateTime checkOutDate,
             @Param("bookingStatuses") List<BookingStatus> bookingStatuses
+    );
+
+    @Query("SELECT r FROM Room r " +
+           "WHERE r.roomType.id = :roomTypeId " +
+           "AND r.roomStatus = com.hms.common.enums.RoomStatus.AVAILABLE " +
+           "AND NOT EXISTS (" +
+           "    SELECT b FROM Booking b " +
+           "    WHERE b.room = r " +
+           "    AND b.bookingStatus IN (com.hms.common.enums.BookingStatus.CONFIRMED, com.hms.common.enums.BookingStatus.CHECKED_IN) " +
+           "    AND b.checkInDate < :checkOutDate " +
+           "    AND b.checkOutDate > :checkInDate" +
+           ")")
+    List<Room> findAvailableRoomsForCheckIn(
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("checkInDate") LocalDateTime checkInDate,
+            @Param("checkOutDate") LocalDateTime checkOutDate
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
