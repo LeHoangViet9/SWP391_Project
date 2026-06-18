@@ -1,5 +1,5 @@
 -- Dọn sạch dữ liệu cũ và reset các chuỗi ID tự tăng
-TRUNCATE TABLE room_state_history, room_img, equipment_images, equipment_checks, repair_requests, equipments, invoices, bookings, customers, room, room_type, users, roles RESTART IDENTITY CASCADE;
+TRUNCATE TABLE room_state_history, room_img, equipment_images, repair_requests, equipments, invoices, bookings, customers, room, room_type, users, roles RESTART IDENTITY CASCADE;
 
 -- Cập nhật/Sửa đổi các check constraint cũ của Hibernate để khớp với các giá trị Enum mới trong Java code
 ALTER TABLE repair_requests DROP CONSTRAINT IF EXISTS repair_requests_status_check;
@@ -181,25 +181,6 @@ VALUES
     (15, 13, 1, NOW()),
     (1, 14, 1, NOW()),
     (9, 15, 1, NOW());
-
--- 9. BẢNG EQUIPMENT_CHECKS (15 Lượt kiểm tra thiết bị)
-INSERT INTO equipment_checks (condition_status, check_note, checked_by_id, equipment_id, checked_at)
-VALUES
-    ('GOOD', 'Tivi hoạt động tốt, hình ảnh sắc nét', 10, 1, NOW()),
-    ('GOOD', 'Điều hòa làm lạnh nhanh, không có tiếng ồn', 10, 2, NOW()),
-    ('GOOD', 'Tủ lạnh làm đá nhanh, sạch sẽ', 11, 3, NOW()),
-    ('GOOD', 'Máy sấy tóc hoạt động ổn định', 11, 4, NOW()),
-    ('GOOD', 'Điều hòa Panasonic chạy tốt', 12, 5, NOW()),
-    ('GOOD', 'Tivi QLED Samsung chạy mượt', 10, 6, NOW()),
-    ('GOOD', 'Điều hòa Daikin làm lạnh tốt', 10, 7, NOW()),
-    ('GOOD', 'Bình nóng lạnh Rossi hoạt động bình thường, nước nóng nhanh', 11, 8, NOW()),
-    ('GOOD', 'Tivi OLED Sony hoạt động hoàn hảo', 12, 9, NOW()),
-    ('BAD', 'Điều hòa trung tâm không hoạt động, bị hỏng block', 12, 10, NOW()),
-    ('GOOD', 'Tủ lạnh Panasonic làm mát tốt', 10, 11, NOW()),
-    ('GOOD', 'Tivi LG hoạt động bình thường', 11, 12, NOW()),
-    ('GOOD', 'Điều hòa Midea làm mát tốt', 12, 13, NOW()),
-    ('GOOD', 'Ấm siêu tốc đun nước nhanh sôi', 10, 14, NOW()),
-    ('GOOD', 'Két sắt khóa vân tay nhạy', 11, 15, NOW());
 
 -- 10. BẢNG EQUIPMENT_IMAGES (15 Hình ảnh thiết bị)
 INSERT INTO equipment_images (image_url, is_primary, equipment_id, created_at)

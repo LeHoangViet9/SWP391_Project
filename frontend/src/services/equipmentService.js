@@ -74,15 +74,4 @@ export const equipmentService = {
         apiFetch(`/equipments/${equipmentId}/rooms/${roomId}`, {
             method: 'DELETE',
         }, locale),
-
-    // Lấy lịch sử kiểm tra của 1 thiết bị.
-    getChecks: (equipmentId, locale = 'vi') =>
-        apiFetch(`/equipments/${equipmentId}/checks`, {}, locale),
-
-    // Tạo bản ghi kiểm tra thiết bị.
-    createCheck: (equipmentId, dto, locale = 'vi') =>
-        apiFetch(`/equipments/${equipmentId}/checks`, {
-            method: 'POST',
-            body: JSON.stringify(dto),
-        }, locale),
 };
