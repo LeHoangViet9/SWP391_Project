@@ -51,7 +51,8 @@ public class UserServiceImpl implements IUserService {
             Integer page,
             Integer size,
             SortField sortBy,
-            SortDirection direction) {
+            SortDirection direction
+            ) {
 
         String normalizedKeywords = keywords == null ? "" : keywords.trim();
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
