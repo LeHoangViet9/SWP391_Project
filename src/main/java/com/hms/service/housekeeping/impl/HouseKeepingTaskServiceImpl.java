@@ -5,6 +5,7 @@ import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskUpdateRequest;
+import com.hms.dto.housekeeping.request.ReportRoomIssueRequest;
 import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
 import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import com.hms.entity.auth.User;
@@ -47,7 +48,11 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     @Override
     @Transactional(readOnly = true)
     public Page<HouseKeepingTaskResponse> searchTasks(TaskStatus status, Long assignedToId, Long assignedById, Long roomId, Integer page, Integer size, SortField sortField, SortDirection direction) {
-        Pageable pageable = pageableUtils.createPageable(page, size, sortField.getField(), direction);
+        String sortBy = sortField != null
+                ? sortField.getField()
+                : "createdAt";
+
+        Pageable pageable = pageableUtils.createPageable(page, size, sortBy, direction);
         return taskRepository.searchTasks(status, Collections.emptyList(), false, assignedToId, assignedById, roomId, pageable)
                 .map(taskMapper::toResponse);
     }
@@ -91,7 +96,16 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         HouseKeepingTask saved = taskRepository.save(task);
 
         // Chuyển sang RoomStatus.CLEANING khi tạo task dọn phòng
-        changeRoomStatus(room, RoomStatus.CLEANING, assignedBy, saved, "Tạo task dọn phòng",ProcessTrigger.TASK_CLEANING);
+        if (saved.getTaskStatus() == TaskStatus.IN_PROGRESS) {
+            changeRoomStatus(
+                    room,
+                    RoomStatus.CLEANING,
+                    assignedBy,
+                    saved,
+                    "Task bắt đầu dọn phòng",
+                    ProcessTrigger.TASK_CLEANING
+            );
+        }
 
         return taskMapper.toResponse(saved);
     }
@@ -116,6 +130,10 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
             return taskMapper.toResponse(taskRepository.save(task));
         }
 
+        validateTaskTransition(oldStatus, newStatus);
+
+        task.setTaskStatus(newStatus);
+
         task.setTaskStatus(newStatus);
         updateBusinessTimestamps(task, request, newStatus);
 
@@ -134,8 +152,15 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         HouseKeepingTask task = findTaskById(id);
 
         // THÊM: không cho xóa task đang chạy
-        if (task.getTaskStatus() == TaskStatus.IN_PROGRESS) {
-            String errorMessage = messageSource.getMessage("error.task.inprogress.delete", null, locale);
+        if (task.getTaskStatus() == TaskStatus.IN_PROGRESS
+                || task.getTaskStatus() == TaskStatus.COMPLETED) {
+
+            String errorMessage = messageSource.getMessage(
+                    "error.task.inprogress.delete",
+                    null,
+                    locale
+            );
+
             throw new IllegalArgumentException(errorMessage);
         }
 
@@ -161,12 +186,30 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     @Override
     @Transactional(readOnly = true)
     public Page<RoomStateHistoryResponse> getRoomStateHistory(Long roomId,Integer page, Integer size,SortField sortField,SortDirection sortDirection) {
-        Pageable pageable=pageableUtils.createPageable(page,size,sortField.getField(),sortDirection);
+        String sortBy = sortField != null
+                ? sortField.getField()
+                : "createdAt";
+        Pageable pageable=pageableUtils.createPageable(page,size,sortBy,sortDirection);
         Page<RoomStateHistory> historyPage=  roomStateHistoryRepository.findByRoomIdWithDetails(roomId,pageable);
         return historyPage.map(this::toRoomStateHistoryResponse);
     }
 
     // ==================== PRIVATE HELPERS ====================
+
+    private void validateTaskTransition(
+            TaskStatus oldStatus,
+            TaskStatus newStatus) {
+
+        if (oldStatus == TaskStatus.COMPLETED) {
+            throw new IllegalStateException(
+                    "task.completed.error");
+        }
+
+        if (oldStatus == TaskStatus.CANCELLED) {
+            throw new IllegalStateException(
+                    "task.cancelled.error");
+        }
+    }
 
     private RoomStateHistoryResponse toRoomStateHistoryResponse(RoomStateHistory history) {
         User changedBy = history.getTriggeredByUser();
@@ -240,9 +283,16 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         }
 
         // Bảo vệ: không cho housekeeping ghi đè trạng thái của module khác
-        if (previousStatus == RoomStatus.OCCUPIED || previousStatus == RoomStatus.MAINTENANCE) {
-            log.warn("Skipping room status change for room {}: currently {} — housekeeping cannot override",
-                    room.getId(), previousStatus);
+        if (processName != ProcessTrigger.TASK_MAINTENANCE
+                && (previousStatus == RoomStatus.OCCUPIED
+                || previousStatus == RoomStatus.MAINTENANCE)) {
+
+            log.warn(
+                    "Skipping room status change for room {}: currently {}",
+                    room.getId(),
+                    previousStatus
+            );
+
             return;
         }
 
@@ -264,7 +314,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     }
     @Override
     @Transactional
-    public void reportRoomIssue(Long roomId, com.hms.dto.housekeeping.request.ReportRoomIssueRequest request) {
+    public void reportRoomIssue(Long roomId, ReportRoomIssueRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException(
