@@ -45,8 +45,7 @@ select {
 
 @layer components {
   .btn-gold {
-    @apply bg-[#bfa15f] text-white font-semibold uppercase tracking-wider
-           hover:bg-[#cda152] transition-colors duration-300;
+    @apply bg-[#bfa15f] text-white font-semibold uppercase tracking-wider hover:bg-[#cda152] transition-colors duration-300;
   }
 
   .section-title {
@@ -59,8 +58,15 @@ select {
 }
 
 @keyframes slide-in {
-  from { transform: translateX(100%); opacity: 0; }
-  to   { transform: translateX(0);   opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .animate-slide-in {

@@ -6,9 +6,9 @@ import AccountInfo from '../components/AccountInfo';
 import { Hammer, KeyRound, UserCircle } from 'lucide-react';
 
 const TABS = [
-  { key: 'maintenance', label: 'Yêu Cầu Bảo Trì', Icon: Hammer,  component: <MaintenanceManager readOnly />, readOnly: true },
-  { key: 'account',     label: 'Thông Tin Tài Khoản', Icon: UserCircle, component: <AccountInfo /> },
-  { key: 'password',    label: 'Đổi Mật Khẩu',   Icon: KeyRound, component: <ChangePassword /> },
+  { key: 'maintenance', label: 'Yêu Cầu Bảo Trì', Icon: Hammer, component: <MaintenanceManager readOnly />, readOnly: true },
+  { key: 'account', label: 'Thông Tin Tài Khoản', Icon: UserCircle, component: <AccountInfo /> },
+  { key: 'password', label: 'Đổi Mật Khẩu', Icon: KeyRound, component: <ChangePassword /> },
 ];
 
 export default function HousekeeperDashboard() {

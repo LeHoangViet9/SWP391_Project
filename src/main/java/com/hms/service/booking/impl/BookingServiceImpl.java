@@ -318,7 +318,7 @@ public class BookingServiceImpl implements BookingService {
         // trống vào ngày khách muốn đặt trong tương lai
         long totalActiveRoomCount = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
                 request.getRoomTypeId(),
-                List.of(RoomStatus.INACTIVE, RoomStatus.OUT_OF_ORDER)
+                List.of(RoomStatus.INACTIVE, RoomStatus.MAINTENANCE)
         );
 
         long bookedQuantity = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
