@@ -1,4 +1,4 @@
-package com.hms.service.dashboard.impl;
+package com.hms.service.booking.impl;
 
 import com.hms.common.enums.PaymentMethod;
 import com.hms.common.enums.PaymentStatus;
@@ -8,7 +8,7 @@ import com.hms.entity.booking.Booking;
 import com.hms.entity.booking.Invoice;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
-import com.hms.service.dashboard.InvoiceService;
+import com.hms.service.booking.InvoiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
