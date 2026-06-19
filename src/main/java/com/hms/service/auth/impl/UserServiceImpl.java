@@ -29,6 +29,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -67,9 +68,10 @@ public class UserServiceImpl implements IUserService {
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setRole(role);
         user.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
-        
+
+        // [FIX-1 & FIX-2] Dùng SecureRandom + lưu OTP dạng BCrypt hash
         String otp = String.format("%06d", new SecureRandom().nextInt(1000000));
-        user.setOtpCode(otp);
+        user.setOtpCode(passwordEncoder.encode(otp));
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
 
         User savedUser = userRepository.save(user);
@@ -86,7 +88,7 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = UnauthorizedException.class)
     public UserResponse login(UserLoginRequest loginRequest) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -99,15 +101,23 @@ public class UserServiceImpl implements IUserService {
 
         validateAccountStatus(user, locale);
 
-        user.setLastLoginAt(LocalDateTime.now());
-        User updatedUser = userRepository.save(user);
+        // Generate and send login OTP code
+        String otp = String.format("%06d", new SecureRandom().nextInt(1000000));
+        user.setOtpCode(passwordEncoder.encode(otp));
+        user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
+        userRepository.save(user);
 
-        String accessToken = jwtTokenProvider.generateToken(
-                updatedUser.getEmail(),
-                updatedUser.getRole().getRoleName()
+        try {
+            emailService.sendRegistrationOtp(user.getEmail(), otp);
+        } catch (Exception e) {
+            log.warn("[WARN] Failed to send login OTP email to {}: {}", user.getEmail(), e.getMessage());
+        }
+
+        // Throw custom exception with errorCode "LOGIN_OTP_REQUIRED" to signal frontend to verify OTP
+        throw new UnauthorizedException(
+            messageSource.getMessage("auth.otp.required", null, "OTP verification required", locale),
+            "LOGIN_OTP_REQUIRED"
         );
-
-        return userMapper.toResponse(updatedUser,accessToken);
     }
 
     @Override
@@ -138,13 +148,20 @@ public class UserServiceImpl implements IUserService {
     @Override
     public void forgotPassword(ForgotPasswordRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
-        User user = userRepository.findUserByEmail(request.getEmail()).orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.email.invalid", null, locale)));
-        String token =  UUID.randomUUID().toString();
+        User user = userRepository.findUserByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.email.invalid", null, locale)));
+        String token = String.format("%06d", new SecureRandom().nextInt(1000000));
         user.setResetPasswordToken(token);
         user.setResetPasswordExpiredAt(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
-        emailService.sendForgotPasswordMail(user.getEmail(), token);
 
+        // [FIX-8] Bọc email trong try/catch — tương tự registerNewUser/resendOtp
+        // Nếu email lỗi → token vẫn được lưu → user có thể request lại
+        try {
+            emailService.sendForgotPasswordMail(user.getEmail(), token);
+        } catch (Exception e) {
+            log.warn("[WARN] Failed to send forgot-password email to {}: {}", user.getEmail(), e.getMessage());
+        }
     }
     @Transactional
     @Override
@@ -169,7 +186,7 @@ public class UserServiceImpl implements IUserService {
     private void validateAccountStatus(User user, Locale locale) {
         AccountStatus status = user.getAccountStatus();
         if (status == AccountStatus.PENDING_VERIFICATION) {
-            throw new UnauthorizedException(messageSource.getMessage("error.account.pending", null, locale));
+            throw new UnauthorizedException(messageSource.getMessage("error.account.pending", null, locale), "ACCOUNT_PENDING");
         }
         if (status == AccountStatus.BANNED) {
             throw new ForbiddenException(messageSource.getMessage("error.account.banned", null, locale));
@@ -181,27 +198,35 @@ public class UserServiceImpl implements IUserService {
 
     @Transactional
     @Override
-    public void verifyOtp(VerifyOtpRequest request) {
+    public UserResponse verifyOtp(VerifyOtpRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findUserByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
 
-        if (user.getAccountStatus() != AccountStatus.PENDING_VERIFICATION) {
-            throw new BadRequestException(messageSource.getMessage("error.otp.alreadyVerified", null, locale));
-        }
-
-        if (user.getOtpCode() == null || !user.getOtpCode().equals(request.getOtpCode())) {
-            throw new UnauthorizedException(messageSource.getMessage("error.otp.invalid", null, locale));
-        }
-
-        if (user.getOtpExpiry().isBefore(LocalDateTime.now())) {
+        // Kiểm tra hết hạn TRƯỚC để trả về thông báo chính xác cho user
+        if (user.getOtpExpiry() == null || user.getOtpExpiry().isBefore(LocalDateTime.now())) {
             throw new UnauthorizedException(messageSource.getMessage("error.otp.expired", null, locale));
         }
 
-        user.setAccountStatus(AccountStatus.ACTIVE);
+        // [FIX-2] OTP được lưu dạng BCrypt hash → dùng matches() để so sánh
+        if (user.getOtpCode() == null || !passwordEncoder.matches(request.getOtpCode(), user.getOtpCode())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.otp.invalid", null, locale));
+        }
+
+        if (user.getAccountStatus() == AccountStatus.PENDING_VERIFICATION) {
+            user.setAccountStatus(AccountStatus.ACTIVE);
+        }
         user.setOtpCode(null);
         user.setOtpExpiry(null);
-        userRepository.save(user);
+        user.setLastLoginAt(LocalDateTime.now());
+        User savedUser = userRepository.save(user);
+
+        String accessToken = jwtTokenProvider.generateToken(
+                savedUser.getEmail(),
+                savedUser.getRole().getRoleName()
+        );
+
+        return userMapper.toResponse(savedUser, accessToken);
     }
 
     @Transactional
@@ -211,16 +236,21 @@ public class UserServiceImpl implements IUserService {
         User user = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
 
-        if (user.getAccountStatus() != AccountStatus.PENDING_VERIFICATION) {
-            throw new BadRequestException(messageSource.getMessage("error.otp.alreadyVerified", null, locale));
-        }
+        validateAccountStatus(user, locale);
 
-        String otp = String.format("%06d", new java.util.Random().nextInt(1000000));
-        user.setOtpCode(otp);
+        // [FIX-1] SecureRandom thay Random thường
+        // [FIX-2] Lưu OTP dạng BCrypt hash
+        String otp = String.format("%06d", new SecureRandom().nextInt(1000000));
+        user.setOtpCode(passwordEncoder.encode(otp));
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
         userRepository.save(user);
 
-        emailService.sendRegistrationOtp(user.getEmail(), otp);
+        // [FIX-4] Email gửi thất bại → không crash, chỉ log warning
+        try {
+            emailService.sendRegistrationOtp(user.getEmail(), otp);
+        } catch (Exception e) {
+            log.warn("[WARN] Failed to resend OTP email to {} : {}", user.getEmail(), e.getMessage());
+        }
     }
 
     @Override
@@ -236,48 +266,13 @@ public class UserServiceImpl implements IUserService {
             SortField sortBy,
             SortDirection direction) {
 
-        java.util.List<User> list = userRepository.findAll();
-        java.util.stream.Stream<User> stream = list.stream();
+        String roleNameFilter = StringUtils.hasText(roleName) ? roleName.trim() : null;
+        String fullNameFilter = StringUtils.hasText(fullName) ? fullName.trim() : null;
+        String emailFilter = StringUtils.hasText(email) ? email.trim() : null;
+        String phoneFilter = StringUtils.hasText(phone) ? phone.trim() : null;
 
-        if (id != null) {
-            stream = stream.filter(u -> u.getId().equals(id));
-        }
-        if (org.springframework.util.StringUtils.hasText(fullName)) {
-            String cleanName = fullName.trim().toLowerCase();
-            stream = stream.filter(u -> u.getFullName() != null && u.getFullName().toLowerCase().contains(cleanName));
-        }
-        if (org.springframework.util.StringUtils.hasText(email)) {
-            String cleanEmail = email.trim().toLowerCase();
-            stream = stream.filter(u -> u.getEmail() != null && u.getEmail().toLowerCase().contains(cleanEmail));
-        }
-        if (org.springframework.util.StringUtils.hasText(phone)) {
-            String cleanPhone = phone.trim().toLowerCase();
-            stream = stream.filter(u -> u.getPhone() != null && u.getPhone().toLowerCase().contains(cleanPhone));
-        }
-        if (org.springframework.util.StringUtils.hasText(roleName)) {
-            String cleanRole = roleName.trim().toLowerCase();
-            stream = stream.filter(u -> u.getRole() != null && u.getRole().getRoleName() != null && u.getRole().getRoleName().toLowerCase().contains(cleanRole));
-        }
-        if (status != null) {
-            stream = stream.filter(u -> u.getAccountStatus() == status);
-        }
-
-        java.util.List<User> filteredList = stream.collect(java.util.stream.Collectors.toList());
-
-        // Sorting
-        java.util.Map<String, java.util.function.Function<User, Comparable<?>>> extractors = new java.util.HashMap<>();
-        extractors.put("id", User::getId);
-        extractors.put("fullName", User::getFullName);
-        extractors.put("email", User::getEmail);
-        extractors.put("phone", User::getPhone);
-        extractors.put("roleName", u -> u.getRole() != null ? u.getRole().getRoleName() : "");
-        extractors.put("accountStatus", u -> u.getAccountStatus() != null ? u.getAccountStatus().name() : "");
-
-        pageableUtils.sortList(filteredList, sortBy, direction, extractors);
-
-        // Pagination
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
-        return pageableUtils.paginate(filteredList, pageable)
+        return userRepository.searchUsers(id, fullNameFilter, emailFilter, phoneFilter, status, roleNameFilter, pageable)
                 .map(user -> userMapper.toResponse(user, null));
     }
 

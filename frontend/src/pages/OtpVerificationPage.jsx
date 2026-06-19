@@ -3,15 +3,19 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ShieldCheck, RotateCcw, ArrowLeft } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout';
 import { useLocale } from '../context/LocaleContext';
-import { verifyOtp, resendOtp } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
+import { resendOtp } from '../services/authService';
 
 const RESEND_COOLDOWN = 60; // seconds
 
 export default function OtpVerificationPage() {
   const { locale } = useLocale();
+  const { verifyOtp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const email = searchParams.get('email') || '';
+  const redirectTo = searchParams.get('redirect') || `/login?email=${encodeURIComponent(email)}`;
+
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,15 +56,33 @@ export default function OtpVerificationPage() {
     setError('');
     setLoading(true);
     try {
-      await verifyOtp({ email, otpCode: otp.trim() }, locale);
-      setSuccess(
-        locale === 'vi'
-          ? 'Xác thực thành công! Đang chuyển về trang đăng nhập...'
-          : 'Verified successfully! Redirecting to login...'
-      );
-      setTimeout(() => {
-        navigate(`/login?email=${encodeURIComponent(email)}`, { replace: true });
-      }, 1500);
+      const res = await verifyOtp({ email, otpCode: otp.trim() });
+      if (res?.data?.token) {
+        setSuccess(
+          locale === 'vi'
+            ? 'Xác thực thành công! Đang đăng nhập...'
+            : 'Verified successfully! Logging in...'
+        );
+        setTimeout(() => {
+          const role = res.data.roleName;
+          if (role === 'ADMIN') navigate('/admin/dashboard', { replace: true });
+          else if (role === 'MANAGER') navigate('/manager/dashboard', { replace: true });
+          else if (role === 'RECEPTIONIST') navigate('/receptionist/dashboard', { replace: true });
+          else if (role === 'HOUSEKEEPER') navigate('/housekeeper/dashboard', { replace: true });
+          else if (role === 'MAINTENANCE') navigate('/maintenance/dashboard', { replace: true });
+          else if (role === 'CUSTOMER') navigate('/customer/dashboard', { replace: true });
+          else navigate('/', { replace: true });
+        }, 1500);
+      } else {
+        setSuccess(
+          locale === 'vi'
+            ? 'Xác thực thành công! Đang chuyển hướng...'
+            : 'Verified successfully! Redirecting...'
+        );
+        setTimeout(() => {
+          navigate(redirectTo, { replace: true });
+        }, 1500);
+      }
     } catch (err) {
       setError(err.message || (locale === 'vi' ? 'Mã xác thực không hợp lệ.' : 'Invalid verification code.'));
     } finally {

@@ -21,6 +21,7 @@ public class ApiResponse<T> {
      * Ví dụ: HttpStatus.OK → 200
      */
     private int statusCode;
+    private String errorCode;
 
     /**
      * Field này chỉ dùng nội bộ (để build ResponseEntity), không serialize ra JSON.

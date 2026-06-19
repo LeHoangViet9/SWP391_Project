@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Send, ArrowLeft } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout';
 import { apiFetch } from '../services/api';
 import Toast from '../components/shared/Toast';
 
 export default function ForgotPasswordPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ type: 'success', message: '' });
@@ -21,7 +22,10 @@ export default function ForgotPasswordPage() {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
-      notify('Yêu cầu đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra email của bạn.');
+      notify('Yêu cầu đặt lại mật khẩu đã được gửi! Đang chuyển hướng sang trang nhập OTP...');
+      setTimeout(() => {
+        navigate(`/forgot-password-otp?email=${encodeURIComponent(email)}`);
+      }, 1500);
     } catch (err) {
       notify(err.message || 'Gửi yêu cầu thất bại. Vui lòng thử lại.', 'error');
     } finally {

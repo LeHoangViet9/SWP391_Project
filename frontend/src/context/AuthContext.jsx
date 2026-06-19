@@ -5,6 +5,7 @@ import {
   clearAuth,
   login as apiLogin,
   register as apiRegister,
+  verifyOtp as apiVerifyOtp,
   getCurrentUser as apiGetCurrentUser,
 } from '../services/authService';
 import { useLocale } from './LocaleContext';
@@ -14,11 +15,14 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const { locale } = useLocale();
   const [user, setUser] = useState(getStoredUser);
-  const token = getStoredToken();
+  const [token, setToken] = useState(getStoredToken);
 
   const login = useCallback(async (credentials) => {
     const res = await apiLogin(credentials, locale);
-    if (res?.data) setUser(res.data);
+    if (res?.data) {
+      setUser(res.data);
+      setToken(res.data.token ?? null);
+    }
     return res;
   }, [locale]);
 
@@ -26,15 +30,29 @@ export function AuthProvider({ children }) {
     return apiRegister(payload, locale);
   }, [locale]);
 
+  const verifyOtp = useCallback(async (payload) => {
+    const res = await apiVerifyOtp(payload, locale);
+    if (res?.data?.token) {
+      setUser(res.data);
+      setToken(res.data.token);
+    }
+    return res;
+  }, [locale]);
+
   const refreshCurrentUser = useCallback(async () => {
     const res = await apiGetCurrentUser(locale);
-    if (res?.data) setUser({ ...res.data, token });
+    if (res?.data) {
+      const currentToken = getStoredToken();
+      setUser({ ...res.data, token: currentToken });
+      setToken(currentToken);
+    }
     return res;
-  }, [locale, token]);
+  }, [locale]);
 
   const logout = useCallback(() => {
     clearAuth();
     setUser(null);
+    setToken(null);
   }, []);
 
   const isAuthenticated = Boolean(token && user);
@@ -46,7 +64,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated, login, register, logout, hasRole, refreshCurrentUser }}
+      value={{ user, token, isAuthenticated, login, register, verifyOtp, logout, hasRole, refreshCurrentUser }}
     >
       {children}
     </AuthContext.Provider>

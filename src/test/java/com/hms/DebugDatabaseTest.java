@@ -19,20 +19,25 @@ public class DebugDatabaseTest {
 
     @Test
     public void patchDatabaseAndVerify() {
-        System.out.println("=== PATCHING DATABASE: SET enabled = true WHERE enabled IS NULL ===");
-        int updated = jdbcTemplate.update("UPDATE users SET enabled = true WHERE enabled IS NULL or enabled = false");
-        System.out.println("Updated " + updated + " users.");
+        System.out.println("=== PATCHING DATABASE: DROP COLUMN IF EXISTS user_name ===");
+        try {
+            jdbcTemplate.execute("ALTER TABLE users DROP COLUMN IF EXISTS user_name CASCADE");
+            System.out.println("Dropped user_name column successfully.");
+        } catch (Exception e) {
+            System.out.println("Failed to drop user_name column: " + e.getMessage());
+        }
 
         System.out.println("=== VERIFYING: LOADING ALL USERS VIA JPA ===");
         try {
             List<User> users = userRepository.findAll();
             System.out.println("Successfully loaded " + users.size() + " users via JPA!");
             for (User u : users) {
-                System.out.println("User: " + u.getUserName() + ", Enabled: " + u.isEnabled());
+                System.out.println("User Email: " + u.getEmail() + ", Status: " + u.getAccountStatus());
             }
         } catch (Exception e) {
-            System.out.println("JPA Load failed again!");
+            System.out.println("JPA Load failed!");
             e.printStackTrace();
         }
     }
 }
+

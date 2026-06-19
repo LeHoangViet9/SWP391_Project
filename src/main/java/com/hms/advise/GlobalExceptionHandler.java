@@ -31,6 +31,8 @@ public class GlobalExceptionHandler {
                 .success(false)
                 .message(exception.getMessage())
                 .status(exception.getStatus())
+                .statusCode(exception.getStatus().value())
+                .errorCode(exception.getErrorCode())
                 .build();
 
         return ResponseEntity

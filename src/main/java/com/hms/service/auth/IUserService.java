@@ -39,7 +39,7 @@ public interface IUserService {
 
     void deleteUser(Long id);
 
-    void verifyOtp(VerifyOtpRequest request);
+    UserResponse verifyOtp(VerifyOtpRequest request);
 
     void resendOtp(String email);
 }

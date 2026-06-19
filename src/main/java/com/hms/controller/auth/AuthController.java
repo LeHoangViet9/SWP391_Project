@@ -104,11 +104,11 @@ public class AuthController {
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<ApiResponse<Void>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request){
+    public ResponseEntity<ApiResponse<UserResponse>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request){
         Locale locale = LocaleContextHolder.getLocale();
-        userService.verifyOtp(request);
+        UserResponse userResponse = userService.verifyOtp(request);
         String successMessage = messageSource.getMessage("auth.verifyOtp.success", null, locale);
-        return ResponseEntity.ok(new ApiResponse<>(true, successMessage, null, HttpStatus.OK));
+        return ResponseEntity.ok(new ApiResponse<>(true, successMessage, userResponse, HttpStatus.OK));
     }
 
     @PostMapping("/resend-otp")

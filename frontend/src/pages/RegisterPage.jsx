@@ -71,11 +71,12 @@ export default function RegisterPage() {
             const res = await register(payload);
             setSuccess(res.message || t('auth.registerSuccess'));
 
-            // Sau đăng ký → về trang login với email pre-filled
-            // Kèm flag "registered=1" để login hiện banner nhắc xác thực OTP
+            // Sau đăng ký → redirect thẳng sang trang xác thực OTP
+            // Truyền redirect param để sau khi verify xong về đúng trang
+            const redirectParam = redirect !== '/login' ? `&redirect=${encodeURIComponent(redirect)}` : '';
             setTimeout(() => {
                 navigate(
-                    `/login?email=${encodeURIComponent(payload.email)}&registered=1`
+                    `/verify-otp?email=${encodeURIComponent(payload.email)}${redirectParam}`
                 );
             }, 1500);
         } catch (err) {

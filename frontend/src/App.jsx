@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import OtpVerificationPage from './pages/OtpVerificationPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ForgotPasswordOtpPage from './pages/ForgotPasswordOtpPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import BookingPage from './pages/BookingPage';
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-otp" element={<OtpVerificationPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/forgot-password-otp" element={<ForgotPasswordOtpPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
