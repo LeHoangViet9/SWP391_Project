@@ -1,6 +1,7 @@
-package com.hms.service.dashboard.impl;
+package com.hms.service.booking.impl;
 
 import com.hms.common.enums.*;
+import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
@@ -8,10 +9,12 @@ import com.hms.dto.invoice.request.InvoiceRequest;
 import com.hms.dto.invoice.response.InvoiceResponse;
 import com.hms.entity.booking.Booking;
 import com.hms.entity.booking.Invoice;
+import com.hms.entity.hotel.Room;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
-import com.hms.service.dashboard.InvoiceService;
-import com.hms.service.dashboard.mapper.InvoiceMapper;
+import com.hms.repository.hotel.RoomRepository;
+import com.hms.service.booking.InvoiceService;
+import com.hms.service.booking.mapper.InvoiceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -33,6 +36,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final InvoiceMapper invoiceMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
+    private final RoomRepository roomRepository;
 
     @Override
     @Transactional
@@ -73,7 +77,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     private InvoiceResponse buildInvoiceResponse(Invoice invoice, long numberOfNights, BigDecimal roomPricePerNight, BigDecimal roomPriceSubTotal, BigDecimal additionalCharges) {
-        InvoiceResponse response = invoiceMapper.toDetailResponse(invoice);
+        InvoiceResponse response = invoiceMapper.toResponse(invoice);
 
         response.setNumberOfNights(numberOfNights);
         response.setRoomPricePerNight(roomPricePerNight);
@@ -239,6 +243,109 @@ public class InvoiceServiceImpl implements InvoiceService {
             // Gọi hàm buildResponse phụ trợ đã có sẵn trong class của bạn
             return buildInvoiceResponse(invoice, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges);
         });
+    }
+
+
+    @Override
+    @Transactional
+    public Invoice createPendingInvoice(Long bookingId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.booking.notfound", null, locale)));
+
+        // Không tạo trùng nếu đã có invoice
+        if (booking.getInvoice() != null) {
+            return booking.getInvoice();
+        }
+
+        Invoice invoice = Invoice.builder()
+                .booking(booking)
+                .amount(booking.getTotalPrice())
+                .paymentStatus(PaymentStatus.PENDING)
+                .build();
+
+        return invoiceRepository.save(invoice);
+    }
+
+    @Override
+    @Transactional
+    public Invoice markAsPaid(Long invoiceId, PaymentMethod paymentMethod) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.invoice.notfound", null, locale)));
+
+        if (invoice.getPaymentStatus() == PaymentStatus.PAID) {
+            throw new BadRequestException(
+                    messageSource.getMessage("error.invoice.already.paid", null, locale));
+        }
+
+        invoice.setPaymentStatus(PaymentStatus.PAID);
+        invoice.setPaymentMethod(paymentMethod);
+        invoice.setPaidAt(LocalDateTime.now());
+
+        return invoiceRepository.save(invoice);
+    }
+
+
+    @Override
+    @Transactional
+    public InvoiceResponse payInvoice(Long invoiceId, PaymentMethod paymentMethod) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.invoice.notfound", null, locale)));
+
+        if (invoice.getPaymentStatus() == PaymentStatus.PAID) {
+            throw new BadRequestException(
+                    messageSource.getMessage("error.invoice.already.paid", null, locale));
+        }
+
+        // 1. Đánh dấu hoá đơn là đã thanh toán
+        invoice.setPaymentStatus(PaymentStatus.PAID);
+        invoice.setPaymentMethod(paymentMethod);
+        invoice.setPaidAt(LocalDateTime.now());
+        invoiceRepository.save(invoice);
+
+        // 2. Chuyển phòng từ CHECKOUT_PENDING → DIRTY để housekeeping vào dọn
+        Room room = invoice.getBooking().getRoom();
+        if (room != null && room.getRoomStatus() == RoomStatus.CHECKOUT_PENDING) {
+            room.setRoomStatus(RoomStatus.DIRTY);
+            roomRepository.save(room);
+        }
+
+        return invoiceMapper.toResponse(invoice);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public InvoiceResponse getInvoiceByBookingId(Long bookingId) {
+        Locale locale = LocaleContextHolder.getLocale();
+        // Tìm booking trước, sau đó lấy invoice từ booking
+        return bookingRepository.findById(bookingId)
+                .map(b -> {
+                    if (b.getInvoice() == null) {
+                        throw new ResourceNotFoundException(
+                                messageSource.getMessage("error.invoice.notfound", null, locale));
+                    }
+                    return invoiceMapper.toResponse(b.getInvoice());
+                })
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.booking.notfound", null, locale)));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public InvoiceResponse getInvoiceById(Long invoiceId) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.invoice.notfound", null, locale)));
+        return invoiceMapper.toResponse(invoice);
     }
 
 

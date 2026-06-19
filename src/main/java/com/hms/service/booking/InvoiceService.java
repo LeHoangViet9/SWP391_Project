@@ -1,17 +1,37 @@
 package com.hms.service.booking;
 
 import com.hms.common.enums.PaymentMethod;
-import com.hms.dto.booking.response.InvoiceResponse;
+import com.hms.common.enums.PaymentStatus;
+import com.hms.common.enums.SortDirection;
+import com.hms.dto.invoice.request.InvoiceRequest;
+import com.hms.dto.invoice.response.InvoiceResponse;
+import com.hms.entity.booking.Invoice;
+import org.springframework.data.domain.Page;
+
+import java.time.LocalDateTime;
 
 public interface InvoiceService {
+    Invoice createPendingInvoice(Long bookingId);
 
-    /**
-     * Xử lý thanh toán hoá đơn.
-     * Sau khi thanh toán thành công:
-     *   - Invoice → PAID
-     *   - Phòng:  CHECKOUT_PENDING → DIRTY  (housekeeping cần dọn)
-     *   - Booking vẫn giữ CHECKED_OUT
-     */
+    /** Đánh dấu Invoice là đã thanh toán */
+    Invoice markAsPaid(Long invoiceId, PaymentMethod paymentMethod);
+
+    InvoiceResponse createInvoice(InvoiceRequest request);
+   InvoiceResponse getInvoice(Long id);
+    InvoiceResponse updateInvoice(Long id, InvoiceRequest request);
+    InvoiceResponse processPayment(Long id, String paymentMethod);
+
+    Page<InvoiceResponse> searchInvoices(
+            String keyword,
+            PaymentStatus status,
+            LocalDateTime fromDate,
+            LocalDateTime toDate,
+            Integer page,
+            Integer size,
+            String sortBy,
+            SortDirection direction
+    );
+
     InvoiceResponse payInvoice(Long invoiceId, PaymentMethod paymentMethod);
 
     /** Lấy hoá đơn theo booking */
