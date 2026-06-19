@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Tạo tài khoản test khi khởi động (chỉ nếu username chưa tồn tại).
+ * Tạo tài khoản test khi khởi động (chỉ nếu email chưa tồn tại).
  * Mật khẩu được BCrypt hash — KHÔNG thể giải mã ngược từ DB.
  * Xem mật khẩu gốc trong log startup hoặc file TEST_ACCOUNTS.md.
  */
@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserDataInitializer implements ApplicationRunner {
 
     private record TestUser(
-            String userName,
             String fullName,
             String email,
             String phone,
@@ -35,12 +34,12 @@ public class UserDataInitializer implements ApplicationRunner {
     ) {}
 
     private static final TestUser[] TEST_USERS = {
-            new TestUser("admin",        "Admin Test",        "admin@test.hms",        "0900000001", "Admin@123",       "ADMIN"),
-            new TestUser("manager",      "Manager Test",      "manager@test.hms",      "0900000002", "Manager@123",     "MANAGER"),
-            new TestUser("receptionist", "Receptionist Test", "receptionist@test.hms", "0900000003", "Reception@123",   "RECEPTIONIST"),
-            new TestUser("maintenance",  "Maintenance Test",  "maintenance@test.hms",  "0900000004", "Maint@123",       "MAINTENANCE"),
-            new TestUser("housekeeper",  "Housekeeper Test",  "housekeeper@test.hms",  "0900000005", "House@123",       "HOUSEKEEPER"),
-            new TestUser("customer",     "Customer Test",     "customer@test.hms",     "0900000006", "Customer@123",    "CUSTOMER"),
+            new TestUser("Admin Test",        "admin@test.hms",        "0900000001", "Admin@123",       "ADMIN"),
+            new TestUser("Manager Test",      "manager@test.hms",      "0900000002", "Manager@123",     "MANAGER"),
+            new TestUser("Receptionist Test", "receptionist@test.hms", "0900000003", "Reception@123",   "RECEPTIONIST"),
+            new TestUser("Maintenance Test",  "maintenance@test.hms",  "0900000004", "Maint@123",       "MAINTENANCE"),
+            new TestUser("Housekeeper Test",  "housekeeper@test.hms",  "0900000005", "House@123",       "HOUSEKEEPER"),
+            new TestUser("Customer Test",     "customer@test.hms",     "0900000006", "Customer@123",    "CUSTOMER"),
     };
 
     private final UserRepository userRepository;
@@ -52,8 +51,8 @@ public class UserDataInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         log.info("========== HMS TEST ACCOUNTS (plain passwords) ==========");
         for (TestUser tu : TEST_USERS) {
-            if (userRepository.existsUserByUserName(tu.userName())) {
-                log.info("  [skip] {} — already exists", tu.userName());
+            if (userRepository.existsUserByEmail(tu.email())) {
+                log.info("  [skip] {} — already exists", tu.email());
                 continue;
             }
 
@@ -62,18 +61,18 @@ public class UserDataInitializer implements ApplicationRunner {
                             "Role not found: " + tu.roleName() + ". Run RoleDataInitializer first."));
 
             User user = User.builder()
-                    .userName(tu.userName())
                     .fullName(tu.fullName())
                     .email(tu.email())
                     .phone(tu.phone())
                     .password(passwordEncoder.encode(tu.plainPassword()))
                     .accountStatus(AccountStatus.ACTIVE)
+                    .enabled(true)
                     .role(role)
                     .build();
 
             userRepository.save(user);
-            log.info("  [created] username={} | password={} | role={}",
-                    tu.userName(), tu.plainPassword(), tu.roleName());
+            log.info("  [created] email={} | password={} | role={}",
+                    tu.email(), tu.plainPassword(), tu.roleName());
         }
         log.info("=========================================================");
         log.info("BCrypt hash trong DB KHÔNG đọc ngược được — dùng mật khẩu ở trên để đăng nhập.");
