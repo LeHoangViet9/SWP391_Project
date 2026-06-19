@@ -14,9 +14,12 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -90,5 +93,51 @@ public class UserController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{userId}/permissions")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_UPDATE')")
+    public ResponseEntity<?> assignPermissionsToUser(
+            @PathVariable Long userId,
+            @RequestBody Map<String, List<Long>> request
+    ) {
+        Locale locale = LocaleContextHolder.getLocale();
+        UserResponse response = userService.assignPermissionsToUser(
+                userId,
+                request.get("permissionIds")
+        );
+        return ResponseEntity.ok(Map.of(
+                "message", messageSource.getMessage("success.user.assign.permissions", null, locale),
+                "data", response
+        ));
+    }
+
+    // ✅ THÊM MỚI: Xóa quyền riêng khỏi user
+    @DeleteMapping("/{userId}/permissions")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_UPDATE')")
+    public ResponseEntity<?> removePermissionsFromUser(
+            @PathVariable Long userId,
+            @RequestBody Map<String, List<Long>> request
+    ) {
+        Locale locale = LocaleContextHolder.getLocale();
+        UserResponse response = userService.removePermissionsFromUser(
+                userId,
+                request.get("permissionIds")
+        );
+        return ResponseEntity.ok(Map.of(
+                "message", messageSource.getMessage("success.user.remove.permissions", null, locale),
+                "data", response
+        ));
+    }
+
+    @GetMapping("/{userId}/permissions")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_VIEW')")
+    public ResponseEntity<?> getUserPermissions(@PathVariable Long userId) {
+        Locale locale = LocaleContextHolder.getLocale();
+        UserResponse response = userService.getUserPermissions(userId);
+        return ResponseEntity.ok(Map.of(
+                "message", messageSource.getMessage("success.user.get.permissions", null, locale),
+                "data", response
+        ));
     }
 }

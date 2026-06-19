@@ -288,3 +288,119 @@ VALUES
 
 ALTER TABLE users ADD CONSTRAINT users_account_status_check
     CHECK (account_status IN ('ACTIVE', 'BANNED', 'PENDING_VERIFICATION','INACTIVE'));
+
+
+
+
+-- ... existing code ...
+
+-- Insert default permissions
+INSERT INTO permission (name) VALUES
+-- User permissions
+('USER_VIEW'), ('USER_CREATE'), ('USER_UPDATE'), ('USER_DELETE'),
+
+-- Room permissions
+('ROOM_VIEW'), ('ROOM_CREATE'), ('ROOM_UPDATE'), ('ROOM_DELETE'),
+
+-- Room Type permissions
+('ROOM_TYPE_VIEW'), ('ROOM_TYPE_CREATE'), ('ROOM_TYPE_UPDATE'), ('ROOM_TYPE_DELETE'),
+
+-- Customer permissions
+('CUSTOMER_VIEW'), ('CUSTOMER_CREATE'), ('CUSTOMER_UPDATE'), ('CUSTOMER_DELETE'),
+
+-- Booking permissions
+('BOOKING_VIEW'), ('BOOKING_CREATE'), ('BOOKING_UPDATE'), ('BOOKING_DELETE'), ('BOOKING_VIEW_OWN'),
+
+-- Housekeeping permissions
+('HOUSEKEEPING_VIEW'), ('HOUSEKEEPING_CREATE'), ('HOUSEKEEPING_UPDATE'), ('HOUSEKEEPING_DELETE'),
+
+-- Equipment permissions
+('EQUIPMENT_VIEW'), ('EQUIPMENT_CREATE'), ('EQUIPMENT_UPDATE'), ('EQUIPMENT_DELETE'),
+
+-- Maintenance permissions
+('MAINTENANCE_VIEW'), ('MAINTENANCE_CREATE'), ('MAINTENANCE_UPDATE'), ('MAINTENANCE_DELETE'),
+
+-- Feedback permissions
+('FEEDBACK_VIEW'), ('FEEDBACK_CREATE'), ('FEEDBACK_UPDATE'), ('FEEDBACK_DELETE'),
+
+-- Invoice permissions
+('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE');
+
+-- Assign permissions to ADMIN role (full access)
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'ADMIN';
+
+-- Assign permissions to MANAGER role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'MANAGER'
+  AND p.name IN (
+                 'USER_VIEW', 'ROOM_VIEW', 'ROOM_CREATE', 'ROOM_UPDATE', 'ROOM_DELETE',
+                 'ROOM_TYPE_VIEW', 'ROOM_TYPE_CREATE', 'ROOM_TYPE_UPDATE', 'ROOM_TYPE_DELETE',
+                 'CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_UPDATE', 'CUSTOMER_DELETE',
+                 'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE', 'BOOKING_DELETE',
+                 'HOUSEKEEPING_VIEW', 'HOUSEKEEPING_CREATE', 'HOUSEKEEPING_UPDATE', 'HOUSEKEEPING_DELETE',
+                 'EQUIPMENT_VIEW', 'EQUIPMENT_CREATE', 'EQUIPMENT_UPDATE', 'EQUIPMENT_DELETE',
+                 'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_UPDATE', 'MAINTENANCE_DELETE',
+                 'FEEDBACK_VIEW', 'FEEDBACK_CREATE', 'FEEDBACK_UPDATE', 'FEEDBACK_DELETE',
+                 'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE', 'INVOICE_DELETE'
+    );
+
+-- Assign permissions to RECEPTIONIST role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'RECEPTIONIST'
+  AND p.name IN (
+                 'ROOM_VIEW', 'CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_UPDATE',
+                 'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE',
+                 'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE',
+                 'FEEDBACK_VIEW', 'FEEDBACK_CREATE'
+    );
+
+-- Assign permissions to HOUSEKEEPER role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'HOUSEKEEPER'
+  AND p.name IN (
+                 'HOUSEKEEPING_VIEW', 'HOUSEKEEPING_UPDATE',
+                 'MAINTENANCE_VIEW'
+    );
+
+-- Assign permissions to MAINTENANCE role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'MAINTENANCE'
+  AND p.name IN (
+                 'EQUIPMENT_VIEW', 'EQUIPMENT_CREATE', 'EQUIPMENT_UPDATE', 'EQUIPMENT_DELETE',
+                 'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_UPDATE', 'MAINTENANCE_DELETE'
+    );
+
+-- Assign permissions to CUSTOMER role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'CUSTOMER'
+  AND p.name IN (
+                 'BOOKING_VIEW_OWN', 'BOOKING_CREATE',
+                 'CUSTOMER_VIEW'
+    );
+
+
+
+
+CREATE INDEX idx_user_permissions_user ON user_permissions(user_id);
+CREATE INDEX idx_user_permissions_permission ON user_permissions(permission_id);
+
+
+select * from roles;
+
+select * from permission
+
+select * from role_permissions
+
