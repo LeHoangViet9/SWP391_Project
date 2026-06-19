@@ -3,6 +3,7 @@ package com.hms.controller.auth;
 import com.hms.dto.auth.request.*;
 import com.hms.common.dto.ApiResponse;
 import com.hms.dto.auth.response.UserResponse;
+import com.hms.service.auth.IAuthService;
 import com.hms.service.auth.IUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +23,12 @@ import java.util.Locale;
 public class AuthController {
     private final IUserService userService;
     private final MessageSource messageSource;
+    private final IAuthService authService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> handleRegister(@Valid @RequestBody UserRegisterRequest registerRequest){
         Locale locale= LocaleContextHolder.getLocale();
-        UserResponse userResponse = userService.registerNewUser(registerRequest);
+        UserResponse userResponse = authService.registerNewUser(registerRequest);
         String successMessage = messageSource.getMessage("auth.register.success", null, locale);
         ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
                 .success(true)
@@ -39,7 +41,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<UserResponse>> handleLogin(@Valid @RequestBody UserLoginRequest loginRequest){
         Locale locale= LocaleContextHolder.getLocale();
-        UserResponse userResponse = userService.login(loginRequest);
+        UserResponse userResponse = authService.login(loginRequest);
         String successMessage = messageSource.getMessage("auth.login.success", null, locale);
         ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
                 .success(true)
@@ -53,7 +55,7 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal String username) {
         Locale locale = LocaleContextHolder.getLocale();
-        UserResponse userResponse = userService.getCurrentUser(username);
+        UserResponse userResponse = authService.getCurrentUser(username);
         ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
                 .success(true)
                 .message(messageSource.getMessage("auth.me.success", null, "Get current user successfully", locale))
@@ -65,10 +67,10 @@ public class AuthController {
 
     @PutMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>>  handleChangePassword(@AuthenticationPrincipal String username,
-            @Valid @RequestBody ChangePasswordRequest changePasswordRequest){
+                                                                   @Valid @RequestBody ChangePasswordRequest changePasswordRequest){
         Locale locale= LocaleContextHolder.getLocale();
         String successMessage=messageSource.getMessage("auth.changePassword.success", null, locale);
-        userService.changePassword(username,changePasswordRequest);
+        authService.changePassword(username,changePasswordRequest);
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 successMessage,
@@ -82,7 +84,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest){
         Locale locale= LocaleContextHolder.getLocale();
         String successMessage=messageSource.getMessage("auth.forgotPassword.success", null, locale);
-        userService.forgotPassword(forgotPasswordRequest);
+        authService.forgotPassword(forgotPasswordRequest);
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 successMessage,
@@ -94,7 +96,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest){
         Locale locale= LocaleContextHolder.getLocale();
         String successMessage=messageSource.getMessage("auth.resetPassword.success", null, locale);
-        userService.resetPassword(resetPasswordRequest);
+        authService.resetPassword(resetPasswordRequest);
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 successMessage,
@@ -102,6 +104,20 @@ public class AuthController {
                 HttpStatus.OK
         ),HttpStatus.OK);
     }
+
+    @PostMapping("/active-account")
+    public ResponseEntity<ApiResponse<Void>> activeAccount(@Valid @RequestBody ActiveAccountRequest activeAccountRequest){
+        Locale locale= LocaleContextHolder.getLocale();
+        authService.activeUser(activeAccountRequest.getEmail(), activeAccountRequest.getOtp());
+        String successMessage = messageSource.getMessage("auth.active.success", null, "Account activated successfully", locale);
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                successMessage,
+                null,
+                HttpStatus.OK
+        ),HttpStatus.OK);
+    }
+
 
 
 

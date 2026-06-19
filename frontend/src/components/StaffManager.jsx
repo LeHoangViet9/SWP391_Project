@@ -6,7 +6,7 @@ import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/userService';
 
-const ROLES = ['ADMIN', 'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE']; // Loại bỏ CUSTOMER khỏi danh sách thêm mới
+const ROLES = ['ADMIN', 'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE', 'CUSTOMER'];
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -17,7 +17,6 @@ const STATUS_OPTIONS = [
 
 const EMPTY_FORM = {
   fullName: '',
-  userName: '',
   password: '',
   rePassword: '',
   email: '',
@@ -33,7 +32,6 @@ export default function StaffManager() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
-  const [searchOpt, setSearchOpt] = useState('fullName');
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
@@ -43,33 +41,15 @@ export default function StaffManager() {
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
 
-  const fetchDataDirect = useCallback(async (p, opt, val, statusVal) => {
+  const fetchData = useCallback(async (p = page) => {
     setLoading(true);
     try {
-      const params = {
+      const res = await getUsers({
         page: p,
         size: 10,
-        status: statusVal || undefined,
-      };
-
-      const trimmed = val ? String(val).trim() : '';
-      if (trimmed) {
-        if (opt === 'id') {
-          params.id = trimmed;
-        } else if (opt === 'fullName') {
-          params.fullName = trimmed;
-        } else if (opt === 'userName') {
-          params.userName = trimmed;
-        } else if (opt === 'email') {
-          params.email = trimmed;
-        } else if (opt === 'phone') {
-          params.phone = trimmed;
-        } else if (opt === 'roleName') {
-          params.roleName = trimmed;
-        }
-      }
-
-      const res = await getUsers(params);
+        keywords: search || undefined,
+        status: statusFilter || undefined,
+      });
       setStaffs(res?.data?.content ?? []);
       setTotalPages(res?.data?.totalPages ?? 1);
     } catch (e) {
@@ -77,11 +57,7 @@ export default function StaffManager() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  const fetchData = useCallback(async (p = page) => {
-    await fetchDataDirect(p, searchOpt, search, statusFilter);
-  }, [page, searchOpt, search, statusFilter, fetchDataDirect]);
+  }, [search, statusFilter, page]);
 
   useEffect(() => {
     fetchData(page);
@@ -95,7 +71,6 @@ export default function StaffManager() {
   const openEdit = (item) => {
     setForm({
       fullName: item.fullName || '',
-      userName: item.userName || item.username || '',
       password: '',
       rePassword: '',
       email: item.email || '',
@@ -111,7 +86,6 @@ export default function StaffManager() {
   const buildPayload = () => {
     const payload = {
       fullName: form.fullName.trim(),
-      userName: form.userName.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
       roleName: form.roleName,
@@ -166,7 +140,7 @@ export default function StaffManager() {
     <tr key={item.id} className="hover:bg-stone-50">
       <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
       <td className="px-4 py-3 font-semibold">{item.fullName}</td>
-      <td className="px-4 py-3 font-mono text-xs text-[#bfa15f]">{item.userName || item.username}</td>
+      <td className="px-4 py-3 font-mono text-xs text-[#bfa15f]">{item.email}</td>
       <td className="px-4 py-3 text-xs">{item.email}</td>
       <td className="px-4 py-3 text-xs">{item.phone}</td>
       <td className="px-4 py-3">
@@ -196,7 +170,7 @@ export default function StaffManager() {
     </tr>
   ));
 
-  const cols = [t('staff.columns.id'), t('staff.columns.fullName'), t('staff.columns.username'), t('staff.columns.email'), t('staff.columns.phone'), t('staff.columns.role'), t('staff.columns.status'), t('staff.columns.actions')];
+  const cols = [t('staff.columns.id'), t('staff.columns.fullName'), t('staff.columns.email'), t('staff.columns.phone'), t('staff.columns.role'), t('staff.columns.status'), t('staff.columns.actions')];
 
   return (
     <div>
@@ -204,39 +178,20 @@ export default function StaffManager() {
 
       <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-2 flex-1">
-          <select
-            value={searchOpt}
-            onChange={(e) => {
-              setSearchOpt(e.target.value);
-              setSearch('');
-            }}
-            className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-          >
-            <option value="fullName">{t('staff.searchOptions.fullName') || 'Họ và tên'}</option>
-            <option value="userName">{t('staff.searchOptions.userName') || 'Tên đăng nhập'}</option>
-            <option value="email">{t('staff.searchOptions.email') || 'Email'}</option>
-            <option value="phone">{t('staff.searchOptions.phone') || 'Số điện thoại'}</option>
-            <option value="roleName">{t('staff.searchOptions.roleName') || 'Vai trò'}</option>
-            <option value="id">{t('staff.searchOptions.id') || 'Mã (ID)'}</option>
-          </select>
-
           <div className="relative flex-1 max-w-xs">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              type={searchOpt === 'id' ? 'number' : 'text'}
+              type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && fetchData(0)}
-              placeholder={t(`staff.placeholders.${searchOpt}`) || t('staff.filters.searchPlaceholder')}
+              placeholder={t('staff.filters.searchPlaceholder')}
               className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
             />
           </div>
           <select
             value={statusFilter}
-            onChange={e => {
-              setStatusFilter(e.target.value);
-              setPage(0);
-            }}
+            onChange={e => setStatusFilter(e.target.value)}
             className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white"
           >
             {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.value === '' ? t('staff.filters.allStatus') : opt.value === 'ACTIVE' ? t('staff.filters.active') : opt.value === 'INACTIVE' ? t('staff.filters.inactive') : opt.value === 'BANNED' ? t('staff.filters.banned') : opt.label}</option>)}
@@ -261,9 +216,9 @@ export default function StaffManager() {
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.username')}</label>
-              <input required disabled={!!modal.editing} value={form.userName} onChange={e => setForm(f => ({ ...f, userName: e.target.value }))}
-                className={`w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none ${modal.editing ? 'bg-stone-100 cursor-not-allowed' : ''}`} />
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.email')}</label>
+              <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
           </div>
 
@@ -286,11 +241,6 @@ export default function StaffManager() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.email')}</label>
-              <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
-            </div>
-            <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.phone')}</label>
               <input required value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
@@ -302,7 +252,6 @@ export default function StaffManager() {
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.role')}</label>
               <select required value={form.roleName} onChange={e => setForm(f => ({ ...f, roleName: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
-                {form.roleName === 'CUSTOMER' && <option value="CUSTOMER" disabled>CUSTOMER</option>}
                 {ROLES.map(role => <option key={role} value={role}>{role}</option>)}
               </select>
             </div>
