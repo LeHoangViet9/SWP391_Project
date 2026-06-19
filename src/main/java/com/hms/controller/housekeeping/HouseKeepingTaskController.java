@@ -6,6 +6,7 @@ import com.hms.common.enums.SortField;
 import com.hms.common.enums.TaskStatus;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskUpdateRequest;
+import com.hms.dto.housekeeping.request.ReportRoomIssueRequest;
 import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
 import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import com.hms.service.housekeeping.IHouseKeepingTaskService;
@@ -175,7 +176,7 @@ public class HouseKeepingTaskController {
     @PostMapping("/rooms/{roomId}/report-issue")
     public ResponseEntity<ApiResponse<Void>> reportRoomIssue(
             @PathVariable Long roomId,
-            @RequestBody @Valid com.hms.dto.housekeeping.request.ReportRoomIssueRequest request) {
+            @RequestBody @Valid ReportRoomIssueRequest request) {
 
         taskService.reportRoomIssue(roomId, request);
 
