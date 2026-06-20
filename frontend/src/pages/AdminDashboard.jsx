@@ -7,7 +7,7 @@ import BookingManager from '../components/BookingManager';
 import EquipmentManager from '../components/EquipmentManager';
 import MaintenanceManager from '../components/MaintenanceManager';
 import StaffManager from '../components/StaffManager';
-import HousekeepingManager from '../components/HousekeepingManager';
+// import HousekeepingManager from '../components/HousekeepingManager';
 import ChangePassword from '../components/ChangePassword';
 import ReportManager from '../components/ReportManager';
 import AccountInfo from '../components/AccountInfo';
@@ -17,7 +17,8 @@ const TABS = [
   { key: 'reports',      label: 'Báo Cáo',          Icon: BarChart2,     component: <ReportManager /> },
   { key: 'room-types',   label: 'Loại Phòng',        Icon: Tag,           component: <RoomTypeManager /> },
   { key: 'rooms',        label: 'Phòng',              Icon: BedDouble,     component: <RoomManager /> },
-  { key: 'housekeeping', label: 'Buồng Phòng',        Icon: ClipboardList, component: <HousekeepingManager /> },
+  // Tạm thời ẩn tab Buồng phòng do HousekeepingManager.jsx chưa được đồng bộ từ nhánh Buồng phòng
+  // { key: 'housekeeping', label: 'Buồng Phòng',        Icon: ClipboardList, component: <HousekeepingManager /> },
   { key: 'customers',    label: 'Khách Hàng',         Icon: Users,         component: <CustomerManager /> },
   { key: 'bookings',     label: 'Đặt Phòng',          Icon: CalendarCheck, component: <BookingManager /> },
   { key: 'equipments',   label: 'Thiết Bị',           Icon: Wrench,        component: <EquipmentManager /> },
