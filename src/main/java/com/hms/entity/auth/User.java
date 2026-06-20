@@ -25,9 +25,9 @@ public class User {
     private String fullName;
     @Column(name = "email", nullable = false,unique = true,length = 100)
     private String email;
-    @Column(name="phone",nullable = false,unique = false,length = 15)
+    @Column(name="phone",nullable = false,unique = true,length = 15)
     private String phone;
-    @Column(name = "password", nullable = false, length = 255)
+    @Column(name = "password", nullable = false,length = 100)
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -59,7 +59,7 @@ public class User {
     @Column(name = "reset_password_expire_at")
     private LocalDateTime resetPasswordExpiredAt;
 
-    @Column(name = "otp_code", length = 72)
+    @Column(name = "otp_code", length = 6)
     private String otpCode;
 
     @Column(name = "otp_expiry")

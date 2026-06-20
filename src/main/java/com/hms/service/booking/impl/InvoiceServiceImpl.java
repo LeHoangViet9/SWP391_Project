@@ -87,28 +87,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         return response;
     }
-
-    @Override
-    public InvoiceResponse getInvoice(Long id) {
-        Invoice invoice = invoiceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("invoice.notfound"));
-
-        Booking booking = invoice.getBooking();
-        long numberOfNights = ChronoUnit.DAYS.between(
-                booking.getCheckInDate().toLocalDate(),
-                booking.getCheckOutDate().toLocalDate()
-        );
-        if(numberOfNights <= 0){
-            numberOfNights = 1;
-        }
-
-        BigDecimal roomPricePerNight = booking.getPricePerNight();
-        BigDecimal roomPriceSubTotal = roomPricePerNight.multiply(BigDecimal.valueOf(numberOfNights));
-        BigDecimal additionalCharges = invoice.getAmount().subtract(roomPriceSubTotal);
-
-        return buildInvoiceResponse(invoice, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges);
-    }
-
+    
     @Override
     @Transactional
     public InvoiceResponse updateInvoice(Long id, InvoiceRequest request) {

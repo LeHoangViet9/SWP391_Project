@@ -14,13 +14,6 @@ function buildAuthHeaders(locale, extraHeaders = {}, includeJson = true) {
 async function handleResponse(response) {
   const data = await response.json().catch(() => ({}));
   if (!response.ok || data.success === false) {
-    if (response.status === 401) {
-      localStorage.removeItem('hms_token');
-      localStorage.removeItem('hms_user');
-      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/verify-otp') && !window.location.pathname.includes('/register')) {
-        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-      }
-    }
     const err = new Error(data.message || `HTTP ${response.status}`);
     err.status = response.status;
     err.data = data;

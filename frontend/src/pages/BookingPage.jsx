@@ -79,7 +79,7 @@ function BookingContent() {
 
   useEffect(() => {
     const mock = mockRoomTypes.find((r) => String(r.id) === roomTypeId);
-    setRoomType(mock || null);
+    setRoomType(mock || mockRoomTypes[0]);
 
     apiFetch(`/room-types/${roomTypeId}`, {}, locale)
       .then((res) => {

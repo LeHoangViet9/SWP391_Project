@@ -17,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -32,6 +33,7 @@ public class BookingController {
     private final MessageSource messageSource;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getAllBooking(
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) Integer page,
@@ -55,6 +57,7 @@ public class BookingController {
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> searchBookings(
             @RequestParam(required = false) BookingStatus status,
             @RequestParam(required = false) Long customerId,
@@ -80,6 +83,7 @@ public class BookingController {
     }
 
     @GetMapping("/my-history")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getMyBookingHistory(
             @AuthenticationPrincipal String email,
             @RequestParam(required = false) Integer page,
@@ -100,6 +104,7 @@ public class BookingController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -118,6 +123,7 @@ public class BookingController {
     }
 
     @GetMapping("/check-in")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getBookingByCheckInDateBetween(
             @RequestParam LocalDateTime start,
             @RequestParam LocalDateTime end,
@@ -141,6 +147,7 @@ public class BookingController {
     }
 
     @GetMapping("/check-out")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getBookingByCheckOutDateBetween(
             @RequestParam LocalDateTime start,
             @RequestParam LocalDateTime end,
@@ -164,6 +171,7 @@ public class BookingController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST', 'CUSTOMER')")
     public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
             @Valid @RequestBody BookingRequest request){
 
@@ -184,6 +192,7 @@ public class BookingController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<BookingResponse>> updateBooking(
             @PathVariable Long id,
             @Valid @RequestBody BookingRequest request) {
@@ -205,6 +214,7 @@ public class BookingController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<Void>> deleteBooking(
             @PathVariable Long id) {
 
@@ -224,6 +234,7 @@ public class BookingController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<BookingResponse>> updateBookingStatus(
             @PathVariable Long id,
             @Valid @RequestBody BookingStatusRequest request) {
@@ -242,6 +253,7 @@ public class BookingController {
     }
 
     @PatchMapping("/{id}/assign-room")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
     public ResponseEntity<ApiResponse<BookingResponse>> assignRoom(
             @PathVariable Long id,
             @Valid @RequestBody BookingRoomAssignRequest request) {
@@ -257,22 +269,5 @@ public class BookingController {
                 .status(HttpStatus.OK)
                 .build();
         return ResponseEntity.ok(response);
-    }
-
-    /** [FIX-04] Endpoint check phòng trống — frontend BookingPage đang gọi endpoint này */
-    @GetMapping("/check-availability")
-    public ResponseEntity<ApiResponse<Long>> checkAvailability(
-            @RequestParam Long roomTypeId,
-            @RequestParam LocalDateTime checkInDate,
-            @RequestParam LocalDateTime checkOutDate) {
-
-        long available = bookingService.checkAvailability(roomTypeId, checkInDate, checkOutDate);
-
-        return ResponseEntity.ok(ApiResponse.<Long>builder()
-                .success(true)
-                .message("Availability checked")
-                .data(available)
-                .status(HttpStatus.OK)
-                .build());
     }
 }

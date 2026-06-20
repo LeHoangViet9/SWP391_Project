@@ -160,14 +160,7 @@ public class BookingServiceImpl implements BookingService {
 
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.booking.notfound", null, locale)));
-        // [FIX-02] Soft-delete: chuyển sang CANCELLED thay vì xóa vật lý
-        // Hard-delete sẽ cascade xóa cả Invoice do CascadeType.ALL → mất lịch sử thanh toán
-        if (booking.getBookingStatus() == BookingStatus.CHECKED_IN) {
-            throw new BadRequestException(messageSource.getMessage(
-                    "error.booking.cannot.delete.checkedin", null, locale));
-        }
-        booking.setBookingStatus(BookingStatus.CANCELLED);
-        bookingRepository.save(booking);
+        bookingRepository.delete(booking);
     }
 
     @Override
@@ -233,7 +226,7 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setBookingStatus(newStatus);
 
-        // Tạo Invoice khi CONFIRMED
+        // Tạo Invoice khi CONFIRMED (xem Thiếu sót 3)
         if (newStatus == BookingStatus.CONFIRMED && booking.getInvoice() == null) {
             Invoice invoice = Invoice.builder()
                     .booking(booking)
@@ -241,13 +234,6 @@ public class BookingServiceImpl implements BookingService {
                     .paymentStatus(PaymentStatus.PENDING)
                     .build();
             invoiceRepository.save(invoice);
-        }
-
-        // [FIX-03] Chuyển phòng sang OCCUPIED khi khách thực sự CHECKED_IN
-        if (newStatus == BookingStatus.CHECKED_IN && booking.getRoom() != null) {
-            Room checkinRoom = booking.getRoom();
-            checkinRoom.setRoomStatus(RoomStatus.OCCUPIED);
-            roomRepository.save(checkinRoom);
         }
 
         // Giải phóng phòng khi kết thúc lưu trú
@@ -307,10 +293,9 @@ public class BookingServiceImpl implements BookingService {
                     "error.booking.room.conflict", null, locale));
         }
 
-        // [FIX-03] OCCUPIED → RESERVED: phòng được giữ chỗ khi CONFIRMED,
-        // chỉ chuyển sang OCCUPIED khi khách thực sự CHECKED_IN
+        // Gán phòng và chuyển trạng thái phòng sang OCCUPIED
         booking.setRoom(room);
-        room.setRoomStatus(RoomStatus.RESERVED);
+        room.setRoomStatus(RoomStatus.OCCUPIED);
         roomRepository.save(room);
 
         Booking updated = bookingRepository.save(booking);
@@ -361,19 +346,5 @@ public class BookingServiceImpl implements BookingService {
         }
         BigDecimal roomCharge = BillingUtils.calculateRoomChargePerNight(BigDecimal.valueOf(roomType.getBasePrice()), nights);
         return roomCharge.multiply(BigDecimal.valueOf(request.getQuantity()));
-    }
-
-    /** [FIX-04] Implement checkAvailability cho frontend BookingPage */
-    @Override
-    @Transactional(readOnly = true)
-    public long checkAvailability(Long roomTypeId, LocalDateTime checkInDate, LocalDateTime checkOutDate) {
-        long totalActive = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
-                roomTypeId,
-                List.of(RoomStatus.INACTIVE, RoomStatus.OUT_OF_ORDER)
-        );
-        long booked = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
-                roomTypeId, checkInDate, checkOutDate, null, ROOM_HOLDING_STATUSES
-        );
-        return Math.max(0, totalActive - booked);
     }
 }

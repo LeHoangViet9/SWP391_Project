@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn, MailCheck } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,7 @@ export default function LoginPage() {
 
   // Đọc email và flag registered từ URL (sau khi đăng ký xong)
   const emailFromUrl = searchParams.get('email') || '';
+  const isJustRegistered = searchParams.get('registered') === '1';
 
   const [form, setForm] = useState({ email: emailFromUrl, password: '' });
   const [showPass, setShowPass] = useState(false);
@@ -48,25 +49,21 @@ export default function LoginPage() {
       const res = await login({ email: trimmedEmail, password: trimmedPassword });
       // Điều hướng theo role sau khi đăng nhập thành công
       const role = res?.data?.roleName;
-      if (role === 'ADMIN') navigate('/admin/dashboard', { replace: true });
-      else if (role === 'MANAGER') navigate('/manager/dashboard', { replace: true });
+      if (role === 'ADMIN' || role === 'MANAGER') navigate('/admin/dashboard', { replace: true });
       else if (role === 'RECEPTIONIST') navigate('/receptionist/dashboard', { replace: true });
       else if (role === 'HOUSEKEEPER') navigate('/housekeeper/dashboard', { replace: true });
       else if (role === 'MAINTENANCE') navigate('/maintenance/dashboard', { replace: true });
       else if (role === 'CUSTOMER') navigate('/customer/dashboard', { replace: true });
       else navigate('/', { replace: true });
     } catch (err) {
-      // Nếu tài khoản cần xác thực OTP (khi đăng ký hoặc khi đăng nhập) → redirect sang trang verify
-      const isOtpRequired =
-        err.data?.errorCode === 'LOGIN_OTP_REQUIRED' ||
-        err.data?.errorCode === 'ACCOUNT_PENDING' ||
-        (err.message &&
-          (err.message.toLowerCase().includes('pending') ||
-            err.message.includes('xác thực') ||
-            err.message.includes('verification') ||
-            err.message.includes('otp')));
-      if (isOtpRequired) {
-        setError(err.message || (locale === 'vi' ? 'Cần xác thực mã OTP.' : 'OTP verification required.'));
+      // Nếu tài khoản chưa xác thực OTP → redirect sang trang verify
+      const isPending =
+        err.message &&
+        (err.message.toLowerCase().includes('pending') ||
+          err.message.includes('xác thực') ||
+          err.message.includes('verification'));
+      if (isPending) {
+        setError(err.message);
         setTimeout(() => {
           navigate(`/verify-otp?email=${encodeURIComponent(trimmedEmail)}`);
         }, 1500);
@@ -83,6 +80,22 @@ export default function LoginPage() {
     <AuthLayout title={t('auth.login')} subtitle={t('auth.loginSubtitle')}>
       <form onSubmit={handleSubmit} className="bg-white border border-stone-200 shadow-lg p-8 space-y-5">
 
+        {/* Banner khi vừa đăng ký xong — nhắc nhập mật khẩu để đăng nhập */}
+        {isJustRegistered && !error && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-700 text-sm px-4 py-3 rounded flex items-start gap-2">
+            <MailCheck size={18} className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold">
+                {locale === 'vi' ? 'Đăng ký thành công!' : 'Registration successful!'}
+              </p>
+              <p className="text-xs mt-0.5">
+                {locale === 'vi'
+                  ? 'Mã OTP đã gửi về email. Nhập mật khẩu để đăng nhập — sau đó bạn sẽ được yêu cầu xác thực OTP.'
+                  : 'OTP was sent to your email. Enter your password to login — you will then be asked to verify OTP.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Error message (with link to verify-otp if pending) */}
         {error && (
