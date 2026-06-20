@@ -24,6 +24,14 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     Optional<User> findUserByEmail(String email);
 
+    @Query("""
+            select u from User u
+            left join fetch u.role r
+            left join fetch r.permissions
+            where u.email = :email
+            """)
+    Optional<User> findUserWithPermissionsByEmail(@Param("email") String email);
+
     Optional<User> findByResetPasswordToken(String resetPasswordToken);
 
     @Query("""

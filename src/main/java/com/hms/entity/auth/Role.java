@@ -21,8 +21,13 @@ public class Role {
 
     @Column(name="role_name", unique = true, nullable = false, length = 50)
     private String roleName;
-    @Column(name="permissions" ,columnDefinition = "TEXT")
-    private String permissions;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "role_permissions",
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    private List<Permission> permissions;
 
     @OneToMany(mappedBy = "role",cascade = CascadeType.MERGE)
     private List<User> userList;

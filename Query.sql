@@ -33,15 +33,17 @@ ALTER TABLE customers ADD CONSTRAINT customers_id_type_check
     CHECK (id_type IN ('CCCD', 'PASSPORT', 'OTHER'));
 
 -- 1. BẢNG ROLES (6 Vai trò tiêu chuẩn của hệ thống)
-INSERT INTO roles (role_name, permissions)
-VALUES
-    ('ADMIN', '["*"]'),
-    ('MANAGER', '["*"]'),
-    ('CUSTOMER', '["booking:read", "booking:create"]'),
-    ('RECEPTIONIST', '["room:read", "room:update", "booking:read", "booking:create", "booking:update"]'),
-    ('MAINTENANCE', '["equipment:read", "equipment:update", "maintenance:read", "maintenance:update"]'),
-    ('HOUSEKEEPER', '["room:read", "room:update-status"]');
+-- INSERT INTO roles (role_name, permissions)
+-- VALUES
+--     ('ADMIN', '["*"]'),
+--     ('MANAGER', '["*"]'),
+--     ('CUSTOMER', '["booking:read", "booking:create"]'),
+--     ('RECEPTIONIST', '["room:read", "room:update", "booking:read", "booking:create", "booking:update"]'),
+--     ('MAINTENANCE', '["equipment:read", "equipment:update", "maintenance:read", "maintenance:update"]'),
+--     ('HOUSEKEEPER', '["room:read", "room:update-status"]');
 
+
+Select * from roles
 -- 2. BẢNG USERS (15 tài khoản đăng nhập)
 -- Mật khẩu: 123456a
 INSERT INTO users (full_name, email, phone, password, account_status, created_at, role_id)
@@ -162,23 +164,29 @@ VALUES
 TRUNCATE TABLE equipment_images, equipment_checks, repair_requests, equipments RESTART IDENTITY CASCADE;
 
 -- Chèn dữ liệu chuẩn (đã có cột location từ bước trước)
-INSERT INTO equipments (equipment_name, equipment_code, description, location, status, created_at)
+INSERT INTO equipments (
+    equipment_name,
+    equipment_code,
+    description,
+    status,
+    created_at
+)
 VALUES
-    ('Tivi Sony 55 inch', 'TV-101', 'Tivi thông minh Sony 4K', 'Phòng 101', 'ACTIVE', NOW()),
-    ('Điều hòa Daikin 1.5 HP', 'AC-101', 'Điều hòa không khí Daikin', 'Phòng 101', 'ACTIVE', NOW()),
-    ('Tủ lạnh mini Electrolux', 'RF-101', 'Tủ lạnh mini 50 lít', 'Phòng 101', 'ACTIVE', NOW()),
-    ('Máy sấy tóc Panasonic', 'HD-101', 'Máy sấy tóc 1200W', 'Phòng 101', 'ACTIVE', NOW()),
-    ('Điều hòa Panasonic 2 HP', 'AC-202', 'Điều hòa Inverter Panasonic', 'Phòng 202', 'ACTIVE', NOW()),
-    ('Tivi Samsung 65 inch', 'TV-301', 'Tivi QLED Samsung', 'Phòng 301', 'ACTIVE', NOW()),
-    ('Điều hòa Daikin 2.5 HP', 'AC-301', 'Điều hòa công suất lớn Daikin', 'Phòng 301', 'ACTIVE', NOW()),
-    ('Bình nóng lạnh Rossi', 'WH-301', 'Bình nước nóng Rossi 30 lít', 'Phòng 301', 'ACTIVE', NOW()),
-    ('Tivi Sony 75 inch', 'TV-501', 'Tivi Sony Bravia OLED', 'Phòng 501', 'ACTIVE', NOW()),
-    ('Điều hòa trung tâm Daikin', 'AC-701', 'Hệ thống điều hòa trung tâm', 'Phòng 701', 'BROKEN', NOW()),
-    ('Tủ lạnh Panasonic 150 lít', 'RF-701', 'Tủ lạnh hai cánh Panasonic', 'Phòng 701', 'ACTIVE', NOW()),
-    ('Tivi LG 43 inch', 'TV-103', 'Tivi LG Smart Full HD', 'Phòng 103', 'ACTIVE', NOW()),
-    ('Điều hòa Midea 1 HP', 'AC-103', 'Điều hòa Midea tiết kiệm điện', 'Phòng 103', 'ACTIVE', NOW()),
-    ('Ấm siêu tốc Philips', 'KT-101', 'Ấm đun nước siêu tốc 1.8 lít', 'Phòng 101', 'ACTIVE', NOW()),
-    ('Két sắt chống cháy Honeywell', 'SF-501', 'Két sắt vân tay Honeywell', 'Phòng 501', 'ACTIVE', NOW());
+    ('Tivi Sony 55 inch', 'TV-101', 'Tivi thông minh Sony 4K', 'ACTIVE', NOW()),
+    ('Điều hòa Daikin 1.5 HP', 'AC-101', 'Điều hòa không khí Daikin', 'ACTIVE', NOW()),
+    ('Tủ lạnh mini Electrolux', 'RF-101', 'Tủ lạnh mini 50 lít', 'ACTIVE', NOW()),
+    ('Máy sấy tóc Panasonic', 'HD-101', 'Máy sấy tóc 1200W', 'ACTIVE', NOW()),
+    ('Điều hòa Panasonic 2 HP', 'AC-202', 'Điều hòa Inverter Panasonic', 'ACTIVE', NOW()),
+    ('Tivi Samsung 65 inch', 'TV-301', 'Tivi QLED Samsung', 'ACTIVE', NOW()),
+    ('Điều hòa Daikin 2.5 HP', 'AC-301', 'Điều hòa công suất lớn Daikin', 'ACTIVE', NOW()),
+    ('Bình nóng lạnh Rossi', 'WH-301', 'Bình nước nóng Rossi 30 lít', 'ACTIVE', NOW()),
+    ('Tivi Sony 75 inch', 'TV-501', 'Tivi Sony Bravia OLED', 'ACTIVE', NOW()),
+    ('Điều hòa trung tâm Daikin', 'AC-701', 'Hệ thống điều hòa trung tâm', 'BROKEN', NOW()),
+    ('Tủ lạnh Panasonic 150 lít', 'RF-701', 'Tủ lạnh hai cánh Panasonic', 'ACTIVE', NOW()),
+    ('Tivi LG 43 inch', 'TV-103', 'Tivi LG Smart Full HD', 'ACTIVE', NOW()),
+    ('Điều hòa Midea 1 HP', 'AC-103', 'Điều hòa Midea tiết kiệm điện', 'ACTIVE', NOW()),
+    ('Ấm siêu tốc Philips', 'KT-101', 'Ấm đun nước siêu tốc 1.8 lít', 'ACTIVE', NOW()),
+    ('Két sắt chống cháy Honeywell', 'SF-501', 'Két sắt vân tay Honeywell', 'ACTIVE', NOW());
 -- 8. BẢNG EQUIPMENTS
 -- Thêm cột location vào danh sách cột và bổ sung giá trị tương ứng ở VALUES
 
@@ -222,25 +230,109 @@ VALUES
 
 -- 11. BẢNG REPAIR_REQUESTS (15 Phiếu sửa chữa/bảo trì)
 
-INSERT INTO repair_requests (room_id, equipment_id, reported_by, assigned_to, issue_title, issue_description, repair_reason, diagnosis, repair_result, severity, status, created_at)
+INSERT INTO repair_requests (
+    room_id,
+    equipment_id,
+    reported_by,
+    assigned_to,
+    issue_title,
+    issue_description,
+    diagnosis,
+    repair_result,
+    severity,
+    status,
+    created_at
+)
 VALUES
-    (1, 1, 4, 10, 'Lỗi Tivi không kết nối được Wifi', 'Khách báo tivi Sony phòng 101 không thể kết nối mạng không dây.', 'Thiết bị không vào được mạng', 'Lỗi cài đặt phần mềm mạng của tivi.', 'Đã reset cài đặt mạng và kết nối lại thành công.', 'LOW', 'COMPLETED', NOW()),
-    (1, 2, 4, 10, 'Điều hòa rò rỉ nước', 'Điều hòa Daikin phòng 101 bị chảy nước từ cục lạnh.', 'Chảy nước cục lạnh', 'Đường ống thoát nước bị tắc do bụi bẩn.', 'Đã vệ sinh ống thoát nước và bảo dưỡng máy lạnh.', 'MEDIUM', 'COMPLETED', NOW()),
-    (4, 5, 4, 11, 'Điều hòa không mát', 'Điều hòa phòng 202 bật nhưng chỉ có gió, không mát.', 'Máy lạnh không lạnh', 'Bị rò rỉ gas ở đầu nối ống đồng.', 'Đã hàn lại chỗ rò rỉ, nạp thêm gas R32.', 'HIGH', 'COMPLETED', NOW()),
-    (12, 10, 4, 12, 'Hỏng block điều hòa trung tâm', 'Điều hòa trung tâm phòng 701 ngừng hoạt động hoàn toàn.', 'Hệ thống điều hòa trung tâm bị sập', 'Block điều hòa bị cháy do quá tải điện áp.', NULL, 'CRITICAL', 'IN_PROGRESS', NOW()),
-    (5, 6, 7, 10, 'Tivi phòng 301 bị sọc màn hình', 'Housekeeper báo màn hình tivi phòng 301 có 2 đường sọc dọc màu xanh.', 'Hỏng màn hình tivi', NULL, NULL, 'HIGH', 'ASSIGNED', NOW()),
-    (1, 14, 7, 11, 'Ấm siêu tốc phòng 101 hỏng đế', 'Đế tiếp điện ấm siêu tốc bị cháy khét.', 'Chập cháy đế điện', 'Chập điện ở đế ấm siêu tốc do tràn nước.', 'Đã thay thế đế cắm điện mới.', 'LOW', 'COMPLETED', NOW()),
-    (9, 15, 4, NULL, 'Két sắt phòng 501 hết pin', 'Khách báo két sắt không nhận vân tay và mật khẩu do màn hình báo pin yếu.', 'Két sắt không mở được', NULL, NULL, 'LOW', 'PENDING', NOW()),
-    (2, NULL, 7, 12, 'Bóng đèn trần phòng 102 bị cháy', 'Hỏng 2 bóng đèn led âm trần khu vực nhà tắm.', 'Phòng tắm bị tối', 'Tuổi thọ bóng đèn led đã hết.', 'Đã thay mới 2 bóng đèn led 9W.', 'LOW', 'COMPLETED', NOW()),
-    (3, NULL, 7, NULL, 'Khóa cửa phòng 201 bị kẹt', 'Khóa từ phòng 201 rất khó quét thẻ, cần kiểm tra.', 'Lỗi khóa cửa từ', NULL, NULL, 'MEDIUM', 'PENDING', NOW()),
-    (5, 8, 4, 11, 'Bình nóng lạnh phòng 301 rò điện', 'Đèn báo chống giật trên dây nguồn nhấp nháy đỏ liên tục.', 'Nghi ngờ rò rỉ điện nguy hiểm', NULL, NULL, 'CRITICAL', 'ASSIGNED', NOW()),
-    (6, NULL, 7, 10, 'Bồn cầu phòng 302 bị tắc', 'Bồn cầu thoát nước rất chậm sau khi sử dụng.', 'Tắc nghẽn bồn cầu', 'Bị nghẹt dị vật do khách làm rơi.', 'Đã thông tắc bồn cầu bằng dụng cụ chuyên dụng.', 'HIGH', 'COMPLETED', NOW()),
-    (12, 11, 7, NULL, 'Tủ lạnh phòng 701 không làm lạnh', 'Tủ lạnh hai cánh cắm điện vẫn sáng bên trong không mát.', 'Tủ lạnh hỏng khoang mát', NULL, NULL, 'MEDIUM', 'PENDING', NOW()),
-    (15, 13, 7, 12, 'Điều hòa phòng 103 phát ra tiếng kêu to', 'Điều hòa Midea chạy phát ra tiếng rít lớn từ cục nóng bên ngoài.', 'Tiếng ồn cục nóng lớn', NULL, NULL, 'MEDIUM', 'ASSIGNED', NOW()),
-    (9, 9, 4, 10, 'Điều khiển tivi phòng 501 bị hỏng', 'Điều khiển không bấm được nút nguồn.', 'Liệt phím điều khiển', 'Bị chảy nước pin làm rỉ sét tiếp điểm.', 'Đã vệ sinh tiếp điểm và thay pin mới.', 'LOW', 'COMPLETED', NOW()),
-    (13, NULL, 4, NULL, 'Cửa kính ban công phòng 801 bị nứt', 'Kính cường lực ban công bị nứt góc dưới bên trái.', 'Nứt kính ban công nguy hiểm', NULL, NULL, 'HIGH', 'PENDING', NOW());
+    (1, 1, 4, 10,
+     'Lỗi Tivi không kết nối được Wifi',
+     'Khách báo tivi Sony phòng 101 không thể kết nối mạng không dây.',
+     'Lỗi cài đặt phần mềm mạng của tivi.',
+     'Đã reset cài đặt mạng và kết nối lại thành công.',
+     'LOW',
+     'COMPLETED',
+     NOW()),
 
+    (1, 2, 4, 10,
+     'Điều hòa rò rỉ nước',
+     'Điều hòa Daikin phòng 101 bị chảy nước từ cục lạnh.',
+     'Đường ống thoát nước bị tắc do bụi bẩn.',
+     'Đã vệ sinh ống thoát nước và bảo dưỡng máy lạnh.',
+     'MEDIUM',
+     'COMPLETED',
+     NOW()),
 
+    (4, 5, 4, 11,
+     'Điều hòa không mát',
+     'Điều hòa phòng 202 bật nhưng chỉ có gió, không mát.',
+     'Rò rỉ gas ở đầu nối ống đồng.',
+     'Đã hàn chỗ rò rỉ và nạp thêm gas.',
+     'HIGH',
+     'COMPLETED',
+     NOW()),
+
+    (12, 10, 4, 12,
+     'Hỏng block điều hòa trung tâm',
+     'Điều hòa trung tâm phòng 701 ngừng hoạt động hoàn toàn.',
+     'Block điều hòa bị cháy do quá tải điện áp.',
+     NULL,
+     'CRITICAL',
+     'IN_PROGRESS',
+     NOW()),
+
+    (5, 6, 7, 10,
+     'Tivi phòng 301 bị sọc màn hình',
+     'Housekeeper báo màn hình tivi phòng 301 có sọc dọc màu xanh.',
+     NULL,
+     NULL,
+     'HIGH',
+     'ASSIGNED',
+     NOW()),
+
+    (1, 14, 7, 11,
+     'Ấm siêu tốc phòng 101 hỏng đế',
+     'Đế tiếp điện ấm siêu tốc bị cháy khét.',
+     'Chập điện ở đế do tràn nước.',
+     'Đã thay đế mới.',
+     'LOW',
+     'COMPLETED',
+     NOW()),
+
+    (9, 15, 4, NULL,
+     'Két sắt phòng 501 hết pin',
+     'Khách báo két sắt không nhận mật khẩu.',
+     NULL,
+     NULL,
+     'LOW',
+     'PENDING',
+     NOW()),
+
+    (2, NULL, 7, 12,
+     'Bóng đèn trần phòng 102 bị cháy',
+     'Hỏng 2 bóng đèn LED âm trần.',
+     'Bóng đèn đã hết tuổi thọ.',
+     'Đã thay mới.',
+     'LOW',
+     'COMPLETED',
+     NOW()),
+
+    (3, NULL, 7, NULL,
+     'Khóa cửa phòng 201 bị kẹt',
+     'Khóa từ quét thẻ khó nhận.',
+     NULL,
+     NULL,
+     'MEDIUM',
+     'PENDING',
+     NOW()),
+
+    (5, 8, 4, 11,
+     'Bình nóng lạnh phòng 301 rò điện',
+     'Đèn chống giật nhấp nháy đỏ liên tục.',
+     NULL,
+     NULL,
+     'CRITICAL',
+     'ASSIGNED',
+     NOW());
 
 
 
@@ -288,3 +380,123 @@ VALUES
 
 ALTER TABLE users ADD CONSTRAINT users_account_status_check
     CHECK (account_status IN ('ACTIVE', 'BANNED', 'PENDING_VERIFICATION','INACTIVE'));
+
+
+
+
+-- ... existing code ...
+
+-- Insert default permissions
+INSERT INTO permission (name) VALUES
+-- User permissions
+('USER_VIEW'), ('USER_CREATE'), ('USER_UPDATE'), ('USER_DELETE'),
+
+-- Room permissions
+('ROOM_VIEW'), ('ROOM_CREATE'), ('ROOM_UPDATE'), ('ROOM_DELETE'),
+
+-- Room Type permissions
+('ROOM_TYPE_VIEW'), ('ROOM_TYPE_CREATE'), ('ROOM_TYPE_UPDATE'), ('ROOM_TYPE_DELETE'),
+
+-- Customer permissions
+('CUSTOMER_VIEW'), ('CUSTOMER_CREATE'), ('CUSTOMER_UPDATE'), ('CUSTOMER_DELETE'),
+
+-- Booking permissions
+('BOOKING_VIEW'), ('BOOKING_CREATE'), ('BOOKING_UPDATE'), ('BOOKING_DELETE'), ('BOOKING_VIEW_OWN'),
+
+-- Housekeeping permissions
+('HOUSEKEEPING_VIEW'), ('HOUSEKEEPING_CREATE'), ('HOUSEKEEPING_UPDATE'), ('HOUSEKEEPING_DELETE'),
+
+-- Equipment permissions
+('EQUIPMENT_VIEW'), ('EQUIPMENT_CREATE'), ('EQUIPMENT_UPDATE'), ('EQUIPMENT_DELETE'),
+
+-- Maintenance permissions
+('MAINTENANCE_VIEW'), ('MAINTENANCE_CREATE'), ('MAINTENANCE_UPDATE'), ('MAINTENANCE_DELETE'),
+
+-- Feedback permissions
+('FEEDBACK_VIEW'), ('FEEDBACK_CREATE'), ('FEEDBACK_UPDATE'), ('FEEDBACK_DELETE'),
+
+-- Invoice permissions
+('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE');
+
+-- Assign permissions to ADMIN role (full access)
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'ADMIN';
+
+-- Assign permissions to MANAGER role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'MANAGER'
+  AND p.name IN (
+                 'USER_VIEW', 'ROOM_VIEW', 'ROOM_CREATE', 'ROOM_UPDATE', 'ROOM_DELETE',
+                 'ROOM_TYPE_VIEW', 'ROOM_TYPE_CREATE', 'ROOM_TYPE_UPDATE', 'ROOM_TYPE_DELETE',
+                 'CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_UPDATE', 'CUSTOMER_DELETE',
+                 'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE', 'BOOKING_DELETE',
+                 'HOUSEKEEPING_VIEW', 'HOUSEKEEPING_CREATE', 'HOUSEKEEPING_UPDATE', 'HOUSEKEEPING_DELETE',
+                 'EQUIPMENT_VIEW', 'EQUIPMENT_CREATE', 'EQUIPMENT_UPDATE', 'EQUIPMENT_DELETE',
+                 'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_UPDATE', 'MAINTENANCE_DELETE',
+                 'FEEDBACK_VIEW', 'FEEDBACK_CREATE', 'FEEDBACK_UPDATE', 'FEEDBACK_DELETE',
+                 'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE', 'INVOICE_DELETE'
+    );
+
+-- Assign permissions to RECEPTIONIST role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'RECEPTIONIST'
+  AND p.name IN (
+                 'ROOM_VIEW', 'CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_UPDATE',
+                 'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE',
+                 'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE',
+                 'FEEDBACK_VIEW', 'FEEDBACK_CREATE'
+    );
+
+-- Assign permissions to HOUSEKEEPER role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'HOUSEKEEPER'
+  AND p.name IN (
+                 'HOUSEKEEPING_VIEW', 'HOUSEKEEPING_UPDATE',
+                 'MAINTENANCE_VIEW'
+    );
+
+-- Assign permissions to MAINTENANCE role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'MAINTENANCE'
+  AND p.name IN (
+                 'EQUIPMENT_VIEW', 'EQUIPMENT_CREATE', 'EQUIPMENT_UPDATE', 'EQUIPMENT_DELETE',
+                 'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_UPDATE', 'MAINTENANCE_DELETE'
+    );
+
+-- Assign permissions to CUSTOMER role
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'CUSTOMER'
+  AND p.name IN (
+                 'BOOKING_VIEW_OWN', 'BOOKING_CREATE',
+                 'CUSTOMER_VIEW'
+    );
+
+
+
+
+CREATE INDEX idx_user_permissions_user ON user_permissions(user_id);
+CREATE INDEX idx_user_permissions_permission ON user_permissions(permission_id);
+
+
+select * from roles;
+
+select * from permission;
+
+select * from role_permissions;
+
+select * from users;
+
+Select * from bookings
+

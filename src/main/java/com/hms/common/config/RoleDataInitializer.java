@@ -10,6 +10,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -40,12 +41,13 @@ public class RoleDataInitializer implements ApplicationRunner {
             roleRepository.findByRoleNameIgnoreCase(roleName).orElseGet(() -> {
                 Role role = Role.builder()
                         .roleName(roleName)
-                        .permissions("[]")
+                        .permissions(new ArrayList<>()) // Khởi tạo list rỗng thay vì String "[]"
                         .build();
                 Role saved = roleRepository.save(role);
                 log.info("Seeded role: {}", roleName);
                 return saved;
             });
         }
+        log.info("All default roles have been initialized.");
     }
 }
