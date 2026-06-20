@@ -48,10 +48,21 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                         LocalDateTime end,
                         Pageable pageable);
 
-        boolean existsByRoomIdAndCheckInDateLessThanAndCheckOutDateGreaterThan(
-                        Long roomId,
-                        LocalDateTime newCheckOutDate,
-                        LocalDateTime newCheckInDate);
+        @Query("""
+                            SELECT COUNT(b) > 0
+                            FROM Booking b
+                            WHERE b.room.id = :roomId
+                            AND b.bookingStatus IN :statuses
+                            AND b.checkInDate < :newCheckOutDate
+                            AND b.checkOutDate > :newCheckInDate
+                            AND (:excludedBookingId IS NULL OR b.id <> :excludedBookingId)
+                        """)
+        boolean existsConflict(
+                        @Param("roomId") Long roomId,
+                        @Param("newCheckOutDate") LocalDateTime newCheckOutDate,
+                        @Param("newCheckInDate") LocalDateTime newCheckInDate,
+                        @Param("excludedBookingId") Long excludedBookingId,
+                        @Param("statuses") Collection<BookingStatus> statuses);
 
         @Query("""
                             SELECT COALESCE(SUM(b.quantity), 0)

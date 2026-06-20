@@ -149,6 +149,12 @@ public class BookingServiceImpl implements BookingService {
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
 
+        // Cập nhật lại số tiền hóa đơn nếu đã có và chưa thanh toán
+        if (booking.getInvoice() != null && booking.getInvoice().getPaymentStatus() == PaymentStatus.PENDING) {
+            booking.getInvoice().setAmount(totalPrice);
+            invoiceRepository.save(booking.getInvoice());
+        }
+
         Booking updated = bookingRepository.save(booking);
         return bookingMapper.toResponse(updated);
     }
@@ -236,14 +242,16 @@ public class BookingServiceImpl implements BookingService {
             invoiceRepository.save(invoice);
         }
 
-        // Giải phóng phòng khi kết thúc lưu trú
-        if (booking.getRoom() != null &&
-                (newStatus == BookingStatus.CHECKED_OUT
-                 || newStatus == BookingStatus.CANCELLED
-                 || newStatus == BookingStatus.NO_SHOW)) {
+        // Giải phóng phòng khi kết thúc lưu trú hoặc hủy/không đến
+        if (booking.getRoom() != null) {
             Room room = booking.getRoom();
-            room.setRoomStatus(RoomStatus.DIRTY); // Chuyển sang DIRTY để housekeeping dọn
-            roomRepository.save(room);
+            if (newStatus == BookingStatus.CHECKED_OUT) {
+                room.setRoomStatus(RoomStatus.DIRTY); // Chuyển sang DIRTY để housekeeping dọn
+                roomRepository.save(room);
+            } else if (newStatus == BookingStatus.CANCELLED || newStatus == BookingStatus.NO_SHOW) {
+                room.setRoomStatus(RoomStatus.AVAILABLE); // Khách chưa từng ở, trả lại trạng thái AVAILABLE
+                roomRepository.save(room);
+            }
         }
 
         Booking updated = bookingRepository.save(booking);
@@ -282,12 +290,14 @@ public class BookingServiceImpl implements BookingService {
                     "error.booking.room.not.available", null, locale));
         }
 
-        // Kiểm tra không trùng lịch với đơn khác
-        boolean conflict = bookingRepository
-                .existsByRoomIdAndCheckInDateLessThanAndCheckOutDateGreaterThan(
-                        room.getId(),
-                        booking.getCheckOutDate(),
-                        booking.getCheckInDate());
+        // Kiểm tra không trùng lịch với đơn khác (chỉ check các đơn đã CONFIRMED hoặc CHECKED_IN và loại trừ đơn hiện tại)
+        boolean conflict = bookingRepository.existsConflict(
+                room.getId(),
+                booking.getCheckOutDate(),
+                booking.getCheckInDate(),
+                booking.getId(),
+                List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN)
+        );
         if (conflict) {
             throw new ConflictException(messageSource.getMessage(
                     "error.booking.room.conflict", null, locale));
@@ -303,7 +313,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateBookingDate(BookingRequest request, Locale locale){
-        if(request.getCheckInDate().isBefore(LocalDateTime.now())){
+        if(request.getCheckInDate().toLocalDate().isBefore(LocalDateTime.now().toLocalDate())){
             throw new ConflictException(messageSource.getMessage("error.booking.checkin.past", null, locale));
         }
 
