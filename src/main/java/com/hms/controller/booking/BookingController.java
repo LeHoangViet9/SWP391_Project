@@ -258,4 +258,21 @@ public class BookingController {
                 .build();
         return ResponseEntity.ok(response);
     }
+
+    /** [FIX-04] Endpoint check phòng trống — frontend BookingPage đang gọi endpoint này */
+    @GetMapping("/check-availability")
+    public ResponseEntity<ApiResponse<Long>> checkAvailability(
+            @RequestParam Long roomTypeId,
+            @RequestParam LocalDateTime checkInDate,
+            @RequestParam LocalDateTime checkOutDate) {
+
+        long available = bookingService.checkAvailability(roomTypeId, checkInDate, checkOutDate);
+
+        return ResponseEntity.ok(ApiResponse.<Long>builder()
+                .success(true)
+                .message("Availability checked")
+                .data(available)
+                .status(HttpStatus.OK)
+                .build());
+    }
 }

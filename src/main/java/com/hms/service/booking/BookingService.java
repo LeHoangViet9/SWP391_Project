@@ -34,4 +34,7 @@ public interface BookingService {
     BookingResponse updateBookingStatus(Long id, BookingStatusRequest request);
 
     BookingResponse assignRoom(Long bookingId, BookingRoomAssignRequest request);
+
+    /** [FIX-04] Trả về số phòng còn trống của roomType trong khoảng thời gian */
+    long checkAvailability(Long roomTypeId, LocalDateTime checkInDate, LocalDateTime checkOutDate);
 }

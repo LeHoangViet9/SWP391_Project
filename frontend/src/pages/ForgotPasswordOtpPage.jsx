@@ -1,21 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { ShieldCheck, RotateCcw, ArrowLeft } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout';
+import { apiFetch } from '../services/api';
 import { useLocale } from '../context/LocaleContext';
-import { useAuth } from '../context/AuthContext';
-import { resendOtp } from '../services/authService';
 
-const RESEND_COOLDOWN = 60; // seconds
+const RESEND_COOLDOWN = 30; // 30 seconds
 
-export default function OtpVerificationPage() {
+export default function ForgotPasswordOtpPage() {
   const { locale } = useLocale();
-  const { verifyOtp } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const email = searchParams.get('email') || '';
-  const redirectTo = searchParams.get('redirect') || `/login?email=${encodeURIComponent(email)}`;
-
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,12 +31,11 @@ export default function OtpVerificationPage() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
-  const handleVerify = async (e) => {
+  const handleVerify = (e) => {
     e.preventDefault();
 
-    // Guard: không có email từ URL
     if (!email) {
-      setError(locale === 'vi' ? 'Không tìm thấy email. Vui lòng đăng ký lại.' : 'Email not found. Please register again.');
+      setError(locale === 'vi' ? 'Không tìm thấy email. Vui lòng quay lại.' : 'Email not found. Please go back.');
       return;
     }
 
@@ -53,50 +48,15 @@ export default function OtpVerificationPage() {
       return;
     }
 
-    setError('');
-    setLoading(true);
-    try {
-      const res = await verifyOtp({ email, otpCode: otp.trim() });
-      if (res?.data?.token) {
-        setSuccess(
-          locale === 'vi'
-            ? 'Xác thực thành công! Đang đăng nhập...'
-            : 'Verified successfully! Logging in...'
-        );
-        setTimeout(() => {
-          const role = res.data.roleName;
-          if (role === 'ADMIN') navigate('/admin/dashboard', { replace: true });
-          else if (role === 'MANAGER') navigate('/manager/dashboard', { replace: true });
-          else if (role === 'RECEPTIONIST') navigate('/receptionist/dashboard', { replace: true });
-          else if (role === 'HOUSEKEEPER') navigate('/housekeeper/dashboard', { replace: true });
-          else if (role === 'MAINTENANCE') navigate('/maintenance/dashboard', { replace: true });
-          else if (role === 'CUSTOMER') navigate('/customer/dashboard', { replace: true });
-          else navigate('/', { replace: true });
-        }, 1500);
-      } else {
-        setSuccess(
-          locale === 'vi'
-            ? 'Xác thực thành công! Đang chuyển hướng...'
-            : 'Verified successfully! Redirecting...'
-        );
-        setTimeout(() => {
-          navigate(redirectTo, { replace: true });
-        }, 1500);
-      }
-    } catch (err) {
-      setError(err.message || (locale === 'vi' ? 'Mã xác thực không hợp lệ.' : 'Invalid verification code.'));
-    } finally {
-      setLoading(false);
-    }
+    // Redirect to reset-password page with token
+    navigate(`/reset-password?token=${encodeURIComponent(otp.trim())}`);
   };
-
 
   const handleResend = useCallback(async () => {
     if (!canResend) return;
 
-    // Guard: không có email
     if (!email) {
-      setError(locale === 'vi' ? 'Không tìm thấy email. Vui lòng đăng ký lại.' : 'Email not found. Please register again.');
+      setError(locale === 'vi' ? 'Không tìm thấy email. Vui lòng quay lại.' : 'Email not found. Please go back.');
       return;
     }
 
@@ -104,7 +64,10 @@ export default function OtpVerificationPage() {
     setError('');
     setSuccess('');
     try {
-      await resendOtp(email, locale);
+      await apiFetch('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
       setSuccess(
         locale === 'vi'
           ? 'Mã xác thực mới đã được gửi về email của bạn.'
@@ -123,16 +86,16 @@ export default function OtpVerificationPage() {
   const inputClass =
     'w-full border border-stone-300 px-4 py-3 text-slate-800 outline-none focus:border-[#bfa15f] transition-colors tracking-[0.3em] text-center text-xl font-semibold';
 
-  const title = locale === 'vi' ? 'Xác thực Email' : 'Email Verification';
+  const title = locale === 'vi' ? 'Xác thực Đặt lại Mật khẩu' : 'Reset Password Verification';
   const subtitle =
     locale === 'vi'
-      ? 'Nhập mã 6 chữ số đã được gửi tới email của bạn'
-      : 'Enter the 6-digit code sent to your email';
+      ? 'Nhập mã OTP 6 chữ số đã được gửi tới email của bạn để tiếp tục đặt lại mật khẩu'
+      : 'Enter the 6-digit OTP code sent to your email to continue resetting your password';
 
   return (
     <AuthLayout title={title} subtitle={subtitle}>
       <form onSubmit={handleVerify} className="bg-white border border-stone-200 shadow-lg p-8 space-y-5">
-        {/* Email display — hoặc cảnh báo nếu không có email */}
+        {/* Email display */}
         {email ? (
           <div className="bg-stone-50 border border-stone-200 rounded px-4 py-3 text-center">
             <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">
@@ -145,17 +108,11 @@ export default function OtpVerificationPage() {
             <p className="font-semibold mb-1">
               {locale === 'vi' ? '⚠️ Không tìm thấy email' : '⚠️ Email not found'}
             </p>
-            <p className="text-xs">
-              {locale === 'vi'
-                ? 'Vui lòng quay lại và đăng ký để nhận mã xác thực.'
-                : 'Please go back and register to receive a verification code.'}
-            </p>
-            <a href="/register" className="text-amber-700 underline font-semibold text-xs mt-1 inline-block">
-              {locale === 'vi' ? '→ Đăng ký ngay' : '→ Register now'}
+            <a href="/forgot-password" className="text-amber-700 underline font-semibold text-xs mt-1 inline-block">
+              {locale === 'vi' ? '→ Quay lại' : '→ Go back'}
             </a>
           </div>
         )}
-
 
         {/* Alert messages */}
         {error && (
@@ -172,7 +129,7 @@ export default function OtpVerificationPage() {
         {/* OTP Input */}
         <div>
           <label className={labelClass}>
-            {locale === 'vi' ? 'Mã xác thực (6 chữ số)' : 'Verification Code (6 digits)'}
+            {locale === 'vi' ? 'Mã OTP (6 chữ số)' : 'OTP Code (6 digits)'}
           </label>
           <input
             type="text"
@@ -191,8 +148,8 @@ export default function OtpVerificationPage() {
           />
           <p className="text-xs text-slate-400 mt-2 text-center">
             {locale === 'vi'
-              ? 'Mã có hiệu lực trong 5 phút kể từ khi đăng ký.'
-              : 'Code is valid for 5 minutes from registration.'}
+              ? 'Mã có hiệu lực trong 15 phút kể từ khi gửi.'
+              : 'Code is valid for 15 minutes from sending.'}
           </p>
         </div>
 
@@ -203,9 +160,7 @@ export default function OtpVerificationPage() {
           className="w-full btn-gold py-3.5 rounded flex items-center justify-center gap-2 disabled:opacity-60"
         >
           <ShieldCheck size={18} />
-          {loading
-            ? locale === 'vi' ? 'Đang xác thực...' : 'Verifying...'
-            : locale === 'vi' ? 'Xác nhận mã' : 'Verify Code'}
+          {locale === 'vi' ? 'Tiếp tục đặt lại mật khẩu' : 'Continue to reset password'}
         </button>
 
         {/* Resend OTP */}

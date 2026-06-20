@@ -37,16 +37,19 @@ public interface UserRepository extends JpaRepository<User,Long> {
     @Query("""
             select u from User u
             where (:status is null or u.accountStatus = :status)
-              and (
-                :keywords = ''
-                or lower(u.fullName) like lower(concat('%', :keywords, '%'))
-                or lower(u.email) like lower(concat('%', :keywords, '%'))
-                or lower(u.phone) like lower(concat('%', :keywords, '%'))
-              )
+              and (:id is null or u.id = :id)
+              and (:roleName is null or lower(u.role.roleName) = lower(:roleName))
+              and (:fullName is null or :fullName = '' or lower(u.fullName) like lower(concat('%', :fullName, '%')))
+              and (:email is null or :email = '' or lower(u.email) like lower(concat('%', :email, '%')))
+              and (:phone is null or :phone = '' or lower(u.phone) like lower(concat('%', :phone, '%')))
             """)
     Page<User> searchUsers(
-            @Param("keywords") String keywords,
+            @Param("id") Long id,
+            @Param("fullName") String fullName,
+            @Param("email") String email,
+            @Param("phone") String phone,
             @Param("status") AccountStatus status,
+            @Param("roleName") String roleName,
             Pageable pageable
     );
 }

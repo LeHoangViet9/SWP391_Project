@@ -64,6 +64,7 @@ export async function verifyOtp(payload, locale = 'vi') {
       otpCode: payload.otpCode,
     }),
   }, locale);
+  if (res?.data?.token) saveAuth(res.data);
   return res;
 }
 
