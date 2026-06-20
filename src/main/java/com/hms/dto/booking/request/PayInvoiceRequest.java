@@ -7,6 +7,6 @@ import lombok.Data;
 @Data
 public class PayInvoiceRequest {
 
-    @NotNull(message = "payment.method.notnull")
+    @NotNull(message = "{payment.method.notnull}")
     private PaymentMethod paymentMethod;
 }

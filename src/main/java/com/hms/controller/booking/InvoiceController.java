@@ -1,8 +1,10 @@
 package com.hms.controller.booking;
 
 import com.hms.common.dto.ApiResponse;
+import com.hms.common.enums.PaymentMethod;
 import com.hms.common.enums.PaymentStatus;
 import com.hms.common.enums.SortDirection;
+import com.hms.common.exception.BadRequestException;
 import com.hms.dto.booking.request.PayInvoiceRequest;
 
 import com.hms.dto.invoice.request.InvoiceRequest;
@@ -59,15 +61,56 @@ public class InvoiceController {
     @PostMapping("/{id}/process-payments")
     public ResponseEntity<ApiResponse<InvoiceResponse>> processInvoice(@RequestBody Map<String, String> body, @PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
-        String paymentMethod = body.get("paymentMethod");
+        String paymentMethodStr = body.get("paymentMethod");
+
+        PaymentMethod paymentMethod;
+        try {
+            paymentMethod = PaymentMethod.valueOf(paymentMethodStr.toUpperCase());
+        } catch (Exception e) {
+            throw new BadRequestException(messageSource.getMessage("error.payment.method.valid", null, locale));
+        }
+
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
-                messageSource.getMessage("invoice.process.success",null, locale),
-                invoiceService.processPayment(id,paymentMethod),
+                messageSource.getMessage("invoice.process.success", null, locale),
+                invoiceService.processPayment(id, paymentMethod),
                 HttpStatus.OK
         ), HttpStatus.OK);
-
     }
+
+    @PostMapping("/booking/{bookingId}/pending")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> pendingInvoice(@PathVariable Long bookingId){
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("invoice.pending.success",null, LocaleContextHolder.getLocale()),
+                invoiceService.createPendingInvoice(bookingId),
+                HttpStatus.OK
+        ), HttpStatus.OK);
+    }
+    @PostMapping("/{id}/mark-as-paid")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> markAsPaid(
+            @RequestBody Map<String, String> body,
+            @PathVariable Long id) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+        String paymentMethodStr = body.get("paymentMethod");
+
+        PaymentMethod paymentMethod;
+        try {
+            paymentMethod = PaymentMethod.valueOf(paymentMethodStr.toUpperCase());
+        } catch (Exception e) {
+            throw new BadRequestException(messageSource.getMessage("error.payment.method.valid", null, locale));
+        }
+
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("invoice.update.success", null, locale), // thay bằng message của bạn
+                invoiceService.markAsPaid(id, paymentMethod),
+                HttpStatus.OK
+        ), HttpStatus.OK);
+    }
+
+
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<Page<InvoiceResponse>>> searchInvoices(
@@ -93,6 +136,8 @@ public class InvoiceController {
                 HttpStatus.OK
         ),HttpStatus.OK);
     }
+
+
 
     /** GET /api/v1/invoices/{id} — Lấy chi tiết hoá đơn */
     @GetMapping("/{id}")

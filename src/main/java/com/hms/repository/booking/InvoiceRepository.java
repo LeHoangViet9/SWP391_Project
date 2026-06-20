@@ -30,10 +30,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice,Long> {
             "group by i.paymentMethod")
     List<Object[]> getRevenueGroupedByPaymentMethod();
 
-    @Query("Select SUM(i.amount) From Invoice i " +
-            "Where i.paymentStatus= com.hms.common.enums.PaymentStatus.PAID")
-
-
     boolean existsByBookingId(Long bookingId);
 
 

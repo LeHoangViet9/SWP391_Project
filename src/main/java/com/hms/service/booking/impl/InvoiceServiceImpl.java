@@ -149,24 +149,19 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional
-    public InvoiceResponse processPayment(Long id, String paymentMethod) {
+    public InvoiceResponse processPayment(Long id, PaymentMethod paymentMethod) {
+        Locale locale = LocaleContextHolder.getLocale();
+
         Invoice invoice = invoiceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("invoice.notfound"));
 
         if(invoice.getPaymentStatus() == PaymentStatus.PAID){
             throw new ConflictException(messageSource.getMessage("error.payment.paid",
-                    new Object[]{invoice.getPaymentStatus()}, LocaleContextHolder.getLocale()));
-        }
-
-        PaymentMethod method;
-        try {
-            method = PaymentMethod.valueOf(paymentMethod.toUpperCase());
-        } catch (Exception e){
-            throw new IllegalArgumentException("error.payment.method.valid");
+                    new Object[]{invoice.getPaymentStatus()}, locale));
         }
 
         invoice.setPaymentStatus(PaymentStatus.PAID);
-        invoice.setPaymentMethod(method);
+        invoice.setPaymentMethod(paymentMethod);
         invoice.setPaidAt(LocalDateTime.now());
         invoiceRepository.save(invoice);
 
@@ -248,30 +243,61 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional
-    public Invoice createPendingInvoice(Long bookingId) {
+    public InvoiceResponse createPendingInvoice(Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, locale)));
 
-        // Không tạo trùng nếu đã có invoice
+        // 1. Khối chặn trùng và check nếu đã PAID (Như chúng ta vừa thống nhất bài trước)
         if (booking.getInvoice() != null) {
-            return booking.getInvoice();
+            Invoice existingInvoice = booking.getInvoice();
+            if (existingInvoice.getPaymentStatus() == PaymentStatus.PAID) {
+                throw new ConflictException(messageSource.getMessage("error.payment.paid",
+                        new Object[]{existingInvoice.getPaymentStatus()}, locale));
+            }
+
+            // Tính toán để hiển thị đủ thông tin cho hóa đơn PENDING cũ nếu có gọi lại
+            return calculateAndBuildResponse(existingInvoice, booking);
         }
 
+        // 2. Luồng tạo mới hoàn toàn
         Invoice invoice = Invoice.builder()
                 .booking(booking)
                 .amount(booking.getTotalPrice())
+                .createdAt(LocalDateTime.now())
                 .paymentStatus(PaymentStatus.PENDING)
                 .build();
 
-        return invoiceRepository.save(invoice);
+        invoiceRepository.save(invoice);
+
+        return calculateAndBuildResponse(invoice, booking);
+    }
+
+    // Hàm phụ trợ viết tách riêng ra cho đỡ lặp code tính toán ngày đêm
+    private InvoiceResponse calculateAndBuildResponse(Invoice invoice, Booking booking) {
+        if (invoice.getCreatedAt() == null) {
+            invoice.setCreatedAt(LocalDateTime.now());
+        }
+        long numberOfNights = ChronoUnit.DAYS.between(
+                booking.getCheckInDate().toLocalDate(),
+                booking.getCheckOutDate().toLocalDate()
+        );
+        if (numberOfNights <= 0) {
+            numberOfNights = 1;
+        }
+
+        BigDecimal roomPricePerNight = booking.getPricePerNight();
+        BigDecimal roomPriceSubTotal = roomPricePerNight.multiply(BigDecimal.valueOf(numberOfNights));
+        BigDecimal additionalCharges = invoice.getAmount().subtract(roomPriceSubTotal);
+
+        return buildInvoiceResponse(invoice, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges);
     }
 
     @Override
     @Transactional
-    public Invoice markAsPaid(Long invoiceId, PaymentMethod paymentMethod) {
+    public InvoiceResponse markAsPaid(Long invoiceId, PaymentMethod paymentMethod) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Invoice invoice = invoiceRepository.findById(invoiceId)
@@ -286,9 +312,10 @@ public class InvoiceServiceImpl implements InvoiceService {
         invoice.setPaymentStatus(PaymentStatus.PAID);
         invoice.setPaymentMethod(paymentMethod);
         invoice.setPaidAt(LocalDateTime.now());
-
-        return invoiceRepository.save(invoice);
+        Invoice saved=invoiceRepository.save(invoice);
+        return invoiceMapper.toResponse(saved);
     }
+
 
 
     @Override

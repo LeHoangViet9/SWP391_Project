@@ -5,21 +5,19 @@ import com.hms.common.enums.PaymentStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.dto.invoice.request.InvoiceRequest;
 import com.hms.dto.invoice.response.InvoiceResponse;
-import com.hms.entity.booking.Invoice;
 import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;
 
 public interface InvoiceService {
-    Invoice createPendingInvoice(Long bookingId);
+    InvoiceResponse createPendingInvoice(Long bookingId);
 
     /** Đánh dấu Invoice là đã thanh toán */
-    Invoice markAsPaid(Long invoiceId, PaymentMethod paymentMethod);
+    InvoiceResponse markAsPaid(Long invoiceId, PaymentMethod paymentMethod);
 
     InvoiceResponse createInvoice(InvoiceRequest request);
-   InvoiceResponse getInvoice(Long id);
     InvoiceResponse updateInvoice(Long id, InvoiceRequest request);
-    InvoiceResponse processPayment(Long id, String paymentMethod);
+    InvoiceResponse processPayment(Long id, PaymentMethod paymentMethod);
 
     Page<InvoiceResponse> searchInvoices(
             String keyword,
