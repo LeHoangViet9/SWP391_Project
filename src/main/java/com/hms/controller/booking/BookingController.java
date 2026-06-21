@@ -33,7 +33,7 @@ public class BookingController {
     private final MessageSource messageSource;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getAllBooking(
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) Integer page,
@@ -57,7 +57,7 @@ public class BookingController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> searchBookings(
             @RequestParam(required = false) BookingStatus status,
             @RequestParam(required = false) Long customerId,
@@ -83,7 +83,7 @@ public class BookingController {
     }
 
     @GetMapping("/my-history")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST', 'CUSTOMER')")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW_OWN') or hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getMyBookingHistory(
             @AuthenticationPrincipal String email,
             @RequestParam(required = false) Integer page,
@@ -104,7 +104,7 @@ public class BookingController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -123,7 +123,7 @@ public class BookingController {
     }
 
     @GetMapping("/check-in")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getBookingByCheckInDateBetween(
             @RequestParam LocalDateTime start,
             @RequestParam LocalDateTime end,
@@ -147,7 +147,7 @@ public class BookingController {
     }
 
     @GetMapping("/check-out")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getBookingByCheckOutDateBetween(
             @RequestParam LocalDateTime start,
             @RequestParam LocalDateTime end,
@@ -171,7 +171,7 @@ public class BookingController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST', 'CUSTOMER')")
+    @PreAuthorize("hasAuthority('BOOKING_CREATE')")
     public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
             @Valid @RequestBody BookingRequest request){
 
@@ -192,7 +192,7 @@ public class BookingController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    @PreAuthorize("hasAuthority('BOOKING_UPDATE')")
     public ResponseEntity<ApiResponse<BookingResponse>> updateBooking(
             @PathVariable Long id,
             @Valid @RequestBody BookingRequest request) {
@@ -214,7 +214,7 @@ public class BookingController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    @PreAuthorize("hasAuthority('BOOKING_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteBooking(
             @PathVariable Long id) {
 
@@ -234,7 +234,7 @@ public class BookingController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    @PreAuthorize("hasAuthority('BOOKING_UPDATE')")
     public ResponseEntity<ApiResponse<BookingResponse>> updateBookingStatus(
             @PathVariable Long id,
             @Valid @RequestBody BookingStatusRequest request) {
@@ -253,7 +253,7 @@ public class BookingController {
     }
 
     @PatchMapping("/{id}/assign-room")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    @PreAuthorize("hasAuthority('BOOKING_UPDATE')")
     public ResponseEntity<ApiResponse<BookingResponse>> assignRoom(
             @PathVariable Long id,
             @Valid @RequestBody BookingRoomAssignRequest request) {

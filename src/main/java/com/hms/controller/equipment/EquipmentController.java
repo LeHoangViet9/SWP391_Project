@@ -28,13 +28,13 @@ import java.util.Locale;
 @RestController
 @RequestMapping("/api/v1/equipments")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'MAINTENANCE')")
 public class EquipmentController {
 
     private final EquipmentService equipmentService;
     private final MessageSource messageSource;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
     public ResponseEntity<ApiResponse<Page<EquipmentResponse>>> getAllEquipments(
             @RequestParam(required = false) Long id,
             @RequestParam(required = false) String equipmentName,
@@ -73,6 +73,7 @@ public class EquipmentController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> findById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -90,6 +91,7 @@ public class EquipmentController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('EQUIPMENT_CREATE')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> createEquipment(
             @Valid @RequestBody EquipmentCreateDTO dto) {
 
@@ -110,6 +112,7 @@ public class EquipmentController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> updateEquipment(
             @PathVariable Long id,
             @Valid @RequestBody EquipmentCreateDTO dto) {
@@ -131,6 +134,7 @@ public class EquipmentController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('EQUIPMENT_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteEquipment(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -147,6 +151,7 @@ public class EquipmentController {
     }
 
     @PostMapping("/{id}/assign-room")
+    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
     public ResponseEntity<ApiResponse<RoomEquipmentResponse>> assignToRoom(
             @PathVariable Long id,
             @Valid @RequestBody AssignEquipmentToRoomDTO dto) {
@@ -164,6 +169,7 @@ public class EquipmentController {
     }
 
     @DeleteMapping("/{id}/rooms/{roomId}")
+    @PreAuthorize("hasAuthority('EQUIPMENT_DELETE')")
     public ResponseEntity<ApiResponse<Void>> removeFromRoom(
             @PathVariable Long id,
             @PathVariable Long roomId) {
@@ -180,6 +186,7 @@ public class EquipmentController {
     }
 
     @GetMapping("/rooms/{roomId}")
+    @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
     public ResponseEntity<ApiResponse<List<RoomEquipmentResponse>>> getEquipmentsByRoom(
             @PathVariable Long roomId) {
 
@@ -197,6 +204,7 @@ public class EquipmentController {
 
     // Upload nhiều ảnh local cho 1 thiết bị
     @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
     public ResponseEntity<ApiResponse<List<EquipmentImageResponse>>> uploadImages(
             @PathVariable Long id,
             @RequestParam("images") List<MultipartFile> images) {

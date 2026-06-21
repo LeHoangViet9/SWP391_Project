@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name="roles")
@@ -27,7 +28,7 @@ public class Role {
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
-    private List<Permission> permissions;
+    private Set<Permission> permissions;
 
     @OneToMany(mappedBy = "role",cascade = CascadeType.MERGE)
     private List<User> userList;

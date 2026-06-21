@@ -16,6 +16,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -62,7 +63,7 @@ public class RoleServiceImpl implements IRoleService {
 
         Role role = Role.builder()
                 .roleName(request.getRoleName())
-                .permissions(permissions)
+                .permissions(new HashSet<>(permissions))
                 .build();
 
         return roleMapper.toResponse(roleRepository.save(role));
@@ -88,7 +89,7 @@ public class RoleServiceImpl implements IRoleService {
         List<Permission> permissions = permissionRepository.findAllById(request.getPermissionIds());
 
         role.setRoleName(request.getRoleName());
-        role.setPermissions(permissions);
+        role.setPermissions(new HashSet<>(permissions));
 
         return roleMapper.toResponse(roleRepository.save(role));
     }
@@ -117,7 +118,7 @@ public class RoleServiceImpl implements IRoleService {
                 ));
 
         List<Permission> permissions = permissionRepository.findAllById(permissionIds);
-        role.setPermissions(permissions);
+        role.setPermissions(new HashSet<>(permissions));
 
         return roleMapper.toResponse(roleRepository.save(role));
     }

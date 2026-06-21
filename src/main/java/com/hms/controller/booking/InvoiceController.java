@@ -32,7 +32,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/invoices")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
 public class InvoiceController {
 
     private final MessageSource messageSource;
@@ -40,6 +39,7 @@ public class InvoiceController {
 
 
     @PostMapping
+    @PreAuthorize("hasAuthority('INVOICE_CREATE')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> create(@Valid @RequestBody InvoiceRequest request){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
@@ -51,6 +51,7 @@ public class InvoiceController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('INVOICE_UPDATE')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> updateInvoice(@Valid @RequestBody InvoiceRequest request, @PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
@@ -61,6 +62,7 @@ public class InvoiceController {
         ), HttpStatus.OK);
     }
     @PostMapping("/{id}/process-payments")
+    @PreAuthorize("hasAuthority('INVOICE_UPDATE')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> processInvoice(@RequestBody Map<String, String> body, @PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
         String paymentMethodStr = body.get("paymentMethod");
@@ -81,6 +83,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/booking/{bookingId}/pending")
+    @PreAuthorize("hasAuthority('INVOICE_CREATE')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> pendingInvoice(@PathVariable Long bookingId){
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
@@ -90,6 +93,7 @@ public class InvoiceController {
         ), HttpStatus.OK);
     }
     @PostMapping("/{id}/mark-as-paid")
+    @PreAuthorize("hasAuthority('INVOICE_UPDATE')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> markAsPaid(
             @RequestBody Map<String, String> body,
             @PathVariable Long id) {
@@ -114,6 +118,7 @@ public class InvoiceController {
 
 
     @GetMapping("/search")
+    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
     public ResponseEntity<ApiResponse<Page<InvoiceResponse>>> searchInvoices(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) PaymentStatus status,
@@ -142,6 +147,7 @@ public class InvoiceController {
 
     /** GET /api/v1/invoices/{id} — Lấy chi tiết hoá đơn */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> getInvoiceById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         InvoiceResponse data = invoiceService.getInvoiceById(id);
@@ -155,6 +161,7 @@ public class InvoiceController {
 
     /** GET /api/v1/invoices/booking/{bookingId} — Lấy hoá đơn theo booking */
     @GetMapping("/booking/{bookingId}")
+    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> getInvoiceByBookingId(@PathVariable Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
         InvoiceResponse data = invoiceService.getInvoiceByBookingId(bookingId);
@@ -172,6 +179,7 @@ public class InvoiceController {
      * Sau khi thanh toán: phòng chuyển CHECKOUT_PENDING → DIRTY
      */
     @PostMapping("/{id}/pay")
+    @PreAuthorize("hasAuthority('INVOICE_UPDATE')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> payInvoice(
             @PathVariable Long id,
             @Valid @RequestBody PayInvoiceRequest request) {

@@ -33,21 +33,22 @@ ALTER TABLE customers ADD CONSTRAINT customers_id_type_check
     CHECK (id_type IN ('CCCD', 'PASSPORT', 'OTHER'));
 
 -- 1. BẢNG ROLES (6 Vai trò tiêu chuẩn của hệ thống)
--- INSERT INTO roles (role_name, permissions)
--- VALUES
---     ('ADMIN', '["*"]'),
---     ('MANAGER', '["*"]'),
---     ('CUSTOMER', '["booking:read", "booking:create"]'),
---     ('RECEPTIONIST', '["room:read", "room:update", "booking:read", "booking:create", "booking:update"]'),
---     ('MAINTENANCE', '["equipment:read", "equipment:update", "maintenance:read", "maintenance:update"]'),
---     ('HOUSEKEEPER', '["room:read", "room:update-status"]');
+INSERT INTO roles (role_name)
+VALUES
+    ('ADMIN'),
+    ('MANAGER'),
+    ('CUSTOMER'),
+    ('RECEPTIONIST'),
+    ('MAINTENANCE'),
+    ('HOUSEKEEPER');
 
 
-Select * from roles
+Select * from roles;
+
+
 -- 2. BẢNG USERS (15 tài khoản đăng nhập)
 -- Mật khẩu: 123456a
-INSERT INTO users (full_name, email, phone, password, account_status, created_at, role_id)
-VALUES
+INSERT INTO users (full_name, email, phone, password, account_status, created_at, role_id) VALUES
     ('HMS Administrator', 'admin@hms.com', '0901234560', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 1),
     ('Nguyễn Hồng Hải', 'manager1@hms.com', '0901234561', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 2),
     ('Trần Kim Oanh', 'manager2@hms.com', '0901234562', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 2),
@@ -416,8 +417,8 @@ INSERT INTO permission (name) VALUES
 ('FEEDBACK_VIEW'), ('FEEDBACK_CREATE'), ('FEEDBACK_UPDATE'), ('FEEDBACK_DELETE'),
 
 -- Invoice permissions
-('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE');
-
+('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE')
+ON CONFLICT (name) DO NOTHING;
 -- Assign permissions to ADMIN role (full access)
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
@@ -439,48 +440,6 @@ WHERE r.role_name = 'MANAGER'
                  'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_UPDATE', 'MAINTENANCE_DELETE',
                  'FEEDBACK_VIEW', 'FEEDBACK_CREATE', 'FEEDBACK_UPDATE', 'FEEDBACK_DELETE',
                  'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE', 'INVOICE_DELETE'
-    );
-
--- Assign permissions to RECEPTIONIST role
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM roles r, permission p
-WHERE r.role_name = 'RECEPTIONIST'
-  AND p.name IN (
-                 'ROOM_VIEW', 'CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_UPDATE',
-                 'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE',
-                 'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE',
-                 'FEEDBACK_VIEW', 'FEEDBACK_CREATE'
-    );
-
--- Assign permissions to HOUSEKEEPER role
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM roles r, permission p
-WHERE r.role_name = 'HOUSEKEEPER'
-  AND p.name IN (
-                 'HOUSEKEEPING_VIEW', 'HOUSEKEEPING_UPDATE',
-                 'MAINTENANCE_VIEW'
-    );
-
--- Assign permissions to MAINTENANCE role
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM roles r, permission p
-WHERE r.role_name = 'MAINTENANCE'
-  AND p.name IN (
-                 'EQUIPMENT_VIEW', 'EQUIPMENT_CREATE', 'EQUIPMENT_UPDATE', 'EQUIPMENT_DELETE',
-                 'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_UPDATE', 'MAINTENANCE_DELETE'
-    );
-
--- Assign permissions to CUSTOMER role
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM roles r, permission p
-WHERE r.role_name = 'CUSTOMER'
-  AND p.name IN (
-                 'BOOKING_VIEW_OWN', 'BOOKING_CREATE',
-                 'CUSTOMER_VIEW'
     );
 
 

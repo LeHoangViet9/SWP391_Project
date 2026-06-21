@@ -23,7 +23,6 @@ import java.util.Locale;
 @RestController
 @RequestMapping("/api/v1/housekeeping")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'HOUSEKEEPER')")
 public class HousekeepingController {
 
     private final IRoomService roomService;
@@ -34,6 +33,7 @@ public class HousekeepingController {
      * Lấy danh sách phòng DIRTY (cần dọn dẹp).
      */
     @GetMapping("/dirty-rooms")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getDirtyRooms(
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
@@ -54,6 +54,7 @@ public class HousekeepingController {
      * Lấy danh sách phòng đang được dọn (CLEANING).
      */
     @GetMapping("/cleaning-rooms")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getCleaningRooms(
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "20") Integer size) {
@@ -75,6 +76,7 @@ public class HousekeepingController {
      * Chỉ cho phép các chuyển đổi: DIRTY → CLEANING và CLEANING → READY.
      */
     @PatchMapping("/rooms/{id}/status")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_UPDATE')")
     public ResponseEntity<ApiResponse<Void>> updateRoomCleaningStatus(
             @PathVariable Long id,
             @RequestParam RoomStatus status) {

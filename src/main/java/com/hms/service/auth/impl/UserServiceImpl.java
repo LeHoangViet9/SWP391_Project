@@ -35,6 +35,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 <<<<<<< HEAD
@@ -383,7 +384,7 @@ public class UserServiceImpl implements IUserService {
         }
 
         // Gán quyền mới (ghi đè)
-        user.setCustomPermissions(permissions);
+        user.setCustomPermissions(new HashSet<>(permissions));
 
         return userMapper.toResponse(userRepository.save(user), null);
     }

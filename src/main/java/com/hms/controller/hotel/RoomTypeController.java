@@ -78,7 +78,7 @@ public class RoomTypeController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('ROOM_TYPE_CREATE')")
     public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomType(@RequestBody @Valid RoomTypeRequest roomTypeRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomTypeResponse created = roomTypeService.createRoomType(roomTypeRequest);
@@ -93,7 +93,7 @@ public class RoomTypeController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('ROOM_TYPE_UPDATE')")
     public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomType(@PathVariable Long id, @RequestBody @Valid RoomTypeRequest roomTypeRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomTypeResponse updated = roomTypeService.updateRoomType(id, roomTypeRequest);
@@ -108,7 +108,7 @@ public class RoomTypeController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAuthority('ROOM_TYPE_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteRoomType(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         roomTypeService.deleteRoomTypeByID(id);

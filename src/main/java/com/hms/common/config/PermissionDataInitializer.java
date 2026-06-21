@@ -12,9 +12,10 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet; // THÊM IMPORT NÀY
 import java.util.List;
+import java.util.Set;     // THÊM IMPORT NÀY
 
 @Component
 @Order(2) // Chạy sau RoleDataInitializer
@@ -85,9 +86,9 @@ public class PermissionDataInitializer implements ApplicationRunner {
         Role admin = roleRepository.findByRoleNameIgnoreCase("ADMIN").orElse(null);
         if (admin == null || !admin.getPermissions().isEmpty()) return;
 
-        // ADMIN có tất cả quyền
+        // ADMIN có tất cả quyền -> Ép kiểu List sang HashSet
         List<Permission> allPerms = permissionRepository.findAll();
-        admin.setPermissions(allPerms);
+        admin.setPermissions(new HashSet<>(allPerms)); // SỬA Ở ĐÂY
         roleRepository.save(admin);
         log.info("Assigned ALL permissions to ADMIN");
     }
@@ -109,7 +110,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE"
         );
 
-        List<Permission> permissions = new ArrayList<>();
+        Set<Permission> permissions = new HashSet<>(); // SỬA List THÀNH Set
         for (String permName : managerPerms) {
             permissionRepository.findByName(permName).ifPresent(permissions::add);
         }
@@ -130,7 +131,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "FEEDBACK_VIEW", "FEEDBACK_CREATE"
         );
 
-        List<Permission> permissions = new ArrayList<>();
+        Set<Permission> permissions = new HashSet<>(); // SỬA List THÀNH Set
         for (String permName : receptionistPerms) {
             permissionRepository.findByName(permName).ifPresent(permissions::add);
         }
@@ -148,7 +149,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "MAINTENANCE_VIEW"
         );
 
-        List<Permission> permissions = new ArrayList<>();
+        Set<Permission> permissions = new HashSet<>(); // SỬA List THÀNH Set
         for (String permName : housekeeperPerms) {
             permissionRepository.findByName(permName).ifPresent(permissions::add);
         }
@@ -166,7 +167,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE", "MAINTENANCE_DELETE"
         );
 
-        List<Permission> permissions = new ArrayList<>();
+        Set<Permission> permissions = new HashSet<>(); // SỬA List THÀNH Set
         for (String permName : maintenancePerms) {
             permissionRepository.findByName(permName).ifPresent(permissions::add);
         }
@@ -184,7 +185,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "CUSTOMER_VIEW"
         );
 
-        List<Permission> permissions = new ArrayList<>();
+        Set<Permission> permissions = new HashSet<>();
         for (String permName : customerPerms) {
             permissionRepository.findByName(permName).ifPresent(permissions::add);
         }

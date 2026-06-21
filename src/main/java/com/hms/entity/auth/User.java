@@ -8,8 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name="users")
@@ -53,7 +53,7 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
     @Builder.Default
-    private List<Permission> customPermissions = new ArrayList<>();
+    private Set<Permission> customPermissions = new HashSet<>();
     @Column(name = "reset_password_token",unique = true)
     private String resetPasswordToken;
     @Column(name = "reset_password_expire_at")
