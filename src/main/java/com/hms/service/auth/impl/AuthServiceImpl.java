@@ -9,7 +9,7 @@ import com.hms.entity.auth.Role;
 import com.hms.entity.auth.User;
 import com.hms.repository.auth.RoleRepository;
 import com.hms.repository.auth.UserRepository;
-import com.hms.service.auth.IAuthService;
+import com.hms.service.auth.AuthService;
 import com.hms.service.auth.mapper.UserMapper;
 import com.hms.service.email.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class AuthServiceImpl implements IAuthService {
+public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final MessageSource messageSource;

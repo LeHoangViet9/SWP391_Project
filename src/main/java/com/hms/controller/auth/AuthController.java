@@ -3,8 +3,7 @@ package com.hms.controller.auth;
 import com.hms.dto.auth.request.*;
 import com.hms.common.dto.ApiResponse;
 import com.hms.dto.auth.response.UserResponse;
-import com.hms.service.auth.IAuthService;
-import com.hms.service.auth.IUserService;
+import com.hms.service.auth.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
@@ -23,7 +22,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class AuthController {
     private final MessageSource messageSource;
-    private final IAuthService authService;
+    private final AuthService authService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> handleRegister(@Valid @RequestBody UserRegisterRequest registerRequest){

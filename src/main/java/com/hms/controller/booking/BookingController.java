@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -269,5 +270,21 @@ public class BookingController {
                 .status(HttpStatus.OK)
                 .build();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/check-availability")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<ApiResponse<Long>> checkAvailability(
+            @RequestParam Long roomTypeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkInDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkOutDate) {
+
+        long availableRooms = bookingService.checkAvailability(roomTypeId, checkInDate, checkOutDate);
+        return ResponseEntity.ok(ApiResponse.<Long>builder()
+                .success(true)
+                .message("success.booking.check.availability")
+                .data(availableRooms)
+                .status(HttpStatus.OK)
+                .build());
     }
 }

@@ -87,12 +87,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         return response;
     }
-<<<<<<< HEAD
-    
-=======
 
-
->>>>>>> e040e79 (update login)
     @Override
     @Transactional
     public InvoiceResponse updateInvoice(Long id, InvoiceRequest request) {
@@ -124,7 +119,6 @@ public class InvoiceServiceImpl implements InvoiceService {
         invoice.setNote(request.getNote());
         invoice.setPaymentMethod(request.getPaymentMethod());
         invoice.setUpdatedAt(LocalDateTime.now());
-        invoice.setPaymentMethod(request.getPaymentMethod());
         invoice.setPaymentStatus(PaymentStatus.PENDING);
 
         invoiceRepository.save(invoice);
@@ -180,18 +174,14 @@ public class InvoiceServiceImpl implements InvoiceService {
             String sortBy,
             SortDirection direction) {
 
-        // 1. Xác định trường cần sắp xếp (Mặc định là 'createdAt' nếu truyền vào rỗng)
         String sortField = (sortBy != null && !sortBy.isEmpty()) ? sortBy : "createdAt";
         Pageable pageable = pageableUtils.createPageable(page, size, sortField, direction);
 
-        // [QUAN TRỌNG] 2. Chuẩn hóa keyword trước khi truyền xuống Repository
-        // Nếu keyword có chữ, bọc nó bằng %keyword% và ép về chữ thường. Nếu trống, đưa về null hẳn.
         String processedKeyword = null;
         if (keyword != null && !keyword.trim().isEmpty()) {
             processedKeyword = "%" + keyword.trim().toLowerCase() + "%";
         }
 
-        // 3. Truy vấn dữ liệu phân trang từ Repository với processedKeyword
         Page<Invoice> invoicePage = invoiceRepository.findInvoicesAdvanced(
                 processedKeyword,
                 status,
@@ -200,11 +190,9 @@ public class InvoiceServiceImpl implements InvoiceService {
                 pageable
         );
 
-        // 4. Map từ Page<Invoice> sang Page<InvoiceResponse> thông qua DTO builder
         return invoicePage.map(invoice -> {
             Booking booking = invoice.getBooking();
 
-            // Tính số đêm giống như các hàm trên của bạn
             long numberOfNights = ChronoUnit.DAYS.between(
                     booking.getCheckInDate().toLocalDate(),
                     booking.getCheckOutDate().toLocalDate()
@@ -215,15 +203,11 @@ public class InvoiceServiceImpl implements InvoiceService {
 
             BigDecimal roomPricePerNight = booking.getPricePerNight();
             BigDecimal roomPriceSubTotal = roomPricePerNight.multiply(BigDecimal.valueOf(numberOfNights));
-
-            // Phí phát sinh = Tổng hóa đơn - Tiền phòng tạm tính
             BigDecimal additionalCharges = invoice.getAmount().subtract(roomPriceSubTotal);
 
-            // Gọi hàm buildResponse phụ trợ đã có sẵn trong class của bạn
             return buildInvoiceResponse(invoice, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges);
         });
     }
-
 
     @Override
     @Transactional
@@ -234,19 +218,15 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, locale)));
 
-        // 1. Khối chặn trùng và check nếu đã PAID (Như chúng ta vừa thống nhất bài trước)
         if (booking.getInvoice() != null) {
             Invoice existingInvoice = booking.getInvoice();
             if (existingInvoice.getPaymentStatus() == PaymentStatus.PAID) {
                 throw new ConflictException(messageSource.getMessage("error.payment.paid",
                         new Object[]{existingInvoice.getPaymentStatus()}, locale));
             }
-
-            // Tính toán để hiển thị đủ thông tin cho hóa đơn PENDING cũ nếu có gọi lại
             return calculateAndBuildResponse(existingInvoice, booking);
         }
 
-        // 2. Luồng tạo mới hoàn toàn
         Invoice invoice = Invoice.builder()
                 .booking(booking)
                 .amount(booking.getTotalPrice())
@@ -259,7 +239,6 @@ public class InvoiceServiceImpl implements InvoiceService {
         return calculateAndBuildResponse(invoice, booking);
     }
 
-    // Hàm phụ trợ viết tách riêng ra cho đỡ lặp code tính toán ngày đêm
     private InvoiceResponse calculateAndBuildResponse(Invoice invoice, Booking booking) {
         if (invoice.getCreatedAt() == null) {
             invoice.setCreatedAt(LocalDateTime.now());
@@ -296,11 +275,9 @@ public class InvoiceServiceImpl implements InvoiceService {
         invoice.setPaymentStatus(PaymentStatus.PAID);
         invoice.setPaymentMethod(paymentMethod);
         invoice.setPaidAt(LocalDateTime.now());
-        Invoice saved=invoiceRepository.save(invoice);
+        Invoice saved = invoiceRepository.save(invoice);
         return invoiceMapper.toResponse(saved);
     }
-
-
 
     @Override
     @Transactional
@@ -316,13 +293,11 @@ public class InvoiceServiceImpl implements InvoiceService {
                     messageSource.getMessage("error.invoice.already.paid", null, locale));
         }
 
-        // 1. Đánh dấu hoá đơn là đã thanh toán
         invoice.setPaymentStatus(PaymentStatus.PAID);
         invoice.setPaymentMethod(paymentMethod);
         invoice.setPaidAt(LocalDateTime.now());
         invoiceRepository.save(invoice);
 
-        // 2. Chuyển phòng từ CHECKOUT_PENDING → DIRTY để housekeeping vào dọn
         Room room = invoice.getBooking().getRoom();
         if (room != null && room.getRoomStatus() == RoomStatus.CHECKOUT_PENDING) {
             room.setRoomStatus(RoomStatus.DIRTY);
@@ -356,6 +331,4 @@ public class InvoiceServiceImpl implements InvoiceService {
                         messageSource.getMessage("error.invoice.notfound", null, locale)));
         return calculateAndBuildResponse(invoice, invoice.getBooking());
     }
-
-
 }

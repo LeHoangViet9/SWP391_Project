@@ -56,7 +56,7 @@ public class BookingServiceImpl implements BookingService {
     );
 
     private static final Map<BookingStatus, Set<BookingStatus>> VALID_TRANSITIONS =
-        new java.util.EnumMap<>(BookingStatus.class);
+            new java.util.EnumMap<>(BookingStatus.class);
     static {
         VALID_TRANSITIONS.put(BookingStatus.PENDING,
                 EnumSet.of(BookingStatus.CONFIRMED, BookingStatus.CANCELLED));
@@ -160,26 +160,19 @@ public class BookingServiceImpl implements BookingService {
 
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.booking.notfound", null, locale)));
-<<<<<<< HEAD
-        bookingRepository.delete(booking);
-=======
-        // [FIX-02] Soft-delete: change to CANCELLED instead of physical delete
-        // Hard-delete would cascade delete Invoice due to CascadeType.ALL, losing payment history
+
         if (booking.getBookingStatus() == BookingStatus.CHECKED_IN) {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.cannot.delete.checkedin", null, locale));
         }
         booking.setBookingStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
->>>>>>> e040e79 (update login)
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size) {
-
         Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.ASC);
-
         return bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable).map(bookingMapper::toResponse);
     }
 
@@ -237,11 +230,7 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setBookingStatus(newStatus);
 
-<<<<<<< HEAD
-        // Tạo Invoice khi CONFIRMED (xem Thiếu sót 3)
-=======
         // Create Invoice when CONFIRMED
->>>>>>> e040e79 (update login)
         if (newStatus == BookingStatus.CONFIRMED && booking.getInvoice() == null) {
             Invoice invoice = Invoice.builder()
                     .booking(booking)
@@ -251,9 +240,6 @@ public class BookingServiceImpl implements BookingService {
             invoiceRepository.save(invoice);
         }
 
-<<<<<<< HEAD
-        // Giải phóng phòng khi kết thúc lưu trú
-=======
         // [FIX-03] Move room to OCCUPIED when guest actually checks in
         if (newStatus == BookingStatus.CHECKED_IN && booking.getRoom() != null) {
             Room checkinRoom = booking.getRoom();
@@ -262,11 +248,10 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // Release room at the end of stay
->>>>>>> e040e79 (update login)
         if (booking.getRoom() != null &&
                 (newStatus == BookingStatus.CHECKED_OUT
-                 || newStatus == BookingStatus.CANCELLED
-                 || newStatus == BookingStatus.NO_SHOW)) {
+                        || newStatus == BookingStatus.CANCELLED
+                        || newStatus == BookingStatus.NO_SHOW)) {
             Room room = booking.getRoom();
             room.setRoomStatus(RoomStatus.DIRTY); // Change to DIRTY for housekeeping
             roomRepository.save(room);
@@ -319,12 +304,8 @@ public class BookingServiceImpl implements BookingService {
                     "error.booking.room.conflict", null, locale));
         }
 
-<<<<<<< HEAD
-        // Gán phòng và chuyển trạng thái phòng sang OCCUPIED
-=======
         // [FIX-03] OCCUPIED -> RESERVED: room is held when CONFIRMED,
         // and only transitions to OCCUPIED when guest actually checks in
->>>>>>> e040e79 (update login)
         booking.setRoom(room);
         room.setRoomStatus(RoomStatus.OCCUPIED);
         roomRepository.save(room);
@@ -344,9 +325,6 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateRoomAvailability(BookingRequest request, Long excludedBookingId, Locale locale){
-        // Count total active rooms: excluding INACTIVE (soft-deleted) and OUT_OF_ORDER (broken)
-        // Do not use RoomStatus.AVAILABLE because OCCUPIED/READY/DIRTY rooms can also
-        // be vacant on the requested booking dates in the future
         long totalActiveRoomCount = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
                 request.getRoomTypeId(),
                 List.of(RoomStatus.INACTIVE, RoomStatus.OUT_OF_ORDER)
@@ -378,8 +356,6 @@ public class BookingServiceImpl implements BookingService {
         BigDecimal roomCharge = BillingUtils.calculateRoomChargePerNight(BigDecimal.valueOf(roomType.getBasePrice()), nights);
         return roomCharge.multiply(BigDecimal.valueOf(request.getQuantity()));
     }
-<<<<<<< HEAD
-=======
 
     /** [FIX-04] Implement checkAvailability for frontend BookingPage */
     @Override
@@ -394,5 +370,4 @@ public class BookingServiceImpl implements BookingService {
         );
         return Math.max(0, totalActive - booked);
     }
->>>>>>> e040e79 (update login)
 }
