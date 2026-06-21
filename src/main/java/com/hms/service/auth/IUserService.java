@@ -36,4 +36,14 @@ public interface IUserService {
     UserResponse getUserPermissions(Long userId);
 
 
+<<<<<<< HEAD
+=======
+    void resendOtp(String email);
+
+    UserResponse assignPermissionsToUser(Long userId, java.util.List<Long> permissionIds);
+
+    UserResponse removePermissionsFromUser(Long userId, java.util.List<Long> permissionIds);
+
+    UserResponse getUserPermissions(Long userId);
+>>>>>>> e040e79 (update login)
 }
