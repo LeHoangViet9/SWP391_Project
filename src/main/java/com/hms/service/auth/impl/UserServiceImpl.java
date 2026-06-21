@@ -45,60 +45,11 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     public Page<UserResponse> getUsers(
-            Long id,
-            String fullName,
-            String email,
-            String phone,
-            String roleName,
-            AccountStatus status,
-            Integer page,
-            Integer size,
-            SortField sortBy,
-            SortDirection direction) {
-
-        java.util.List<User> list = userRepository.findAll();
-        java.util.stream.Stream<User> stream = list.stream();
-
-        if (id != null) {
-            stream = stream.filter(u -> u.getId().equals(id));
-        }
-        if (org.springframework.util.StringUtils.hasText(fullName)) {
-            String cleanName = fullName.trim().toLowerCase();
-            stream = stream.filter(u -> u.getFullName() != null && u.getFullName().toLowerCase().contains(cleanName));
-        }
-        if (org.springframework.util.StringUtils.hasText(email)) {
-            String cleanEmail = email.trim().toLowerCase();
-            stream = stream.filter(u -> u.getEmail() != null && u.getEmail().toLowerCase().contains(cleanEmail));
-        }
-        if (org.springframework.util.StringUtils.hasText(phone)) {
-            String cleanPhone = phone.trim().toLowerCase();
-            stream = stream.filter(u -> u.getPhone() != null && u.getPhone().toLowerCase().contains(cleanPhone));
-        }
-        if (org.springframework.util.StringUtils.hasText(roleName)) {
-            String cleanRole = roleName.trim().toLowerCase();
-            stream = stream.filter(u -> u.getRole() != null && u.getRole().getRoleName() != null && u.getRole().getRoleName().toLowerCase().contains(cleanRole));
-        }
-        if (status != null) {
-            stream = stream.filter(u -> u.getAccountStatus() == status);
-        }
-
-        java.util.List<User> filteredList = stream.collect(java.util.stream.Collectors.toList());
-
-        // Sorting
-        java.util.Map<String, java.util.function.Function<User, Comparable<?>>> extractors = new java.util.HashMap<>();
-        extractors.put("id", User::getId);
-        extractors.put("fullName", User::getFullName);
-        extractors.put("email", User::getEmail);
-        extractors.put("phone", User::getPhone);
-        extractors.put("roleName", u -> u.getRole() != null ? u.getRole().getRoleName() : "");
-        extractors.put("accountStatus", u -> u.getAccountStatus() != null ? u.getAccountStatus().name() : "");
-
-        pageableUtils.sortList(filteredList, sortBy, direction, extractors);
-
-        // Pagination
+            Long id, String fullName, String email, String phone, String roleName, AccountStatus status,
+            Integer page, Integer size, SortField sortBy, SortDirection direction) {
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
-        return pageableUtils.paginate(filteredList, pageable)
-                .map(user -> userMapper.toResponse(user, null));
+        Page<User> userPage = userRepository.searchUsers(id, fullName , email ,phone, roleName , status,pageable);
+        return userPage.map(user -> userMapper.toResponse(user, null));
     }
 
     @Override
