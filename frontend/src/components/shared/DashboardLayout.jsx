@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Crown,
@@ -27,8 +27,26 @@ export default function DashboardLayout({
   const [langOpen, setLangOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
 
-  const active = tabs.find((tab) => tab.key === activeTab);
-  const hasAccountTab = tabs.some((tab) => tab.key === 'account');
+  // ── PERMISSION FILTER ──────────────────────────────────────────────────
+  // Chỉ hiển thị tab nếu user có permission tương ứng.
+  // Tab không có trường `permission` (account, password) luôn hiển thị.
+  const userPermSet = useMemo(
+    () => new Set(user?.permissions ?? []),
+    [user?.permissions]
+  );
+
+  const visibleTabs = useMemo(
+    () => tabs.filter((tab) => !tab.permission || userPermSet.has(tab.permission)),
+    [tabs, userPermSet]
+  );
+
+  // Đảm bảo activeTab luôn trỏ đến tab hợp lệ sau khi lọc
+  const safeActiveTab = visibleTabs.some((t) => t.key === activeTab)
+    ? activeTab
+    : visibleTabs[0]?.key;
+
+  const active = visibleTabs.find((tab) => tab.key === safeActiveTab);
+  const hasAccountTab = visibleTabs.some((tab) => tab.key === 'account');
 
   const handleLogout = () => {
     logout();
@@ -83,8 +101,8 @@ export default function DashboardLayout({
               {t('dashboard.menu')}
             </p>
 
-            {tabs.map(({ key, label, Icon }) => {
-              const isActive = activeTab === key;
+            {visibleTabs.map(({ key, label, Icon }) => {
+              const isActive = safeActiveTab === key;
 
               return (
                   <button

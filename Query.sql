@@ -379,13 +379,6 @@ VALUES
 
 
 
-ALTER TABLE users ADD CONSTRAINT users_account_status_check
-    CHECK (account_status IN ('ACTIVE', 'BANNED', 'PENDING_VERIFICATION','INACTIVE'));
-
-
-
-
--- ... existing code ...
 
 -- Insert default permissions
 INSERT INTO permission (name) VALUES
@@ -443,6 +436,55 @@ WHERE r.role_name = 'MANAGER'
     );
 
 
+
+-- 3. RECEPTIONIST - Lễ tân: Quản lý booking, customer, invoice
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'RECEPTIONIST'
+  AND p.name IN (
+                 'ROOM_VIEW', 'ROOM_TYPE_VIEW',
+                 'CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_UPDATE',
+                 'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE',
+                 'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE',
+                 'FEEDBACK_VIEW',
+                 'EQUIPMENT_VIEW'
+    );
+
+-- 4. HOUSEKEEPER - Nhân viên buồng phòng: Quản lý dọn dẹp
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'HOUSEKEEPER'
+  AND p.name IN (
+                 'ROOM_VIEW', 'ROOM_UPDATE',
+                 'HOUSEKEEPING_VIEW', 'HOUSEKEEPING_CREATE', 'HOUSEKEEPING_UPDATE',
+                 'EQUIPMENT_VIEW',
+                 'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE'
+    );
+
+-- 5. MAINTENANCE - Nhân viên bảo trì: Quản lý sửa chữa, thiết bị
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'MAINTENANCE'
+  AND p.name IN (
+                 'ROOM_VIEW',
+                 'EQUIPMENT_VIEW', 'EQUIPMENT_CREATE', 'EQUIPMENT_UPDATE',
+                 'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_UPDATE', 'MAINTENANCE_DELETE'
+    );
+
+-- 6. CUSTOMER - Khách hàng: Chỉ xem booking của mình
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r, permission p
+WHERE r.role_name = 'CUSTOMER'
+  AND p.name IN (
+                 'BOOKING_VIEW_OWN',
+                 'ROOM_TYPE_VIEW',
+                 'FEEDBACK_CREATE',
+                 'INVOICE_VIEW'
+    );
 
 
 CREATE INDEX idx_user_permissions_user ON user_permissions(user_id);

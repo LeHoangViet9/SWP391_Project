@@ -16,6 +16,7 @@ import {
   saveCustomerId,
   searchCustomerByEmail,
 } from '../services/customerService';
+import BookingFailureModal from '../components/BookingFailureModal';
 
 const today = () => new Date().toISOString().split('T')[0];
 const tomorrow = () => {
@@ -58,6 +59,8 @@ function BookingContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [bookingResult, setBookingResult] = useState(null);
+  const [failureModalOpen, setFailureModalOpen] = useState(false);
+  const [failureMessage, setFailureMessage] = useState('');
 
   const [booking, setBooking] = useState({
     checkIn: params.get('checkIn') || today(),
@@ -225,7 +228,10 @@ function BookingContent() {
       setBookingResult(res.data);
       setStep(3);
     } catch (err) {
-      setError(err.message || t('bookingPage.submitFailed'));
+      const msg = err.message || t('bookingPage.submitFailed');
+      setFailureMessage(msg);
+      setFailureModalOpen(true);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -281,9 +287,20 @@ function BookingContent() {
           </div>
         </div>
 
-        {error && (
+        {error && !failureModalOpen && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded mb-6">{error}</div>
         )}
+
+        {/* Booking Failure Modal */}
+        <BookingFailureModal
+          open={failureModalOpen}
+          errorMessage={failureMessage}
+          locale={locale}
+          onClose={() => { setFailureModalOpen(false); setError(''); }}
+          onRetry={() => { setFailureModalOpen(false); setError(''); handleSubmit(); }}
+          checkIn={booking.checkIn}
+          checkOut={booking.checkOut}
+        />
 
         {/* Step 1: Dates & quantity */}
         {step === 1 && (

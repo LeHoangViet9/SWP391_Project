@@ -16,8 +16,9 @@ public interface UserMapper {
     @Mapping(target = "lastLoginAt", ignore = true)
     @Mapping(target = "role", ignore = true)
     User toEntityRegister(UserRegisterRequest userRegisterRequest);
+
     @Mapping(source = "user.role.roleName", target = "roleName")
     @Mapping(source = "token", target = "token")
+    @Mapping(target = "permissions", expression = "java(user.getCustomPermissions().stream().map(p -> p.getName()).collect(java.util.stream.Collectors.toList()))")
     UserResponse toResponse(User user, String token);
-
 }
