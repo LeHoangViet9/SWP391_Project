@@ -1,4 +1,4 @@
-package com.hms.service.dashboard;
+package com.hms.service.booking;
 
 import com.hms.common.enums.PaymentMethod;
 import com.hms.entity.booking.Invoice;
