@@ -87,7 +87,12 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         return response;
     }
+<<<<<<< HEAD
     
+=======
+
+
+>>>>>>> e040e79 (update login)
     @Override
     @Transactional
     public InvoiceResponse updateInvoice(Long id, InvoiceRequest request) {
@@ -331,17 +336,15 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Transactional(readOnly = true)
     public InvoiceResponse getInvoiceByBookingId(Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
-        // Tìm booking trước, sau đó lấy invoice từ booking
-        return bookingRepository.findById(bookingId)
-                .map(b -> {
-                    if (b.getInvoice() == null) {
-                        throw new ResourceNotFoundException(
-                                messageSource.getMessage("error.invoice.notfound", null, locale));
-                    }
-                    return invoiceMapper.toResponse(b.getInvoice());
-                })
+        Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, locale)));
+        Invoice invoice = booking.getInvoice();
+        if (invoice == null) {
+            throw new ResourceNotFoundException(
+                    messageSource.getMessage("error.invoice.notfound", null, locale));
+        }
+        return calculateAndBuildResponse(invoice, booking);
     }
 
     @Override
@@ -351,7 +354,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.invoice.notfound", null, locale)));
-        return invoiceMapper.toResponse(invoice);
+        return calculateAndBuildResponse(invoice, invoice.getBooking());
     }
 
 

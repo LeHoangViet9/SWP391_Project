@@ -26,6 +26,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class UserController {
 
+    private static final String MESSAGE = "message";
+
     private final IUserService userService;
     private final MessageSource messageSource;
 
@@ -101,7 +103,7 @@ public class UserController {
 
     @PutMapping("/{userId}/permissions")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_UPDATE')")
-    public ResponseEntity<?> assignPermissionsToUser(
+    public ResponseEntity<Map<String, Object>> assignPermissionsToUser(
             @PathVariable Long userId,
             @RequestBody Map<String, List<Long>> request
     ) {
@@ -111,7 +113,7 @@ public class UserController {
                 request.get("permissionIds")
         );
         return ResponseEntity.ok(Map.of(
-                "message", messageSource.getMessage("success.user.assign.permissions", null, locale),
+                MESSAGE, messageSource.getMessage("success.user.assign.permissions", null, locale),
                 "data", response
         ));
     }
@@ -119,7 +121,7 @@ public class UserController {
     // ✅ THÊM MỚI: Xóa quyền riêng khỏi user
     @DeleteMapping("/{userId}/permissions")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_UPDATE')")
-    public ResponseEntity<?> removePermissionsFromUser(
+    public ResponseEntity<Map<String, Object>> removePermissionsFromUser(
             @PathVariable Long userId,
             @RequestBody Map<String, List<Long>> request
     ) {
@@ -129,18 +131,18 @@ public class UserController {
                 request.get("permissionIds")
         );
         return ResponseEntity.ok(Map.of(
-                "message", messageSource.getMessage("success.user.remove.permissions", null, locale),
+                MESSAGE, messageSource.getMessage("success.user.remove.permissions", null, locale),
                 "data", response
         ));
     }
 
     @GetMapping("/{userId}/permissions")
     @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_VIEW')")
-    public ResponseEntity<?> getUserPermissions(@PathVariable Long userId) {
+    public ResponseEntity<Map<String, Object>> getUserPermissions(@PathVariable Long userId) {
         Locale locale = LocaleContextHolder.getLocale();
         UserResponse response = userService.getUserPermissions(userId);
         return ResponseEntity.ok(Map.of(
-                "message", messageSource.getMessage("success.user.get.permissions", null, locale),
+                MESSAGE, messageSource.getMessage("success.user.get.permissions", null, locale),
                 "data", response
         ));
     }
