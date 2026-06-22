@@ -58,5 +58,23 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
             @Param("roomTypeId") Long roomTypeId,
             @Param("excludedStatuses") Collection<RoomStatus> excludedStatuses
     );
+
+    @Query("""
+SELECT r
+FROM Room r
+LEFT JOIN r.roomType rt
+WHERE r.roomStatus <> com.hms.common.enums.RoomStatus.INACTIVE
+AND (
+    :keyword IS NULL
+    OR LOWER(r.roomNumber) LIKE LOWER(CONCAT('%', :keyword, '%'))
+    OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+    OR CAST(r.floor AS string) LIKE CONCAT('%', :keyword, '%')
+    OR LOWER(r.roomStatus) LIKE LOWER(CONCAT('%', :keyword, '%'))
+)
+""")
+    Page<Room> searchRooms(
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
 }
 

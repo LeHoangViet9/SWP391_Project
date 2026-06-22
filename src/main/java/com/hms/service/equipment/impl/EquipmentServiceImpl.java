@@ -59,72 +59,13 @@ public class EquipmentServiceImpl implements EquipmentService {
 
     @Override
     public Page<EquipmentResponse> getAllEquipments(
-            Long id,
-            String equipmentName,
-            String equipmentCode,
-            Long roomId,
+            String keyword,
             EquipmentStatus status,
             Integer page,
             Integer size,
             SortField sortBy,
             SortDirection direction
     ) {
-        List<Equipment> list = equipmentRepository.findAll();
-        java.util.stream.Stream<Equipment> stream = list.stream();
-
-        if (id != null) {
-            stream = stream.filter(e -> e.getId().equals(id));
-        }
-
-        if (StringUtils.hasText(equipmentName)) {
-            String cleanName = equipmentName.trim().toLowerCase();
-            stream = stream.filter(e ->
-                    e.getEquipmentName() != null
-                            && e.getEquipmentName().toLowerCase().contains(cleanName)
-            );
-        }
-
-        if (StringUtils.hasText(equipmentCode)) {
-            String cleanCode = equipmentCode.trim().toLowerCase();
-            stream = stream.filter(e ->
-                    e.getEquipmentCode() != null
-                            && e.getEquipmentCode().toLowerCase().contains(cleanCode)
-            );
-        }
-
-        if (roomId != null) {
-            stream = stream.filter(e ->
-                    e.getRoomEquipments() != null
-                            && e.getRoomEquipments().stream()
-                            .anyMatch(re -> re.getRoom() != null
-                                    && re.getRoom().getId().equals(roomId))
-            );
-        }
-
-        if (status != null) {
-            stream = stream.filter(e -> e.getStatus() == status);
-        } else {
-            stream = stream.filter(e -> e.getStatus() != EquipmentStatus.INACTIVE);
-        }
-
-        List<Equipment> filteredList = stream.collect(Collectors.toList());
-
-        java.util.Map<String, java.util.function.Function<Equipment, Comparable<?>>> extractors =
-                new java.util.HashMap<>();
-
-        extractors.put("id", Equipment::getId);
-        extractors.put("equipmentName", Equipment::getEquipmentName);
-        extractors.put("equipmentCode", Equipment::getEquipmentCode);
-        extractors.put("status", e -> e.getStatus() != null ? e.getStatus().name() : "");
-
-        extractors.put("roomNumber", e -> {
-            if (e.getRoomEquipments() == null || e.getRoomEquipments().isEmpty()) {
-                return "";
-            }
-
-            Room room = e.getRoomEquipments().get(0).getRoom();
-            return room != null && room.getRoomNumber() != null ? room.getRoomNumber() : "";
-        });
 
         Pageable pageable = pageableUtils.createPageable(
                 page,
@@ -133,9 +74,8 @@ public class EquipmentServiceImpl implements EquipmentService {
                 direction
         );
 
-        pageableUtils.sortList(filteredList, sortBy, direction, extractors);
-
-        return pageableUtils.paginate(filteredList, pageable)
+        return equipmentRepository
+                .searchEquipment(keyword, status, pageable)
                 .map(equipmentMapper::toResponse);
     }
 

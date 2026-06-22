@@ -301,3 +301,6 @@ VALUES
     (13, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
     (14, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
     (15, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW());
+
+
+select * from permission
