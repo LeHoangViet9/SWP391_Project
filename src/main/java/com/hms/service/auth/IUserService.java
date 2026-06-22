@@ -9,7 +9,15 @@ import org.springframework.data.domain.Page;
 
 public interface IUserService {
 
-    Page<UserResponse> getUsers(String keywords, AccountStatus status, Integer page, Integer size, SortField sortBy, SortDirection direction);
+
+    Page<UserResponse> getUsers(
+            String keywords,
+            AccountStatus status,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction
+    );
 
     UserResponse createUser(UserManagementRequest request);
 
@@ -17,5 +25,4 @@ public interface IUserService {
 
     void deleteUser(Long id);
 
-    void activeUser(String email, String otpCode);
 }

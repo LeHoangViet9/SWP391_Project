@@ -5,16 +5,12 @@ import com.hms.common.constant.PasswordMatch;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
 @Builder
 @PasswordMatch
-@NoArgsConstructor
-@AllArgsConstructor
 public class ChangePasswordRequest implements PasswordConfirmable {
     @NotBlank(message = "{user.oldPassword.notblank}")
     private String oldPassword;

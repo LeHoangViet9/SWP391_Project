@@ -43,35 +43,25 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     @Override
     @Transactional(readOnly = true)
     public Page<RoomTypeResponse> getAllRoomType(
-            String keywords,
-            Integer maxGuests,
+            String keyword,
             Integer page,
             Integer size,
             SortField sortBy,
             SortDirection direction) {
 
-        String searchKeywords = StringUtils.hasText(keywords) ? keywords.trim() : "";
-
         Pageable pageable = pageableUtils.createPageable(
                 page,
                 size,
                 sortBy.getField(),
-                direction);
-
-        if (maxGuests != null) {
-            return roomTypeRepository
-                    .findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqualAndStatus(
-                            searchKeywords,
-                            maxGuests,
-                            AccountStatus.ACTIVE,
-                            pageable)
-                    .map(roomTypeMapper::toResponse);
-        }
+                direction
+        );
 
         return roomTypeRepository
-                .findByTypeNameContainingIgnoreCaseAndStatus(searchKeywords, AccountStatus.ACTIVE, pageable)
+                .searchRoomTypes(keyword, pageable)
                 .map(roomTypeMapper::toResponse);
     }
+
+
 
     @Override
     @Transactional(readOnly = true)

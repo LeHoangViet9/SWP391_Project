@@ -29,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +43,7 @@ public class UserServiceImpl implements IUserService {
     private final UserMapper userMapper;
     private final PageableUtils pageableUtils;
 
+
     @Override
     public Page<UserResponse> getUsers(
             String keywords,
@@ -51,7 +51,8 @@ public class UserServiceImpl implements IUserService {
             Integer page,
             Integer size,
             SortField sortBy,
-            SortDirection direction) {
+            SortDirection direction
+            ) {
 
         String normalizedKeywords = keywords == null ? "" : keywords.trim();
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
@@ -65,9 +66,6 @@ public class UserServiceImpl implements IUserService {
         Locale locale = LocaleContextHolder.getLocale();
         validatePasswordForManagement(request, true, locale);
 
-        if (userRepository.existsUserByUserName(request.getUserName())) {
-            throw new ConflictException(messageSource.getMessage("error.username.exists", null, locale));
-        }
         if (userRepository.existsUserByEmail(request.getEmail())) {
             throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
         }
@@ -77,7 +75,6 @@ public class UserServiceImpl implements IUserService {
 
         Role role = findRole(request.getRoleName(), locale);
         User user = User.builder()
-                .userName(request.getUserName())
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .phone(request.getPhone())
@@ -101,10 +98,6 @@ public class UserServiceImpl implements IUserService {
 
         validatePasswordForManagement(request, false, locale);
 
-        if (!user.getUserName().equals(request.getUserName())
-                && userRepository.existsByUserNameAndIdNot(request.getUserName(), id)) {
-            throw new ConflictException(messageSource.getMessage("error.username.exists", null, locale));
-        }
         if (!user.getEmail().equals(request.getEmail())
                 && userRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
             throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
@@ -114,7 +107,6 @@ public class UserServiceImpl implements IUserService {
             throw new ConflictException(messageSource.getMessage("error.phone.exists", null, locale));
         }
 
-        user.setUserName(request.getUserName());
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
@@ -141,35 +133,7 @@ public class UserServiceImpl implements IUserService {
         userRepository.save(user);
     }
 
-    @Transactional
-    @Override
-    public void activeUser(String email, String otpCode) {
-        Locale locale = LocaleContextHolder.getLocale();
 
-
-        User user = userRepository.findUserByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.email.invalid", null, locale)));
-
-        if (user.isEnabled()) {
-            throw new ConflictException(messageSource.getMessage("error.account.already.active", null, locale));
-        }
-
-
-        if (user.getOtpCode() == null || !user.getOtpCode().equals(otpCode)) {
-            throw new UnauthorizedException(messageSource.getMessage("error.otp.invalid", null, locale));
-        }
-
-        if (user.getOtpExpiration().isBefore(LocalDateTime.now())) {
-            throw new UnauthorizedException(messageSource.getMessage("error.otp.expired", null, locale));
-        }
-
-        // Kích hoạt tài khoản và xóa sạch vết OTP cũ
-        user.setEnabled(true);
-        user.setOtpCode(null);
-        user.setOtpExpiration(null);
-
-        userRepository.save(user);
-    }
 
     private Role findRole(String roleName, Locale locale) {
         return roleRepository.findByRoleNameIgnoreCase(roleName)

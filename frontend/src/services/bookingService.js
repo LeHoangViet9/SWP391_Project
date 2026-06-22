@@ -49,3 +49,19 @@ export async function updateBooking(id, payload, locale = 'vi') {
 export async function deleteBooking(id, locale = 'vi') {
   return apiFetch(`/bookings/${id}`, { method: 'DELETE' }, locale);
 }
+
+/** PATCH /api/v1/bookings/{id}/status */
+export async function updateBookingStatus(id, payload, locale = 'vi') {
+  return apiFetch(`/bookings/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
+/** PATCH /api/v1/bookings/{id}/assign-room */
+export async function assignRoom(id, payload, locale = 'vi') {
+  return apiFetch(`/bookings/${id}/assign-room`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  }, locale);
+}

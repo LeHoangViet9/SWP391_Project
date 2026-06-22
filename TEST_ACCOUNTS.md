@@ -1,4 +1,4 @@
-# Tài khoản test HMS
+ # Tài khoản test HMS
 
 > Mật khẩu trong database được **BCrypt hash** — không thể xem/giải mã ngược.  
 > Chỉ dùng bảng dưới đây (hoặc log khi `bootRun`) để biết mật khẩu gốc.

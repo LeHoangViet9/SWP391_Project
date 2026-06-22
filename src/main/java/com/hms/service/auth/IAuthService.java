@@ -6,8 +6,8 @@ import com.hms.dto.auth.response.UserResponse;
 public interface IAuthService {
     UserResponse registerNewUser(UserRegisterRequest registerRequest);
     UserResponse login(UserLoginRequest loginRequest);
-    UserResponse getCurrentUser(String userName);
-    void changePassword(String userName, ChangePasswordRequest changePasswordRequest);
+    UserResponse getCurrentUser(String email);
+    void changePassword(String email, ChangePasswordRequest changePasswordRequest);
     void forgotPassword(
             ForgotPasswordRequest request
     );
@@ -15,4 +15,5 @@ public interface IAuthService {
     void resetPassword(
             ResetPasswordRequest request
     );
+    void activeUser(String email, String otpCode);
 }

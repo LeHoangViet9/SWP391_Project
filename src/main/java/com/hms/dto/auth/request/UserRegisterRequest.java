@@ -11,8 +11,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 
 @PasswordMatch
 @Data
@@ -22,14 +20,6 @@ import java.time.LocalDateTime;
 public class UserRegisterRequest implements PasswordConfirmable {
     @NotBlank(message = "{user.fullname.notblank}")
     private String fullName;
-
-    @NotBlank(message = "{user.username.notblank}")
-    @Size(min = 4, max = 50, message = "{user.username.size}")
-    @Pattern(
-            regexp = "^[a-zA-Z0-9_]+$",
-            message = "{user.username.invalid}"
-    )
-    private String userName;
 
     @NotBlank(message = "{user.password.notblank}")
     @Size(min = 6, message = "{user.password.size}")

@@ -10,7 +10,6 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.hms.common.enums.SortField;
 import com.hms.common.enums.SortDirection;
@@ -31,22 +30,20 @@ public class RoomTypeController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<RoomTypeResponse>>> getAllRoomType(
-            @RequestParam(required = false) String keywords,
-            @RequestParam(required = false) Integer maxGuests,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
             @RequestParam(defaultValue = "ASC") SortDirection direction) {
 
-        Locale locale =LocaleContextHolder.getLocale();
+        Locale locale = LocaleContextHolder.getLocale();
         String message = messageSource.getMessage("success.roomtype.getall", null, locale);
 
         ApiResponse<Page<RoomTypeResponse>> response = ApiResponse.<Page<RoomTypeResponse>>builder()
                 .success(true)
                 .message(message)
                 .data(roomTypeService.getAllRoomType(
-                        keywords,
-                        maxGuests,
+                       keyword,
                         page,
                         size,
                         sortBy,
@@ -72,7 +69,6 @@ public class RoomTypeController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomType(@RequestBody @Valid RoomTypeRequest roomTypeRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomTypeResponse created = roomTypeService.createRoomType(roomTypeRequest);
@@ -87,7 +83,6 @@ public class RoomTypeController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomType(@PathVariable Long id, @RequestBody @Valid RoomTypeRequest roomTypeRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomTypeResponse updated = roomTypeService.updateRoomType(id, roomTypeRequest);
@@ -102,7 +97,6 @@ public class RoomTypeController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteRoomType(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         roomTypeService.deleteRoomTypeByID(id);

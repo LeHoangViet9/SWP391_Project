@@ -18,5 +18,3 @@ public class HouseKeepingTaskUpdateRequest {
 
     private LocalDateTime startedAt;
 }
-
-

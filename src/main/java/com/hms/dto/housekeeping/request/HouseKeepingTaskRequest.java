@@ -28,4 +28,3 @@ public class HouseKeepingTaskRequest {
     // Nếu startedAt != null thì task được tạo ở trạng thái IN_PROGRESS.
     private LocalDateTime startedAt;
 }
-

@@ -42,9 +42,6 @@ public class AuthServiceImpl implements IAuthService {
     @Override
     public UserResponse registerNewUser(UserRegisterRequest registerRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        if(userRepository.existsUserByUserName(registerRequest.getUserName())) {
-            throw new ConflictException(messageSource.getMessage("error.username.exists", null, locale));
-        }
         if(userRepository.existsUserByEmail(registerRequest.getEmail())) {
             throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
         }
@@ -89,18 +86,16 @@ public class AuthServiceImpl implements IAuthService {
     public UserResponse login(UserLoginRequest loginRequest) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        User user = userRepository.findUserByUserName(loginRequest.getUsername())
+        User user = userRepository.findUserByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale)));
 
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             throw new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale));
         }
 
-        if (!user.isEnabled()) {
+        if (!user.getEnabled()) {
             throw new ForbiddenException("Tài khoản chưa được kích hoạt! Vui lòng xác thực OTP trong Email.");
         }
-
-        validateAccountStatus(user, locale);
 
         validateAccountStatus(user, locale);
 
@@ -108,26 +103,26 @@ public class AuthServiceImpl implements IAuthService {
         User updatedUser = userRepository.save(user);
 
         String accessToken = jwtTokenProvider.generateToken(
-                updatedUser.getUserName(),
+                updatedUser.getEmail(),
                 updatedUser.getRole().getRoleName()
         );
 
-        return userMapper.toResponse(updatedUser,accessToken);
+        return userMapper.toResponse(updatedUser, accessToken);
     }
 
     @Override
-    public UserResponse getCurrentUser(String userName) {
+    public UserResponse getCurrentUser(String email) {
         Locale locale = LocaleContextHolder.getLocale();
-        User user = userRepository.findUserByUserName(userName)
+        User user = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
         return userMapper.toResponse(user, null);
     }
 
     @Transactional
     @Override
-    public void changePassword(String userName, ChangePasswordRequest changePasswordRequest) {
+    public void changePassword(String email, ChangePasswordRequest changePasswordRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        User user = userRepository.findUserByUserName(userName)
+        User user = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
         if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
             throw new UnauthorizedException(messageSource.getMessage("error.password.incorrect", null, locale));
@@ -188,6 +183,36 @@ public class AuthServiceImpl implements IAuthService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setResetPasswordToken(null);
         user.setResetPasswordExpiredAt(null);
+
+        userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void activeUser(String email, String otpCode) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+
+        User user = userRepository.findUserByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.email.invalid", null, locale)));
+
+        if (user.getEnabled()) {
+            throw new ConflictException(messageSource.getMessage("error.account.already.active", null, locale));
+        }
+
+
+        if (user.getOtpCode() == null || !user.getOtpCode().equals(otpCode)) {
+            throw new UnauthorizedException(messageSource.getMessage("error.otp.invalid", null, locale));
+        }
+
+        if (user.getOtpExpiration().isBefore(LocalDateTime.now())) {
+            throw new UnauthorizedException(messageSource.getMessage("error.otp.expired", null, locale));
+        }
+
+        // Kích hoạt tài khoản và xóa sạch vết OTP cũ
+        user.setEnabled(true);
+        user.setOtpCode(null);
+        user.setOtpExpiration(null);
 
         userRepository.save(user);
     }

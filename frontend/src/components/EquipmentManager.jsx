@@ -1,21 +1,31 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, ChevronDown, Edit2, Plus, RefreshCw, Search, Trash2, X } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Edit2, ImagePlus, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
+
 import { useAuth } from '../context/AuthContext';
 import { equipmentService } from '../services/equipmentService';
-import { getAllRooms } from '../services/roomService';
 import { useLocale } from '../context/LocaleContext';
+
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
+/*
+  Form mặc định khi thêm/sửa thiết bị.
+
+  Lưu ý:
+  - Backend hiện tại chỉ tạo thiết bị theo danh mục/master list.
+  - Không còn tạo thiết bị kèm phòng.
+  - Vì vậy không dùng roomId/location ở đây nữa.
+*/
 const EMPTY_FORM = {
   equipmentName: '',
   equipmentCode: '',
-  location: '',
   description: '',
-  roomId: '',
 };
 
+/*
+  Mapping trạng thái thiết bị sang label tiếng Việt + màu hiển thị.
+*/
 const STATUS_LABELS = {
   ACTIVE: { label: 'Hoạt động', className: 'bg-emerald-100 text-emerald-700' },
   MAINTENANCE: { label: 'Bảo trì', className: 'bg-amber-100 text-amber-700' },
@@ -23,172 +33,295 @@ const STATUS_LABELS = {
   INACTIVE: { label: 'Ngừng dùng', className: 'bg-stone-100 text-stone-600' },
 };
 
+/*
+  Lấy message lỗi để hiển thị Toast.
+*/
 function getErrorMessage(error, fallback) {
   if (error?.status === 403) return 'Bạn không có quyền thực hiện thao tác này.';
-  return error?.message || fallback;
+  return error?.message || fallback || 'Đã xảy ra lỗi.';
 }
 
+/*
+  Chuyển dữ liệu item từ API sang dữ liệu form khi bấm sửa.
+*/
 function mapEquipmentToForm(item) {
   return {
-    equipmentName: item.equipmentName || '',
-    equipmentCode: item.equipmentCode || '',
-    location: item.location || '',
-    description: item.description || '',
-    roomId: item.roomId ? String(item.roomId) : '',
+    equipmentName: item?.equipmentName || '',
+    equipmentCode: item?.equipmentCode || '',
+    description: item?.description || '',
   };
+}
+
+/*
+  Lấy ảnh đại diện của thiết bị:
+  - Ưu tiên ảnh primary.
+  - Nếu không có primary thì lấy ảnh đầu tiên.
+  - Nếu imageUrl là local path /uploads/... thì nối thêm backend host.
+*/
+function getImageUrl(item) {
+  const imageUrl =
+      item?.images?.find((img) => img.isPrimary)?.imageUrl ||
+      item?.images?.[0]?.imageUrl;
+
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith('http')) return imageUrl;
+
+  return `http://localhost:9999${imageUrl}`;
 }
 
 export default function EquipmentManager() {
   const { locale, t } = useLocale();
   const { hasRole } = useAuth();
+
+  /*
+    Phân quyền thao tác:
+    - ADMIN, MANAGER, MAINTENANCE được thêm/sửa/xóa.
+    - Role khác chỉ xem danh sách.
+  */
   const canManage = hasRole('ADMIN', 'MANAGER', 'MAINTENANCE');
 
+  /*
+    State danh sách và phân trang.
+  */
   const [items, setItems] = useState([]);
-  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  /*
+    State tìm kiếm/lọc.
+  */
   const [search, setSearch] = useState('');
+  const [searchOpt, setSearchOpt] = useState('equipmentName');
+  const [statusFilter, setStatusFilter] = useState('ACTIVE');
+
+  /*
+    Toast thông báo thành công/thất bại.
+  */
   const [toast, setToast] = useState({ type: 'success', message: '' });
+
+  /*
+    Modal thêm/sửa:
+    - editing = null: thêm mới.
+    - editing != null: sửa thiết bị.
+  */
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-  const [existingCodes, setExistingCodes] = useState([]);
-  const [existingLocations, setExistingLocations] = useState([]);
-  const [roomSearchQuery, setRoomSearchQuery] = useState('');
-  const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
 
+  /*
+    Danh sách ảnh người dùng chọn.
+    Ảnh sẽ upload sau khi tạo/cập nhật thiết bị thành công.
+  */
+  const [imageFiles, setImageFiles] = useState([]);
+
+  /*
+    State khi đang lưu form.
+  */
+  const [saving, setSaving] = useState(false);
+
+  /*
+    Danh sách mã thiết bị đã có để gợi ý trong datalist.
+  */
+  const [existingCodes, setExistingCodes] = useState([]);
+
+  const notify = (message, type = 'success') => {
+    setToast({ type, message });
+  };
+
+  const closeToast = () => {
+    setToast((current) => ({ ...current, message: '' }));
+  };
+
+  /*
+    Load danh sách mã thiết bị để gợi ý khi nhập equipmentCode.
+  */
   const fetchSuggestions = useCallback(async () => {
     try {
-      const response = await equipmentService.getAll({ page: 0, size: 1000 });
+      const response = await equipmentService.getAll(
+          { page: 0, size: 1000 },
+          locale
+      );
+
       const allItems = response?.data?.content ?? [];
-      const codes = [...new Set(allItems.map((item) => item.equipmentCode).filter(Boolean))];
-      const locations = [...new Set(allItems.map((item) => item.location).filter(Boolean))];
+
+      const codes = [
+        ...new Set(
+            allItems
+                .map((item) => item.equipmentCode)
+                .filter(Boolean)
+        ),
+      ];
+
       setExistingCodes(codes);
-      setExistingLocations(locations);
     } catch (error) {
       console.error('Failed to fetch equipment suggestions:', error);
     }
-  }, []);
+  }, [locale]);
 
-  const notify = (message, type = 'success') => setToast({ type, message });
-  const closeToast = () => setToast((current) => ({ ...current, message: '' }));
+  /*
+    Hàm load danh sách thiết bị trực tiếp theo tham số:
+    - p: page hiện tại.
+    - opt: kiểu tìm kiếm.
+    - val: giá trị tìm kiếm.
+    - statusVal: trạng thái lọc.
+  */
+  const fetchDataDirect = useCallback(
+      async (p, opt, val, statusVal) => {
+        setLoading(true);
 
-  const fetchData = useCallback(async (nextPage = page) => {
-    setLoading(true);
-    try {
-      const response = await equipmentService.getAll({
-        page: nextPage,
-        size: 10,
-        keywords: search.trim() || undefined,
-      });
-      const data = response?.data;
-      setItems(data?.content ?? []);
-      setTotalPages(data?.totalPages ?? 1);
-    } catch (error) {
-      notify(getErrorMessage(error, t('equipment.toast.loadError')), 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search]);
+        try {
+          const params = {
+            page: p,
+            size: 10,
+            status: statusVal || undefined,
+          };
 
+          const trimmed = val ? String(val).trim() : '';
+
+          if (trimmed) {
+            if (opt === 'id') {
+              params.id = trimmed;
+            } else if (opt === 'equipmentName') {
+              params.equipmentName = trimmed;
+            } else if (opt === 'equipmentCode') {
+              params.equipmentCode = trimmed;
+            }
+          }
+
+          const response = await equipmentService.getAll(params, locale);
+          const data = response?.data;
+
+          setItems(data?.content ?? []);
+          setTotalPages(data?.totalPages ?? 1);
+        } catch (error) {
+          notify(getErrorMessage(error, t('equipment.toast.loadError')), 'error');
+        } finally {
+          setLoading(false);
+        }
+      },
+      [locale, t]
+  );
+
+  /*
+    Hàm load danh sách theo state hiện tại.
+  */
+  const fetchData = useCallback(
+      async (nextPage = page) => {
+        await fetchDataDirect(nextPage, searchOpt, search, statusFilter);
+      },
+      [page, searchOpt, search, statusFilter, fetchDataDirect]
+  );
+
+  /*
+    Tự load lại danh sách khi đổi page hoặc trạng thái.
+  */
   useEffect(() => {
     fetchData(page);
-  }, [fetchData, page]);
+  }, [page, statusFilter, fetchData]);
 
-  useEffect(() => {
-    getAllRooms({ page: 0, size: 200 })
-      .then((response) => setRooms(response?.data?.content ?? []))
-      .catch(() => setRooms([]));
-  }, []);
-
+  /*
+    Load gợi ý mã thiết bị khi mở màn hình.
+  */
   useEffect(() => {
     fetchSuggestions();
   }, [fetchSuggestions]);
 
-  const roomOptions = useMemo(
-    () => rooms.map((room) => ({
-      id: room.id,
-      label: `${room.roomNumber}${room.roomTypeName ? ` - ${room.roomTypeName}` : ''}`,
-    })),
-    [rooms]
-  );
-
-  useEffect(() => {
-    if (form.roomId) {
-      const selectedRoom = rooms.find((r) => String(r.id) === String(form.roomId));
-      if (selectedRoom) {
-        setRoomSearchQuery(`${selectedRoom.roomNumber}${selectedRoom.roomTypeName ? ` - ${selectedRoom.roomTypeName}` : ''}`);
-      } else {
-        setRoomSearchQuery('');
-      }
-    } else {
-      setRoomSearchQuery('');
-    }
-  }, [form.roomId, rooms]);
-
-  const filteredRooms = useMemo(() => {
-    const query = roomSearchQuery.trim().toLowerCase();
-    if (!query) return rooms;
-
-    const selectedRoom = rooms.find((r) => String(r.id) === String(form.roomId));
-    const selectedLabel = selectedRoom ? `${selectedRoom.roomNumber}${selectedRoom.roomTypeName ? ` - ${selectedRoom.roomTypeName}` : ''}`.toLowerCase() : '';
-
-    if (query === selectedLabel) {
-      return rooms;
-    }
-
-    return rooms.filter((room) => {
-      const roomNum = String(room.roomNumber).toLowerCase();
-      const typeName = (room.roomTypeName || '').toLowerCase();
-      return roomNum.includes(query) || typeName.includes(query);
-    });
-  }, [rooms, roomSearchQuery, form.roomId]);
-
+  /*
+    Mở modal thêm mới.
+  */
   const openCreate = () => {
     if (!canManage) {
-      notify(t('equipment.toast.forbiddenCreate'), 'error');
+      notify(t('equipment.toast.forbiddenCreate') || 'Bạn không có quyền thêm thiết bị.', 'error');
       return;
     }
+
     setForm(EMPTY_FORM);
+    setImageFiles([]);
     setModal({ open: true, editing: null });
   };
 
+  /*
+    Mở modal sửa thiết bị.
+  */
   const openEdit = (item) => {
     if (!canManage) {
-      notify(t('equipment.toast.forbiddenEdit'), 'error');
+      notify(t('equipment.toast.forbiddenEdit') || 'Bạn không có quyền sửa thiết bị.', 'error');
       return;
     }
+
     setForm(mapEquipmentToForm(item));
+    setImageFiles([]);
     setModal({ open: true, editing: item });
   };
 
+  /*
+    Đóng modal và reset form.
+  */
   const closeModal = () => {
     setModal({ open: false, editing: null });
     setForm(EMPTY_FORM);
+    setImageFiles([]);
   };
 
+  /*
+    Build payload gửi lên backend.
+
+    Đã sửa lỗi:
+    - Không dùng form.location.trim() nữa vì EMPTY_FORM không có location.
+    - Không gửi roomId vì chức năng gán phòng đã tách riêng.
+    - Dùng fallback '' để tránh lỗi undefined.trim().
+  */
   const buildPayload = () => ({
-    equipmentName: form.equipmentName.trim(),
-    equipmentCode: form.equipmentCode.trim(),
-    location: form.location.trim(),
-    description: form.description.trim() || null,
-    roomId: form.roomId ? Number(form.roomId) : null,
+    equipmentName: (form.equipmentName || '').trim(),
+    equipmentCode: (form.equipmentCode || '').trim(),
+    description: (form.description || '').trim() || null,
   });
 
+  /*
+    Submit form thêm/sửa thiết bị.
+    Luồng thêm mới:
+    1. POST /equipments
+    2. Nếu có ảnh thì upload ảnh theo equipmentId vừa tạo.
+
+    Luồng sửa:
+    1. PUT /equipments/{id}
+    2. Nếu có chọn ảnh mới thì upload thêm ảnh cho thiết bị đó.
+  */
   const handleSave = async (event) => {
     event.preventDefault();
     setSaving(true);
 
     try {
       const payload = buildPayload();
+
       if (modal.editing) {
-        await equipmentService.update(modal.editing.id, payload);
-        notify(t('equipment.toast.updateSuccess'));
+        await equipmentService.update(modal.editing.id, payload, locale);
+
+        if (imageFiles.length > 0) {
+          await equipmentService.uploadImages(
+              modal.editing.id,
+              imageFiles,
+              locale
+          );
+        }
+
+        notify(t('equipment.toast.updateSuccess') || 'Cập nhật thiết bị thành công');
       } else {
-        await equipmentService.create(payload);
-        notify(t('equipment.toast.addSuccess'));
+        const created = await equipmentService.create(payload, locale);
+        const equipmentId = created?.data?.id;
+
+        if (imageFiles.length > 0 && equipmentId) {
+          await equipmentService.uploadImages(
+              equipmentId,
+              imageFiles,
+              locale
+          );
+        }
+
+        notify(t('equipment.toast.addSuccess') || 'Thêm thiết bị thành công');
       }
+
       closeModal();
       fetchData(page);
       fetchSuggestions();
@@ -199,16 +332,23 @@ export default function EquipmentManager() {
     }
   };
 
+  /*
+    Xóa thiết bị.
+  */
   const handleDelete = async (item) => {
     if (!canManage) {
-      notify(t('equipment.toast.forbiddenDelete'), 'error');
+      notify(t('equipment.toast.forbiddenDelete') || 'Bạn không có quyền xóa thiết bị.', 'error');
       return;
     }
-    if (!window.confirm(t('equipment.toast.deleteConfirm', { name: item.equipmentName }).replace('{name}', item.equipmentName))) return;
+
+    const confirmMessage =
+        `Bạn có chắc muốn xóa ${item.equipmentName}?`;
+
+    if (!window.confirm(confirmMessage)) return;
 
     try {
-      await equipmentService.delete(item.id);
-      notify(t('equipment.toast.deleteSuccess'));
+      await equipmentService.delete(item.id, locale);
+      notify(t('equipment.toast.deleteSuccess') || 'Xóa thiết bị thành công');
       fetchData(page);
       fetchSuggestions();
     } catch (error) {
@@ -216,293 +356,344 @@ export default function EquipmentManager() {
     }
   };
 
+  /*
+    Tìm kiếm thủ công khi bấm nút search hoặc Enter.
+  */
   const handleSearch = () => {
     setPage(0);
-    fetchData(0);
+    fetchDataDirect(0, searchOpt, search, statusFilter);
   };
 
+  /*
+    Render badge trạng thái thiết bị.
+  */
   const statusBadge = (status = 'ACTIVE') => {
-    const statusInfo = STATUS_LABELS[status] || { label: status, className: 'bg-stone-100 text-stone-600' };
+    const statusInfo = STATUS_LABELS[status] || {
+      label: status,
+      className: 'bg-stone-100 text-stone-600',
+    };
+
     return (
-      <span className={`inline-flex min-w-[72px] justify-center rounded-full px-2 py-0.5 text-xs font-semibold ${statusInfo.className}`}>
-        {t(`equipment.status.${status}`)}
+        <span
+            className={`inline-flex min-w-[72px] justify-center rounded-full px-2 py-0.5 text-xs font-semibold ${statusInfo.className}`}
+        >
+        {t(`equipment.status.${status}`) || statusInfo.label}
       </span>
     );
   };
 
-  const rows = items.map((item) => (
-    <tr key={item.id} className="hover:bg-stone-50">
-      <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
-      <td className="px-4 py-3 font-semibold">{item.equipmentName}</td>
-      <td className="px-4 py-3 font-mono text-xs text-[#bfa15f]">{item.equipmentCode}</td>
-      <td className="px-4 py-3 text-sm">{item.location}</td>
-      <td className="max-w-xs truncate px-4 py-3 text-sm text-slate-500">{item.description || '-'}</td>
-      <td className="px-4 py-3 text-sm text-slate-500">
-        {item.roomNumber || (item.roomId ? `${locale === 'vi' ? 'Phòng' : 'Room'} #${item.roomId}` : t('equipment.noRoom'))}
-      </td>
-      <td className="px-4 py-3">{statusBadge(item.status)}</td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          {canManage && (
-            <>
-              <button
-                type="button"
-                onClick={() => openEdit(item)}
-                className="text-blue-500 hover:text-blue-700"
-                title="Sửa thiết bị"
-              >
-                <Edit2 size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(item)}
-                className="text-red-500 hover:text-red-700"
-                title="Xóa thiết bị"
-              >
-                <Trash2 size={15} />
-              </button>
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
-  ));
+  /*
+    Render từng dòng trong bảng thiết bị.
+  */
+  const rows = items.map((item) => {
+    const imageUrl = getImageUrl(item);
+    const assignedRoomCount = item.assignedRooms?.length || 0;
 
-  const columns = [t('equipment.columns.id'), t('equipment.columns.name'), t('equipment.columns.code'), t('equipment.columns.location'), t('equipment.columns.description'), t('equipment.columns.room'), t('equipment.columns.status'), t('equipment.columns.actions')];
+    return (
+        <tr key={item.id} className="hover:bg-stone-50">
+          <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
+
+          <td className="px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded border border-stone-200 bg-stone-50">
+                {imageUrl ? (
+                    <img
+                        src={imageUrl}
+                        alt={item.equipmentName}
+                        className="h-full w-full object-cover"
+                    />
+                ) : (
+                    <ImagePlus size={18} className="text-stone-400" />
+                )}
+              </div>
+
+              <div>
+                <div className="font-semibold">{item.equipmentName}</div>
+                <div className="text-xs text-slate-400">
+                  {item.images?.length || 0} ảnh
+                </div>
+              </div>
+            </div>
+          </td>
+
+          <td className="px-4 py-3 font-mono text-xs text-[#bfa15f]">
+            {item.equipmentCode}
+          </td>
+
+          <td className="max-w-xs truncate px-4 py-3 text-sm text-slate-500">
+            {item.description || '-'}
+          </td>
+
+          <td className="px-4 py-3 text-sm text-slate-500">
+            {assignedRoomCount > 0 ? `${assignedRoomCount} phòng` : 'Chưa gán phòng'}
+          </td>
+
+          <td className="px-4 py-3">
+            {statusBadge(item.status)}
+          </td>
+
+          <td className="px-4 py-3">
+            <div className="flex items-center gap-3">
+              {canManage && (
+                  <>
+                    <button
+                        type="button"
+                        onClick={() => openEdit(item)}
+                        className="text-blue-500 hover:text-blue-700"
+                        title="Sửa thiết bị"
+                    >
+                      <Edit2 size={15} />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => handleDelete(item)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Xóa thiết bị"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </>
+              )}
+            </div>
+          </td>
+        </tr>
+    );
+  });
+
+  /*
+    Header của bảng.
+  */
+  const columns = [
+    t('equipment.columns.id') || 'ID',
+    t('equipment.columns.name') || 'Tên thiết bị',
+    t('equipment.columns.code') || 'Mã thiết bị',
+    t('equipment.columns.description') || 'Mô tả',
+    'Phòng đã gán',
+    t('equipment.columns.status') || 'Trạng thái',
+    t('equipment.columns.actions') || 'Thao tác',
+  ];
 
   return (
-    <div>
-      <Toast type={toast.type} message={toast.message} onClose={closeToast} />
+      <div>
+        <Toast type={toast.type} message={toast.message} onClose={closeToast} />
 
-      <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row">
-        <div className="flex flex-1 items-center gap-2">
-          <div className="relative max-w-xs flex-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
-              placeholder={t('equipment.searchPlaceholder')}
-              className="w-full rounded border border-stone-300 py-2 pl-8 pr-3 text-sm outline-none focus:border-[#bfa15f]"
-            />
+        {/* Thanh tìm kiếm, lọc trạng thái, nút thêm thiết bị */}
+        <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row">
+          <div className="flex flex-1 flex-wrap items-center gap-2">
+            <select
+                value={searchOpt}
+                onChange={(e) => {
+                  setSearchOpt(e.target.value);
+                  setSearch('');
+                }}
+                className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+            >
+              <option value="equipmentName">
+                {t('equipment.searchOptions.name') || 'Tên thiết bị'}
+              </option>
+              <option value="equipmentCode">
+                {t('equipment.searchOptions.code') || 'Mã thiết bị'}
+              </option>
+              <option value="id">
+                {t('equipment.searchOptions.id') || 'Mã ID'}
+              </option>
+            </select>
+
+            <div className="relative max-w-xs flex-1">
+              <Search
+                  size={14}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                  type={searchOpt === 'id' ? 'number' : 'text'}
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
+                  placeholder={
+                      t(`equipment.placeholders.${searchOpt}`) ||
+                      t('equipment.searchPlaceholder') ||
+                      'Tìm kiếm'
+                  }
+                  className="w-full rounded border border-stone-300 py-2 pl-8 pr-3 text-sm outline-none focus:border-[#bfa15f]"
+              />
+            </div>
+
+            <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(0);
+                }}
+                className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+            >
+              <option value="ACTIVE">{t('equipment.status.ACTIVE') || 'Hoạt động'}</option>
+              <option value="MAINTENANCE">{t('equipment.status.MAINTENANCE') || 'Bảo trì'}</option>
+              <option value="BROKEN">{t('equipment.status.BROKEN') || 'Hỏng'}</option>
+              <option value="INACTIVE">{t('equipment.status.INACTIVE') || 'Ngừng dùng'}</option>
+              <option value="">{t('equipment.status.all') || 'Tất cả trạng thái'}</option>
+            </select>
+
+            <button
+                type="button"
+                onClick={handleSearch}
+                className="rounded border p-2 hover:bg-stone-100"
+                title="Tải lại"
+            >
+              <RefreshCw size={14} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleSearch}
-            className="rounded border p-2 hover:bg-stone-100"
-            title="Tải lại"
-          >
-            <RefreshCw size={14} />
-          </button>
+
+          {canManage && (
+              <button
+                  type="button"
+                  onClick={openCreate}
+                  className="flex items-center gap-2 rounded bg-[#bfa15f] px-4 py-2 text-sm font-semibold text-white shadow transition-colors hover:bg-[#a3854a]"
+              >
+                <Plus size={16} />
+                {t('equipment.addBtn') || 'Thêm thiết bị'}
+              </button>
+          )}
         </div>
 
-        {canManage && (
-          <button
-            type="button"
-            onClick={openCreate}
-            className="flex items-center gap-2 rounded bg-[#bfa15f] px-4 py-2 text-sm font-semibold text-white shadow transition-colors hover:bg-[#a3854a]"
-          >
-            <Plus size={16} />
-            {t('equipment.addBtn')}
-          </button>
-        )}
-      </div>
+        {/* Bảng danh sách thiết bị */}
+        <DataTable
+            columns={columns}
+            rows={rows}
+            loading={loading}
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+        />
 
-      <DataTable
-        columns={columns}
-        rows={rows}
-        loading={loading}
-        page={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-      />
-
-      <Modal
-        open={modal.open}
-        title={modal.editing ? t('equipment.modal.editTitle') : t('equipment.modal.addTitle')}
-        onClose={closeModal}
-      >
-        <form onSubmit={handleSave} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-              {t('equipment.modal.name')}
-            </label>
-            <input
-              required
-              value={form.equipmentName}
-              onChange={(event) => setForm((current) => ({ ...current, equipmentName: event.target.value }))}
-              className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-              placeholder={t('equipment.modal.namePlaceholder')}
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
+        {/* Modal thêm/sửa thiết bị */}
+        <Modal
+            open={modal.open}
+            title={
+              modal.editing
+                  ? t('equipment.modal.editTitle') || 'Sửa thiết bị'
+                  : t('equipment.modal.addTitle') || 'Thêm thiết bị'
+            }
+            onClose={closeModal}
+        >
+          <form onSubmit={handleSave} className="space-y-4">
+            {/* Tên thiết bị */}
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                {t('equipment.modal.code')}
+                {t('equipment.modal.name') || 'Tên thiết bị'} *
               </label>
               <input
-                required
-                pattern="^[A-Za-z0-9\-]{2,30}$"
-                value={form.equipmentCode}
-                onChange={(event) => setForm((current) => ({ ...current, equipmentCode: event.target.value }))}
-                className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-                placeholder={t('equipment.modal.codePlaceholder')}
-                list="existing-codes"
+                  required
+                  value={form.equipmentName}
+                  onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        equipmentName: event.target.value,
+                      }))
+                  }
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+                  placeholder={t('equipment.modal.namePlaceholder') || 'Ví dụ: Tủ lạnh'}
+              />
+            </div>
+
+            {/* Mã thiết bị */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                {t('equipment.modal.code') || 'Mã thiết bị'} *
+              </label>
+              <input
+                  required
+                  pattern="^[A-Za-z0-9\-]{2,30}$"
+                  value={form.equipmentCode}
+                  onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        equipmentCode: event.target.value,
+                      }))
+                  }
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+                  placeholder={t('equipment.modal.codePlaceholder') || 'Ví dụ: TL-102'}
+                  list="existing-codes"
               />
               <datalist id="existing-codes">
                 {existingCodes.map((code) => (
-                  <option key={code} value={code} />
+                    <option key={code} value={code} />
                 ))}
               </datalist>
             </div>
 
+            {/* Upload nhiều ảnh thiết bị */}
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                {t('equipment.modal.location')}
+                Ảnh thiết bị
               </label>
-              <input
-                required
-                value={form.location}
-                onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
-                className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-                placeholder={t('equipment.modal.locationPlaceholder')}
-                list="existing-locations"
-              />
-              <datalist id="existing-locations">
-                {existingLocations.map((loc) => (
-                  <option key={loc} value={loc} />
-                ))}
-              </datalist>
-            </div>
-          </div>
 
-          <div className="relative">
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-              {t('equipment.modal.room')}
-            </label>
-            <div className="relative">
               <input
-                type="text"
-                value={roomSearchQuery}
-                onFocus={() => setIsRoomDropdownOpen(true)}
-                onChange={(event) => {
-                  setRoomSearchQuery(event.target.value);
-                  setIsRoomDropdownOpen(true);
-                  const matched = rooms.find(
-                    (r) =>
-                      `${r.roomNumber}${r.roomTypeName ? ` - ${r.roomTypeName}` : ''}`.toLowerCase() ===
-                      event.target.value.toLowerCase()
-                  );
-                  if (matched) {
-                    setForm((current) => ({ ...current, roomId: String(matched.id) }));
-                  } else {
-                    setForm((current) => ({ ...current, roomId: '' }));
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(event) =>
+                      setImageFiles(Array.from(event.target.files || []))
                   }
-                }}
-                placeholder={t('equipment.noRoomOption')}
-                className="w-full rounded border border-stone-300 py-2 pl-3 pr-10 text-sm outline-none focus:border-[#bfa15f]"
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
               />
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                {form.roomId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRoomSearchQuery('');
-                      setForm((current) => ({ ...current, roomId: '' }));
-                    }}
-                    className="text-slate-400 hover:text-slate-600"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-                <ChevronDown size={16} className="text-slate-400 pointer-events-none" />
-              </div>
+
+              {imageFiles.length > 0 && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Đã chọn {imageFiles.length} ảnh
+                  </p>
+              )}
+
+              <p className="mt-1 text-xs text-slate-400">
+                {modal.editing
+                    ? 'Nếu chọn ảnh mới, hệ thống sẽ upload thêm các ảnh cho thiết bị này.'
+                    : 'Các ảnh sẽ được upload sau khi tạo thiết bị thành công.'}
+              </p>
             </div>
 
-            {isRoomDropdownOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setIsRoomDropdownOpen(false)}
-                />
+            {/* Mô tả thiết bị */}
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                {t('equipment.modal.description') || 'Mô tả'}
+              </label>
+              <textarea
+                  rows={3}
+                  value={form.description}
+                  onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        description: event.target.value,
+                      }))
+                  }
+                  className="w-full resize-none rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+              />
+            </div>
 
-                <div className="absolute left-0 right-0 z-20 mt-1 max-h-60 overflow-y-auto rounded border border-stone-200 bg-white py-1 shadow-lg animate-in fade-in slide-in-from-top-1 duration-150">
-                  <div
-                    onClick={() => {
-                      setForm((current) => ({ ...current, roomId: '' }));
-                      setIsRoomDropdownOpen(false);
-                    }}
-                    className={`flex items-center justify-between cursor-pointer px-3 py-2 text-sm hover:bg-stone-50 ${
-                      !form.roomId ? 'bg-stone-100 font-semibold text-[#bfa15f]' : 'text-slate-600'
-                    }`}
-                  >
-                    <span>{t('equipment.noRoomOption')}</span>
-                    {!form.roomId && <Check size={14} className="text-[#bfa15f]" />}
-                  </div>
-                  {filteredRooms.length > 0 ? (
-                    filteredRooms.map((room) => {
-                      const isSelected = String(form.roomId) === String(room.id);
-                      return (
-                        <div
-                          key={room.id}
-                          onClick={() => {
-                            setForm((current) => ({ ...current, roomId: String(room.id) }));
-                            setIsRoomDropdownOpen(false);
-                          }}
-                          className={`flex items-center justify-between cursor-pointer px-3 py-2 text-sm hover:bg-stone-50 ${
-                            isSelected ? 'bg-amber-50 font-semibold text-[#bfa15f]' : 'text-slate-700'
-                          }`}
-                        >
-                          <span>
-                            {room.roomNumber} {room.roomTypeName ? ` - ${room.roomTypeName}` : ''}
-                          </span>
-                          {isSelected && <Check size={14} className="text-[#bfa15f]" />}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="px-3 py-2 text-sm text-slate-400 italic">
-                      Không tìm thấy phòng phù hợp
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+            {/* Nút hủy/lưu */}
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                  type="button"
+                  onClick={closeModal}
+                  disabled={saving}
+                  className="rounded border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50 disabled:opacity-60"
+              >
+                {t('equipment.modal.cancel') || 'Hủy'}
+              </button>
 
-          <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-              {t('equipment.modal.description')}
-            </label>
-            <textarea
-              rows={3}
-              value={form.description}
-              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-              className="w-full resize-none rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={saving}
-              className="rounded border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50 disabled:opacity-60"
-            >
-              {t('equipment.modal.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded bg-[#bfa15f] px-5 py-2 text-sm font-semibold text-white shadow hover:bg-[#a3854a] disabled:opacity-60"
-            >
-              {saving ? t('equipment.modal.saving') : modal.editing ? t('equipment.modal.update') : t('equipment.modal.save')}
-            </button>
-          </div>
-        </form>
-      </Modal>
-    </div>
+              <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded bg-[#bfa15f] px-5 py-2 text-sm font-semibold text-white shadow hover:bg-[#a3854a] disabled:opacity-60"
+              >
+                {saving
+                    ? t('equipment.modal.saving') || 'Đang lưu...'
+                    : modal.editing
+                        ? t('equipment.modal.update') || 'Cập nhật'
+                        : t('equipment.modal.save') || 'Tạo mới'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      </div>
   );
 }

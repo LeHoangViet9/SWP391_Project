@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Mail, Phone, ShieldCheck, UserCircle, Clock, BadgeCheck, RefreshCw } from 'lucide-react';
+import { Mail, Phone, ShieldCheck, Clock, BadgeCheck, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
 
@@ -39,7 +39,6 @@ export default function AccountInfo() {
   }, [locale]);
 
   const items = useMemo(() => ([
-    { icon: UserCircle, label: t('accountInfo.username'), value: profile?.username || profile?.userName || '-' },
     { icon: Mail, label: t('accountInfo.email'), value: profile?.email || '-' },
     { icon: Phone, label: t('accountInfo.phone'), value: profile?.phone || '-' },
     { icon: ShieldCheck, label: t('accountInfo.role'), value: profile?.roleName || '-' },

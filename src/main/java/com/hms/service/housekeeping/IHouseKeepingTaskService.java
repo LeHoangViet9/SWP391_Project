@@ -36,6 +36,3 @@ public interface IHouseKeepingTaskService {
 
     void reportRoomIssue(Long roomId, com.hms.dto.housekeeping.request.ReportRoomIssueRequest request);
 }
-
-
-

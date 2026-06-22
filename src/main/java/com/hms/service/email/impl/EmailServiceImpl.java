@@ -40,37 +40,34 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendActiveUserMail(String to, String fullName, String otpCode) {
         Locale locale = LocaleContextHolder.getLocale();
+
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
 
-        // Lấy subject từ file properties
-        String subject = messageSource.getMessage("register.subject", null, "Mã xác thực tài khoản mới", locale);
+        String subject = messageSource.getMessage("active.account", null, locale);
         message.setSubject(subject);
 
-        // Truyền tham số fullName và otpCode vào các vị trí {0} và {1} trong file properties
-        String body = messageSource.getMessage("register.body", new Object[]{fullName, otpCode}, locale);
-        message.setText(body);
+        String bodyText = messageSource.getMessage("otp.code", new Object[]{fullName, otpCode}, locale);
+        message.setText(bodyText);
 
         mailSender.send(message);
     }
 
     @Override
-    public void sendForgotPasswordOtpMail(String to, String fullName, String otpCode) {
+    public void sendForgotPasswordOtpMail(String email, String fullName, String otpCode) {
         Locale locale = LocaleContextHolder.getLocale();
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
 
-        // 1. Lấy tiêu đề mail quên mật khẩu
-        String subject = messageSource.getMessage("forgot.password.subject", null, "Yêu cầu khôi phục mật khẩu", locale);
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+
+        String subject = messageSource.getMessage("reset.password", null, locale);
         message.setSubject(subject);
 
-        // 2. Định nghĩa mảng biến động: {0} = fullName, {1} = otpCode, {2} = 5 (phút)
-        Object[] messageParams = new Object[]{fullName, otpCode, 5};
-
-        // 3. Nạp dữ liệu vào nội dung Mail
-        String bodyText = messageSource.getMessage("forgot.password.body", messageParams, locale);
+        String bodyText = messageSource.getMessage("otp.code", new Object[]{fullName, otpCode}, locale);
         message.setText(bodyText);
 
         mailSender.send(message);
     }
+
+
 }

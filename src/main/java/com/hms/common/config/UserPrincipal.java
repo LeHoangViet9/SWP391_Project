@@ -3,12 +3,9 @@ package com.hms.common.config;
 import com.hms.entity.auth.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
-
 import java.util.Collection;
 import java.util.Collections;
 
@@ -28,10 +25,10 @@ public class UserPrincipal implements UserDetails {
 
         return new UserPrincipal(
                 user.getId(),
-                user.getUserName(),
+                user.getEmail(),
                 user.getPassword(),
                 user.getEmail(),
-                user.isEnabled(), // 🌟 Gán giá trị true/false của OTP vào đây
+                user.getEnabled(), // 🌟 Gán giá trị true/false của OTP vào đây
                 Collections.singletonList(authority)
         );
     }

@@ -21,6 +21,7 @@ import java.util.Locale;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
+    private final IUserService userService;
     private final MessageSource messageSource;
     private final IAuthService authService;
 
@@ -66,7 +67,7 @@ public class AuthController {
 
     @PutMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>>  handleChangePassword(@AuthenticationPrincipal String username,
-            @Valid @RequestBody ChangePasswordRequest changePasswordRequest){
+                                                                   @Valid @RequestBody ChangePasswordRequest changePasswordRequest){
         Locale locale= LocaleContextHolder.getLocale();
         String successMessage=messageSource.getMessage("auth.changePassword.success", null, locale);
         authService.changePassword(username,changePasswordRequest);
@@ -103,6 +104,20 @@ public class AuthController {
                 HttpStatus.OK
         ),HttpStatus.OK);
     }
+
+    @PostMapping("/active-account")
+    public ResponseEntity<ApiResponse<Void>> activeAccount(@Valid @RequestBody ActiveAccountRequest activeAccountRequest){
+        Locale locale= LocaleContextHolder.getLocale();
+        authService.activeUser(activeAccountRequest.getEmail(), activeAccountRequest.getOtp());
+        String successMessage = messageSource.getMessage("auth.active.success", null, "Account activated successfully", locale);
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                successMessage,
+                null,
+                HttpStatus.OK
+        ),HttpStatus.OK);
+    }
+
 
 
 

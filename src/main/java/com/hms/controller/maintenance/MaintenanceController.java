@@ -1,16 +1,19 @@
 package com.hms.controller.maintenance;
 
 import com.hms.common.dto.ApiResponse;
+import com.hms.common.enums.MaintenanceSeverity;
+import com.hms.common.enums.MaintenanceStatus;
+import com.hms.common.enums.SortDirection;
+import com.hms.common.enums.SortField;
 import com.hms.dto.maintenance.request.MaintenanceRequestCreateDTO;
 import com.hms.dto.maintenance.request.MaintenanceRequestUpdateDTO;
 import com.hms.dto.maintenance.response.MaintenanceResponse;
 import com.hms.service.maintenance.MaintenanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/maintenance-requests")
@@ -19,6 +22,14 @@ public class MaintenanceController {
 
     private final MaintenanceService maintenanceService;
 
+    /*
+     * Chức năng:
+     * Tạo yêu cầu bảo trì mới.
+     *
+     * Theo nghiệp vụ thầy nhắc:
+     * Request phải gắn với phòng hoặc thiết bị.
+     * Phần kiểm tra roomId/equipmentId nằm trong MaintenanceServiceImpl.
+     */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING', 'MAINTENANCE')")
     public ApiResponse<MaintenanceResponse> createRequest(
@@ -30,15 +41,59 @@ public class MaintenanceController {
         );
     }
 
+    /*
+     * Chức năng:
+     * Lấy danh sách yêu cầu bảo trì.
+     *
+     * Có thể lọc theo:
+     * - id
+     * - issueTitle
+     * - roomId
+     * - equipmentId
+     * - reportedBy
+     * - assignedTo
+     * - severity
+     * - status
+     */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
-    public ApiResponse<List<MaintenanceResponse>> getAllRequests() {
+    public ApiResponse<Page<MaintenanceResponse>> getAllRequests(
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String issueTitle,
+            @RequestParam(required = false) Long roomId,
+            @RequestParam(required = false) Long equipmentId,
+            @RequestParam(required = false) Long reportedBy,
+            @RequestParam(required = false) Long assignedTo,
+            @RequestParam(required = false) MaintenanceSeverity severity,
+            @RequestParam(required = false) MaintenanceStatus status,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(defaultValue = "ID") SortField sortBy,
+            @RequestParam(defaultValue = "ASC") SortDirection direction
+    ) {
         return ApiResponse.success(
                 "Get maintenance request list successfully",
-                maintenanceService.getAllRequests()
+                maintenanceService.getAllRequests(
+                        id,
+                        issueTitle,
+                        roomId,
+                        equipmentId,
+                        reportedBy,
+                        assignedTo,
+                        severity,
+                        status,
+                        page,
+                        size,
+                        sortBy,
+                        direction
+                )
         );
     }
 
+    /*
+     * Chức năng:
+     * Xem chi tiết một yêu cầu bảo trì theo id.
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
     public ApiResponse<MaintenanceResponse> getRequestById(
@@ -50,6 +105,17 @@ public class MaintenanceController {
         );
     }
 
+    /*
+     * Chức năng:
+     * Cập nhật yêu cầu bảo trì.
+     *
+     * Dùng cho:
+     * - Gán nhân viên bảo trì
+     * - Cập nhật severity
+     * - Cập nhật status
+     * - Ghi diagnosis
+     * - Ghi repairResult
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MAINTENANCE')")
     public ApiResponse<MaintenanceResponse> updateRequest(
@@ -62,6 +128,12 @@ public class MaintenanceController {
         );
     }
 
+    /*
+     * Chức năng:
+     * Xóa yêu cầu bảo trì.
+     *
+     * Hiện chỉ ADMIN được xóa.
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> deleteRequest(

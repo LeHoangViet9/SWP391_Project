@@ -109,21 +109,22 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public Page<CustomerResponse> getCustomers(String keywords, AccountStatus status, Integer page, Integer size, SortField sortBy, SortDirection direction) {
-        if (keywords == null) {
-            keywords = "";
-        }
+    public Page<CustomerResponse> getCustomers(
+            String keyword,
+            AccountStatus status,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction) {
 
         Pageable pageable = pageableUtils.createPageable(
-                page,
-                size,
-                sortBy.getField(),
-                direction
-        );
+                page, size, sortBy.getField(), direction);
+
         return customerRepository
-                .searchCustomer(keywords, status, pageable)
+                .searchCustomer(keyword, status, pageable)
                 .map(customerMapper::toResponse);
     }
+
 
     @Override
     public CustomerResponse findById(Long id) {
