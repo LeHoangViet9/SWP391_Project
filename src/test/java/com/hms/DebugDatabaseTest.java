@@ -28,7 +28,7 @@ public class DebugDatabaseTest {
             List<User> users = userRepository.findAll();
             System.out.println("Successfully loaded " + users.size() + " users via JPA!");
             for (User u : users) {
-                System.out.println("User: " + u.getUserName() + ", Enabled: " + u.isEnabled());
+                System.out.println("User: " + u.getEmail() + ", Enabled: " + u.getEnabled());
             }
         } catch (Exception e) {
             System.out.println("JPA Load failed again!");

@@ -68,7 +68,7 @@ AND (
     :keyword IS NULL
     OR LOWER(r.roomNumber) LIKE LOWER(CONCAT('%', :keyword, '%'))
     OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-    OR CAST(r.floor AS string) LIKE CONCAT('%', :keyword, '%')
+    OR CAST(r.floorNumber AS string) LIKE CONCAT('%', :keyword, '%')
     OR LOWER(r.roomStatus) LIKE LOWER(CONCAT('%', :keyword, '%'))
 )
 """)
