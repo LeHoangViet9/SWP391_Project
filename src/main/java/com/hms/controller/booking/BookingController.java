@@ -258,4 +258,19 @@ public class BookingController {
                 .build();
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/check-availability")
+    public ResponseEntity<ApiResponse<Long>> checkAvailability(
+            @RequestParam Long roomTypeId,
+            @RequestParam LocalDateTime checkInDate,
+            @RequestParam LocalDateTime checkOutDate) {
+
+        long availableRooms = bookingService.checkAvailability(roomTypeId, checkInDate, checkOutDate);
+        return ResponseEntity.ok(ApiResponse.<Long>builder()
+                .success(true)
+                .message("success.booking.check.availability")
+                .data(availableRooms)
+                .status(HttpStatus.OK)
+                .build());
+    }
 }

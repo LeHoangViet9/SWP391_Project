@@ -34,4 +34,6 @@ public interface BookingService {
     BookingResponse updateBookingStatus(Long id, BookingStatusRequest request);
 
     BookingResponse assignRoom(Long bookingId, BookingRoomAssignRequest request);
+
+    long checkAvailability(Long roomTypeId, LocalDateTime checkInDate, LocalDateTime checkOutDate);
 }

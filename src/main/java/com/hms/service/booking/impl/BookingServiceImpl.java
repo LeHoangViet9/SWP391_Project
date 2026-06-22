@@ -357,4 +357,23 @@ public class BookingServiceImpl implements BookingService {
         BigDecimal roomCharge = BillingUtils.calculateRoomChargePerNight(BigDecimal.valueOf(roomType.getBasePrice()), nights);
         return roomCharge.multiply(BigDecimal.valueOf(request.getQuantity()));
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long checkAvailability(Long roomTypeId, LocalDateTime checkInDate, LocalDateTime checkOutDate) {
+        long totalActiveRoomCount = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
+                roomTypeId,
+                List.of(RoomStatus.INACTIVE, RoomStatus.MAINTENANCE)
+        );
+
+        long bookedQuantity = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
+                roomTypeId,
+                checkInDate,
+                checkOutDate,
+                null,
+                ROOM_HOLDING_STATUSES
+        );
+        long remainingQuantity = totalActiveRoomCount - bookedQuantity;
+        return Math.max(remainingQuantity, 0);
+    }
 }
