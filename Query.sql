@@ -286,21 +286,21 @@ VALUES
 -- 13. BẢNG ROOM_STATE_HISTORY (15 Lịch sử thay đổi trạng thái phòng)
 INSERT INTO room_state_history (room_id, previous_state, current_state, triggered_by_process, triggered_by_user, changed_at)
 VALUES
-    (1, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
-    (2, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
-    (3, 'MAINTENANCE', 'AVAILABLE', 'MAINTENANCE', 10, NOW()),
-    (4, 'AVAILABLE', 'OCCUPIED', 'CHECKIN', 4, NOW()),
-    (5, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW()),
-    (6, 'OCCUPIED', 'DIRTY', 'CHECKOUT', 4, NOW()),
-    (6, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
-    (7, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
-    (8, 'AVAILABLE', 'OCCUPIED', 'CHECKIN', 5, NOW()),
-    (10, 'OCCUPIED', 'DIRTY', 'CHECKOUT', 4, NOW()),
-    (11, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW()),
-    (12, 'AVAILABLE', 'MAINTENANCE', 'MAINTENANCE', 12, NOW()),
-    (13, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
-    (14, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
-    (15, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW());
+    (1, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 7, NOW()),
+    (2, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 8, NOW()),
+    (3, 'MAINTENANCE', 'AVAILABLE', 'TASK_MAINTENANCE', 10, NOW()),
+    (4, 'AVAILABLE', 'OCCUPIED', 'TASK_IN_PROGRESS', 4, NOW()),
+    (5, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 9, NOW()),
+    (6, 'OCCUPIED', 'DIRTY', 'TASK_COMPLETION', 4, NOW()),
+    (6, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 7, NOW()),
+    (7, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 8, NOW()),
+    (8, 'AVAILABLE', 'OCCUPIED', 'TASK_IN_PROGRESS', 5, NOW()),
+    (10, 'OCCUPIED', 'DIRTY', 'TASK_COMPLETION', 4, NOW()),
+    (11, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 9, NOW()),
+    (12, 'AVAILABLE', 'MAINTENANCE', 'TASK_MAINTENANCE', 12, NOW()),
+    (13, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 7, NOW()),
+    (14, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 8, NOW()),
+    (15, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 9, NOW());
 
 
 select * from permission

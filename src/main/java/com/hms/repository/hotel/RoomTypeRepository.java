@@ -39,11 +39,11 @@ SELECT rt
 FROM RoomType rt
 WHERE rt.status = com.hms.common.enums.AccountStatus.ACTIVE
 AND (
-    :keyword IS NULL
-    OR CAST(rt.id AS string) LIKE CONCAT('%', :keyword, '%')
-    OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-    OR CAST(rt.basePrice AS string) LIKE CONCAT('%', :keyword, '%')
-    OR CAST(rt.maxGuests AS string) LIKE CONCAT('%', :keyword, '%')
+    CAST(:keyword AS string) IS NULL
+    OR CAST(rt.id AS string) LIKE CONCAT('%', CAST(:keyword AS string), '%')
+    OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+    OR CAST(rt.basePrice AS string) LIKE CONCAT('%', CAST(:keyword AS string), '%')
+    OR CAST(rt.maxGuests AS string) LIKE CONCAT('%', CAST(:keyword AS string), '%')
 )
 """)
         Page<RoomType> searchRoomTypes(
