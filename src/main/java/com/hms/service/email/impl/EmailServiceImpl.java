@@ -207,4 +207,38 @@ public class EmailServiceImpl implements EmailService {
 
             "</table></td></tr></table></body></html>";
     }
+
+    @Override
+    public void sendActiveUserMail(String to, String fullName, String otpCode) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+
+        String subject = messageSource.getMessage("active.account", null, locale);
+        message.setSubject(subject);
+
+        String bodyText = messageSource.getMessage("otp.code", new Object[]{fullName, otpCode}, locale);
+        message.setText(bodyText);
+
+        mailSender.send(message);
+    }
+
+    @Override
+    public void sendForgotPasswordOtpMail(String email, String fullName, String otpCode) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+
+        String subject = messageSource.getMessage("reset.password", null, locale);
+        message.setSubject(subject);
+
+        String bodyText = messageSource.getMessage("otp.code", new Object[]{fullName, otpCode}, locale);
+        message.setText(bodyText);
+
+        mailSender.send(message);
+    }
+
+
 }

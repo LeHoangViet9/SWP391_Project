@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Mail, Phone, ShieldCheck, UserCircle, Clock, BadgeCheck, RefreshCw } from 'lucide-react';
+import { Mail, Phone, ShieldCheck, Clock, BadgeCheck, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
 

@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Tạo tài khoản test khi khởi động (chỉ nếu username chưa tồn tại).
+ * Tạo tài khoản test khi khởi động (chỉ nếu email chưa tồn tại).
  * Mật khẩu được BCrypt hash — KHÔNG thể giải mã ngược từ DB.
  * Xem mật khẩu gốc trong log startup hoặc file TEST_ACCOUNTS.md.
  */
@@ -66,6 +66,7 @@ public class UserDataInitializer implements ApplicationRunner {
                     .phone(tu.phone())
                     .password(passwordEncoder.encode(tu.plainPassword()))
                     .accountStatus(AccountStatus.ACTIVE)
+                    .enabled(true)
                     .role(role)
                     .build();
 

@@ -6,11 +6,17 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 
 @PasswordMatch
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class UserRegisterRequest implements PasswordConfirmable {
     @NotBlank(message = "{user.fullname.notblank}")
     private String fullName;
@@ -31,10 +37,9 @@ public class UserRegisterRequest implements PasswordConfirmable {
     private String email;
 
     @NotBlank(message = "{user.phone.notblank}")
-    @Pattern(regexp = "^(0|\\+84)[0-9]{9}$", message = "{user.phone.invalid}")
+    @Pattern(regexp = "^(0|\\+84)(3|5|7|8|9)[0-9]{8}$", message = "{user.phone.invalid}")
     private String phone;
 
-    // Implement PasswordConfirmable interface
     @Override
     public String getConfirmPassword() {
         return this.rePassword;

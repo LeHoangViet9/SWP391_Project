@@ -327,7 +327,7 @@ public class BookingServiceImpl implements BookingService {
     private void validateRoomAvailability(BookingRequest request, Long excludedBookingId, Locale locale){
         long totalActiveRoomCount = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
                 request.getRoomTypeId(),
-                List.of(RoomStatus.INACTIVE, RoomStatus.OUT_OF_ORDER)
+                List.of(RoomStatus.INACTIVE, RoomStatus.MAINTENANCE)
         );
 
         long bookedQuantity = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
