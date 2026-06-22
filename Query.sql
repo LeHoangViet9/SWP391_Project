@@ -2,35 +2,23 @@
 TRUNCATE TABLE room_state_history, room_img, equipment_images, repair_requests, equipments, invoices, bookings, customers, room, room_type, users, roles RESTART IDENTITY CASCADE;
 
 -- Cập nhật/Sửa đổi các check constraint cũ của Hibernate để khớp với các giá trị Enum mới trong Java code
--- 1. Đồng bộ với MaintenanceStatus enum
 ALTER TABLE repair_requests DROP CONSTRAINT IF EXISTS repair_requests_status_check;
-ALTER TABLE repair_requests ADD CONSTRAINT repair_requests_status_check
-    CHECK (status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'));
+ALTER TABLE repair_requests ADD CONSTRAINT repair_requests_status_check CHECK (status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'));
 
--- 2. CẬP NHẬT: Đồng bộ đầy đủ với RoomStatus enum (Thêm RESERVED, CLEANING, READY, OUT_OF_ORDER)
 ALTER TABLE room DROP CONSTRAINT IF EXISTS room_room_status_check;
-ALTER TABLE room ADD CONSTRAINT room_room_status_check
-    CHECK (room_status IN ('AVAILABLE', 'MAINTENANCE', 'INACTIVE', 'RESERVED', 'CLEANING', 'DIRTY', 'OCCUPIED', 'READY', 'OUT_OF_ORDER'));
+ALTER TABLE room ADD CONSTRAINT room_room_status_check CHECK (room_status IN ('AVAILABLE', 'OCCUPIED', 'DIRTY', 'MAINTENANCE', 'INACTIVE'));
 
--- 3. Đồng bộ với BookingStatus enum
 ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_booking_status_check;
-ALTER TABLE bookings ADD CONSTRAINT bookings_booking_status_check
-    CHECK (booking_status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED', 'NO_SHOW'));
+ALTER TABLE bookings ADD CONSTRAINT bookings_booking_status_check CHECK (booking_status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED', 'NO_SHOW'));
 
--- 4. Đồng bộ với PaymentStatus enum
 ALTER TABLE invoices DROP CONSTRAINT IF EXISTS invoices_payment_status_check;
-ALTER TABLE invoices ADD CONSTRAINT invoices_payment_status_check
-    CHECK (payment_status IN ('PENDING', 'PAID', 'REFUNDED', 'CANCELLED'));
+ALTER TABLE invoices ADD CONSTRAINT invoices_payment_status_check CHECK (payment_status IN ('PENDING', 'PAID', 'REFUNDED', 'CANCELLED'));
 
--- 5. Đồng bộ với PaymentMethod enum
 ALTER TABLE invoices DROP CONSTRAINT IF EXISTS invoices_payment_method_check;
-ALTER TABLE invoices ADD CONSTRAINT invoices_payment_method_check
-    CHECK (payment_method IN ('CASH', 'CARD', 'VNPAY', 'TRANSFER'));
+ALTER TABLE invoices ADD CONSTRAINT invoices_payment_method_check CHECK (payment_method IN ('CASH', 'CARD', 'VNPAY', 'TRANSFER'));
 
--- 6. Đồng bộ với IdType enum
 ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_id_type_check;
-ALTER TABLE customers ADD CONSTRAINT customers_id_type_check
-    CHECK (id_type IN ('CCCD', 'PASSPORT', 'OTHER'));
+ALTER TABLE customers ADD CONSTRAINT customers_id_type_check CHECK (id_type IN ('CCCD', 'PASSPORT', 'OTHER'));
 
 -- 1. BẢNG ROLES (6 Vai trò tiêu chuẩn của hệ thống)
 INSERT INTO roles (role_name, permissions)
@@ -43,37 +31,24 @@ VALUES
     ('HOUSEKEEPER', '["room:read", "room:update-status"]');
 
 -- 2. BẢNG USERS (15 tài khoản đăng nhập)
--- Mật khẩu đã được mã hóa BCrypt tương ứng với chuỗi '123456a' để dễ dàng đăng nhập chạy thử và thỏa mãn độ phức tạp mật khẩu
-INSERT INTO users (
-    full_name,
-    email,
-    phone,
-    password,
-    account_status,
-    created_at,
-    role_id
-)
+-- Mật khẩu tương ứng với chuỗi '123456a'
+INSERT INTO users (user_name, full_name, email, phone, password, account_status, created_at, role_id)
 VALUES
-    ('HMS Administrator', '[admin@hms.com](mailto:admin@hms.com)', '0901234560', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 1),
-    ('Nguyễn Hồng Hải', 'manager1@hms.com', '0901234561', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 2),
-    ('Trần Kim Oanh', 'manager2@hms.com', '0901234562', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 2),
-
-    ('Phạm Minh Trí', 'reception1@hms.com', '0901234563', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
-    ('Lê Thu Thảo', 'reception2@hms.com', '0901234564', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
-    ('Vũ Hoàng Nam', 'reception3@hms.com', '0901234565', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
-
-    ('Nguyễn Thị Hoa', 'housekeeper1@hms.com', '0901234566', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
-    ('Trần Thị Mai', 'housekeeper2@hms.com', '0901234567', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
-    ('Lê Thị Đào', 'housekeeper3@hms.com', '0901234568', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
-
-    ('Nguyễn Văn Hùng', 'maintenance1@hms.com', '0901234569', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
-    ('Trần Văn Mạnh', 'maintenance2@hms.com', '0901234570', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
-    ('Phạm Văn Dũng', 'maintenance3@hms.com', '0901234571', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
-
-    ('Trần Văn An', 'customer1@gmail.com', '0908111222', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
-    ('Lê Thị Bình', 'customer2@gmail.com', '0908333444', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
-    ('Nguyễn Hoàng Cường', 'customer3@gmail.com', '0908555666', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3);
-
+    ('admin', 'HMS Administrator', 'admin@hms.com', '0901234560', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 1),
+    ('manager1', 'Nguyễn Hồng Hải', 'manager1@hms.com', '0901234561', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 2),
+    ('manager2', 'Trần Kim Oanh', 'manager2@hms.com', '0901234562', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 2),
+    ('reception1', 'Phạm Minh Trí', 'reception1@hms.com', '0901234563', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
+    ('reception2', 'Lê Thu Thảo', 'reception2@hms.com', '0901234564', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
+    ('reception3', 'Vũ Hoàng Nam', 'reception3@hms.com', '0901234565', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
+    ('housekeeper1', 'Nguyễn Thị Hoa', 'housekeeper1@hms.com', '0901234566', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
+    ('housekeeper2', 'Trần Thị Mai', 'housekeeper2@hms.com', '0901234567', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
+    ('housekeeper3', 'Lê Thị Đào', 'housekeeper3@hms.com', '0901234568', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
+    ('maintenance1', 'Nguyễn Văn Hùng', 'maintenance1@hms.com', '0901234569', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
+    ('maintenance2', 'Trần Văn Mạnh', 'maintenance2@hms.com', '0901234570', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
+    ('maintenance3', 'Phạm Văn Dũng', 'maintenance3@hms.com', '0901234571', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
+    ('customer1', 'Trần Văn An', 'customer1@gmail.com', '0908111222', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+    ('customer2', 'Lê Thị Bình', 'customer2@gmail.com', '0908333444', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+    ('customer3', 'Nguyễn Hoàng Cường', 'customer3@gmail.com', '0908555666', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3);
 
 -- 3. BẢNG ROOM_TYPE (15 Loại phòng)
 INSERT INTO room_type (type_name, description, base_price, max_guests, status)
@@ -264,24 +239,21 @@ VALUES
     (14, 'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=800&auto=format&fit=crop&q=60', 'Bungalow sát biển hướng bình minh', NOW()),
     (15, 'https://images.unsplash.com/photo-1568495248636-6432b97bd949?w=800&auto=format&fit=crop&q=60', 'Economy Room đơn giản tiết kiệm', NOW());
 
--- 13. BẢNG ROOM_STATE_HISTORY (15 Lịch sử thay đổi trạng thái phòng)
+-- 13. BẢNG ROOM_STATE_HISTORY (ĐÃ ĐƯỢC SỬA GIÁ TRỊ ENUM ĐỂ KHỚP VỚI BACKEND HIBERNATE)
 INSERT INTO room_state_history (room_id, previous_state, current_state, triggered_by_process, triggered_by_user, changed_at)
 VALUES
-    (1, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
-    (2, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
-    (3, 'MAINTENANCE', 'AVAILABLE', 'MAINTENANCE', 10, NOW()),
-    (4, 'AVAILABLE', 'OCCUPIED', 'CHECKIN', 4, NOW()),
-    (5, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW()),
-    (6, 'OCCUPIED', 'DIRTY', 'CHECKOUT', 4, NOW()),
-    (6, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
-    (7, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
-    (8, 'AVAILABLE', 'OCCUPIED', 'CHECKIN', 5, NOW()),
-    (10, 'OCCUPIED', 'DIRTY', 'CHECKOUT', 4, NOW()),
-    (11, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW()),
-    (12, 'AVAILABLE', 'MAINTENANCE', 'MAINTENANCE', 12, NOW()),
-    (13, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
-    (14, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
-    (15, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW());
-
-
-select * from permission
+    (1, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 7, NOW()),
+    (2, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 8, NOW()),
+    (3, 'MAINTENANCE', 'AVAILABLE', 'TASK_MAINTENANCE', 10, NOW()),
+    (4, 'AVAILABLE', 'OCCUPIED', 'TASK_IN_PROGRESS', 4, NOW()),
+    (5, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 9, NOW()),
+    (6, 'OCCUPIED', 'DIRTY', 'TASK_COMPLETION', 4, NOW()),
+    (6, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 7, NOW()),
+    (7, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 8, NOW()),
+    (8, 'AVAILABLE', 'OCCUPIED', 'TASK_IN_PROGRESS', 5, NOW()),
+    (10, 'OCCUPIED', 'DIRTY', 'TASK_COMPLETION', 4, NOW()),
+    (11, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 9, NOW()),
+    (12, 'AVAILABLE', 'MAINTENANCE', 'TASK_MAINTENANCE', 12, NOW()),
+    (13, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 7, NOW()),
+    (14, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 8, NOW()),
+    (15, 'DIRTY', 'AVAILABLE', 'TASK_CLEANING', 9, NOW());
