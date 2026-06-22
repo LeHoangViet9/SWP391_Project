@@ -34,10 +34,7 @@ public class EquipmentController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<EquipmentResponse>>> getAllEquipments(
-            @RequestParam(required = false) Long id,
-            @RequestParam(required = false) String equipmentName,
-            @RequestParam(required = false) String equipmentCode,
-            @RequestParam(required = false) Long roomId,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) EquipmentStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -47,10 +44,7 @@ public class EquipmentController {
         Locale locale = LocaleContextHolder.getLocale();
 
         Page<EquipmentResponse> data = equipmentService.getAllEquipments(
-                id,
-                equipmentName,
-                equipmentCode,
-                roomId,
+               keyword,
                 status,
                 page,
                 size,

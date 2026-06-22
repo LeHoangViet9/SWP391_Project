@@ -15,12 +15,7 @@ public interface CustomerService {
     CustomerResponse updateCustomer(Long id,CustomerCreateDTO dto);
     void deleteCustomer(Long id);
     Page<CustomerResponse> getCustomers(
-            Long id,
-            String fullName,
-            String email,
-            String phone,
-            String idNumberCard,
-            String nationality,
+           String keyword,
             AccountStatus status,
             Integer page,
             Integer size,
