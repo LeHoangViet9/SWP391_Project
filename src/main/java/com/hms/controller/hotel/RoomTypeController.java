@@ -32,10 +32,7 @@ public class RoomTypeController {
     @GetMapping
     @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<Page<RoomTypeResponse>>> getAllRoomType(
-            @RequestParam(required = false) Long id,
-            @RequestParam(required = false) String typeName,
-            @RequestParam(required = false) Integer price,
-            @RequestParam(required = false) Integer maxGuests,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
@@ -48,10 +45,7 @@ public class RoomTypeController {
                 .success(true)
                 .message(message)
                 .data(roomTypeService.getAllRoomType(
-                        id,
-                        typeName,
-                        price,
-                        maxGuests,
+                       keyword,
                         page,
                         size,
                         sortBy,

@@ -40,16 +40,17 @@ AND (
 
     @Query("""
 SELECT c FROM Customer c
-WHERE c.status = :status
+WHERE (:status IS NULL OR c.status = :status)
 AND (
-    LOWER(c.fullName) LIKE LOWER(CONCAT('%', :keywords, '%'))
-    OR c.phone LIKE CONCAT('%', :keywords, '%')
-    OR c.idNumberCard LIKE CONCAT('%', :keywords, '%')
-    OR LOWER(c.email) LIKE LOWER(CONCAT('%', :keywords, '%'))
+    :keyword IS NULL
+    OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
+    OR LOWER(c.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+    OR c.phone LIKE CONCAT('%', :keyword, '%')
+    OR c.idNumberCard LIKE CONCAT('%', :keyword, '%')
 )
 """)
     Page<Customer> searchCustomer(
-            @Param("keywords") String keywords,
+            @Param("keyword") String keyword,
             @Param("status") AccountStatus status,
             Pageable pageable
     );

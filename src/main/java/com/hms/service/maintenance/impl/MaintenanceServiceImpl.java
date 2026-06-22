@@ -1,5 +1,6 @@
 package com.hms.service.maintenance.impl;
 
+import com.hms.common.enums.MaintenanceSeverity;
 import com.hms.common.enums.MaintenanceStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
@@ -21,7 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -179,96 +179,37 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      */
     @Override
     public Page<MaintenanceResponse> getAllRequests(
-            Long id,
-            String issueTitle,
-            Long roomId,
-            Long equipmentId,
-            Long reportedBy,
-            Long assignedTo,
-            com.hms.common.enums.MaintenanceSeverity severity,
-            com.hms.common.enums.MaintenanceStatus status,
+            String keyword, // Dùng duy nhất keyword thay cho id, issueTitle, roomId,...
+            MaintenanceSeverity severity,
+            MaintenanceStatus status,
             Integer page,
             Integer size,
             SortField sortBy,
             SortDirection direction
     ) {
-        List<RepairRequest> list = maintenanceRepository.findAll();
-        java.util.stream.Stream<RepairRequest> stream = list.stream();
+        String sortField = (sortBy != null && sortBy.getField() != null) ? sortBy.getField() : "createdAt";
 
-        if (id != null) {
-            stream = stream.filter(r -> r.getId().equals(id));
+        // 2. Tạo đối tượng Pageable tự động phân trang và sort ở DB
+        Pageable pageable = pageableUtils.createPageable(page, size, sortField, direction);
+
+        // 3. Xử lý chuỗi keyword (Thêm ký tự % để tìm kiếm gần đúng)
+        String processedKeyword = null;
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            processedKeyword = "%" + keyword.trim() + "%"; // Không cần .toLowerCase() vì Repo dùng ILIKE
         }
 
-        if (org.springframework.util.StringUtils.hasText(issueTitle)) {
-            String cleanTitle = issueTitle.trim().toLowerCase();
-            stream = stream.filter(r ->
-                    r.getIssueTitle() != null
-                            && r.getIssueTitle().toLowerCase().contains(cleanTitle)
-            );
-        }
+        // 4. Gọi DB thực hiện quét với keyword tổng hợp
+        Page<RepairRequest> requestPage = maintenanceRepository.findRequestsAdvanced(
+                processedKeyword,
+                severity,
+                status,
+                pageable
+        );
 
-        if (roomId != null) {
-            stream = stream.filter(r ->
-                    r.getRoomId() != null
-                            && r.getRoomId().equals(roomId)
-            );
-        }
-
-        if (equipmentId != null) {
-            stream = stream.filter(r ->
-                    r.getEquipmentId() != null
-                            && r.getEquipmentId().equals(equipmentId)
-            );
-        }
-
-        if (reportedBy != null) {
-            stream = stream.filter(r ->
-                    r.getReportedBy() != null
-                            && r.getReportedBy().equals(reportedBy)
-            );
-        }
-
-        if (assignedTo != null) {
-            stream = stream.filter(r ->
-                    r.getAssignedTo() != null
-                            && r.getAssignedTo().equals(assignedTo)
-            );
-        }
-
-        if (severity != null) {
-            stream = stream.filter(r -> r.getSeverity() == severity);
-        }
-
-        if (status != null) {
-            stream = stream.filter(r -> r.getStatus() == status);
-        }
-
-        List<RepairRequest> filteredList =
-                stream.collect(java.util.stream.Collectors.toList());
-
-        // Sorting:
-        // Khai báo các field có thể sort.
-        java.util.Map<String, java.util.function.Function<RepairRequest, Comparable<?>>> extractors =
-                new java.util.HashMap<>();
-
-        extractors.put("id", RepairRequest::getId);
-        extractors.put("issueTitle", RepairRequest::getIssueTitle);
-        extractors.put("roomId", r -> r.getRoomId() != null ? r.getRoomId() : 0L);
-        extractors.put("equipmentId", r -> r.getEquipmentId() != null ? r.getEquipmentId() : 0L);
-        extractors.put("reportedBy", r -> r.getReportedBy() != null ? r.getReportedBy() : 0L);
-        extractors.put("assignedTo", r -> r.getAssignedTo() != null ? r.getAssignedTo() : 0L);
-        extractors.put("severity", r -> r.getSeverity() != null ? r.getSeverity().name() : "");
-        extractors.put("status", r -> r.getStatus() != null ? r.getStatus().name() : "");
-        extractors.put("createdAt", RepairRequest::getCreatedAt);
-
-        pageableUtils.sortList(filteredList, sortBy, direction, extractors);
-
-        Pageable pageable =
-                pageableUtils.createPageable(page, size, sortBy.getField(), direction);
-
-        return pageableUtils.paginate(filteredList, pageable)
-                .map(maintenanceMapper::toResponse);
+        // 5. Map sang Response DTO trả về cho Frontend
+        return requestPage.map(maintenanceMapper::toResponse);
     }
+
 
     /*
      * Chức năng:

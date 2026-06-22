@@ -14,15 +14,12 @@ import java.util.List;
 public interface IRoomService {
 
     Page<RoomResponse> getAllRooms(
-            Long id,
-            String roomNumber,
-            Long roomTypeId,
-            Integer floor,
-            RoomStatus status,
+            String keyword,
             Integer page,
             Integer size,
             SortField sortBy,
             SortDirection direction);
+
 
     RoomResponse getRoomById(Long id);
 

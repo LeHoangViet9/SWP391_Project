@@ -32,11 +32,7 @@ public class RoomController {
     @GetMapping
     @PreAuthorize("hasAuthority('ROOM_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getAllRooms(
-            @RequestParam(required = false) Long id,
-            @RequestParam(required = false) String roomNumber,
-            @RequestParam(required = false) Long roomTypeId,
-            @RequestParam(required = false) Integer floor,
-            @RequestParam(required = false) RoomStatus status,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
@@ -48,7 +44,7 @@ public class RoomController {
         ApiResponse<Page<RoomResponse>> response = ApiResponse.<Page<RoomResponse>>builder()
                 .success(true)
                 .message(message)
-                .data(roomService.getAllRooms(id, roomNumber, roomTypeId, floor, status, page, size, sortBy, direction))
+                .data(roomService.getAllRooms(keyword, page, size, sortBy, direction))
                 .status(HttpStatus.OK)
                 .build();
 
