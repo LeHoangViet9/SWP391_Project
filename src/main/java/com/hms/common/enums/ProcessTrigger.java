@@ -1,6 +1,7 @@
 package com.hms.common.enums;
 
 public enum ProcessTrigger {
+<<<<<<< HEAD
     TASK_CLEANING,
     TASK_IN_PROGRESS,
     TASK_COMPLETION,
@@ -8,3 +9,12 @@ public enum ProcessTrigger {
     TASK_SKIPPED,
     TASK_MAINTENANCE
 }
+=======
+    BOOKING,
+    CHECKIN,
+    CHECKOUT,
+    HOUSEKEEPING,
+    MAINTENANCE,
+    MANUAL
+}
+>>>>>>> CheckIn

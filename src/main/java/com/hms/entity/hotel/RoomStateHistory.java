@@ -3,7 +3,10 @@ package com.hms.entity.hotel;
 import com.hms.common.enums.ProcessTrigger;
 import com.hms.common.enums.RoomStatus;
 import com.hms.entity.auth.User;
+<<<<<<< HEAD
 import com.hms.entity.housekeeping.HouseKeepingTask;
+=======
+>>>>>>> CheckIn
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,7 +25,12 @@ public class RoomStateHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+<<<<<<< HEAD
     private Long id;
+=======
+    @Column(name = "history_id")
+    private Long historyId;
+>>>>>>> CheckIn
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
@@ -47,14 +55,21 @@ public class RoomStateHistory {
     @Column(name = "changed_at", nullable = false)
     private LocalDateTime changedAt;
 
+<<<<<<< HEAD
     private String reason;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "task_id")
     private HouseKeepingTask task;
 
+=======
+>>>>>>> CheckIn
     @PrePersist
     protected void onCreate() {
         this.changedAt = LocalDateTime.now();
     }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> CheckIn
