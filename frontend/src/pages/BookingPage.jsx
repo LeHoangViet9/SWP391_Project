@@ -281,10 +281,6 @@ function BookingContent() {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded mb-6">{error}</div>
-        )}
-
         {/* Step 1: Dates & quantity */}
         {step === 1 && (
           <div className="bg-white border border-stone-200 shadow-lg p-6 space-y-5">
@@ -338,6 +334,9 @@ function BookingContent() {
               <span className="text-slate-600">{nights} {t('bookingPage.nights')} × {booking.quantity} {t('booking.rooms')}</span>
               <span className="text-xl font-bold text-[#bfa15f]">{formatPrice(totalEstimate, locale)}</span>
             </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded text-center font-medium shadow-sm">{error}</div>
+            )}
             <button
               onClick={() => setStep(2)}
               disabled={checkingAvailability || (availableRoomsCount !== null && availableRoomsCount < booking.quantity)}
@@ -405,6 +404,9 @@ function BookingContent() {
                 <span className="text-[#bfa15f]">{formatPrice(totalEstimate, locale)}</span>
               </div>
             </div>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded text-center font-medium shadow-sm mb-4">{error}</div>
+            )}
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="flex-1 py-3 border border-stone-300 text-slate-600 font-medium hover:border-[#bfa15f] transition-colors">{t('bookingPage.back')}</button>
               <button onClick={handleSubmit} disabled={loading} className="flex-1 btn-gold py-3 rounded disabled:opacity-60">
