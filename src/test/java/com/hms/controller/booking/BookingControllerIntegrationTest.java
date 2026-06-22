@@ -8,7 +8,6 @@ import com.hms.common.enums.AccountStatus;
 import com.hms.dto.booking.request.BookingRequest;
 import com.hms.dto.booking.request.BookingRoomAssignRequest;
 import com.hms.dto.booking.request.BookingStatusRequest;
-import com.hms.entity.booking.Booking;
 import com.hms.entity.booking.Invoice;
 import com.hms.entity.customer.Customer;
 import com.hms.entity.hotel.Room;
@@ -39,14 +38,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
+@org.springframework.security.test.context.support.WithMockUser(authorities = {
+        "BOOKING_VIEW",
+        "BOOKING_CREATE",
+        "BOOKING_UPDATE",
+        "BOOKING_DELETE"
+})
 public class BookingControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private BookingRepository bookingRepository;
 
     @Autowired
     private RoomTypeRepository roomTypeRepository;

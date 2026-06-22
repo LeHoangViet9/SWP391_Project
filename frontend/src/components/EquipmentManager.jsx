@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Edit2, ImagePlus, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { equipmentService } from '../services/equipmentService';
 import { useLocale } from '../context/LocaleContext';
+import { usePermission } from '../hooks/usePermission';
+import { equipmentService } from '../services/equipmentService';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -46,9 +46,12 @@ function getImageUrl(item) {
 
 export default function EquipmentManager() {
   const { locale, t } = useLocale();
-  const { hasRole } = useAuth();
+  const { hasPermission } = usePermission();
 
-  const canManage = hasRole('ADMIN', 'MANAGER', 'MAINTENANCE');
+  const canCreate = hasPermission('EQUIPMENT_CREATE');
+  const canUpdate = hasPermission('EQUIPMENT_UPDATE');
+  const canDelete = hasPermission('EQUIPMENT_DELETE');
+  const canManage = canCreate || canUpdate || canDelete;
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);

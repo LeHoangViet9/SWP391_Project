@@ -64,9 +64,9 @@ public class CustomerController {
         ),HttpStatus.OK);
     }
 
-    // 3. Tạo mới khách hàng -> Quyền tạo (CUSTOMER_CREATE)
+    // 3. Tạo mới khách hàng -> Quyền tạo (CUSTOMER_CREATE) hoặc Khách hàng tự tạo profile của mình
     @PostMapping
-    @PreAuthorize("hasAuthority('CUSTOMER_CREATE')")
+    @PreAuthorize("hasAuthority('CUSTOMER_CREATE') or (hasRole('CUSTOMER') and #customerCreateDTO.email == authentication.name)")
     public ResponseEntity<ApiResponse<CustomerResponse>> createCustomer(@Valid @RequestBody CustomerCreateDTO  customerCreateDTO){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
@@ -77,9 +77,9 @@ public class CustomerController {
         ),HttpStatus.CREATED);
     }
 
-    // 4. Cập nhật thông tin khách hàng -> Quyền cập nhật (CUSTOMER_UPDATE)
+    // 4. Cập nhật thông tin khách hàng -> Quyền cập nhật (CUSTOMER_UPDATE) hoặc Khách hàng tự cập nhật profile của mình
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('CUSTOMER_UPDATE')")
+    @PreAuthorize("hasAuthority('CUSTOMER_UPDATE') or (hasRole('CUSTOMER') and #customerCreateDTO.email == authentication.name)")
     public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(@Valid @RequestBody CustomerCreateDTO  customerCreateDTO, @PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(

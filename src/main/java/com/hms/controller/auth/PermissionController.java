@@ -19,7 +19,7 @@ import java.util.Locale;
 @RestController
 @RequestMapping("/api/v1/permissions")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('USER_UPDATE')")
 public class PermissionController {
 
     private final PermissionService permissionService;

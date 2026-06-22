@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
+import { usePermission } from '../hooks/usePermission';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -27,6 +28,11 @@ const EMPTY_FORM = {
 
 export default function StaffManager() {
   const { t } = useLocale();
+  const { hasPermission } = usePermission();
+
+  const canCreate = hasPermission('USER_CREATE');
+  const canEdit = hasPermission('USER_UPDATE');
+  const canDelete = hasPermission('USER_DELETE');
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -85,11 +91,13 @@ export default function StaffManager() {
   }, [page, statusFilter, fetchData]);
 
   const openCreate = () => {
+    if (!canCreate) return notify(t('staff.toast.forbidden') || 'Không có quyền thực hiện', 'error');
     setForm(EMPTY_FORM);
     setModal({ open: true, editing: null });
   };
 
   const openEdit = (item) => {
+    if (!canEdit) return notify(t('staff.toast.forbidden') || 'Không có quyền thực hiện', 'error');
     setForm({
       fullName: item.fullName || '',
       password: '',
@@ -179,18 +187,30 @@ export default function StaffManager() {
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
-            <Edit2 size={15} />
-          </button>
-          <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa">
-            <Trash2 size={15} />
-          </button>
+          {canEdit && (
+            <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
+              <Edit2 size={15} />
+            </button>
+          )}
+          {canDelete && (
+            <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa">
+              <Trash2 size={15} />
+            </button>
+          )}
         </div>
       </td>
     </tr>
   ));
 
-  const cols = [t('staff.columns.id'), t('staff.columns.fullName'), t('staff.columns.email'), t('staff.columns.phone'), t('staff.columns.role'), t('staff.columns.status'), t('staff.columns.actions')];
+  const cols = [
+    t('staff.columns.id'),
+    t('staff.columns.fullName'),
+    t('staff.columns.email'),
+    t('staff.columns.phone'),
+    t('staff.columns.role'),
+    t('staff.columns.status'),
+    ...(canEdit || canDelete ? [t('staff.columns.actions')] : [])
+  ];
 
   return (
     <div>
@@ -238,9 +258,11 @@ export default function StaffManager() {
             <RefreshCw size={14} />
           </button>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
-          <Plus size={16} /> {t('staff.addBtn')}
-        </button>
+        {canCreate && (
+          <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
+            <Plus size={16} /> {t('staff.addBtn')}
+          </button>
+        )}
       </div>
 
       <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />

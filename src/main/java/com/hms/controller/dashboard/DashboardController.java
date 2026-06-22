@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class DashboardController {
     private final DashboardService dashboardService;
     @GetMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     public ResponseEntity<ApiResponse<AdminDashboardResponse>> getAdminDashboard() {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
@@ -34,7 +34,7 @@ public class DashboardController {
 
 
     @GetMapping("/receptionist")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'RECEPTIONIST')")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     public ResponseEntity<ApiResponse<ReceptionistDashboardResponse>> getReceptionistDashboard() {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
@@ -45,7 +45,7 @@ public class DashboardController {
         );
     }
     @GetMapping("/maintenance")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     public ResponseEntity<ApiResponse<MaintenanceDashboardResponse>> getMaintenanceDashboard() {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,

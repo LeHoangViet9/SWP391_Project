@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LocaleProvider } from './context/LocaleContext';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -10,12 +10,8 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import BookingPage from './pages/BookingPage';
-import AdminDashboard from './pages/AdminDashboard';
-import ReceptionistDashboard from './pages/ReceptionistDashboard';
-import HousekeeperDashboard from './pages/HousekeeperDashboard';
-import MaintenanceDashboard from './pages/MaintenanceDashboard';
-import CustomerDashboard from './pages/CustomerDashboard';
 import InvoicePage from './pages/InvoicePage';
+import DashboardRouter from './pages/DashboardRouter';
 
 export default function App() {
   return (
@@ -32,72 +28,12 @@ export default function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-            {/* Customer Route — mọi role đã đăng nhập */}
+            {/* Customer Booking Route — mọi role đã đăng nhập */}
             <Route
               path="/booking"
               element={
                 <ProtectedRoute>
                   <BookingPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Admin Dashboard — ADMIN toàn quyền */}
-            <Route
-              path="/admin/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Manager Dashboard — dùng chung AdminDashboard */}
-            <Route
-              path="/manager/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Receptionist Dashboard */}
-            <Route
-              path="/receptionist/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN']}>
-                  <ReceptionistDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Housekeeper Dashboard */}
-            <Route
-              path="/housekeeper/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['HOUSEKEEPER', 'ADMIN']}>
-                  <HousekeeperDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Maintenance Dashboard */}
-            <Route
-              path="/maintenance/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['MAINTENANCE', 'ADMIN']}>
-                  <MaintenanceDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Customer Dashboard */}
-            <Route
-              path="/customer/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['CUSTOMER']}>
-                  <CustomerDashboard />
                 </ProtectedRoute>
               }
             />
@@ -111,6 +47,24 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* ═══ UNIFIED DASHBOARD — replaces all role-specific dashboards ═══ */}
+            <Route
+              path="/dashboard/*"
+              element={
+                <ProtectedRoute>
+                  <DashboardRouter />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ═══ BACKWARD COMPATIBILITY — redirect old role-specific paths ═══ */}
+            <Route path="/admin/dashboard"        element={<Navigate to="/dashboard" replace />} />
+            <Route path="/manager/dashboard"      element={<Navigate to="/dashboard" replace />} />
+            <Route path="/receptionist/dashboard"  element={<Navigate to="/dashboard" replace />} />
+            <Route path="/housekeeper/dashboard"   element={<Navigate to="/dashboard" replace />} />
+            <Route path="/maintenance/dashboard"   element={<Navigate to="/dashboard" replace />} />
+            <Route path="/customer/dashboard"      element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

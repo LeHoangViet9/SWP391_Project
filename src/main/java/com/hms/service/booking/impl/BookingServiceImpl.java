@@ -307,7 +307,7 @@ public class BookingServiceImpl implements BookingService {
         // [FIX-03] OCCUPIED -> RESERVED: room is held when CONFIRMED,
         // and only transitions to OCCUPIED when guest actually checks in
         booking.setRoom(room);
-        room.setRoomStatus(RoomStatus.OCCUPIED);
+        room.setRoomStatus(RoomStatus.RESERVED);
         roomRepository.save(room);
 
         Booking updated = bookingRepository.save(booking);

@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
 import { apiFetch } from '../services/api';
 import DataTable from './shared/DataTable';
 import { useLocale } from '../context/LocaleContext';
+import { usePermission } from '../hooks/usePermission';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
@@ -10,6 +11,13 @@ const EMPTY = { typeName: '', description: '', basePrice: '', maxGuests: '' };
 
 export default function RoomTypeManager({ readOnly = false }) {
   const { locale, t } = useLocale();
+  const { hasPermission } = usePermission();
+
+  const canCreate = hasPermission('ROOM_TYPE_CREATE');
+  const canUpdate = hasPermission('ROOM_TYPE_UPDATE');
+  const canDelete = hasPermission('ROOM_TYPE_DELETE');
+
+  const isReadOnly = readOnly || (!canCreate && !canUpdate && !canDelete);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -130,7 +138,7 @@ export default function RoomTypeManager({ readOnly = false }) {
         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.basePrice)}
       </td>
       <td className="px-4 py-3 text-center">{item.maxGuests}</td>
-      {!readOnly && (
+      {!isReadOnly && (
         <td className="px-4 py-3">
           <div className="flex items-center gap-3 justify-center">
             <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700"><Edit2 size={15} /></button>
@@ -141,7 +149,7 @@ export default function RoomTypeManager({ readOnly = false }) {
     </tr>
   ));
 
-  const cols = [t('roomType.columns.id'), t('roomType.columns.name'), t('roomType.columns.description'), t('roomType.columns.basePrice'), t('roomType.columns.maxGuests'), ...(!readOnly ? [t('roomType.columns.actions')] : [])];
+  const cols = [t('roomType.columns.id'), t('roomType.columns.name'), t('roomType.columns.description'), t('roomType.columns.basePrice'), t('roomType.columns.maxGuests'), ...(!isReadOnly ? [t('roomType.columns.actions')] : [])];
 
   return (
     <div>
@@ -181,7 +189,7 @@ export default function RoomTypeManager({ readOnly = false }) {
           </div>
           <button onClick={() => fetchData(0)} className="p-2 border rounded hover:bg-stone-100"><RefreshCw size={14} /></button>
         </div>
-        {!readOnly && (
+        {!isReadOnly && (
           <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow transition-colors">
             <Plus size={16} /> {t('roomType.addBtn')}
           </button>

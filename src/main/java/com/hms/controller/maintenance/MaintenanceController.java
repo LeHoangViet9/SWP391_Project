@@ -13,7 +13,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/maintenance-requests")
@@ -23,7 +22,7 @@ public class MaintenanceController {
     private final MaintenanceService maintenanceService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_CREATE')")
     public ApiResponse<MaintenanceResponse> createRequest(
             @Valid @RequestBody MaintenanceRequestCreateDTO dto
     ) {
@@ -34,7 +33,7 @@ public class MaintenanceController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_VIEW')")
     public ApiResponse<Page<MaintenanceResponse>> getAllRequests(
             @RequestParam(required = false) Long id,
             @RequestParam(required = false) String issueTitle,
@@ -69,7 +68,7 @@ public class MaintenanceController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_VIEW')")
     public ApiResponse<MaintenanceResponse> getRequestById(
             @PathVariable Long id
     ) {
@@ -80,7 +79,7 @@ public class MaintenanceController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_UPDATE')")
     public ApiResponse<MaintenanceResponse> updateRequest(
             @PathVariable Long id,
             @Valid @RequestBody MaintenanceRequestUpdateDTO dto
@@ -92,7 +91,7 @@ public class MaintenanceController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_DELETE')")
     public ApiResponse<Void> deleteRequest(
             @PathVariable Long id
     ) {

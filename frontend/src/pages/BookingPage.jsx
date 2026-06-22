@@ -11,10 +11,9 @@ import { roomTypes as mockRoomTypes } from '../data/mockData';
 import { apiFetch } from '../services/api';
 import { createBooking } from '../services/bookingService';
 import {
-  createCustomer,
   getStoredCustomerId,
   saveCustomerId,
-  searchCustomerByEmail,
+  createCustomer,
 } from '../services/customerService';
 import BookingFailureModal from '../components/BookingFailureModal';
 
@@ -77,8 +76,6 @@ function BookingContent() {
     nationality: locale === 'vi' ? 'Việt Nam' : 'Vietnam',
   });
 
-  // Email dùng để lookup customer phải là email tài khoản đang login (nếu có)
-  const lookupEmail = user?.email || customerForm.email;
 
   useEffect(() => {
     const mock = mockRoomTypes.find((r) => String(r.id) === roomTypeId);
@@ -132,44 +129,38 @@ function BookingContent() {
 
   useEffect(() => {
     if (!user) return;
-    if (user.email) {
-      searchCustomerByEmail(user.email, locale)
-        .then((found) => {
-          if (found) {
-            saveCustomerId(found.id);
-            setCustomerForm({
-              fullName: found.fullName || user.fullName || '',
-              email: found.email || user.email || '',
-              phone: found.phone || user.phone || '',
-              idType: found.idType || 'CCCD',
-              idNumberCard: found.idNumberCard || '',
-              nationality: found.nationality || (locale === 'vi' ? 'Việt Nam' : 'Vietnam'),
-            });
-          } else {
-            setCustomerForm((prev) => ({
-              ...prev,
-              fullName: user.fullName || prev.fullName,
-              email: user.email || prev.email,
-              phone: user.phone || prev.phone,
-            }));
-          }
-        })
-        .catch(() => {
+    // Dùng /customers/me — endpoint self-service, không cần CUSTOMER_VIEW permission
+    apiFetch('/customers/me', {}, locale)
+      .then((res) => {
+        const found = res?.data;
+        if (found?.id) {
+          saveCustomerId(found.id);
+          setCustomerForm({
+            fullName: found.fullName || user.fullName || '',
+            email:    found.email    || user.email    || '',
+            phone:    found.phone    || user.phone    || '',
+            idType:      found.idType      || 'CCCD',
+            idNumberCard: found.idNumberCard || '',
+            nationality:  found.nationality  || (locale === 'vi' ? 'Việt Nam' : 'Vietnam'),
+          });
+        } else {
+          // Chưa có customer profile — điền sẵn thông tin từ tài khoản
           setCustomerForm((prev) => ({
             ...prev,
             fullName: user.fullName || prev.fullName,
-            email: user.email || prev.email,
-            phone: user.phone || prev.phone,
+            email:    user.email    || prev.email,
+            phone:    user.phone    || prev.phone,
           }));
-        });
-    } else {
-      setCustomerForm((prev) => ({
-        ...prev,
-        fullName: user.fullName || prev.fullName,
-        email: user.email || prev.email,
-        phone: user.phone || prev.phone,
-      }));
-    }
+        }
+      })
+      .catch(() => {
+        setCustomerForm((prev) => ({
+          ...prev,
+          fullName: user.fullName || prev.fullName,
+          email:    user.email    || prev.email,
+          phone:    user.phone    || prev.phone,
+        }));
+      });
   }, [user, locale]);
 
   const nights = nightsBetween(booking.checkIn, booking.checkOut);
@@ -177,41 +168,80 @@ function BookingContent() {
   const totalEstimate = pricePerNight * nights * booking.quantity;
 
   const ensureCustomerId = async () => {
-    // Dùng email tài khoản login để tra cứu/tạo customer profile
-    // Đảm bảo lịch sử đặt phòng được liên kết đúng với tài khoản
-    const emailToUse = lookupEmail;
-
-    if (emailToUse) {
+    // ── Bước 1: Nếu user đăng nhập, gọi /customers/me để lấy profile
+    // Endpoint này chỉ cần isAuthenticated() — không phụ thuộc vào CUSTOMER_VIEW permission
+    if (user) {
       try {
-        const found = await searchCustomerByEmail(emailToUse, locale);
-        if (found?.id) {
-          saveCustomerId(found.id);
-          return Number(found.id);
+        const meRes = await apiFetch('/customers/me', {}, locale);
+        if (meRes?.data?.id) {
+          saveCustomerId(meRes.data.id);
+          return Number(meRes.data.id);
         }
-      } catch (_) { /* tiếp tục tạo mới */ }
+      } catch (_) {
+        // chưa có profile — tiếp tục tạo mới
+      }
     }
 
-    // Chỉ kiểm tra localStorage nếu KHÔNG có tài khoản đăng nhập
+    // ── Bước 2: Nếu không đăng nhập, kiểm tra localStorage
     if (!user) {
       const stored = getStoredCustomerId();
       if (stored) return Number(stored);
     }
 
-    // Tạo mới customer profile
+    // ── Bước 3: Tạo mới customer profile (cần CUSTOMER_CREATE permission)
     const res = await createCustomer({
       fullName: customerForm.fullName,
-      email: emailToUse || customerForm.email,
+      email: user?.email || customerForm.email,
       phone: customerForm.phone,
       idType: customerForm.idType,
       idNumberCard: customerForm.idNumberCard,
       nationality: customerForm.nationality,
     }, locale);
 
-    return res.data.id;
+    if (res?.data?.id) {
+      saveCustomerId(res.data.id);
+      return Number(res.data.id);
+    }
+    throw new Error(locale === 'vi' ? 'Không thể xác định thông tin khách hàng' : 'Could not resolve customer profile');
+  };
+
+  const validateForm = () => {
+    if (!customerForm.fullName.trim()) {
+      return locale === 'vi' ? 'Họ và tên không được để trống' : 'Full name is required';
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!customerForm.email.trim() || !emailRegex.test(customerForm.email)) {
+      return locale === 'vi' ? 'Email không hợp lệ' : 'Invalid email address';
+    }
+
+    const phoneRegex = /^0[0-9]{9}$/;
+    if (!customerForm.phone.trim() || !phoneRegex.test(customerForm.phone)) {
+      return locale === 'vi' ? 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0' : 'Phone number must be 10 digits starting with 0';
+    }
+
+    const idCardRegex = /^[A-Za-z0-9\-]{6,20}$/;
+    if (!customerForm.idNumberCard.trim()) {
+      return locale === 'vi' ? 'Số CCCD/Passport không được để trống' : 'ID/Passport number is required';
+    }
+    if (!idCardRegex.test(customerForm.idNumberCard)) {
+      return locale === 'vi' ? 'Số CCCD/Passport không hợp lệ (phải từ 6-20 ký tự chữ hoặc số)' : 'Invalid ID/Passport number (must be 6-20 alphanumeric characters)';
+    }
+
+    if (!customerForm.nationality.trim()) {
+      return locale === 'vi' ? 'Quốc tịch không được để trống' : 'Nationality is required';
+    }
+
+    return null;
   };
 
   const handleSubmit = async () => {
     setError('');
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setLoading(true);
     try {
       const customerId = await ensureCustomerId();
@@ -384,7 +414,7 @@ function BookingContent() {
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">Email</label>
                 <input
                   type="email" required
-                  value={lookupEmail || customerForm.email}
+                  value={customerForm.email}
                   onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
                   readOnly={!!user?.email}
                   className={`w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f] ${user?.email ? 'bg-stone-50 text-slate-500 cursor-not-allowed' : ''}`}

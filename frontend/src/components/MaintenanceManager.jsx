@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, RefreshCw, Check, ChevronDown, X, Search } from 'l
 import { useAuth } from '../context/AuthContext';
 import { maintenanceService } from '../services/maintenanceService';
 import { useLocale } from '../context/LocaleContext';
+import { usePermission } from '../hooks/usePermission';
 import { getAllRooms } from '../services/roomService';
 import { equipmentService } from '../services/equipmentService';
 import { getUsers } from '../services/userService';
@@ -48,6 +49,13 @@ const EMPTY_UPDATE = {
 export default function MaintenanceManager({ readOnly = false }) {
   const { t } = useLocale();
   const { user } = useAuth();
+  const { hasPermission } = usePermission();
+
+  const canCreate = hasPermission('MAINTENANCE_CREATE');
+  const canUpdate = hasPermission('MAINTENANCE_UPDATE');
+  const canDelete = hasPermission('MAINTENANCE_DELETE');
+
+  const isReadOnly = readOnly || (!canCreate && !canUpdate && !canDelete);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -387,11 +395,11 @@ export default function MaintenanceManager({ readOnly = false }) {
           </span>
         </td>
         <td className="px-4 py-3 text-xs text-slate-400">{formatDate(item.createdAt)}</td>
-        {!readOnly && (
+        {!isReadOnly && (
           <td className="px-4 py-3">
             <div className="flex items-center gap-3">
-              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700"><Edit2 size={15} /></button>
-              <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700"><Trash2 size={15} /></button>
+              {canUpdate && <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700"><Edit2 size={15} /></button>}
+              {canDelete && <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700"><Trash2 size={15} /></button>}
             </div>
           </td>
         )}
@@ -399,7 +407,7 @@ export default function MaintenanceManager({ readOnly = false }) {
     );
   });
 
-  const cols = [t('maintenance.columns.id'), t('maintenance.columns.title'), t('maintenance.columns.description'), t('maintenance.columns.room'), t('maintenance.columns.equipment'), t('maintenance.columns.reportedBy'), t('maintenance.columns.assignedTo'), t('maintenance.columns.severity'), t('maintenance.columns.status'), t('maintenance.columns.createdAt'), ...(!readOnly ? [t('maintenance.columns.actions')] : [])];
+  const cols = [t('maintenance.columns.id'), t('maintenance.columns.title'), t('maintenance.columns.description'), t('maintenance.columns.room'), t('maintenance.columns.equipment'), t('maintenance.columns.reportedBy'), t('maintenance.columns.assignedTo'), t('maintenance.columns.severity'), t('maintenance.columns.status'), t('maintenance.columns.createdAt'), ...(!isReadOnly ? [t('maintenance.columns.actions')] : [])];
 
   return (
     <div>
@@ -461,7 +469,7 @@ export default function MaintenanceManager({ readOnly = false }) {
           </button>
         </div>
 
-        {!readOnly && (
+        {!isReadOnly && (
           <button
             type="button"
             onClick={openCreate}

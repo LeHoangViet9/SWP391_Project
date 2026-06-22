@@ -67,6 +67,9 @@ public class SecurityConfig {
                         // 3. Module room-types: GET công khai
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/room-types/**").permitAll()
 
+                        // 4. Kiểm tra phòng trống — công khai (khách chưa đăng nhập cũng cần)
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/bookings/check-availability").permitAll()
+
                         // Tất cả các request API khác yêu cầu đăng nhập (kiểm tra quyền chi tiết qua @PreAuthorize tại Controller)
                         .requestMatchers("/api/v1/**").authenticated()
 

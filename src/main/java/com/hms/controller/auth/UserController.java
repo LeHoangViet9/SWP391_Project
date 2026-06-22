@@ -32,7 +32,7 @@ public class UserController {
     private final MessageSource messageSource;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAuthority('USER_VIEW')")
     public ResponseEntity<ApiResponse<Page<UserResponse>>> getUsers(
             @RequestParam(required = false) Long id,
             @RequestParam(required = false) String fullName,
@@ -56,7 +56,7 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_CREATE')")
+    @PreAuthorize("hasAuthority('USER_CREATE')")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @Valid @RequestBody UserManagementRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -72,7 +72,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
     public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody UserManagementRequest request) {
@@ -88,7 +88,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_DELETE')")
+    @PreAuthorize("hasAuthority('USER_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
 
@@ -102,7 +102,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/permissions")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
     public ResponseEntity<Map<String, Object>> assignPermissionsToUser(
             @PathVariable Long userId,
             @RequestBody Map<String, List<Long>> request
@@ -120,7 +120,7 @@ public class UserController {
 
     // ✅ THÊM MỚI: Xóa quyền riêng khỏi user
     @DeleteMapping("/{userId}/permissions")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAuthority('USER_UPDATE')")
     public ResponseEntity<Map<String, Object>> removePermissionsFromUser(
             @PathVariable Long userId,
             @RequestBody Map<String, List<Long>> request
@@ -137,7 +137,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/permissions")
-    @PreAuthorize("hasRole('ADMIN') or hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAuthority('USER_VIEW')")
     public ResponseEntity<Map<String, Object>> getUserPermissions(@PathVariable Long userId) {
         Locale locale = LocaleContextHolder.getLocale();
         UserResponse response = userService.getUserPermissions(userId);

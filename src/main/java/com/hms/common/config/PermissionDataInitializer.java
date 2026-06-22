@@ -59,7 +59,10 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "FEEDBACK_VIEW", "FEEDBACK_CREATE", "FEEDBACK_UPDATE", "FEEDBACK_DELETE",
 
                 // Invoice permissions
-                "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE"
+                "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE",
+
+                // System/UI permissions
+                "DASHBOARD_VIEW"
         );
 
         for (String permName : allPermissions) {
@@ -83,114 +86,85 @@ public class PermissionDataInitializer implements ApplicationRunner {
     }
 
     private void assignPermissionsToAdmin() {
-        Role admin = roleRepository.findByRoleNameIgnoreCase("ADMIN").orElse(null);
-        if (admin == null || !admin.getPermissions().isEmpty()) return;
+        List<String> adminPerms = Arrays.asList(
+                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE",
+                "ROOM_VIEW", "ROOM_CREATE", "ROOM_UPDATE", "ROOM_DELETE",
+                "ROOM_TYPE_VIEW", "ROOM_TYPE_CREATE", "ROOM_TYPE_UPDATE", "ROOM_TYPE_DELETE",
+                "DASHBOARD_VIEW"
+        );
+        syncRolePermissions("ADMIN", adminPerms);
+    }
 
-        // ADMIN có tất cả quyền -> Ép kiểu List sang HashSet
-        List<Permission> allPerms = permissionRepository.findAll();
-        admin.setPermissions(new HashSet<>(allPerms)); // SỬA Ở ĐÂY
-        roleRepository.save(admin);
-        log.info("Assigned ALL permissions to ADMIN");
+    private void syncRolePermissions(String roleName, List<String> requiredPermNames) {
+        Role role = roleRepository.findByRoleNameIgnoreCase(roleName).orElse(null);
+        if (role == null) return;
+
+        Set<Permission> targetPerms = new HashSet<>();
+        for (String permName : requiredPermNames) {
+            Permission perm = permissionRepository.findByName(permName).orElse(null);
+            if (perm != null) {
+                targetPerms.add(perm);
+            }
+        }
+
+        role.setPermissions(targetPerms);
+        roleRepository.save(role);
+        log.info("Synchronized permissions for role: {}", roleName);
     }
 
     private void assignPermissionsToManager() {
-        Role manager = roleRepository.findByRoleNameIgnoreCase("MANAGER").orElse(null);
-        if (manager == null || !manager.getPermissions().isEmpty()) return;
-
         List<String> managerPerms = Arrays.asList(
-                "USER_VIEW",
-                "ROOM_VIEW", "ROOM_CREATE", "ROOM_UPDATE", "ROOM_DELETE",
-                "ROOM_TYPE_VIEW", "ROOM_TYPE_CREATE", "ROOM_TYPE_UPDATE", "ROOM_TYPE_DELETE",
+                "DASHBOARD_VIEW",
+                "ROOM_VIEW", "ROOM_UPDATE",
+                "ROOM_TYPE_VIEW",
                 "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE", "CUSTOMER_DELETE",
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE", "BOOKING_DELETE",
                 "HOUSEKEEPING_VIEW", "HOUSEKEEPING_CREATE", "HOUSEKEEPING_UPDATE", "HOUSEKEEPING_DELETE",
                 "EQUIPMENT_VIEW", "EQUIPMENT_CREATE", "EQUIPMENT_UPDATE", "EQUIPMENT_DELETE",
                 "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE", "MAINTENANCE_DELETE",
-                "FEEDBACK_VIEW", "FEEDBACK_CREATE", "FEEDBACK_UPDATE", "FEEDBACK_DELETE",
+                "FEEDBACK_VIEW", "FEEDBACK_UPDATE", "FEEDBACK_DELETE",
                 "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE"
         );
-
-        Set<Permission> permissions = new HashSet<>(); // SỬA List THÀNH Set
-        for (String permName : managerPerms) {
-            permissionRepository.findByName(permName).ifPresent(permissions::add);
-        }
-        manager.setPermissions(permissions);
-        roleRepository.save(manager);
-        log.info("Assigned {} permissions to MANAGER", permissions.size());
+        syncRolePermissions("MANAGER", managerPerms);
     }
 
     private void assignPermissionsToReceptionist() {
-        Role receptionist = roleRepository.findByRoleNameIgnoreCase("RECEPTIONIST").orElse(null);
-        if (receptionist == null || !receptionist.getPermissions().isEmpty()) return;
-
         List<String> receptionistPerms = Arrays.asList(
                 "ROOM_VIEW",
+                "ROOM_TYPE_VIEW",
                 "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE",
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE",
-                "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE",
-                "FEEDBACK_VIEW", "FEEDBACK_CREATE"
+                "HOUSEKEEPING_VIEW",
+                "FEEDBACK_VIEW",
+                "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE"
         );
-
-        Set<Permission> permissions = new HashSet<>(); // SỬA List THÀNH Set
-        for (String permName : receptionistPerms) {
-            permissionRepository.findByName(permName).ifPresent(permissions::add);
-        }
-        receptionist.setPermissions(permissions);
-        roleRepository.save(receptionist);
-        log.info("Assigned {} permissions to RECEPTIONIST", permissions.size());
+        syncRolePermissions("RECEPTIONIST", receptionistPerms);
     }
 
     private void assignPermissionsToHousekeeper() {
-        Role housekeeper = roleRepository.findByRoleNameIgnoreCase("HOUSEKEEPER").orElse(null);
-        if (housekeeper == null || !housekeeper.getPermissions().isEmpty()) return;
-
         List<String> housekeeperPerms = Arrays.asList(
-                "HOUSEKEEPING_VIEW", "HOUSEKEEPING_UPDATE",
-                "MAINTENANCE_VIEW"
+                "ROOM_VIEW",
+                "HOUSEKEEPING_VIEW", "HOUSEKEEPING_CREATE", "HOUSEKEEPING_UPDATE",
+                "EQUIPMENT_VIEW",
+                "MAINTENANCE_CREATE"
         );
-
-        Set<Permission> permissions = new HashSet<>(); // SỬA List THÀNH Set
-        for (String permName : housekeeperPerms) {
-            permissionRepository.findByName(permName).ifPresent(permissions::add);
-        }
-        housekeeper.setPermissions(permissions);
-        roleRepository.save(housekeeper);
-        log.info("Assigned {} permissions to HOUSEKEEPER", permissions.size());
+        syncRolePermissions("HOUSEKEEPER", housekeeperPerms);
     }
 
     private void assignPermissionsToMaintenance() {
-        Role maintenance = roleRepository.findByRoleNameIgnoreCase("MAINTENANCE").orElse(null);
-        if (maintenance == null || !maintenance.getPermissions().isEmpty()) return;
-
         List<String> maintenancePerms = Arrays.asList(
-                "EQUIPMENT_VIEW", "EQUIPMENT_CREATE", "EQUIPMENT_UPDATE", "EQUIPMENT_DELETE",
-                "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE", "MAINTENANCE_DELETE"
+                "ROOM_VIEW",
+                "EQUIPMENT_VIEW", "EQUIPMENT_CREATE", "EQUIPMENT_UPDATE",
+                "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE"
         );
-
-        Set<Permission> permissions = new HashSet<>(); // SỬA List THÀNH Set
-        for (String permName : maintenancePerms) {
-            permissionRepository.findByName(permName).ifPresent(permissions::add);
-        }
-        maintenance.setPermissions(permissions);
-        roleRepository.save(maintenance);
-        log.info("Assigned {} permissions to MAINTENANCE", permissions.size());
+        syncRolePermissions("MAINTENANCE", maintenancePerms);
     }
 
     private void assignPermissionsToCustomer() {
-        Role customer = roleRepository.findByRoleNameIgnoreCase("CUSTOMER").orElse(null);
-        if (customer == null || !customer.getPermissions().isEmpty()) return;
-
         List<String> customerPerms = Arrays.asList(
                 "BOOKING_VIEW_OWN", "BOOKING_CREATE",
-                "CUSTOMER_VIEW"
+                "FEEDBACK_CREATE"
         );
-
-        Set<Permission> permissions = new HashSet<>();
-        for (String permName : customerPerms) {
-            permissionRepository.findByName(permName).ifPresent(permissions::add);
-        }
-        customer.setPermissions(permissions);
-        roleRepository.save(customer);
-        log.info("Assigned {} permissions to CUSTOMER", permissions.size());
+        syncRolePermissions("CUSTOMER", customerPerms);
     }
 }

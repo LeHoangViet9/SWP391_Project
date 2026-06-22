@@ -19,6 +19,6 @@ public interface UserMapper {
 
     @Mapping(source = "user.role.roleName", target = "roleName")
     @Mapping(source = "token", target = "token")
-    @Mapping(target = "permissions", expression = "java(user.getCustomPermissions().stream().map(p -> p.getName()).collect(java.util.stream.Collectors.toList()))")
+    @Mapping(target = "permissions", expression = "java(java.util.stream.Stream.concat(user.getCustomPermissions().stream(), user.getRole() != null && user.getRole().getPermissions() != null ? user.getRole().getPermissions().stream() : java.util.stream.Stream.empty()).map(p -> p.getName()).distinct().collect(java.util.stream.Collectors.toList()))")
     UserResponse toResponse(User user, String token);
 }
