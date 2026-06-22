@@ -120,6 +120,15 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
+        // Tạo Invoice PENDING ngay khi đặt phòng được tạo
+        Invoice invoice = Invoice.builder()
+                .booking(saved)
+                .amount(totalPrice)
+                .paymentStatus(PaymentStatus.PENDING)
+                .build();
+        invoiceRepository.save(invoice);
+        saved.setInvoice(invoice);
+
         return bookingMapper.toResponse(saved);
     }
 
@@ -232,14 +241,33 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setBookingStatus(newStatus);
 
-        // Tạo Invoice khi CONFIRMED (xem Thiếu sót 3)
-        if (newStatus == BookingStatus.CONFIRMED && booking.getInvoice() == null) {
-            Invoice invoice = Invoice.builder()
-                    .booking(booking)
-                    .amount(booking.getTotalPrice())
-                    .paymentStatus(PaymentStatus.PENDING)
-                    .build();
-            invoiceRepository.save(invoice);
+        // Xử lý hóa đơn tương ứng với trạng thái đặt phòng mới
+        if (newStatus == BookingStatus.CONFIRMED) {
+            if (booking.getInvoice() != null) {
+                Invoice invoice = booking.getInvoice();
+                invoice.setPaymentStatus(PaymentStatus.PAID);
+                if (invoice.getPaymentMethod() == null) {
+                    invoice.setPaymentMethod(com.hms.common.enums.PaymentMethod.CASH);
+                }
+                invoice.setPaidAt(LocalDateTime.now());
+                invoiceRepository.save(invoice);
+            } else {
+                Invoice invoice = Invoice.builder()
+                        .booking(booking)
+                        .amount(booking.getTotalPrice())
+                        .paymentStatus(PaymentStatus.PAID)
+                        .paymentMethod(com.hms.common.enums.PaymentMethod.CASH)
+                        .paidAt(LocalDateTime.now())
+                        .build();
+                invoiceRepository.save(invoice);
+                booking.setInvoice(invoice);
+            }
+        } else if (newStatus == BookingStatus.CANCELLED) {
+            if (booking.getInvoice() != null) {
+                Invoice invoice = booking.getInvoice();
+                invoice.setPaymentStatus(PaymentStatus.CANCELLED);
+                invoiceRepository.save(invoice);
+            }
         }
 
         // Giải phóng phòng khi kết thúc lưu trú hoặc hủy/không đến

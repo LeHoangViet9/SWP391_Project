@@ -105,4 +105,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         long countBookingByBookingStatus(BookingStatus bookingStatus);
 
         boolean existsByRoomTypeId(Long roomTypeId);
+
+        List<Booking> findByBookingStatusAndCreatedAtBefore(BookingStatus bookingStatus, LocalDateTime dateTime);
 }
