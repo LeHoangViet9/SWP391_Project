@@ -9,14 +9,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 
 @Repository
 public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
 
-    // GIỮ:
-    // Kiểm tra trùng mã trên mọi bản ghi.
-    boolean existsByEquipmentCode(String equipmentCode);
 
     // GIỮ:
     // Kiểm tra trùng mã với thiết bị đang ACTIVE.
@@ -40,11 +36,11 @@ LEFT JOIN e.roomEquipments re
 LEFT JOIN re.room r
 WHERE (:status IS NULL OR e.status = :status)
 AND (
-    :keyword IS NULL
-    OR LOWER(e.equipmentName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-    OR LOWER(e.equipmentCode) LIKE LOWER(CONCAT('%', :keyword, '%'))
-    OR CAST(e.id AS string) LIKE CONCAT('%', :keyword, '%')
-    OR LOWER(r.roomNumber) LIKE LOWER(CONCAT('%', :keyword, '%'))
+    CAST(:keyword AS string) IS NULL
+    OR LOWER(e.equipmentName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+    OR LOWER(e.equipmentCode) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+    OR CAST(e.id AS string) LIKE CONCAT('%', CAST(:keyword AS string), '%')
+    OR LOWER(r.roomNumber) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
 )
 """)
     Page<Equipment> searchEquipment(
@@ -53,15 +49,4 @@ AND (
             Pageable pageable
     );
 
-    // GIỮ:
-    // Tìm theo tên và loại bỏ status nào đó, ví dụ INACTIVE.
-    Page<Equipment> findByEquipmentNameContainingIgnoreCaseAndStatusNot(
-            String keywords,
-            EquipmentStatus status,
-            Pageable pageable
-    );
-
-    // GIỮ:
-    // Lấy danh sách theo trạng thái.
-    List<Equipment> findByStatus(EquipmentStatus status);
 }

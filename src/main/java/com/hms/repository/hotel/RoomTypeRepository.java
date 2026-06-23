@@ -22,17 +22,6 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, Long> {
 
         Optional<RoomType> findByIdAndStatus(Long id, AccountStatus status);
 
-        Page<RoomType> findByTypeNameContainingIgnoreCaseAndStatus(String keywords, AccountStatus status,
-                        Pageable pageable);
-
-        Page<RoomType> findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqualAndStatus(
-                        String keywords,
-                        Integer maxGuests,
-                        AccountStatus status,
-                        Pageable pageable);
-
-
-        java.util.List<RoomType> findAllByStatus(AccountStatus status);
 
         @Query("""
 SELECT rt
