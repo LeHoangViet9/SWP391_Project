@@ -45,12 +45,7 @@ public class Equipment {
     @OneToMany(mappedBy = "equipment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EquipmentImage> images = new ArrayList<>();
 
-    //  1 thiết bị có nhiều lần kiểm tra
-    @Builder.Default
-    @OneToMany(mappedBy = "equipment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EquipmentCheck> checks = new ArrayList<>();
-
-    // SỬA MỚI:
+    //  MỚI:
     // Không dùng equipments.room_id nữa.
     // Gán thiết bị vào phòng thông qua bảng room_equipments.
     @Builder.Default

@@ -1,5 +1,7 @@
 package com.hms.common.config;
 
+import com.hms.entity.auth.User;
+import com.hms.repository.auth.UserRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -7,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -15,7 +18,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -23,6 +26,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -33,35 +37,59 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
 
                 Claims claims = tokenProvider.getClaims(jwt);
+                String email = claims.getSubject();
 
-                String username = claims.getSubject();
-                String role = claims.get("role", String.class);
+                // Nạp User kèm Role + Permission trong cùng một session (JOIN FETCH),
+                // rồi build đầy đủ authorities (ROLE_* + các permission) vào SecurityContext.
+                userRepository.findUserWithPermissionsByEmail(email).ifPresent(user -> {
+                    List<GrantedAuthority> authorities = buildAuthorities(user);
 
-                List<SimpleGrantedAuthority> authorities =
-                        Collections.singletonList(
-                                new SimpleGrantedAuthority("ROLE_" + role)
-                        );
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    email,
+                                    null,
+                                    authorities
+                            );
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                username,
-                                null,
-                                authorities
-                        );
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request)
+                    );
 
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-                );
-
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authentication);
+                });
             }
         } catch (Exception ex) {
             logger.error("Failed to authenticate JWT token", ex);
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Gộp quyền của User thành danh sách GrantedAuthority:
+     * - ROLE_<roleName> để dùng với hasRole(...)
+     * - Mỗi Permission của Role và Permission riêng của User -> hasAuthority(...) / hasPermission(...)
+     */
+    private List<GrantedAuthority> buildAuthorities(User user) {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+
+        if (user.getRole() != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getRoleName()));
+
+            if (user.getRole().getPermissions() != null) {
+                user.getRole().getPermissions().forEach(p ->
+                        authorities.add(new SimpleGrantedAuthority(p.getName())));
+            }
+        }
+
+        if (user.getCustomPermissions() != null) {
+            user.getCustomPermissions().forEach(p ->
+                    authorities.add(new SimpleGrantedAuthority(p.getName())));
+        }
+
+        return authorities;
     }
 
     private String getJwtFromRequest(HttpServletRequest request) {

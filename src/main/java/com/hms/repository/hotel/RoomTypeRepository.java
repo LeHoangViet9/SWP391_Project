@@ -5,6 +5,8 @@ import com.hms.entity.hotel.RoomType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -20,15 +22,21 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, Long> {
 
         Optional<RoomType> findByIdAndStatus(Long id, AccountStatus status);
 
-        Page<RoomType> findByTypeNameContainingIgnoreCaseAndStatus(String keywords, AccountStatus status,
-                        Pageable pageable);
 
-        Page<RoomType> findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqualAndStatus(
-                        String keywords,
-                        Integer maxGuests,
-                        AccountStatus status,
-                        Pageable pageable);
-
-
-        java.util.List<RoomType> findAllByStatus(AccountStatus status);
+        @Query("""
+SELECT rt
+FROM RoomType rt
+WHERE rt.status = com.hms.common.enums.AccountStatus.ACTIVE
+AND (
+    :keyword IS NULL
+    OR CAST(rt.id AS string) LIKE :keyword
+    OR LOWER(rt.typeName) LIKE :keyword
+    OR CAST(rt.basePrice AS string) LIKE :keyword
+    OR CAST(rt.maxGuests AS string) LIKE :keyword
+)
+""")
+        Page<RoomType> searchRoomTypes(
+                @Param("keyword") String keyword,
+                Pageable pageable
+        );
 }

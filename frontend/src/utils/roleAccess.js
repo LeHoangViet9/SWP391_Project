@@ -4,20 +4,8 @@ export function isStaffRole(role) {
 }
 
 export function getDefaultDashboardPath(role) {
-  switch (role) {
-    case 'ADMIN':
-      return '/admin/dashboard';
-    case 'MANAGER':
-      return '/manager/dashboard';
-    case 'RECEPTIONIST':
-      return '/receptionist/dashboard';
-    case 'HOUSEKEEPER':
-      return '/housekeeper/dashboard';
-    case 'MAINTENANCE':
-      return '/maintenance/dashboard';
-    case 'CUSTOMER':
-      return '/customer/dashboard';
-    default:
-      return '/';
+  if (role) {
+    return '/dashboard';
   }
+  return '/';
 }

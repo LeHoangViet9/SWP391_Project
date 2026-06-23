@@ -20,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.Locale;
@@ -33,11 +34,9 @@ public class EquipmentController {
     private final MessageSource messageSource;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
     public ResponseEntity<ApiResponse<Page<EquipmentResponse>>> getAllEquipments(
-            @RequestParam(required = false) Long id,
-            @RequestParam(required = false) String equipmentName,
-            @RequestParam(required = false) String equipmentCode,
-            @RequestParam(required = false) Long roomId,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) EquipmentStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -47,10 +46,7 @@ public class EquipmentController {
         Locale locale = LocaleContextHolder.getLocale();
 
         Page<EquipmentResponse> data = equipmentService.getAllEquipments(
-                id,
-                equipmentName,
-                equipmentCode,
-                roomId,
+               keyword,
                 status,
                 page,
                 size,
@@ -71,6 +67,7 @@ public class EquipmentController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> findById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -88,6 +85,7 @@ public class EquipmentController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('EQUIPMENT_CREATE')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> createEquipment(
             @Valid @RequestBody EquipmentCreateDTO dto) {
 
@@ -108,6 +106,7 @@ public class EquipmentController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> updateEquipment(
             @PathVariable Long id,
             @Valid @RequestBody EquipmentCreateDTO dto) {
@@ -129,6 +128,7 @@ public class EquipmentController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('EQUIPMENT_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteEquipment(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -145,6 +145,7 @@ public class EquipmentController {
     }
 
     @PostMapping("/{id}/assign-room")
+    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
     public ResponseEntity<ApiResponse<RoomEquipmentResponse>> assignToRoom(
             @PathVariable Long id,
             @Valid @RequestBody AssignEquipmentToRoomDTO dto) {
@@ -162,6 +163,7 @@ public class EquipmentController {
     }
 
     @DeleteMapping("/{id}/rooms/{roomId}")
+    @PreAuthorize("hasAuthority('EQUIPMENT_DELETE')")
     public ResponseEntity<ApiResponse<Void>> removeFromRoom(
             @PathVariable Long id,
             @PathVariable Long roomId) {
@@ -178,6 +180,7 @@ public class EquipmentController {
     }
 
     @GetMapping("/rooms/{roomId}")
+    @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
     public ResponseEntity<ApiResponse<List<RoomEquipmentResponse>>> getEquipmentsByRoom(
             @PathVariable Long roomId) {
 
@@ -195,6 +198,7 @@ public class EquipmentController {
 
     // Upload nhiều ảnh local cho 1 thiết bị
     @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
     public ResponseEntity<ApiResponse<List<EquipmentImageResponse>>> uploadImages(
             @PathVariable Long id,
             @RequestParam("images") List<MultipartFile> images) {

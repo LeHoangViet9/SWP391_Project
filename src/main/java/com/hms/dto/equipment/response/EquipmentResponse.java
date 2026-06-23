@@ -20,8 +20,6 @@ public class EquipmentResponse {
     private LocalDateTime createdAt;
 
     private List<EquipmentImageResponse> images;
-    private List<EquipmentCheckResponse> checks;
-
     //  MỚI:
     // Equipment không còn thuộc trực tiếp 1 phòng.
     // Trả về danh sách phòng đang dùng thiết bị này.

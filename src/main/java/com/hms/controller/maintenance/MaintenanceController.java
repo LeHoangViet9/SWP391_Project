@@ -58,12 +58,7 @@ public class MaintenanceController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
     public ApiResponse<Page<MaintenanceResponse>> getAllRequests(
-            @RequestParam(required = false) Long id,
-            @RequestParam(required = false) String issueTitle,
-            @RequestParam(required = false) Long roomId,
-            @RequestParam(required = false) Long equipmentId,
-            @RequestParam(required = false) Long reportedBy,
-            @RequestParam(required = false) Long assignedTo,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) MaintenanceSeverity severity,
             @RequestParam(required = false) MaintenanceStatus status,
             @RequestParam(required = false) Integer page,
@@ -74,12 +69,7 @@ public class MaintenanceController {
         return ApiResponse.success(
                 "Get maintenance request list successfully",
                 maintenanceService.getAllRequests(
-                        id,
-                        issueTitle,
-                        roomId,
-                        equipmentId,
-                        reportedBy,
-                        assignedTo,
+                       keyword,
                         severity,
                         status,
                         page,
