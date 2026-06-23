@@ -71,6 +71,12 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
             );
         }
 
+        if (request.getCategory() == null) {
+            throw new BadRequestException(
+                    messageSource.getMessage("error.feedback.category.invalid", null, locale)
+            );
+        }
+
         String normalizedCategory = switch (request.getCategory().toLowerCase()) {
             case "room" -> "Room";
             case "service" -> "Service";
