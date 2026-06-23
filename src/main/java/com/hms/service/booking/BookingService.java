@@ -25,7 +25,7 @@ public interface BookingService {
 
     Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size);
 
-    Page<BookingResponse> getMyBookingHistory(String userName, Integer page, Integer size);
+    Page<BookingResponse> getMyBookingHistory(String email, Integer page, Integer size);
 
     Page<BookingResponse> getBookingsByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size);
 
@@ -34,4 +34,5 @@ public interface BookingService {
     BookingResponse updateBookingStatus(Long id, BookingStatusRequest request);
 
     BookingResponse assignRoom(Long bookingId, BookingRoomAssignRequest request);
+    long checkAvailability(Long roomTypeId, LocalDateTime checkInDate, LocalDateTime checkOutDate);
 }

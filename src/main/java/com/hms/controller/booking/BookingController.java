@@ -14,9 +14,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -32,6 +34,7 @@ public class BookingController {
     private final MessageSource messageSource;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getAllBooking(
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) Integer page,
@@ -55,6 +58,7 @@ public class BookingController {
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> searchBookings(
             @RequestParam(required = false) BookingStatus status,
             @RequestParam(required = false) Long customerId,
@@ -80,14 +84,15 @@ public class BookingController {
     }
 
     @GetMapping("/my-history")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW_OWN') or hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getMyBookingHistory(
-            @AuthenticationPrincipal String username,
+            @AuthenticationPrincipal String email,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        Page<BookingResponse> data = bookingService.getMyBookingHistory(username, page, size);
+        Page<BookingResponse> data = bookingService.getMyBookingHistory(email, page, size);
 
         ApiResponse<Page<BookingResponse>> response = ApiResponse.<Page<BookingResponse>>builder()
                 .success(true)
@@ -100,6 +105,7 @@ public class BookingController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(@PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -118,6 +124,7 @@ public class BookingController {
     }
 
     @GetMapping("/check-in")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getBookingByCheckInDateBetween(
             @RequestParam LocalDateTime start,
             @RequestParam LocalDateTime end,
@@ -141,6 +148,7 @@ public class BookingController {
     }
 
     @GetMapping("/check-out")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> getBookingByCheckOutDateBetween(
             @RequestParam LocalDateTime start,
             @RequestParam LocalDateTime end,
@@ -164,6 +172,7 @@ public class BookingController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('BOOKING_CREATE')")
     public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
             @Valid @RequestBody BookingRequest request){
 
@@ -184,6 +193,7 @@ public class BookingController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('BOOKING_UPDATE')")
     public ResponseEntity<ApiResponse<BookingResponse>> updateBooking(
             @PathVariable Long id,
             @Valid @RequestBody BookingRequest request) {
@@ -205,6 +215,7 @@ public class BookingController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('BOOKING_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteBooking(
             @PathVariable Long id) {
 
@@ -224,6 +235,7 @@ public class BookingController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('BOOKING_UPDATE')")
     public ResponseEntity<ApiResponse<BookingResponse>> updateBookingStatus(
             @PathVariable Long id,
             @Valid @RequestBody BookingStatusRequest request) {
@@ -242,6 +254,7 @@ public class BookingController {
     }
 
     @PatchMapping("/{id}/assign-room")
+    @PreAuthorize("hasAuthority('BOOKING_UPDATE')")
     public ResponseEntity<ApiResponse<BookingResponse>> assignRoom(
             @PathVariable Long id,
             @Valid @RequestBody BookingRoomAssignRequest request) {
@@ -257,5 +270,21 @@ public class BookingController {
                 .status(HttpStatus.OK)
                 .build();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/check-availability")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<ApiResponse<Long>> checkAvailability(
+            @RequestParam Long roomTypeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkInDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkOutDate) {
+
+        long availableRooms = bookingService.checkAvailability(roomTypeId, checkInDate, checkOutDate);
+        return ResponseEntity.ok(ApiResponse.<Long>builder()
+                .success(true)
+                .message("success.booking.check.availability")
+                .data(availableRooms)
+                .status(HttpStatus.OK)
+                .build());
     }
 }

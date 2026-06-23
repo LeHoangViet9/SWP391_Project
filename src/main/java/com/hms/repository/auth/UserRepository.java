@@ -14,38 +14,39 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
 
-    boolean existsUserByUserName(String userName);
-
     boolean existsUserByEmail(String email);
 
     boolean existsUserByPhone(String phone);
-
-    boolean existsByUserNameAndIdNot(String userName, Long id);
 
     boolean existsByEmailAndIdNot(String email, Long id);
 
     boolean existsByPhoneAndIdNot(String phone, Long id);
 
-    java.util.Optional<User> findUserByUserName(String userName);
-
     Optional<User> findUserByEmail(String email);
-
-    Optional<User> findByResetPasswordToken(String resetPasswordToken);
 
     @Query("""
             select u from User u
-            where (:status is null or u.accountStatus = :status)
-              and (
-                :keywords = ''
-                or lower(u.fullName) like lower(concat('%', :keywords, '%'))
-                or lower(u.userName) like lower(concat('%', :keywords, '%'))
-                or lower(u.email) like lower(concat('%', :keywords, '%'))
-                or lower(u.phone) like lower(concat('%', :keywords, '%'))
-              )
+            left join fetch u.role r
+            left join fetch r.permissions
+            where u.email = :email
             """)
+    Optional<User> findUserWithPermissionsByEmail(@Param("email") String email);
+
+    Optional<User> findByResetPasswordToken(String resetPasswordToken);
+
+    @Query("SELECT u FROM User u WHERE " +
+            "(:id IS NULL OR u.id = :id) AND " +
+            "(:fullName IS NULL OR :fullName = '' OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :fullName, '%'))) AND " +
+            "(:email IS NULL OR :email = '' OR LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%'))) AND " +
+            "(:phone IS NULL OR :phone = '' OR LOWER(u.phone) LIKE LOWER(CONCAT('%', :phone, '%'))) AND " +
+            "(:roleName IS NULL OR :roleName = '' OR LOWER(u.role.roleName) LIKE LOWER(CONCAT('%', :roleName, '%'))) AND " +
+            "(:status IS NULL OR u.accountStatus = :status)")
     Page<User> searchUsers(
-            @Param("keywords") String keywords,
+            @Param("id") Long id,
+            @Param("fullName") String fullName,
+            @Param("email") String email,
+            @Param("phone") String phone,
+            @Param("roleName") String roleName,
             @Param("status") AccountStatus status,
-            Pageable pageable
-    );
+            Pageable pageable);
 }

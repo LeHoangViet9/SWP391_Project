@@ -32,7 +32,7 @@ export async function login(credentials, locale = 'vi') {
   const res = await apiFetch('/auth/login', {
     method: 'POST',
     body: JSON.stringify({
-      username: credentials.username,
+      email: credentials.email,
       password: credentials.password,
     }),
   }, locale);
@@ -46,12 +46,31 @@ export async function register(payload, locale = 'vi') {
     method: 'POST',
     body: JSON.stringify({
       fullName: payload.fullName,
-      userName: payload.userName,
       password: payload.password,
       rePassword: payload.rePassword,
       email: payload.email,
       phone: payload.phone,
     }),
+  }, locale);
+  return res;
+}
+
+/** POST /api/v1/auth/verify-otp */
+export async function verifyOtp(payload, locale = 'vi') {
+  const res = await apiFetch('/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({
+      email: payload.email,
+      otpCode: payload.otpCode,
+    }),
+  }, locale);
+  return res;
+}
+
+/** POST /api/v1/auth/resend-otp */
+export async function resendOtp(email, locale = 'vi') {
+  const res = await apiFetch(`/auth/resend-otp?email=${encodeURIComponent(email)}`, {
+    method: 'POST',
   }, locale);
   return res;
 }

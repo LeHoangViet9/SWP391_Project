@@ -7,23 +7,14 @@ import com.hms.dto.auth.request.*;
 import com.hms.dto.auth.response.UserResponse;
 import org.springframework.data.domain.Page;
 
-public interface IUserService {
-    UserResponse registerNewUser(UserRegisterRequest registerRequest);
-    UserResponse login(UserLoginRequest loginRequest);
-    UserResponse getCurrentUser(String userName);
-    void changePassword(String userName, ChangePasswordRequest changePasswordRequest);
-    void forgotPassword(
-            ForgotPasswordRequest request
-    );
+import java.util.List;
 
-    void resetPassword(
-            ResetPasswordRequest request
-    );
+public interface IUserService {
+
 
     Page<UserResponse> getUsers(
             Long id,
             String fullName,
-            String userName,
             String email,
             String phone,
             String roleName,
@@ -39,4 +30,11 @@ public interface IUserService {
     UserResponse updateUser(Long id, UserManagementRequest request);
 
     void deleteUser(Long id);
+
+    UserResponse assignPermissionsToUser(Long userId, List<Long> permissionIds);
+    UserResponse removePermissionsFromUser(Long userId, List<Long> permissionIds);
+    UserResponse getUserPermissions(Long userId);
+
+
+
 }

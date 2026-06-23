@@ -10,6 +10,7 @@ import {
 } from '../services/roomService';
 import DataTable from './shared/DataTable';
 import { useLocale } from '../context/LocaleContext';
+import { usePermission } from '../hooks/usePermission';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
@@ -30,6 +31,14 @@ function getRoomTypeId(item) {
 
 export default function RoomManager({ readOnly = false }) {
   const { locale, t } = useLocale();
+  const { hasPermission } = usePermission();
+
+  const canCreate = hasPermission('ROOM_CREATE');
+  const canUpdate = hasPermission('ROOM_UPDATE');
+  const canDelete = hasPermission('ROOM_DELETE');
+
+  // Override readOnly if user has write permissions
+  const isReadOnly = readOnly || (!canCreate && !canUpdate && !canDelete);
   const [items, setItems] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -182,7 +191,7 @@ export default function RoomManager({ readOnly = false }) {
           </td>
           <td className="px-4 py-3 text-center">{item.floorNumber}</td>
           <td className="px-4 py-3">
-            {readOnly ? (
+            {isReadOnly ? (
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-stone-100 text-stone-600'}`}>
               {displayStatus}
             </span>
@@ -218,7 +227,7 @@ export default function RoomManager({ readOnly = false }) {
                 <span className="text-xs text-slate-400">{t('room.noImage')}</span>
             )}
           </td>
-          {!readOnly && (
+          {!isReadOnly && (
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3 justify-center">
                   <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}>
@@ -234,7 +243,7 @@ export default function RoomManager({ readOnly = false }) {
     );
   });
 
-  const cols = [t('room.columns.id'), t('room.columns.roomNumber'), t('room.columns.roomType'), t('room.columns.floor'), t('room.columns.status'), t('room.columns.image'), ...(!readOnly ? [t('room.columns.actions')] : [])];
+  const cols = [t('room.columns.id'), t('room.columns.roomNumber'), t('room.columns.roomType'), t('room.columns.floor'), t('room.columns.status'), t('room.columns.image'), ...(!isReadOnly ? [t('room.columns.actions')] : [])];
 
   return (
       <div>
@@ -306,7 +315,7 @@ export default function RoomManager({ readOnly = false }) {
               <RefreshCw size={14} />
             </button>
           </div>
-          {!readOnly && (
+          {!isReadOnly && (
               <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
                 <Plus size={16} /> {t('room.addBtn')}
               </button>

@@ -11,18 +11,14 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {
 
-    boolean existsByRoomNumber(String roomNumber);
 
-    boolean existsByRoomNumberAndIdNot(String roomNumber, Long id);
 
     Page<Room> findByRoomStatus(RoomStatus roomStatus, Pageable pageable);
 
     // Lấy tất cả phòng KHÔNG có status chỉ định (dùng cho soft delete)
-    Page<Room> findByRoomStatusNot(RoomStatus roomStatus, Pageable pageable);
 
 
     // Lấy phòng theo loại, loại trừ INACTIVE (deleted)
@@ -39,7 +35,6 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Object[]> countRoomsGroupedByStatus();
 
     // Đếm số phòng AVAILABLE thuộc một loại phòng – dùng để kiểm tra số lượng booking
-    long countByRoomTypeIdAndRoomStatus(Long roomTypeId, RoomStatus roomStatus);
 
     boolean existsByRoomTypeIdAndRoomStatusNot(Long roomTypeId, RoomStatus roomStatus);
 
@@ -57,6 +52,24 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     long countByRoomTypeIdAndRoomStatusNotIn(
             @Param("roomTypeId") Long roomTypeId,
             @Param("excludedStatuses") Collection<RoomStatus> excludedStatuses
+    );
+
+    @Query("""
+SELECT r
+FROM Room r
+LEFT JOIN r.roomType rt
+WHERE r.roomStatus <> com.hms.common.enums.RoomStatus.INACTIVE
+AND (
+    CAST(:keyword AS string) IS NULL
+    OR LOWER(r.roomNumber) LIKE LOWER(CAST(:keyword AS string))
+    OR LOWER(rt.typeName) LIKE LOWER(CAST(:keyword AS string))
+    OR CAST(r.floorNumber AS string) LIKE CAST(:keyword AS string)
+    OR LOWER(CAST(r.roomStatus AS string)) LIKE LOWER(CAST(:keyword AS string))
+)
+""")
+    Page<Room> searchRooms(
+            @Param("keyword") String keyword,
+            Pageable pageable
     );
 }
 

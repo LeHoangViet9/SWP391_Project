@@ -10,7 +10,7 @@ const USERNAME_RE = /^[a-zA-Z0-9_]+$/;
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@#$%^&+=!]{6,}$/;
 
 export default function RegisterPage() {
-    const { t } = useLocale();
+    const { t, locale } = useLocale();
     const { register } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -18,7 +18,6 @@ export default function RegisterPage() {
 
     const [form, setForm] = useState({
         fullName: '',
-        userName: '',
         email: '',
         phone: '',
         password: '',
@@ -36,10 +35,16 @@ export default function RegisterPage() {
     };
 
     const validate = () => {
-        if (!USERNAME_RE.test(form.userName)) return t('auth.errUsername');
+        // Kiểm tra blank/whitespace-only
+        if (!form.fullName.trim()) return locale === 'vi' ? 'Họ và tên không được để trống.' : 'Full name is required.';
+        if (!form.email.trim()) return locale === 'vi' ? 'Email không được để trống.' : 'Email is required.';
+        if (!form.phone.trim()) return locale === 'vi' ? 'Số điện thoại không được để trống.' : 'Phone number is required.';
+        if (!form.password) return locale === 'vi' ? 'Mật khẩu không được để trống.' : 'Password is required.';
+        if (!form.rePassword) return locale === 'vi' ? 'Vui lòng xác nhận mật khẩu.' : 'Please confirm your password.';
+        // Kiểm tra format
         if (!PASSWORD_RE.test(form.password)) return t('auth.errPassword');
         if (form.password !== form.rePassword) return t('auth.errPasswordMatch');
-        if (!PHONE_RE.test(form.phone)) return t('auth.errPhone');
+        if (!PHONE_RE.test(form.phone.trim())) return t('auth.errPhone');
         return null;
     };
 
@@ -56,11 +61,21 @@ export default function RegisterPage() {
 
         setLoading(true);
         try {
-            const res = await register(form);
+            // Trim whitespace trước khi gửi lên server
+            const payload = {
+                ...form,
+                fullName: form.fullName.trim(),
+                email: form.email.trim().toLowerCase(),
+                phone: form.phone.trim(),
+            };
+            const res = await register(payload);
             setSuccess(res.message || t('auth.registerSuccess'));
 
+            // Sau đăng ký → chuyển thẳng tới trang OTP verification
             setTimeout(() => {
-                navigate(redirect);
+                navigate(
+                    `/verify-otp?email=${encodeURIComponent(payload.email)}`
+                );
             }, 1500);
         } catch (err) {
             setError(err.message || t('auth.registerFailed'));
@@ -68,6 +83,7 @@ export default function RegisterPage() {
             setLoading(false);
         }
     };
+
 
     const inputClass =
         'w-full border border-stone-300 px-4 py-3 text-slate-800 outline-none focus:border-[#bfa15f] transition-colors';
@@ -101,20 +117,6 @@ export default function RegisterPage() {
                         required
                         value={form.fullName}
                         onChange={(e) => update('fullName', e.target.value)}
-                        className={inputClass}
-                    />
-                </div>
-
-                {/* Username */}
-                <div>
-                    <label className={labelClass}>{t('auth.username')}</label>
-                    <input
-                        type="text"
-                        required
-                        minLength={4}
-                        maxLength={50}
-                        value={form.userName}
-                        onChange={(e) => update('userName', e.target.value)}
                         className={inputClass}
                     />
                 </div>

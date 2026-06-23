@@ -32,7 +32,6 @@ export const supplementalTranslations = {
 
     accountInfo: {
       subtitle: 'Thông tin đăng nhập và liên hệ của tài khoản',
-      username: 'Tên đăng nhập',
       email: 'Email',
       phone: 'Số điện thoại',
       role: 'Vai trò',
@@ -403,7 +402,6 @@ export const supplementalTranslations = {
     staff: {
       searchOptions: {
         fullName: 'Họ và tên',
-        userName: 'Tên đăng nhập',
         email: 'Email',
         phone: 'Số điện thoại',
         roleName: 'Vai trò',
@@ -411,7 +409,6 @@ export const supplementalTranslations = {
       },
       placeholders: {
         fullName: 'Nhập họ và tên...',
-        userName: 'Nhập tên đăng nhập...',
         email: 'Nhập email...',
         phone: 'Nhập số điện thoại...',
         roleName: 'Nhập vai trò...',
@@ -460,7 +457,6 @@ export const supplementalTranslations = {
 
     accountInfo: {
       subtitle: 'Login and contact information for this account',
-      username: 'Username',
       email: 'Email',
       phone: 'Phone',
       role: 'Role',
@@ -831,7 +827,6 @@ export const supplementalTranslations = {
     staff: {
       searchOptions: {
         fullName: 'Full Name',
-        userName: 'Username',
         email: 'Email',
         phone: 'Phone',
         roleName: 'Role',
@@ -839,7 +834,6 @@ export const supplementalTranslations = {
       },
       placeholders: {
         fullName: 'Enter full name...',
-        userName: 'Enter username...',
         email: 'Enter email...',
         phone: 'Enter phone number...',
         roleName: 'Enter role name...',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
+import { usePermission } from '../hooks/usePermission';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -17,7 +18,6 @@ const STATUS_OPTIONS = [
 
 const EMPTY_FORM = {
   fullName: '',
-  userName: '',
   password: '',
   rePassword: '',
   email: '',
@@ -28,6 +28,11 @@ const EMPTY_FORM = {
 
 export default function StaffManager() {
   const { t } = useLocale();
+  const { hasPermission } = usePermission();
+
+  const canCreate = hasPermission('USER_CREATE');
+  const canEdit = hasPermission('USER_UPDATE');
+  const canDelete = hasPermission('USER_DELETE');
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -58,8 +63,6 @@ export default function StaffManager() {
           params.id = trimmed;
         } else if (opt === 'fullName') {
           params.fullName = trimmed;
-        } else if (opt === 'userName') {
-          params.userName = trimmed;
         } else if (opt === 'email') {
           params.email = trimmed;
         } else if (opt === 'phone') {
@@ -88,14 +91,15 @@ export default function StaffManager() {
   }, [page, statusFilter, fetchData]);
 
   const openCreate = () => {
+    if (!canCreate) return notify(t('staff.toast.forbidden') || 'Không có quyền thực hiện', 'error');
     setForm(EMPTY_FORM);
     setModal({ open: true, editing: null });
   };
 
   const openEdit = (item) => {
+    if (!canEdit) return notify(t('staff.toast.forbidden') || 'Không có quyền thực hiện', 'error');
     setForm({
       fullName: item.fullName || '',
-      userName: item.userName || item.username || '',
       password: '',
       rePassword: '',
       email: item.email || '',
@@ -111,7 +115,6 @@ export default function StaffManager() {
   const buildPayload = () => {
     const payload = {
       fullName: form.fullName.trim(),
-      userName: form.userName.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
       roleName: form.roleName,
@@ -166,7 +169,6 @@ export default function StaffManager() {
     <tr key={item.id} className="hover:bg-stone-50">
       <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
       <td className="px-4 py-3 font-semibold">{item.fullName}</td>
-      <td className="px-4 py-3 font-mono text-xs text-[#bfa15f]">{item.userName || item.username}</td>
       <td className="px-4 py-3 text-xs">{item.email}</td>
       <td className="px-4 py-3 text-xs">{item.phone}</td>
       <td className="px-4 py-3">
@@ -185,18 +187,30 @@ export default function StaffManager() {
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
-            <Edit2 size={15} />
-          </button>
-          <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa">
-            <Trash2 size={15} />
-          </button>
+          {canEdit && (
+            <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
+              <Edit2 size={15} />
+            </button>
+          )}
+          {canDelete && (
+            <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa">
+              <Trash2 size={15} />
+            </button>
+          )}
         </div>
       </td>
     </tr>
   ));
 
-  const cols = [t('staff.columns.id'), t('staff.columns.fullName'), t('staff.columns.username'), t('staff.columns.email'), t('staff.columns.phone'), t('staff.columns.role'), t('staff.columns.status'), t('staff.columns.actions')];
+  const cols = [
+    t('staff.columns.id'),
+    t('staff.columns.fullName'),
+    t('staff.columns.email'),
+    t('staff.columns.phone'),
+    t('staff.columns.role'),
+    t('staff.columns.status'),
+    ...(canEdit || canDelete ? [t('staff.columns.actions')] : [])
+  ];
 
   return (
     <div>
@@ -213,7 +227,6 @@ export default function StaffManager() {
             className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
           >
             <option value="fullName">{t('staff.searchOptions.fullName') || 'Họ và tên'}</option>
-            <option value="userName">{t('staff.searchOptions.userName') || 'Tên đăng nhập'}</option>
             <option value="email">{t('staff.searchOptions.email') || 'Email'}</option>
             <option value="phone">{t('staff.searchOptions.phone') || 'Số điện thoại'}</option>
             <option value="roleName">{t('staff.searchOptions.roleName') || 'Vai trò'}</option>
@@ -245,9 +258,11 @@ export default function StaffManager() {
             <RefreshCw size={14} />
           </button>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
-          <Plus size={16} /> {t('staff.addBtn')}
-        </button>
+        {canCreate && (
+          <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
+            <Plus size={16} /> {t('staff.addBtn')}
+          </button>
+        )}
       </div>
 
       <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
@@ -255,15 +270,10 @@ export default function StaffManager() {
       <Modal open={modal.open} title={modal.editing ? t('staff.modal.editTitle') : t('staff.modal.addTitle')} onClose={closeModal} size="lg">
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="col-span-2">
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.fullName')}</label>
               <input required value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.username')}</label>
-              <input required disabled={!!modal.editing} value={form.userName} onChange={e => setForm(f => ({ ...f, userName: e.target.value }))}
-                className={`w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none ${modal.editing ? 'bg-stone-100 cursor-not-allowed' : ''}`} />
             </div>
           </div>
 

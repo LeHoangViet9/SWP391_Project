@@ -17,16 +17,7 @@ import java.util.List;
 public interface EquipmentService {
 
     Page<EquipmentResponse> getAllEquipments(
-            Long id,
-            String equipmentName,
-            String equipmentCode,
-
-
-            // SỬA: giữ tạm roomId nếu controller/frontend hiện tại vẫn truyền lên để filter.
-            // Nhưng về nghiệp vụ mới, Equipment không còn gán trực tiếp với room.
-            // Sau này có thể bỏ roomId khỏi getAllEquipments nếu không dùng nữa.
-            Long roomId,
-
+            String keyword,
             EquipmentStatus status,
             Integer page,
             Integer size,

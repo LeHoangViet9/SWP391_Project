@@ -8,7 +8,6 @@ import com.hms.common.enums.AccountStatus;
 import com.hms.dto.booking.request.BookingRequest;
 import com.hms.dto.booking.request.BookingRoomAssignRequest;
 import com.hms.dto.booking.request.BookingStatusRequest;
-import com.hms.entity.booking.Booking;
 import com.hms.entity.booking.Invoice;
 import com.hms.entity.customer.Customer;
 import com.hms.entity.hotel.Room;
@@ -39,14 +38,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
+@org.springframework.security.test.context.support.WithMockUser(authorities = {
+        "BOOKING_VIEW",
+        "BOOKING_CREATE",
+        "BOOKING_UPDATE",
+        "BOOKING_DELETE"
+})
 public class BookingControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private BookingRepository bookingRepository;
 
     @Autowired
     private RoomTypeRepository roomTypeRepository;
@@ -155,9 +156,9 @@ public class BookingControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.roomId", is(testRoom.getId().intValue())))
                 .andExpect(jsonPath("$.data.roomNumber", is("TEST-101")));
 
-        // Kiểm tra trạng thái phòng vật lý đổi sang OCCUPIED
+        // Kiểm tra trạng thái phòng vật lý đổi sang RESERVED
         Room updatedRoom = roomRepository.findById(testRoom.getId()).orElseThrow();
-        assertEquals(RoomStatus.OCCUPIED, updatedRoom.getRoomStatus());
+        assertEquals(RoomStatus.RESERVED, updatedRoom.getRoomStatus());
 
         // --- 4. Khách check-in (CONFIRMED -> CHECKED_IN) ---
         BookingStatusRequest checkinReq = new BookingStatusRequest();
@@ -169,6 +170,10 @@ public class BookingControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.bookingStatus", is("CHECKED_IN")));
+
+        // Kiểm tra trạng thái phòng vật lý đổi sang OCCUPIED sau khi check-in
+        Room occupiedRoom = roomRepository.findById(testRoom.getId()).orElseThrow();
+        assertEquals(RoomStatus.OCCUPIED, occupiedRoom.getRoomStatus());
 
         // --- 5. Khách check-out (CHECKED_IN -> CHECKED_OUT) ---
         BookingStatusRequest checkoutReq = new BookingStatusRequest();
