@@ -2,7 +2,6 @@ package com.hms.repository.customer;
 
 import com.hms.entity.customer.Customer;
 import com.hms.common.enums.AccountStatus;
-import io.micrometer.observation.ObservationFilter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,7 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 @Repository
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
@@ -42,11 +40,11 @@ AND (
 SELECT c FROM Customer c
 WHERE (:status IS NULL OR c.status = :status)
 AND (
-    :keyword IS NULL
-    OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-    OR LOWER(c.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
-    OR c.phone LIKE CONCAT('%', :keyword, '%')
-    OR c.idNumberCard LIKE CONCAT('%', :keyword, '%')
+    CAST(:keyword AS string) IS NULL
+    OR LOWER(c.fullName) LIKE LOWER(CAST(:keyword AS string))
+    OR LOWER(c.email) LIKE LOWER(CAST(:keyword AS string))
+    OR c.phone LIKE CAST(:keyword AS string)
+    OR c.idNumberCard LIKE CAST(:keyword AS string)
 )
 """)
     Page<Customer> searchCustomer(

@@ -22,17 +22,6 @@ public interface RoomTypeRepository extends JpaRepository<RoomType, Long> {
 
         Optional<RoomType> findByIdAndStatus(Long id, AccountStatus status);
 
-        Page<RoomType> findByTypeNameContainingIgnoreCaseAndStatus(String keywords, AccountStatus status,
-                        Pageable pageable);
-
-        Page<RoomType> findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqualAndStatus(
-                        String keywords,
-                        Integer maxGuests,
-                        AccountStatus status,
-                        Pageable pageable);
-
-
-        java.util.List<RoomType> findAllByStatus(AccountStatus status);
 
         @Query("""
 SELECT rt
@@ -40,10 +29,10 @@ FROM RoomType rt
 WHERE rt.status = com.hms.common.enums.AccountStatus.ACTIVE
 AND (
     :keyword IS NULL
-    OR CAST(rt.id AS string) LIKE CONCAT('%', :keyword, '%')
-    OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-    OR CAST(rt.basePrice AS string) LIKE CONCAT('%', :keyword, '%')
-    OR CAST(rt.maxGuests AS string) LIKE CONCAT('%', :keyword, '%')
+    OR CAST(rt.id AS string) LIKE :keyword
+    OR LOWER(rt.typeName) LIKE :keyword
+    OR CAST(rt.basePrice AS string) LIKE :keyword
+    OR CAST(rt.maxGuests AS string) LIKE :keyword
 )
 """)
         Page<RoomType> searchRoomTypes(
