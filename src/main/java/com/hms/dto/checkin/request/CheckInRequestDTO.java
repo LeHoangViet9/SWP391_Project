@@ -18,6 +18,21 @@ public class CheckInRequestDTO {
     // Optional: if receptionist assigns room manually
     private Long roomId;
 
+    @Builder.Default
+    private Boolean guestInfoConfirmed = false;
+
+    private String guestFullName;
+
+    private String guestEmail;
+
+    private String guestPhone;
+
+    private String guestIdType;
+
+    private String guestIdNumberCard;
+
+    private String guestNationality;
+
     // Optional: for self check-in location verification
     private Double latitude;
     private Double longitude;

@@ -40,6 +40,15 @@ export default function CheckInManager() {
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [checkInResult, setCheckInResult] = useState(null);
+  const [guestInfoConfirmed, setGuestInfoConfirmed] = useState(false);
+  const [guestReviewForm, setGuestReviewForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    idType: 'CCCD',
+    idNumberCard: '',
+    nationality: '',
+  });
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast((current) => ({ ...current, message: '' }));
@@ -72,6 +81,9 @@ export default function CheckInManager() {
       return [
         booking.id,
         booking.customerName,
+        booking.guestFullName,
+        booking.guestPhone,
+        booking.guestIdNumberCard,
         booking.roomTypeName,
         booking.roomNumber,
       ].some((value) => normalizeText(value).includes(q));
@@ -83,6 +95,15 @@ export default function CheckInManager() {
     setSelectedRoomId(booking.roomId ? String(booking.roomId) : '');
     setAvailableRooms([]);
     setCheckInResult(null);
+    setGuestInfoConfirmed(false);
+    setGuestReviewForm({
+      fullName: booking.guestFullName || booking.customerName || '',
+      email: booking.guestEmail || '',
+      phone: booking.guestPhone || '',
+      idType: booking.guestIdType || 'CCCD',
+      idNumberCard: booking.guestIdNumberCard || '',
+      nationality: booking.guestNationality || '',
+    });
     setModalOpen(true);
     setLoadingRooms(true);
 
@@ -103,6 +124,7 @@ export default function CheckInManager() {
     setSelectedRoomId('');
     setAvailableRooms([]);
     setCheckInResult(null);
+    setGuestInfoConfirmed(false);
   };
 
   const handleCheckIn = async (event) => {
@@ -114,6 +136,13 @@ export default function CheckInManager() {
       const payload = {
         bookingId: selectedBooking.id,
         roomId: selectedRoomId ? Number(selectedRoomId) : null,
+        guestInfoConfirmed,
+        guestFullName: guestReviewForm.fullName,
+        guestEmail: guestReviewForm.email,
+        guestPhone: guestReviewForm.phone,
+        guestIdType: guestReviewForm.idType,
+        guestIdNumberCard: guestReviewForm.idNumberCard,
+        guestNationality: guestReviewForm.nationality,
       };
       const res = await processCheckIn(payload);
       setCheckInResult(res?.data ?? null);
@@ -157,6 +186,11 @@ export default function CheckInManager() {
       <td className="px-4 py-3 font-mono text-xs font-bold">#{booking.id}</td>
       <td className="px-4 py-3">
         <p className="text-sm font-semibold text-slate-800">{booking.customerName || '-'}</p>
+        {booking.bookingForOther && (
+          <p className="mt-1 inline-flex rounded bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
+            Đặt hộ: {booking.guestFullName || '-'}
+          </p>
+        )}
         <p className="text-xs text-slate-400">Khách hàng #{booking.customerId}</p>
       </td>
       <td className="px-4 py-3">
@@ -303,6 +337,89 @@ export default function CheckInManager() {
             </div>
           </div>
 
+          {selectedBooking?.bookingForOther && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-bold text-amber-800">Đơn này được đặt hộ người khác</p>
+              <p className="mt-1 text-xs text-amber-700">
+                Kiểm tra giấy tờ và cập nhật đúng thông tin người lưu trú trước khi check-in.
+              </p>
+            </div>
+          )}
+
+          <div className="rounded-lg border border-stone-200 p-4">
+            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <h4 className="text-sm font-bold text-slate-800">Thông tin người lưu trú</h4>
+              {selectedBooking?.bookingForOther && (
+                <span className="text-xs font-bold uppercase text-amber-700">Cần xác minh</span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Họ tên</span>
+                <input
+                  value={guestReviewForm.fullName}
+                  onChange={(event) => setGuestReviewForm({ ...guestReviewForm, fullName: event.target.value })}
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Email</span>
+                <input
+                  value={guestReviewForm.email}
+                  onChange={(event) => setGuestReviewForm({ ...guestReviewForm, email: event.target.value })}
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Số điện thoại</span>
+                <input
+                  value={guestReviewForm.phone}
+                  onChange={(event) => setGuestReviewForm({ ...guestReviewForm, phone: event.target.value })}
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Loại giấy tờ</span>
+                <select
+                  value={guestReviewForm.idType}
+                  onChange={(event) => setGuestReviewForm({ ...guestReviewForm, idType: event.target.value })}
+                  className="w-full rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+                >
+                  <option value="CCCD">CCCD</option>
+                  <option value="PASSPORT">Passport</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Số CCCD/Passport</span>
+                <input
+                  value={guestReviewForm.idNumberCard}
+                  onChange={(event) => setGuestReviewForm({ ...guestReviewForm, idNumberCard: event.target.value })}
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Quốc tịch</span>
+                <input
+                  value={guestReviewForm.nationality}
+                  onChange={(event) => setGuestReviewForm({ ...guestReviewForm, nationality: event.target.value })}
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+                />
+              </label>
+            </div>
+            {selectedBooking?.bookingForOther && (
+              <label className="mt-4 flex items-start gap-2 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={guestInfoConfirmed}
+                  onChange={(event) => setGuestInfoConfirmed(event.target.checked)}
+                  className="mt-1 h-4 w-4 accent-[#bfa15f]"
+                />
+                Đã kiểm tra giấy tờ và xác nhận thông tin người lưu trú
+              </label>
+            )}
+          </div>
+
           <div>
             <label className="mb-1 block text-xs font-bold uppercase text-slate-500">
               Phòng nhận khách
@@ -358,7 +475,7 @@ export default function CheckInManager() {
             {!checkInResult && (
               <button
                 type="submit"
-                disabled={saving || loadingRooms || !canProcessCheckIn}
+                disabled={saving || loadingRooms || !canProcessCheckIn || (selectedBooking?.bookingForOther && !guestInfoConfirmed)}
                 title={!canProcessCheckIn ? 'Cần quyền CHECKIN_PROCESS để check-in' : undefined}
                 className="inline-flex items-center gap-2 rounded bg-[#bfa15f] px-5 py-2 text-sm font-bold text-white shadow hover:bg-[#a3854a] disabled:opacity-60"
               >

@@ -20,5 +20,9 @@ public class CheckInResponseDTO {
     private BookingStatus bookingStatus;
     private LocalDateTime checkInTime;
     private String message;
+    private Boolean bookingForOther;
+    private String guestFullName;
+    private String guestPhone;
+    private String guestIdNumberCard;
 
 }

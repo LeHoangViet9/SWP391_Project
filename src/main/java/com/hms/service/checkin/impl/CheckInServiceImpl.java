@@ -3,6 +3,7 @@ package com.hms.service.checkin.impl;
 import com.hms.common.enums.BookingStatus;
 import com.hms.common.enums.ProcessTrigger;
 import com.hms.common.enums.RoomStatus;
+import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.dto.checkin.request.CheckInRequestDTO;
 import com.hms.dto.checkin.response.AvailableRoomResponseDTO;
@@ -71,6 +72,8 @@ public class CheckInServiceImpl implements CheckInService {
             );
         }
 
+        verifyStayGuestInfoBeforeCheckIn(booking, request, locale);
+
         // 2. Validate Time (Basic validation: Check-in date should not be in the future beyond today)
         LocalDateTime now = LocalDateTime.now();
         if (now.toLocalDate().isBefore(booking.getCheckInDate().toLocalDate())) {
@@ -116,7 +119,7 @@ public class CheckInServiceImpl implements CheckInService {
                         )
                 ));
 
-        if (assignedRoom.getRoomStatus() != RoomStatus.AVAILABLE) {
+        if (!canUseRoomForCheckIn(booking, assignedRoom)) {
             throw new ConflictException(
                     messageSource.getMessage(
                             "error.checkin.room.not.available",
@@ -181,6 +184,10 @@ public class CheckInServiceImpl implements CheckInService {
                 .bookingStatus(booking.getBookingStatus())
                 .checkInTime(now)
                 .message("Check-in successful")
+                .bookingForOther(booking.getBookingForOther())
+                .guestFullName(booking.getGuestFullName())
+                .guestPhone(booking.getGuestPhone())
+                .guestIdNumberCard(booking.getGuestIdNumberCard())
                 .build();
     }
 
@@ -212,5 +219,61 @@ public class CheckInServiceImpl implements CheckInService {
                         .roomTypeName(room.getRoomType().getTypeName())
                         .build())
                 .toList();
+    }
+
+    private void verifyStayGuestInfoBeforeCheckIn(Booking booking, CheckInRequestDTO request, Locale locale) {
+        updateGuestInfoIfProvided(booking, request);
+
+        if (Boolean.TRUE.equals(booking.getBookingForOther()) && !Boolean.TRUE.equals(request.getGuestInfoConfirmed())) {
+            throw new BadRequestException(
+                    messageSource.getMessage("error.checkin.guest.confirmation.required", null, locale)
+            );
+        }
+
+        if (isBlank(booking.getGuestFullName())
+                || isBlank(booking.getGuestPhone())
+                || isBlank(booking.getGuestIdNumberCard())) {
+            throw new BadRequestException(
+                    messageSource.getMessage("error.checkin.guest.info.required", null, locale)
+            );
+        }
+    }
+
+    private void updateGuestInfoIfProvided(Booking booking, CheckInRequestDTO request) {
+        if (hasText(request.getGuestFullName())) {
+            booking.setGuestFullName(request.getGuestFullName().trim());
+        }
+        if (hasText(request.getGuestEmail())) {
+            booking.setGuestEmail(request.getGuestEmail().trim());
+        }
+        if (hasText(request.getGuestPhone())) {
+            booking.setGuestPhone(request.getGuestPhone().trim());
+        }
+        if (hasText(request.getGuestIdType())) {
+            booking.setGuestIdType(request.getGuestIdType().trim());
+        }
+        if (hasText(request.getGuestIdNumberCard())) {
+            booking.setGuestIdNumberCard(request.getGuestIdNumberCard().trim());
+        }
+        if (hasText(request.getGuestNationality())) {
+            booking.setGuestNationality(request.getGuestNationality().trim());
+        }
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private boolean canUseRoomForCheckIn(Booking booking, Room room) {
+        if (room.getRoomStatus() == RoomStatus.AVAILABLE || room.getRoomStatus() == RoomStatus.READY) {
+            return true;
+        }
+        return room.getRoomStatus() == RoomStatus.RESERVED
+                && booking.getRoom() != null
+                && room.getId().equals(booking.getRoom().getId());
     }
 }
