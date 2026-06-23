@@ -8,6 +8,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -98,5 +99,20 @@ public class GlobalExceptionHandler {
             return ResponseEntity.badRequest().body(Map.of("error", localizedMessage));
         }
         return ResponseEntity.badRequest().body(Map.of("error", exceptionMsg));
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAuthorizationDenied(
+            AuthorizationDeniedException exception
+    ) {
+        ApiResponse<Object> response = ApiResponse.builder()
+                .success(false)
+                .message("Access denied")
+                .status(HttpStatus.FORBIDDEN)
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(response);
     }
 }

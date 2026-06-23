@@ -15,14 +15,10 @@ public interface UserMapper {
     @Mapping(target = "bannedReason", ignore = true)
     @Mapping(target = "lastLoginAt", ignore = true)
     @Mapping(target = "role", ignore = true)
-    @Mapping(target = "resetPasswordToken", ignore = true)
-    @Mapping(target = "resetPasswordExpiredAt", ignore = true)
-    @Mapping(target = "enabled", ignore = true)
-    @Mapping(target = "otpCode", ignore = true)
-    @Mapping(target = "otpExpiration", ignore = true)
     User toEntityRegister(UserRegisterRequest userRegisterRequest);
+
     @Mapping(source = "user.role.roleName", target = "roleName")
     @Mapping(source = "token", target = "token")
+    @Mapping(target = "permissions", expression = "java(java.util.stream.Stream.concat(user.getCustomPermissions().stream(), user.getRole() != null && user.getRole().getPermissions() != null ? user.getRole().getPermissions().stream() : java.util.stream.Stream.empty()).map(p -> p.getName()).distinct().collect(java.util.stream.Collectors.toList()))")
     UserResponse toResponse(User user, String token);
-
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CalendarDays, RefreshCw } from 'lucide-react';
 import DataTable from './shared/DataTable';
 import { useLocale } from '../context/LocaleContext';
@@ -101,14 +102,22 @@ export default function CustomerBookingHistory() {
           </h3>
           <p className="mt-1 text-xs text-slate-500">{t('bookingHistory.subtitle')}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => fetchData(page)}
-          className="inline-flex items-center justify-center gap-2 rounded border border-stone-200 px-3 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-[#bfa15f] hover:text-[#bfa15f]"
-        >
-          <RefreshCw size={15} />
-          {t('bookingHistory.refresh')}
-        </button>
+        <div className="flex gap-2">
+          <Link
+            to="/#room-types"
+            className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow transition-colors"
+          >
+            {locale === 'vi' ? 'Đặt phòng mới' : 'Book New Room'}
+          </Link>
+          <button
+            type="button"
+            onClick={() => fetchData(page)}
+            className="inline-flex items-center justify-center gap-2 rounded border border-stone-200 px-3 py-2 text-sm font-semibold text-slate-600 transition-colors hover:border-[#bfa15f] hover:text-[#bfa15f]"
+          >
+            <RefreshCw size={15} />
+            {t('bookingHistory.refresh')}
+          </button>
+        </div>
       </div>
 
       {error && (

@@ -1,19 +1,13 @@
 package com.hms.common.config;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * WebConfig — previously had duplicate /uploads/** resource handler.
+ * Removed to avoid conflict with WebMvcConfig which handles this correctly.
+ * WebMvcConfig uses absolute path via Paths.get().toAbsolutePath() which is more reliable.
+ */
 @Configuration
-public class WebConfig implements WebMvcConfigurer {
-
-    //  MỚI:
-    // Cho phép frontend truy cập ảnh local.
-    // Ví dụ:
-    // http://localhost:9999/uploads/equipments/abc_tv.jpg
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:uploads/");
-    }
-}
+public class WebConfig {
+    // Resource handler for /uploads/** is managed by WebMvcConfig
+}

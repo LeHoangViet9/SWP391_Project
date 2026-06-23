@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
+import { usePermission } from '../hooks/usePermission';
 import {
   getCustomers,
   createCustomer,
@@ -32,11 +32,11 @@ const EMPTY = {
 };
 
 export default function CustomerManager() {
-  const { hasRole } = useAuth();
+  const { hasPermission } = usePermission();
   const { locale, t } = useLocale();
-  const canDelete = hasRole('ADMIN', 'MANAGER');
-  const canEdit = hasRole('ADMIN', 'MANAGER', 'RECEPTIONIST');
-  const canCreate = hasRole('ADMIN', 'MANAGER', 'RECEPTIONIST');
+  const canDelete = hasPermission('CUSTOMER_DELETE');
+  const canEdit = hasPermission('CUSTOMER_UPDATE');
+  const canCreate = hasPermission('CUSTOMER_CREATE');
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);

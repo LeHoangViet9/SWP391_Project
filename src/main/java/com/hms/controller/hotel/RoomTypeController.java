@@ -3,6 +3,7 @@ package com.hms.controller.hotel;
 import java.util.Locale;
 
 import com.hms.dto.roomtype.response.RoomTypeResponse;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.hms.dto.roomtype.request.RoomTypeRequest;
 import jakarta.validation.Valid;
 import org.springframework.context.MessageSource;
@@ -29,6 +30,7 @@ public class RoomTypeController {
     private final MessageSource messageSource;
 
     @GetMapping
+    @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<Page<RoomTypeResponse>>> getAllRoomType(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
@@ -55,6 +57,7 @@ public class RoomTypeController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<RoomTypeResponse>> getRoomTypeById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomTypeResponse roomTypeResponse = roomTypeService.getRoomTypeById(id);
@@ -69,6 +72,7 @@ public class RoomTypeController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('ROOM_TYPE_CREATE')")
     public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomType(@RequestBody @Valid RoomTypeRequest roomTypeRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomTypeResponse created = roomTypeService.createRoomType(roomTypeRequest);
@@ -83,6 +87,7 @@ public class RoomTypeController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROOM_TYPE_UPDATE')")
     public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomType(@PathVariable Long id, @RequestBody @Valid RoomTypeRequest roomTypeRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomTypeResponse updated = roomTypeService.updateRoomType(id, roomTypeRequest);
@@ -97,6 +102,7 @@ public class RoomTypeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROOM_TYPE_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteRoomType(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         roomTypeService.deleteRoomTypeByID(id);
