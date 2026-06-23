@@ -17,6 +17,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -125,6 +126,7 @@ public class HouseKeepingTaskController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_TASK_CREATE')")
     public ResponseEntity<ApiResponse<HouseKeepingTaskResponse>> createTask(
             @RequestBody @Valid HouseKeepingTaskRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -142,6 +144,7 @@ public class HouseKeepingTaskController {
     }
 
     @PutMapping("/updateTask/{id}")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_TASK_UPDATE')")
     public ResponseEntity<ApiResponse<HouseKeepingTaskResponse>> updateTask(
             @PathVariable Long id,
             @RequestBody HouseKeepingTaskUpdateRequest request) {
@@ -160,6 +163,7 @@ public class HouseKeepingTaskController {
     }
 
     @DeleteMapping("/deleteTask/{id}")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_TASK_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         Locale locale = LocaleContextHolder.getLocale();
@@ -173,7 +177,9 @@ public class HouseKeepingTaskController {
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
     @PostMapping("/rooms/{roomId}/report-issue")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_TASK_REPORT_ISSUE')")
     public ResponseEntity<ApiResponse<Void>> reportRoomIssue(
             @PathVariable Long roomId,
             @RequestBody @Valid ReportRoomIssueRequest request) {
