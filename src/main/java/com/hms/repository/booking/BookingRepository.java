@@ -14,84 +14,102 @@ import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-        @Query("""
-                            SELECT b
-                            FROM Booking b
-                            WHERE (:status IS NULL OR b.bookingStatus = :status)
-                            AND (:customerId IS NULL OR b.customer.id = :customerId)
-                            AND (:roomTypeId IS NULL OR b.roomType.id = :roomTypeId)
-                            AND (:roomId IS NULL OR b.room.id = :roomId)
-                        """)
-        Page<Booking> searchBookings(
-                        @Param("status") BookingStatus status,
-                        @Param("customerId") Long customerId,
-                        @Param("roomTypeId") Long roomTypeId,
-                        @Param("roomId") Long roomId,
-                        Pageable pageable);
+    @Query("""
+                SELECT b
+                FROM Booking b
+                WHERE (:status IS NULL OR b.bookingStatus = :status)
+                AND (:customerId IS NULL OR b.customer.id = :customerId)
+                AND (:roomTypeId IS NULL OR b.roomType.id = :roomTypeId)
+                AND (:roomId IS NULL OR b.room.id = :roomId)
+            """)
+    Page<Booking> searchBookings(
+            @Param("status") BookingStatus status,
+            @Param("customerId") Long customerId,
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("roomId") Long roomId,
+            Pageable pageable);
 
-        @Query("""
-                            SELECT b
-                            FROM Booking b
-                            WHERE b.customer.id = :customerId
-                        """)
-        Page<Booking> findHistoryByCustomerId(
-                        @Param("customerId") Long customerId,
-                        Pageable pageable);
+    @Query("""
+                SELECT b
+                FROM Booking b
+                WHERE b.customer.id = :customerId
+            """)
+    Page<Booking> findHistoryByCustomerId(
+            @Param("customerId") Long customerId,
+            Pageable pageable);
 
-        Page<Booking> findByCheckInDateBetween(
-                        LocalDateTime start,
-                        LocalDateTime end,
-                        Pageable pageable);
+    Page<Booking> findByCheckInDateBetween(
+            LocalDateTime start,
+            LocalDateTime end,
+            Pageable pageable);
 
-        Page<Booking> findByCheckOutDateBetween(
-                        LocalDateTime start,
-                        LocalDateTime end,
-                        Pageable pageable);
+    Page<Booking> findByCheckOutDateBetween(
+            LocalDateTime start,
+            LocalDateTime end,
+            Pageable pageable);
 
-        boolean existsByRoomIdAndCheckInDateLessThanAndCheckOutDateGreaterThan(
-                        Long roomId,
-                        LocalDateTime newCheckOutDate,
-                        LocalDateTime newCheckInDate);
+    @Query("""
+                SELECT COUNT(b) > 0
+                FROM Booking b
+                WHERE b.room.id = :roomId
+                AND b.bookingStatus IN :statuses
+                AND b.checkInDate < :newCheckOutDate
+                AND b.checkOutDate > :newCheckInDate
+                AND (:excludedBookingId IS NULL OR b.id <> :excludedBookingId)
+            """)
+    boolean existsConflict(
+            @Param("roomId") Long roomId,
+            @Param("newCheckOutDate") LocalDateTime newCheckOutDate,
+            @Param("newCheckInDate") LocalDateTime newCheckInDate,
+            @Param("excludedBookingId") Long excludedBookingId,
+            @Param("statuses") Collection<BookingStatus> statuses);
 
-        @Query("""
-                            SELECT COALESCE(SUM(b.quantity), 0)
-                            FROM Booking b
-                            WHERE b.roomType.id = :roomTypeId
-                            AND b.bookingStatus IN :statuses
-                            AND b.checkInDate < :checkOutDate
-                            AND b.checkOutDate > :checkInDate
-                            AND (:excludedBookingId IS NULL OR b.id <> :excludedBookingId)
-                        """)
-        long sumBookedQuantityByRoomTypeAndDateRange(
-                        @Param("roomTypeId") Long roomTypeId,
-                        @Param("checkInDate") LocalDateTime checkInDate,
-                        @Param("checkOutDate") LocalDateTime checkOutDate,
-                        @Param("excludedBookingId") Long excludedBookingId,
-                        @Param("statuses") Collection<BookingStatus> statuses);
+    @Query("""
+                SELECT COALESCE(SUM(b.quantity), 0)
+                FROM Booking b
+                WHERE b.roomType.id = :roomTypeId
+                AND b.bookingStatus IN :statuses
+                AND b.checkInDate < :checkOutDate
+                AND b.checkOutDate > :checkInDate
+                AND (:excludedBookingId IS NULL OR b.id <> :excludedBookingId)
+            """)
+    long sumBookedQuantityByRoomTypeAndDateRange(
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("checkInDate") LocalDateTime checkInDate,
+            @Param("checkOutDate") LocalDateTime checkOutDate,
+            @Param("excludedBookingId") Long excludedBookingId,
+            @Param("statuses") Collection<BookingStatus> statuses);
 
-        long countByBookingStatusAndCheckInDateBetween(
-                        BookingStatus status,
-                        LocalDateTime start,
-                        LocalDateTime end);
+    long countByBookingStatusAndCheckInDateBetween(
+            BookingStatus status,
+            LocalDateTime start,
+            LocalDateTime end);
 
-        long countByBookingStatusAndCheckOutDateBetween(
-                        BookingStatus status,
-                        LocalDateTime start,
-                        LocalDateTime end);
+    long countByBookingStatusAndCheckOutDateBetween(
+            BookingStatus status,
+            LocalDateTime start,
+            LocalDateTime end);
 
-        long countByBookingStatusAndCreatedAtBetween(
-                        BookingStatus status,
-                        LocalDateTime start,
-                        LocalDateTime end);
+    long countByBookingStatusAndCreatedAtBetween(
+            BookingStatus status,
+            LocalDateTime start,
+            LocalDateTime end);
 
-        @Query("""
-                            SELECT b.roomType.typeName, COUNT(b)
-                            FROM Booking b
-                            GROUP BY b.roomType.typeName
-                        """)
-        List<Object[]> countBookingsGroupedByRoomType();
+    @Query("""
+                SELECT b.roomType.typeName, COUNT(b)
+                FROM Booking b
+                GROUP BY b.roomType.typeName
+            """)
+    List<Object[]> countBookingsGroupedByRoomType();
 
-        long countBookingByBookingStatus(BookingStatus bookingStatus);
+    long countBookingByBookingStatus(BookingStatus bookingStatus);
 
-        boolean existsByRoomTypeId(Long roomTypeId);
+    boolean existsByRoomTypeId(Long roomTypeId);
+
+    boolean existsByRoomIdAndCheckInDateLessThanAndCheckOutDateGreaterThan(
+            Long roomId,
+            LocalDateTime checkInDate,
+            LocalDateTime checkOutDate);
+
+    List<Booking> findByBookingStatusAndCreatedAtBefore(BookingStatus bookingStatus, LocalDateTime dateTime);
 }

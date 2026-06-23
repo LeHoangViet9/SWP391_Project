@@ -41,10 +41,10 @@ SELECT c FROM Customer c
 WHERE (:status IS NULL OR c.status = :status)
 AND (
     CAST(:keyword AS string) IS NULL
-    OR LOWER(c.fullName) LIKE LOWER(CAST(:keyword AS string))
-    OR LOWER(c.email) LIKE LOWER(CAST(:keyword AS string))
-    OR c.phone LIKE CAST(:keyword AS string)
-    OR c.idNumberCard LIKE CAST(:keyword AS string)
+    OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+    OR LOWER(c.email) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+    OR c.phone LIKE CONCAT('%', CAST(:keyword AS string), '%')
+    OR c.idNumberCard LIKE CONCAT('%', CAST(:keyword AS string), '%')
 )
 """)
     Page<Customer> searchCustomer(
