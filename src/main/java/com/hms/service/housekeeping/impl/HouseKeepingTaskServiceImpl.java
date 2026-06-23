@@ -134,7 +134,6 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
         task.setTaskStatus(newStatus);
 
-        task.setTaskStatus(newStatus);
         updateBusinessTimestamps(task, request, newStatus);
 
         HouseKeepingTask updated = taskRepository.save(task);

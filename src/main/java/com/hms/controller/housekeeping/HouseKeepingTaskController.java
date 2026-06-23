@@ -182,7 +182,7 @@ public class HouseKeepingTaskController {
 
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
-                .message("Room issue reported successfully")
+                .message("success.task.report.issue")
                 .status(HttpStatus.OK)
                 .build();
 
