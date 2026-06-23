@@ -122,7 +122,7 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
     }
 
     @Override
-    @Transactional
+    @Transactional 
     public void deleteFeedback(Long feedbackId) {
         Locale locale = LocaleContextHolder.getLocale();
         CustomerFeedback feedback = customerFeedbackRepository.findById(feedbackId)
