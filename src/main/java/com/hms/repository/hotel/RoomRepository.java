@@ -5,12 +5,16 @@ import com.hms.entity.hotel.Room;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {
 
@@ -71,5 +75,33 @@ AND (
             @Param("keyword") String keyword,
             Pageable pageable
     );
-}
 
+    /**
+     * Find available rooms of a specific type that have no overlapping confirmed/checked-in bookings.
+     * Used during check-in to auto-assign a room.
+     */
+    @Query("""
+        SELECT r FROM Room r
+        WHERE r.roomType.id = :roomTypeId
+        AND r.roomStatus = com.hms.common.enums.RoomStatus.AVAILABLE
+        AND NOT EXISTS (
+            SELECT b FROM Booking b
+            WHERE b.room.id = r.id
+            AND b.bookingStatus IN (com.hms.common.enums.BookingStatus.CONFIRMED, com.hms.common.enums.BookingStatus.CHECKED_IN)
+            AND b.checkInDate < :checkOutDate
+            AND b.checkOutDate > :checkInDate
+        )
+    """)
+    List<Room> findAvailableRoomsForCheckIn(
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("checkInDate") LocalDateTime checkInDate,
+            @Param("checkOutDate") LocalDateTime checkOutDate
+    );
+
+    /**
+     * Find a room by ID with a pessimistic write lock to prevent race conditions during check-in.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Room r WHERE r.id = :id")
+    Optional<Room> findByIdWithPessimisticWrite(@Param("id") Long id);
+}

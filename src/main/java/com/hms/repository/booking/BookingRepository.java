@@ -112,4 +112,24 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDateTime checkOutDate);
 
     List<Booking> findByBookingStatusAndCreatedAtBefore(BookingStatus bookingStatus, LocalDateTime dateTime);
+
+    /**
+     * Check if a room is already booked in the given date range (excluding the current booking).
+     * Used for double-check after acquiring pessimistic lock during check-in.
+     */
+    @Query("""
+        SELECT COUNT(b) > 0 FROM Booking b
+        WHERE b.room.id = :roomId
+        AND b.id <> :excludedBookingId
+        AND b.bookingStatus IN :statuses
+        AND b.checkInDate < :checkOutDate
+        AND b.checkOutDate > :checkInDate
+    """)
+    boolean existsOverlappingBooking(
+            @Param("roomId") Long roomId,
+            @Param("excludedBookingId") Long excludedBookingId,
+            @Param("statuses") Collection<BookingStatus> statuses,
+            @Param("checkInDate") LocalDateTime checkInDate,
+            @Param("checkOutDate") LocalDateTime checkOutDate
+    );
 }

@@ -64,6 +64,9 @@ public class Booking {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "actual_check_in_time")
+    private LocalDateTime actualCheckInTime;
+
     // Quan hệ 1-1 đảo ngược khớp hoàn toàn với Invoice bên dưới
     @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Invoice invoice;

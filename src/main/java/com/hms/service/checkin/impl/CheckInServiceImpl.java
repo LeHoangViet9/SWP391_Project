@@ -13,7 +13,7 @@ import com.hms.entity.hotel.RoomStateHistory;
 import com.hms.repository.auth.UserRepository;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.hotel.RoomRepository;
-import com.hms.repository.hotel.RoomStateHistoryRepository;
+import com.hms.repository.housekeeping.RoomStateHistoryRepository;
 import com.hms.service.checkin.CheckInService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
