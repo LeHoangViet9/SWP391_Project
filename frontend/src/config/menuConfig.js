@@ -133,7 +133,7 @@ export const MENU_CONFIG = [
     labelEn: 'Check-in',
     path: '/dashboard/check-in',
     icon: ClipboardCheck,
-    permissions: ['BOOKING_VIEW', 'BOOKING_UPDATE'],
+    permissions: ['CHECKIN_VIEW', 'CHECKIN_PROCESS'],
     group: 'operations',
   },
   {

@@ -2,11 +2,14 @@ package com.hms.controller.checkin;
 
 import com.hms.common.dto.ApiResponse;
 import com.hms.dto.checkin.request.CheckInRequestDTO;
+import com.hms.dto.checkin.response.AvailableRoomResponseDTO;
 import com.hms.dto.checkin.response.CheckInResponseDTO;
-import com.hms.entity.hotel.Room;
+import com.hms.repository.auth.UserRepository;
 import com.hms.service.checkin.CheckInService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,12 +22,17 @@ import java.util.List;
 public class CheckInController {
 
     private final CheckInService checkInService;
+    private final UserRepository userRepository;
 
     @PostMapping
+    @PreAuthorize("hasAuthority('CHECKIN_PROCESS') or hasAuthority('BOOKING_UPDATE')")
     public ResponseEntity<ApiResponse<CheckInResponseDTO>> processCheckIn(
             @Valid @RequestBody CheckInRequestDTO request,
-            @RequestParam(required = false) Long userId) {
+            @AuthenticationPrincipal String email) {
 
+        Long userId = userRepository.findUserByEmail(email)
+                .map(user -> user.getId())
+                .orElse(null);
         CheckInResponseDTO responseDTO = checkInService.processCheckIn(request, userId);
 
         ApiResponse<CheckInResponseDTO> response = ApiResponse.<CheckInResponseDTO>builder()
@@ -38,10 +46,11 @@ public class CheckInController {
     }
 
     @GetMapping("/available-rooms/{bookingId}")
-    public ResponseEntity<ApiResponse<List<Room>>> getAvailableRooms(@PathVariable Long bookingId) {
-        List<Room> availableRooms = checkInService.getAvailableRoomsForBooking(bookingId);
+    @PreAuthorize("hasAuthority('CHECKIN_VIEW') or hasAuthority('CHECKIN_PROCESS') or hasAuthority('BOOKING_VIEW') or hasAuthority('BOOKING_UPDATE')")
+    public ResponseEntity<ApiResponse<List<AvailableRoomResponseDTO>>> getAvailableRooms(@PathVariable Long bookingId) {
+        List<AvailableRoomResponseDTO> availableRooms = checkInService.getAvailableRoomsForBooking(bookingId);
 
-        ApiResponse<List<Room>> response = ApiResponse.<List<Room>>builder()
+        ApiResponse<List<AvailableRoomResponseDTO>> response = ApiResponse.<List<AvailableRoomResponseDTO>>builder()
                 .success(true)
                 .message("Fetched available rooms successfully")
                 .data(availableRooms)

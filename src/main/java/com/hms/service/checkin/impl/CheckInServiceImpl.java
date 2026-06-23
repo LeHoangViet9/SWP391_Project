@@ -5,6 +5,7 @@ import com.hms.common.enums.ProcessTrigger;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.exception.ConflictException;
 import com.hms.dto.checkin.request.CheckInRequestDTO;
+import com.hms.dto.checkin.response.AvailableRoomResponseDTO;
 import com.hms.dto.checkin.response.CheckInResponseDTO;
 import com.hms.entity.auth.User;
 import com.hms.entity.booking.Booking;
@@ -184,7 +185,8 @@ public class CheckInServiceImpl implements CheckInService {
     }
 
     @Override
-    public List<Room> getAvailableRoomsForBooking(Long bookingId) {
+    @Transactional(readOnly = true)
+    public List<AvailableRoomResponseDTO> getAvailableRoomsForBooking(Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Booking booking = bookingRepository.findById(bookingId)
@@ -197,9 +199,18 @@ public class CheckInServiceImpl implements CheckInService {
                 ));
 
         return roomRepository.findAvailableRoomsForCheckIn(
-                booking.getRoomType().getId(),
-                booking.getCheckInDate(),
-                booking.getCheckOutDate()
-        );
+                        booking.getRoomType().getId(),
+                        booking.getCheckInDate(),
+                        booking.getCheckOutDate()
+                )
+                .stream()
+                .map(room -> AvailableRoomResponseDTO.builder()
+                        .id(room.getId())
+                        .roomNumber(room.getRoomNumber())
+                        .floorNumber(room.getFloorNumber())
+                        .roomStatus(room.getRoomStatus())
+                        .roomTypeName(room.getRoomType().getTypeName())
+                        .build())
+                .toList();
     }
 }
