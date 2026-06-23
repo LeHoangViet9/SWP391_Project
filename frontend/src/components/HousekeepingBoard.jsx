@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { getDirtyRooms, getCleaningRooms, updateRoomCleaningStatus } from '../services/housekeepingService';
 import { usePermission } from '../hooks/usePermission';
+import { useAuth } from '../context/AuthContext';
+import HousekeeperMobileDashboard from './HousekeeperMobileDashboard';
 import Toast from './shared/Toast';
 import Modal from './shared/Modal';
 
@@ -214,6 +216,9 @@ function TableView({ rooms, onAction, updating, canUpdate }) {
 // ─── Main Housekeeping Board ───
 export default function HousekeepingBoard() {
     const { hasPermission } = usePermission();
+    const { user } = useAuth();
+    const isHousekeeper = user?.roleName === 'HOUSEKEEPER';
+
     const canUpdate = hasPermission('HOUSEKEEPING_UPDATE');
     const canReport = hasPermission('MAINTENANCE_CREATE');
 
@@ -223,7 +228,7 @@ export default function HousekeepingBoard() {
     const [loading, setLoading] = useState(false);
     const [updating, setUpdating] = useState(null);
     const [toast, setToast] = useState({ type: 'success', message: '' });
-    const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
+    const [viewMode, setViewMode] = useState(isHousekeeper ? 'mobile' : 'kanban'); // 'kanban' | 'table' | 'mobile'
     const [filter, setFilter] = useState('all'); // 'all' | 'priority'
     const [filterOpen, setFilterOpen] = useState(false);
 
@@ -310,6 +315,15 @@ export default function HousekeepingBoard() {
     const allRooms = [...dirtyRooms, ...cleaningRooms, ...readyRooms];
     const total = allRooms.length;
 
+    if (viewMode === 'mobile') {
+        return (
+            <HousekeeperMobileDashboard 
+                isSimulator={!isHousekeeper} 
+                onToggleView={() => setViewMode('kanban')} 
+            />
+        );
+    }
+
     return (
         <div className="space-y-5">
             <Toast type={toast.type} message={toast.message} onClose={closeToast} />
@@ -359,6 +373,15 @@ export default function HousekeepingBoard() {
                     >
                         <Table size={14} />
                         Bảng
+                    </button>
+                    <button
+                        onClick={() => setViewMode('mobile')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                            viewMode === 'mobile' ? 'bg-white text-[#bfa15f] shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        <span className="text-sm">📱</span>
+                        Di động
                     </button>
                 </div>
 
