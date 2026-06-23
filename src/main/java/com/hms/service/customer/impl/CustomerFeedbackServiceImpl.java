@@ -15,6 +15,7 @@ import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.customer.CustomerFeedbackRepository;
 import com.hms.repository.customer.CustomerRepository;
 import com.hms.service.customer.CustomerFeedbackService;
+import com.hms.service.customer.mapper.CustomerFeedbackMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -37,6 +38,7 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
     private final BookingRepository bookingRepository;
     private final CustomerRepository customerRepository;
     private final MessageSource messageSource;
+    private final CustomerFeedbackMapper customerFeedbackMapper;
 
     @Override
     @Transactional
@@ -96,7 +98,7 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
                 .build();
 
         CustomerFeedback saved = customerFeedbackRepository.save(feedback);
-        return convertToResponse(saved);
+        return customerFeedbackMapper.toResponse(saved);
     }
 
     @Override
@@ -104,7 +106,7 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
     public Page<CustomerFeedbackResponse> searchFeedback(String keyword, Integer rating, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<CustomerFeedback> feedbackPage = customerFeedbackRepository.searchFeedback(keyword, rating, pageable);
-        return feedbackPage.map(this::convertToResponse);
+        return feedbackPage.map(customerFeedbackMapper::toResponse);
     }
 
     @Override
@@ -119,7 +121,7 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
         feedback.setReply(request.getReply());
         feedback.setStatus("reviewed");
         CustomerFeedback saved = customerFeedbackRepository.save(feedback);
-        return convertToResponse(saved);
+        return customerFeedbackMapper.toResponse(saved);
     }
 
     @Override
@@ -131,20 +133,5 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
                         messageSource.getMessage("error.feedback.notfound", null, locale)
                 ));
         customerFeedbackRepository.delete(feedback);
-    }
-
-    private CustomerFeedbackResponse convertToResponse(CustomerFeedback feedback) {
-        return CustomerFeedbackResponse.builder()
-                .id(feedback.getId())
-                .bookingId(feedback.getBooking().getId())
-                .customerName(feedback.getCustomer().getFullName())
-                .roomTypeName(feedback.getBooking().getRoomType() != null ? feedback.getBooking().getRoomType().getTypeName() : null)
-                .rating(feedback.getRating())
-                .category(feedback.getCategory())
-                .comment(feedback.getComment())
-                .status(feedback.getStatus())
-                .createdAt(feedback.getCreatedAt())
-                .reply(feedback.getReply())
-                .build();
     }
 }
