@@ -15,7 +15,7 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
     
     List<CustomerFeedback> findByCustomerId(Long customerId);
 
-    List<CustomerFeedback> findByBookingId(Long bookingId);
+    boolean existsByBookingId(Long bookingId);
 
     @Query("""
         SELECT cf FROM CustomerFeedback cf

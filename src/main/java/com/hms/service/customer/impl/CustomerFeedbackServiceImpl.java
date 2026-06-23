@@ -2,6 +2,7 @@ package com.hms.service.customer.impl;
 
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.BookingStatus;
+import com.hms.common.enums.FeedbackStatus;
 import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
@@ -27,8 +28,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -66,27 +65,21 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
             );
         }
 
-        List<CustomerFeedback> existing = customerFeedbackRepository.findByBookingId(booking.getId());
-        if (!existing.isEmpty()) {
+        if (customerFeedbackRepository.existsByBookingId(booking.getId())) {
             throw new ConflictException(
                     messageSource.getMessage("error.feedback.already_exists", null, locale)
             );
         }
 
-        String normalizedCategory = request.getCategory();
-        if (normalizedCategory.equalsIgnoreCase("room")) {
-            normalizedCategory = "Room";
-        } else if (normalizedCategory.equalsIgnoreCase("service")) {
-            normalizedCategory = "Service";
-        } else if (normalizedCategory.equalsIgnoreCase("cleanliness")) {
-            normalizedCategory = "Cleanliness";
-        } else if (normalizedCategory.equalsIgnoreCase("staff")) {
-            normalizedCategory = "Staff";
-        } else {
-            throw new BadRequestException(
+        String normalizedCategory = switch (request.getCategory().toLowerCase()) {
+            case "room" -> "Room";
+            case "service" -> "Service";
+            case "cleanliness" -> "Cleanliness";
+            case "staff" -> "Staff";
+            default -> throw new BadRequestException(
                     messageSource.getMessage("error.feedback.category.invalid", null, locale)
             );
-        }
+        };
 
         CustomerFeedback feedback = CustomerFeedback.builder()
                 .booking(booking)
@@ -94,11 +87,10 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
                 .rating(request.getRating())
                 .category(normalizedCategory)
                 .comment(request.getComment())
-                .status("pending")
+                .status(FeedbackStatus.PENDING.name().toLowerCase())
                 .build();
 
-        CustomerFeedback saved = customerFeedbackRepository.save(feedback);
-        return customerFeedbackMapper.toResponse(saved);
+        return customerFeedbackMapper.toResponse(customerFeedbackRepository.save(feedback));
     }
 
     @Override
@@ -119,9 +111,8 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
                 ));
 
         feedback.setReply(request.getReply());
-        feedback.setStatus("reviewed");
-        CustomerFeedback saved = customerFeedbackRepository.save(feedback);
-        return customerFeedbackMapper.toResponse(saved);
+        feedback.setStatus(FeedbackStatus.REVIEWED.name().toLowerCase());
+        return customerFeedbackMapper.toResponse(customerFeedbackRepository.save(feedback));
     }
 
     @Override
