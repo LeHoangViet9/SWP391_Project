@@ -39,6 +39,7 @@ import {
   BedDouble,
   Tag,
   CalendarCheck,
+  ClipboardCheck,
   CalendarDays,
   Users,
   Wrench,
@@ -124,6 +125,15 @@ export const MENU_CONFIG = [
     path: '/dashboard/bookings',
     icon: CalendarCheck,
     permissions: ['BOOKING_VIEW'],
+    group: 'operations',
+  },
+  {
+    key: 'check-in',
+    label: 'Check-in',
+    labelEn: 'Check-in',
+    path: '/dashboard/check-in',
+    icon: ClipboardCheck,
+    permissions: ['BOOKING_VIEW', 'BOOKING_UPDATE'],
     group: 'operations',
   },
   {
