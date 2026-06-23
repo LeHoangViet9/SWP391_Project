@@ -16,12 +16,16 @@ import com.hms.repository.customer.CustomerFeedbackRepository;
 import com.hms.repository.customer.CustomerRepository;
 import com.hms.service.customer.CustomerFeedbackService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Locale;
 
 import java.util.List;
 
@@ -32,27 +36,39 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
     private final CustomerFeedbackRepository customerFeedbackRepository;
     private final BookingRepository bookingRepository;
     private final CustomerRepository customerRepository;
+    private final MessageSource messageSource;
 
     @Override
     @Transactional
     public CustomerFeedbackResponse createFeedback(CustomerFeedbackRequest request, String email) {
+        Locale locale = LocaleContextHolder.getLocale();
         Customer customer = customerRepository.findByEmailAndStatus(email, AccountStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found or inactive"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.feedback.customer.notfound", null, locale)
+                ));
 
         Booking booking = bookingRepository.findById(request.getBookingId())
-                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.feedback.booking.notfound", null, locale)
+                ));
 
         if (!booking.getCustomer().getId().equals(customer.getId())) {
-            throw new BadRequestException("Booking does not belong to this customer");
+            throw new BadRequestException(
+                    messageSource.getMessage("error.feedback.booking.not_owner", null, locale)
+            );
         }
 
         if (booking.getBookingStatus() != BookingStatus.CHECKED_OUT) {
-            throw new BadRequestException("Only checked-out bookings can be reviewed");
+            throw new BadRequestException(
+                    messageSource.getMessage("error.feedback.booking.not_checked_out", null, locale)
+            );
         }
 
         List<CustomerFeedback> existing = customerFeedbackRepository.findByBookingId(booking.getId());
         if (!existing.isEmpty()) {
-            throw new ConflictException("You have already reviewed this booking");
+            throw new ConflictException(
+                    messageSource.getMessage("error.feedback.already_exists", null, locale)
+            );
         }
 
         String normalizedCategory = request.getCategory();
@@ -65,7 +81,9 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
         } else if (normalizedCategory.equalsIgnoreCase("staff")) {
             normalizedCategory = "Staff";
         } else {
-            throw new BadRequestException("Invalid feedback category");
+            throw new BadRequestException(
+                    messageSource.getMessage("error.feedback.category.invalid", null, locale)
+            );
         }
 
         CustomerFeedback feedback = CustomerFeedback.builder()
@@ -92,8 +110,11 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
     @Override
     @Transactional
     public CustomerFeedbackResponse replyFeedback(Long feedbackId, FeedbackReplyRequest request) {
+        Locale locale = LocaleContextHolder.getLocale();
         CustomerFeedback feedback = customerFeedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new ResourceNotFoundException("Feedback not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.feedback.notfound", null, locale)
+                ));
 
         feedback.setReply(request.getReply());
         feedback.setStatus("reviewed");
@@ -104,8 +125,11 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
     @Override
     @Transactional
     public void deleteFeedback(Long feedbackId) {
+        Locale locale = LocaleContextHolder.getLocale();
         CustomerFeedback feedback = customerFeedbackRepository.findById(feedbackId)
-                .orElseThrow(() -> new ResourceNotFoundException("Feedback not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.feedback.notfound", null, locale)
+                ));
         customerFeedbackRepository.delete(feedback);
     }
 
