@@ -1,0 +1,38 @@
+import { apiFetch } from './api';
+
+function buildQuery(params) {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value != null && value !== '') searchParams.set(key, value);
+  });
+  const query = searchParams.toString();
+  return query ? `?${query}` : '';
+}
+
+/** POST /api/v1/feedbacks */
+export async function createFeedback(payload, locale = 'vi') {
+  return apiFetch('/feedbacks', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
+/** GET /api/v1/feedbacks */
+export async function searchFeedbacks(params = {}, locale = 'vi') {
+  return apiFetch(`/feedbacks${buildQuery(params)}`, {}, locale);
+}
+
+/** PUT /api/v1/feedbacks/{id}/reply */
+export async function replyFeedback(id, payload, locale = 'vi') {
+  return apiFetch(`/feedbacks/${id}/reply`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
+/** DELETE /api/v1/feedbacks/{id} */
+export async function deleteFeedback(id, locale = 'vi') {
+  return apiFetch(`/feedbacks/${id}`, {
+    method: 'DELETE',
+  }, locale);
+}

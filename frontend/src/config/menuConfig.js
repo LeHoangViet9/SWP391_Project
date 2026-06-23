@@ -186,7 +186,7 @@ export const MENU_CONFIG = [
     labelEn: 'Feedback',
     path: '/dashboard/feedback',
     icon: MessageSquare,
-    permissions: ['FEEDBACK_VIEW', 'FEEDBACK_CREATE'],
+    permissions: ['FEEDBACK_VIEW'],
     group: 'operations',
   },
   {

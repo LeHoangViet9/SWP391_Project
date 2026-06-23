@@ -1,5 +1,20 @@
+-- Tạo bảng customer_feedback nếu chưa tồn tại
+CREATE TABLE IF NOT EXISTS customer_feedback (
+    feedback_id BIGSERIAL PRIMARY KEY,
+    booking_id BIGINT NOT NULL,
+    customer_id BIGINT NOT NULL,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    category VARCHAR(50) NOT NULL CHECK (category IN ('Room', 'Service', 'Cleanliness', 'Staff')),
+    comment TEXT NOT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'resolved')),
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    reply TEXT,
+    CONSTRAINT fk_customer_feedback_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+    CONSTRAINT fk_customer_feedback_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+
 -- Dọn sạch dữ liệu cũ và reset các chuỗi ID tự tăng
-TRUNCATE TABLE room_state_history, room_img, equipment_images, equipment_checks, repair_requests, equipments, invoices, bookings, customers, room, room_type, users, roles RESTART IDENTITY CASCADE;
+TRUNCATE TABLE room_state_history, room_img, equipment_images, equipment_checks, repair_requests, equipments, invoices, bookings, customers, room, room_type, users, roles, customer_feedback RESTART IDENTITY CASCADE;
 
 -- Cập nhật/Sửa đổi các check constraint cũ của Hibernate để khớp với các giá trị Enum mới trong Java code
 -- 1. Đồng bộ với MaintenanceStatus enum
