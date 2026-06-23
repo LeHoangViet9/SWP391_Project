@@ -3,7 +3,7 @@ package com.hms.service.checkin.impl;
 import com.hms.common.enums.BookingStatus;
 import com.hms.common.enums.ProcessTrigger;
 import com.hms.common.enums.RoomStatus;
-import com.hms.common.exception.AppException;
+import com.hms.common.exception.ConflictException;
 import com.hms.dto.checkin.request.CheckInRequestDTO;
 import com.hms.dto.checkin.response.CheckInResponseDTO;
 import com.hms.entity.auth.User;
@@ -16,12 +16,14 @@ import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomStateHistoryRepository;
 import com.hms.service.checkin.CheckInService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -31,26 +33,53 @@ public class CheckInServiceImpl implements CheckInService {
     private final RoomRepository roomRepository;
     private final RoomStateHistoryRepository roomStateHistoryRepository;
     private final UserRepository userRepository;
+    private final MessageSource messageSource;
 
     @Override
     @Transactional
     public CheckInResponseDTO processCheckIn(CheckInRequestDTO request, Long userId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
         // 1. Verify Booking
         Booking booking = bookingRepository.findById(request.getBookingId())
-                .orElseThrow(() -> new AppException("Booking not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new ConflictException(
+                        messageSource.getMessage(
+                                "error.checkin.booking.notfound",
+                                new Object[]{request.getBookingId()},
+                                locale
+                        )
+                ));
 
         if (booking.getBookingStatus() == BookingStatus.CHECKED_IN) {
-            throw new AppException("Booking is already checked in", HttpStatus.CONFLICT);
+            throw new ConflictException(
+                    messageSource.getMessage(
+                            "error.checkin.booking.already.checked.in",
+                            new Object[]{booking.getId()},
+                            locale
+                    )
+            );
         }
 
         if (booking.getBookingStatus() != BookingStatus.CONFIRMED) {
-            throw new AppException("Booking must be CONFIRMED before check-in. Current status: " + booking.getBookingStatus(), HttpStatus.UNPROCESSABLE_ENTITY);
+            throw new ConflictException(
+                    messageSource.getMessage(
+                            "error.checkin.booking.status.invalid",
+                            new Object[]{booking.getBookingStatus()},
+                            locale
+                    )
+            );
         }
 
         // 2. Validate Time (Basic validation: Check-in date should not be in the future beyond today)
         LocalDateTime now = LocalDateTime.now();
         if (now.toLocalDate().isBefore(booking.getCheckInDate().toLocalDate())) {
-            throw new AppException("Too early to check in. Check-in date is " + booking.getCheckInDate().toLocalDate(), HttpStatus.BAD_REQUEST);
+            throw new ConflictException(
+                    messageSource.getMessage(
+                            "error.checkin.too.early",
+                            new Object[]{booking.getCheckInDate().toLocalDate()},
+                            locale
+                    )
+            );
         }
 
         // 3. Assign Room
@@ -64,17 +93,36 @@ public class CheckInServiceImpl implements CheckInService {
             );
 
             if (availableRooms.isEmpty()) {
-                throw new AppException("No available rooms of type " + booking.getRoomType().getTypeName() + " for this date range", HttpStatus.NOT_FOUND);
+                throw new ConflictException(
+                        messageSource.getMessage(
+                                "error.checkin.no.available.rooms",
+                                new Object[]{booking.getRoomType().getTypeName()},
+                                locale
+                        )
+                );
             }
             selectedRoomId = availableRooms.get(0).getId();
         }
 
         // 4. Lock and Double Check
-        Room assignedRoom = roomRepository.findByIdWithPessimisticWrite(selectedRoomId)
-                .orElseThrow(() -> new AppException("Room not found during lock phase", HttpStatus.NOT_FOUND));
+        final Long roomIdToLock = selectedRoomId;
+        Room assignedRoom = roomRepository.findByIdWithPessimisticWrite(roomIdToLock)
+                .orElseThrow(() -> new ConflictException(
+                        messageSource.getMessage(
+                                "error.checkin.room.notfound.lock",
+                                new Object[]{roomIdToLock},
+                                locale
+                        )
+                ));
 
         if (assignedRoom.getRoomStatus() != RoomStatus.AVAILABLE) {
-            throw new AppException("Room " + assignedRoom.getRoomNumber() + " is no longer available. Current status: " + assignedRoom.getRoomStatus(), HttpStatus.CONFLICT);
+            throw new ConflictException(
+                    messageSource.getMessage(
+                            "error.checkin.room.not.available",
+                            new Object[]{assignedRoom.getRoomNumber(), assignedRoom.getRoomStatus()},
+                            locale
+                    )
+            );
         }
 
         // Double check overlap after acquiring lock
@@ -87,7 +135,13 @@ public class CheckInServiceImpl implements CheckInService {
         );
 
         if (isOverlapping) {
-            throw new AppException("Room " + assignedRoom.getRoomNumber() + " is already booked for this date range.", HttpStatus.CONFLICT);
+            throw new ConflictException(
+                    messageSource.getMessage(
+                            "error.checkin.room.overlap",
+                            new Object[]{assignedRoom.getRoomNumber()},
+                            locale
+                    )
+            );
         }
 
         // 5. Update Status
@@ -131,8 +185,16 @@ public class CheckInServiceImpl implements CheckInService {
 
     @Override
     public List<Room> getAvailableRoomsForBooking(Long bookingId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new AppException("Booking not found", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new ConflictException(
+                        messageSource.getMessage(
+                                "error.checkin.booking.notfound",
+                                new Object[]{bookingId},
+                                locale
+                        )
+                ));
 
         return roomRepository.findAvailableRoomsForCheckIn(
                 booking.getRoomType().getId(),
