@@ -15,4 +15,6 @@ public interface EmailService {
             String fullName,
             String otpCode
     );
+
+    void sendRegistrationOtp(String email, String otp);
 }

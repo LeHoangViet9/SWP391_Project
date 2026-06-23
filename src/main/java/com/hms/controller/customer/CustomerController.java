@@ -14,6 +14,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Locale;
@@ -25,7 +26,9 @@ public class CustomerController {
     private final MessageSource messageSource;
     private final CustomerService customerService;
 
+    // 1. Lấy danh sách khách hàng -> Quyền xem (CUSTOMER_VIEW)
     @GetMapping
+    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<ApiResponse<Page<CustomerResponse>>> findAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "ACTIVE") AccountStatus status,
@@ -43,7 +46,9 @@ public class CustomerController {
         ),HttpStatus.OK);
     }
 
+    // 2. Lấy chi tiết 1 khách hàng -> Quyền xem (CUSTOMER_VIEW)
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<ApiResponse<CustomerResponse>> findById(@PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
@@ -54,7 +59,9 @@ public class CustomerController {
         ),HttpStatus.OK);
     }
 
+    // 3. Tạo mới khách hàng -> Quyền tạo (CUSTOMER_CREATE) hoặc Khách hàng tự tạo profile của mình
     @PostMapping
+    @PreAuthorize("hasAuthority('CUSTOMER_CREATE') or (hasRole('CUSTOMER') and #customerCreateDTO.email == authentication.name)")
     public ResponseEntity<ApiResponse<CustomerResponse>> createCustomer(@Valid @RequestBody CustomerCreateDTO  customerCreateDTO){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
@@ -65,7 +72,9 @@ public class CustomerController {
         ),HttpStatus.CREATED);
     }
 
+    // 4. Cập nhật thông tin khách hàng -> Quyền cập nhật (CUSTOMER_UPDATE) hoặc Khách hàng tự cập nhật profile của mình
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('CUSTOMER_UPDATE') or (hasRole('CUSTOMER') and #customerCreateDTO.email == authentication.name)")
     public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(@Valid @RequestBody CustomerCreateDTO  customerCreateDTO, @PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
@@ -76,50 +85,56 @@ public class CustomerController {
         ),HttpStatus.OK);
     }
 
+    // 5. Xóa mềm khách hàng -> Quyền xóa (CUSTOMER_DELETE)
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteCustomer(
             @PathVariable Long id
     ){
         Locale locale = LocaleContextHolder.getLocale();
         customerService.deleteCustomer(id);
         return new ResponseEntity<>(new ApiResponse<>(
-                        true,
-                        messageSource.getMessage("customer.delete.success", null, locale),
-                        null,
-                        HttpStatus.OK
-                ),
+                true,
+                messageSource.getMessage("customer.delete.success", null, locale),
+                null,
+                HttpStatus.OK
+        ),
                 HttpStatus.OK
         );
     }
 
+    // 6. Khôi phục khách hàng -> Bản chất là cập nhật trạng thái (CUSTOMER_UPDATE)
     @PutMapping("/{id}/restore")
+    @PreAuthorize("hasAuthority('CUSTOMER_UPDATE')")
     public ResponseEntity<ApiResponse<Void>> restoreCustomer(
             @PathVariable Long id
     ){
         Locale locale = LocaleContextHolder.getLocale();
         customerService.restoreCustomer(id);
         return new ResponseEntity<>(new ApiResponse<>(
-                        true,
-                        messageSource.getMessage("customer.restore.success", null, locale),
-                        null,
-                        HttpStatus.OK
-                ),
+                true,
+                messageSource.getMessage("customer.restore.success", null, locale),
+                null,
+                HttpStatus.OK
+        ),
                 HttpStatus.OK
         );
     }
 
+    // 7. Xóa vĩnh viễn khách hàng -> Quyền xóa hoàn toàn (CUSTOMER_DELETE)
     @DeleteMapping("/{id}/force")
+    @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<ApiResponse<Void>> forceDeleteCustomer(
             @PathVariable Long id
     ){
         Locale locale = LocaleContextHolder.getLocale();
         customerService.forceDeleteCustomer(id);
         return new ResponseEntity<>(new ApiResponse<>(
-                        true,
-                        messageSource.getMessage("customer.force_delete.success", null, locale),
-                        null,
-                        HttpStatus.OK
-                ),
+                true,
+                messageSource.getMessage("customer.force_delete.success", null, locale),
+                null,
+                HttpStatus.OK
+        ),
                 HttpStatus.OK
         );
     }

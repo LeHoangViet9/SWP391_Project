@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getAllBookings, createBooking, updateBooking, deleteBooking, searchBookings, updateBookingStatus, assignRoom } from '../services/bookingService';
 import { apiFetch } from '../services/api';
 import { useLocale } from '../context/LocaleContext';
+import { usePermission } from '../hooks/usePermission';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -39,8 +40,14 @@ function getBookingStatus(item) {
 
 export default function BookingManager({ readOnly = false }) {
   const { t } = useLocale();
-  const { hasRole } = useAuth();
-  const isReceptionistOrAbove = hasRole('ADMIN', 'MANAGER', 'RECEPTIONIST');
+  const { hasPermission, hasAnyPermission } = usePermission();
+  
+  const canView = hasAnyPermission(['BOOKING_VIEW', 'BOOKING_VIEW_OWN']);
+  const canCreate = hasPermission('BOOKING_CREATE');
+  const canUpdate = hasPermission('BOOKING_UPDATE');
+  const canDelete = hasPermission('BOOKING_DELETE');
+  
+  const isReceptionistOrAbove = canUpdate || canCreate;
 
   const [subTab, setSubTab] = useState('overview');
   const [items, setItems] = useState([]);
@@ -136,13 +143,13 @@ export default function BookingManager({ readOnly = false }) {
   }, []);
 
   const openCreate = () => {
-    if (!isReceptionistOrAbove) return notify(t('booking.toast.forbiddenCreate'), 'error');
+    if (!canCreate) return notify(t('booking.toast.forbiddenCreate'), 'error');
     setForm(EMPTY);
     setModal({ open: true, editing: null });
   };
 
   const openEdit = (item) => {
-    if (!isReceptionistOrAbove) return notify(t('booking.toast.forbiddenEdit'), 'error');
+    if (!canUpdate) return notify(t('booking.toast.forbiddenEdit'), 'error');
     setForm({
       customerId: item.customerId || item.customer?.id || '',
       roomTypeId: item.roomTypeId || item.roomType?.id || '',
@@ -184,7 +191,7 @@ export default function BookingManager({ readOnly = false }) {
   };
 
   const handleDelete = async (item) => {
-    if (!isReceptionistOrAbove) return notify(t('booking.toast.forbiddenDelete'), 'error');
+    if (!canDelete) return notify(t('booking.toast.forbiddenDelete'), 'error');
     if (!window.confirm(t('booking.toast.deleteConfirm', { id: item.id }).replace('{id}', item.id))) return;
     try {
       await deleteBooking(item.id);

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import {
   getStoredUser,
   getStoredToken,
@@ -38,15 +38,46 @@ export function AuthProvider({ children }) {
   }, []);
 
   const isAuthenticated = Boolean(token && user);
+  const permissionSet = useMemo(
+    () => new Set(user?.permissions ?? []),
+    [user?.permissions]
+  );
 
   const hasRole = useCallback(
     (...roles) => roles.includes(user?.roleName),
     [user?.roleName]
   );
 
+  const hasPermission = useCallback(
+    (permission) => permissionSet.has(permission),
+    [permissionSet]
+  );
+
+  const hasAnyPermission = useCallback(
+    (permissions = []) => permissions.some((permission) => permissionSet.has(permission)),
+    [permissionSet]
+  );
+
+  const hasAllPermissions = useCallback(
+    (permissions = []) => permissions.every((permission) => permissionSet.has(permission)),
+    [permissionSet]
+  );
+
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated, login, register, logout, hasRole, refreshCurrentUser }}
+      value={{
+        user,
+        token,
+        isAuthenticated,
+        login,
+        register,
+        logout,
+        hasRole,
+        hasPermission,
+        hasAnyPermission,
+        hasAllPermissions,
+        refreshCurrentUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

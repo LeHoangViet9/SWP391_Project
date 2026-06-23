@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Xem mật khẩu gốc trong log startup hoặc file TEST_ACCOUNTS.md.
  */
 @Component
-@Order(2)
+@Order(3)
 @RequiredArgsConstructor
 @Slf4j
 public class UserDataInitializer implements ApplicationRunner {

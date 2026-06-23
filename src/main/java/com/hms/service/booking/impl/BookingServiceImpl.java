@@ -56,7 +56,7 @@ public class BookingServiceImpl implements BookingService {
     );
 
     private static final Map<BookingStatus, Set<BookingStatus>> VALID_TRANSITIONS =
-        new java.util.EnumMap<>(BookingStatus.class);
+            new java.util.EnumMap<>(BookingStatus.class);
     static {
         VALID_TRANSITIONS.put(BookingStatus.PENDING,
                 EnumSet.of(BookingStatus.CONFIRMED, BookingStatus.CANCELLED));
@@ -120,15 +120,6 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
-        // Tạo Invoice PENDING ngay khi đặt phòng được tạo
-        Invoice invoice = Invoice.builder()
-                .booking(saved)
-                .amount(totalPrice)
-                .paymentStatus(PaymentStatus.PENDING)
-                .build();
-        invoiceRepository.save(invoice);
-        saved.setInvoice(invoice);
-
         return bookingMapper.toResponse(saved);
     }
 
@@ -158,12 +149,6 @@ public class BookingServiceImpl implements BookingService {
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
 
-        // Cập nhật lại số tiền hóa đơn nếu đã có và chưa thanh toán
-        if (booking.getInvoice() != null && booking.getInvoice().getPaymentStatus() == PaymentStatus.PENDING) {
-            booking.getInvoice().setAmount(totalPrice);
-            invoiceRepository.save(booking.getInvoice());
-        }
-
         Booking updated = bookingRepository.save(booking);
         return bookingMapper.toResponse(updated);
     }
@@ -175,15 +160,19 @@ public class BookingServiceImpl implements BookingService {
 
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.booking.notfound", null, locale)));
-        bookingRepository.delete(booking);
+
+        if (booking.getBookingStatus() == BookingStatus.CHECKED_IN) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "error.booking.cannot.delete.checkedin", null, locale));
+        }
+        booking.setBookingStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(booking);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size) {
-
         Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.ASC);
-
         return bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable).map(bookingMapper::toResponse);
     }
 
@@ -230,7 +219,7 @@ public class BookingServiceImpl implements BookingService {
         BookingStatus currentStatus = booking.getBookingStatus();
         BookingStatus newStatus = request.getStatus();
 
-        // Kiểm tra chuyển trạng thái hợp lệ
+        // Verify valid status transition
         Set<BookingStatus> allowed = VALID_TRANSITIONS.getOrDefault(
                 currentStatus, EnumSet.noneOf(BookingStatus.class));
         if (!allowed.contains(newStatus)) {
@@ -241,45 +230,31 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setBookingStatus(newStatus);
 
-        // Xử lý hóa đơn tương ứng với trạng thái đặt phòng mới
-        if (newStatus == BookingStatus.CONFIRMED) {
-            if (booking.getInvoice() != null) {
-                Invoice invoice = booking.getInvoice();
-                invoice.setPaymentStatus(PaymentStatus.PAID);
-                if (invoice.getPaymentMethod() == null) {
-                    invoice.setPaymentMethod(com.hms.common.enums.PaymentMethod.CASH);
-                }
-                invoice.setPaidAt(LocalDateTime.now());
-                invoiceRepository.save(invoice);
-            } else {
-                Invoice invoice = Invoice.builder()
-                        .booking(booking)
-                        .amount(booking.getTotalPrice())
-                        .paymentStatus(PaymentStatus.PAID)
-                        .paymentMethod(com.hms.common.enums.PaymentMethod.CASH)
-                        .paidAt(LocalDateTime.now())
-                        .build();
-                invoiceRepository.save(invoice);
-                booking.setInvoice(invoice);
-            }
-        } else if (newStatus == BookingStatus.CANCELLED) {
-            if (booking.getInvoice() != null) {
-                Invoice invoice = booking.getInvoice();
-                invoice.setPaymentStatus(PaymentStatus.CANCELLED);
-                invoiceRepository.save(invoice);
-            }
+        // Create Invoice when CONFIRMED
+        if (newStatus == BookingStatus.CONFIRMED && booking.getInvoice() == null) {
+            Invoice invoice = Invoice.builder()
+                    .booking(booking)
+                    .amount(booking.getTotalPrice())
+                    .paymentStatus(PaymentStatus.PENDING)
+                    .build();
+            invoiceRepository.save(invoice);
         }
 
-        // Giải phóng phòng khi kết thúc lưu trú hoặc hủy/không đến
-        if (booking.getRoom() != null) {
+        // [FIX-03] Move room to OCCUPIED when guest actually checks in
+        if (newStatus == BookingStatus.CHECKED_IN && booking.getRoom() != null) {
+            Room checkinRoom = booking.getRoom();
+            checkinRoom.setRoomStatus(RoomStatus.OCCUPIED);
+            roomRepository.save(checkinRoom);
+        }
+
+        // Release room at the end of stay
+        if (booking.getRoom() != null &&
+                (newStatus == BookingStatus.CHECKED_OUT
+                        || newStatus == BookingStatus.CANCELLED
+                        || newStatus == BookingStatus.NO_SHOW)) {
             Room room = booking.getRoom();
-            if (newStatus == BookingStatus.CHECKED_OUT) {
-                room.setRoomStatus(RoomStatus.DIRTY); // Chuyển sang DIRTY để housekeeping dọn
-                roomRepository.save(room);
-            } else if (newStatus == BookingStatus.CANCELLED || newStatus == BookingStatus.NO_SHOW) {
-                room.setRoomStatus(RoomStatus.AVAILABLE); // Khách chưa từng ở, trả lại trạng thái AVAILABLE
-                roomRepository.save(room);
-            }
+            room.setRoomStatus(RoomStatus.DIRTY); // Change to DIRTY for housekeeping
+            roomRepository.save(room);
         }
 
         Booking updated = bookingRepository.save(booking);
@@ -295,7 +270,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, locale)));
 
-        // Chỉ được gán phòng khi đơn đang CONFIRMED
+        // Can only assign room when booking is CONFIRMED
         if (booking.getBookingStatus() != BookingStatus.CONFIRMED) {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.assign.room.not.confirmed", null, locale));
@@ -305,35 +280,34 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.room.notfound", null, locale)));
 
-        // Kiểm tra phòng đúng loại
+        // Check if room is of correct type
         if (!room.getRoomType().getId().equals(booking.getRoomType().getId())) {
             throw new ConflictException(messageSource.getMessage(
                     "error.booking.room.type.mismatch", null, locale));
         }
 
-        // Kiểm tra phòng đang trống (AVAILABLE hoặc READY)
+        // Check if room is vacant (AVAILABLE or READY)
         if (room.getRoomStatus() != RoomStatus.AVAILABLE
                 && room.getRoomStatus() != RoomStatus.READY) {
             throw new ConflictException(messageSource.getMessage(
                     "error.booking.room.not.available", null, locale));
         }
 
-        // Kiểm tra không trùng lịch với đơn khác (chỉ check các đơn đã CONFIRMED hoặc CHECKED_IN và loại trừ đơn hiện tại)
-        boolean conflict = bookingRepository.existsConflict(
-                room.getId(),
-                booking.getCheckOutDate(),
-                booking.getCheckInDate(),
-                booking.getId(),
-                List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN)
-        );
+        // Kiểm tra không trùng lịch với đơn khác
+        boolean conflict = bookingRepository
+                .existsByRoomIdAndCheckInDateLessThanAndCheckOutDateGreaterThan(
+                        room.getId(),
+                        booking.getCheckOutDate(),
+                        booking.getCheckInDate());
         if (conflict) {
             throw new ConflictException(messageSource.getMessage(
                     "error.booking.room.conflict", null, locale));
         }
 
-        // Gán phòng và chuyển trạng thái phòng sang OCCUPIED
+        // [FIX-03] OCCUPIED -> RESERVED: room is held when CONFIRMED,
+        // and only transitions to OCCUPIED when guest actually checks in
         booking.setRoom(room);
-        room.setRoomStatus(RoomStatus.OCCUPIED);
+        room.setRoomStatus(RoomStatus.RESERVED);
         roomRepository.save(room);
 
         Booking updated = bookingRepository.save(booking);
@@ -341,7 +315,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateBookingDate(BookingRequest request, Locale locale){
-        if(request.getCheckInDate().toLocalDate().isBefore(LocalDateTime.now().toLocalDate())){
+        if(request.getCheckInDate().isBefore(LocalDateTime.now())){
             throw new ConflictException(messageSource.getMessage("error.booking.checkin.past", null, locale));
         }
 
@@ -351,9 +325,6 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateRoomAvailability(BookingRequest request, Long excludedBookingId, Locale locale){
-        // Đếm tổng phòng hoạt động: loại trừ INACTIVE (xóa mềm) và OUT_OF_ORDER (hỏng)
-        // Không dùng RoomStatus.AVAILABLE vì phòng OCCUPIED/READY/DIRTY cũng có thể
-        // trống vào ngày khách muốn đặt trong tương lai
         long totalActiveRoomCount = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
                 request.getRoomTypeId(),
                 List.of(RoomStatus.INACTIVE, RoomStatus.MAINTENANCE)
@@ -386,22 +357,17 @@ public class BookingServiceImpl implements BookingService {
         return roomCharge.multiply(BigDecimal.valueOf(request.getQuantity()));
     }
 
+    /** [FIX-04] Implement checkAvailability for frontend BookingPage */
     @Override
     @Transactional(readOnly = true)
     public long checkAvailability(Long roomTypeId, LocalDateTime checkInDate, LocalDateTime checkOutDate) {
-        long totalActiveRoomCount = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
+        long totalActive = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
                 roomTypeId,
-                List.of(RoomStatus.INACTIVE, RoomStatus.MAINTENANCE)
+                List.of(RoomStatus.INACTIVE, RoomStatus.OUT_OF_ORDER)
         );
-
-        long bookedQuantity = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
-                roomTypeId,
-                checkInDate,
-                checkOutDate,
-                null,
-                ROOM_HOLDING_STATUSES
+        long booked = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
+                roomTypeId, checkInDate, checkOutDate, null, ROOM_HOLDING_STATUSES
         );
-        long remainingQuantity = totalActiveRoomCount - bookedQuantity;
-        return Math.max(remainingQuantity, 0);
+        return Math.max(0, totalActive - booked);
     }
 }

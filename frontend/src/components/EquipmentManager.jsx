@@ -1,31 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Edit2, ImagePlus, Plus, RefreshCw, Search, Trash2 } from 'lucide-react';
-
-import { useAuth } from '../context/AuthContext';
-import { equipmentService } from '../services/equipmentService';
 import { useLocale } from '../context/LocaleContext';
-
+import { usePermission } from '../hooks/usePermission';
+import { equipmentService } from '../services/equipmentService';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
-/*
-  Form mặc định khi thêm/sửa thiết bị.
-
-  Lưu ý:
-  - Backend hiện tại chỉ tạo thiết bị theo danh mục/master list.
-  - Không còn tạo thiết bị kèm phòng.
-  - Vì vậy không dùng roomId/location ở đây nữa.
-*/
 const EMPTY_FORM = {
   equipmentName: '',
   equipmentCode: '',
   description: '',
 };
 
-/*
-  Mapping trạng thái thiết bị sang label tiếng Việt + màu hiển thị.
-*/
 const STATUS_LABELS = {
   ACTIVE: { label: 'Hoạt động', className: 'bg-emerald-100 text-emerald-700' },
   MAINTENANCE: { label: 'Bảo trì', className: 'bg-amber-100 text-amber-700' },
@@ -33,31 +20,19 @@ const STATUS_LABELS = {
   INACTIVE: { label: 'Ngừng dùng', className: 'bg-stone-100 text-stone-600' },
 };
 
-/*
-  Lấy message lỗi để hiển thị Toast.
-*/
 function getErrorMessage(error, fallback) {
   if (error?.status === 403) return 'Bạn không có quyền thực hiện thao tác này.';
-  return error?.message || fallback || 'Đã xảy ra lỗi.';
+  return error?.message || fallback;
 }
 
-/*
-  Chuyển dữ liệu item từ API sang dữ liệu form khi bấm sửa.
-*/
 function mapEquipmentToForm(item) {
   return {
-    equipmentName: item?.equipmentName || '',
-    equipmentCode: item?.equipmentCode || '',
-    description: item?.description || '',
+    equipmentName: item.equipmentName || '',
+    equipmentCode: item.equipmentCode || '',
+    description: item.description || '',
   };
 }
 
-/*
-  Lấy ảnh đại diện của thiết bị:
-  - Ưu tiên ảnh primary.
-  - Nếu không có primary thì lấy ảnh đầu tiên.
-  - Nếu imageUrl là local path /uploads/... thì nối thêm backend host.
-*/
 function getImageUrl(item) {
   const imageUrl =
       item?.images?.find((img) => img.isPrimary)?.imageUrl ||
@@ -71,87 +46,43 @@ function getImageUrl(item) {
 
 export default function EquipmentManager() {
   const { locale, t } = useLocale();
-  const { hasRole } = useAuth();
+  const { hasPermission } = usePermission();
 
-  /*
-    Phân quyền thao tác:
-    - ADMIN, MANAGER, MAINTENANCE được thêm/sửa/xóa.
-    - Role khác chỉ xem danh sách.
-  */
-  const canManage = hasRole('ADMIN', 'MANAGER', 'MAINTENANCE');
+  const canCreate = hasPermission('EQUIPMENT_CREATE');
+  const canUpdate = hasPermission('EQUIPMENT_UPDATE');
+  const canDelete = hasPermission('EQUIPMENT_DELETE');
+  const canManage = canCreate || canUpdate || canDelete;
 
-  /*
-    State danh sách và phân trang.
-  */
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  /*
-    State tìm kiếm/lọc.
-  */
   const [search, setSearch] = useState('');
   const [searchOpt, setSearchOpt] = useState('equipmentName');
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
 
-  /*
-    Toast thông báo thành công/thất bại.
-  */
   const [toast, setToast] = useState({ type: 'success', message: '' });
 
-  /*
-    Modal thêm/sửa:
-    - editing = null: thêm mới.
-    - editing != null: sửa thiết bị.
-  */
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
 
-  /*
-    Danh sách ảnh người dùng chọn.
-    Ảnh sẽ upload sau khi tạo/cập nhật thiết bị thành công.
-  */
+  // SỬA: dùng mảng ảnh thay vì 1 file
   const [imageFiles, setImageFiles] = useState([]);
 
-  /*
-    State khi đang lưu form.
-  */
   const [saving, setSaving] = useState(false);
-
-  /*
-    Danh sách mã thiết bị đã có để gợi ý trong datalist.
-  */
   const [existingCodes, setExistingCodes] = useState([]);
 
-  const notify = (message, type = 'success') => {
-    setToast({ type, message });
-  };
+  const notify = (message, type = 'success') => setToast({ type, message });
+  const closeToast = () => setToast((current) => ({ ...current, message: '' }));
 
-  const closeToast = () => {
-    setToast((current) => ({ ...current, message: '' }));
-  };
-
-  /*
-    Load danh sách mã thiết bị để gợi ý khi nhập equipmentCode.
-  */
   const fetchSuggestions = useCallback(async () => {
     try {
-      const response = await equipmentService.getAll(
-          { page: 0, size: 1000 },
-          locale
-      );
-
+      const response = await equipmentService.getAll({ page: 0, size: 1000 }, locale);
       const allItems = response?.data?.content ?? [];
 
-      const codes = [
-        ...new Set(
-            allItems
-                .map((item) => item.equipmentCode)
-                .filter(Boolean)
-        ),
-      ];
+      const codes = [...new Set(allItems.map((item) => item.equipmentCode).filter(Boolean))];
 
       setExistingCodes(codes);
     } catch (error) {
@@ -159,13 +90,6 @@ export default function EquipmentManager() {
     }
   }, [locale]);
 
-  /*
-    Hàm load danh sách thiết bị trực tiếp theo tham số:
-    - p: page hiện tại.
-    - opt: kiểu tìm kiếm.
-    - val: giá trị tìm kiếm.
-    - statusVal: trạng thái lọc.
-  */
   const fetchDataDirect = useCallback(
       async (p, opt, val, statusVal) => {
         setLoading(true);
@@ -203,9 +127,6 @@ export default function EquipmentManager() {
       [locale, t]
   );
 
-  /*
-    Hàm load danh sách theo state hiện tại.
-  */
   const fetchData = useCallback(
       async (nextPage = page) => {
         await fetchDataDirect(nextPage, searchOpt, search, statusFilter);
@@ -213,81 +134,46 @@ export default function EquipmentManager() {
       [page, searchOpt, search, statusFilter, fetchDataDirect]
   );
 
-  /*
-    Tự load lại danh sách khi đổi page hoặc trạng thái.
-  */
   useEffect(() => {
     fetchData(page);
   }, [page, statusFilter, fetchData]);
 
-  /*
-    Load gợi ý mã thiết bị khi mở màn hình.
-  */
   useEffect(() => {
     fetchSuggestions();
   }, [fetchSuggestions]);
 
-  /*
-    Mở modal thêm mới.
-  */
   const openCreate = () => {
     if (!canManage) {
-      notify(t('equipment.toast.forbiddenCreate') || 'Bạn không có quyền thêm thiết bị.', 'error');
+      notify(t('equipment.toast.forbiddenCreate'), 'error');
       return;
     }
 
     setForm(EMPTY_FORM);
-    setImageFiles([]);
     setModal({ open: true, editing: null });
   };
 
-  /*
-    Mở modal sửa thiết bị.
-  */
   const openEdit = (item) => {
     if (!canManage) {
-      notify(t('equipment.toast.forbiddenEdit') || 'Bạn không có quyền sửa thiết bị.', 'error');
+      notify(t('equipment.toast.forbiddenEdit'), 'error');
       return;
     }
-
     setForm(mapEquipmentToForm(item));
-    setImageFiles([]);
     setModal({ open: true, editing: item });
   };
 
-  /*
-    Đóng modal và reset form.
-  */
   const closeModal = () => {
     setModal({ open: false, editing: null });
     setForm(EMPTY_FORM);
-    setImageFiles([]);
   };
 
-  /*
-    Build payload gửi lên backend.
-
-    Đã sửa lỗi:
-    - Không dùng form.location.trim() nữa vì EMPTY_FORM không có location.
-    - Không gửi roomId vì chức năng gán phòng đã tách riêng.
-    - Dùng fallback '' để tránh lỗi undefined.trim().
-  */
   const buildPayload = () => ({
-    equipmentName: (form.equipmentName || '').trim(),
-    equipmentCode: (form.equipmentCode || '').trim(),
-    description: (form.description || '').trim() || null,
+    equipmentName: form.equipmentName.trim(),
+    equipmentCode: form.equipmentCode.trim(),
+    location: form.location.trim(),
+    description: form.description.trim() || null,
+    roomId: form.roomId ? Number(form.roomId) : null,
   });
 
-  /*
-    Submit form thêm/sửa thiết bị.
-    Luồng thêm mới:
-    1. POST /equipments
-    2. Nếu có ảnh thì upload ảnh theo equipmentId vừa tạo.
-
-    Luồng sửa:
-    1. PUT /equipments/{id}
-    2. Nếu có chọn ảnh mới thì upload thêm ảnh cho thiết bị đó.
-  */
   const handleSave = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -332,16 +218,14 @@ export default function EquipmentManager() {
     }
   };
 
-  /*
-    Xóa thiết bị.
-  */
   const handleDelete = async (item) => {
     if (!canManage) {
-      notify(t('equipment.toast.forbiddenDelete') || 'Bạn không có quyền xóa thiết bị.', 'error');
+      notify(t('equipment.toast.forbiddenDelete'), 'error');
       return;
     }
 
     const confirmMessage =
+        t('equipment.toast.deleteConfirm', { name: item.equipmentName })?.replace('{name}', item.equipmentName) ||
         `Bạn có chắc muốn xóa ${item.equipmentName}?`;
 
     if (!window.confirm(confirmMessage)) return;
@@ -356,17 +240,11 @@ export default function EquipmentManager() {
     }
   };
 
-  /*
-    Tìm kiếm thủ công khi bấm nút search hoặc Enter.
-  */
   const handleSearch = () => {
     setPage(0);
     fetchDataDirect(0, searchOpt, search, statusFilter);
   };
 
-  /*
-    Render badge trạng thái thiết bị.
-  */
   const statusBadge = (status = 'ACTIVE') => {
     const statusInfo = STATUS_LABELS[status] || {
       label: status,
@@ -382,9 +260,6 @@ export default function EquipmentManager() {
     );
   };
 
-  /*
-    Render từng dòng trong bảng thiết bị.
-  */
   const rows = items.map((item) => {
     const imageUrl = getImageUrl(item);
     const assignedRoomCount = item.assignedRooms?.length || 0;
@@ -461,9 +336,6 @@ export default function EquipmentManager() {
     );
   });
 
-  /*
-    Header của bảng.
-  */
   const columns = [
     t('equipment.columns.id') || 'ID',
     t('equipment.columns.name') || 'Tên thiết bị',
@@ -478,7 +350,6 @@ export default function EquipmentManager() {
       <div>
         <Toast type={toast.type} message={toast.message} onClose={closeToast} />
 
-        {/* Thanh tìm kiếm, lọc trạng thái, nút thêm thiết bị */}
         <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row">
           <div className="flex flex-1 flex-wrap items-center gap-2">
             <select
@@ -556,7 +427,6 @@ export default function EquipmentManager() {
           )}
         </div>
 
-        {/* Bảng danh sách thiết bị */}
         <DataTable
             columns={columns}
             rows={rows}
@@ -566,7 +436,6 @@ export default function EquipmentManager() {
             onPageChange={setPage}
         />
 
-        {/* Modal thêm/sửa thiết bị */}
         <Modal
             open={modal.open}
             title={
@@ -577,42 +446,34 @@ export default function EquipmentManager() {
             onClose={closeModal}
         >
           <form onSubmit={handleSave} className="space-y-4">
-            {/* Tên thiết bị */}
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                {t('equipment.modal.name') || 'Tên thiết bị'} *
+                {t('equipment.modal.name') || 'Tên thiết bị'}
               </label>
               <input
                   required
                   value={form.equipmentName}
                   onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        equipmentName: event.target.value,
-                      }))
+                      setForm((current) => ({ ...current, equipmentName: event.target.value }))
                   }
                   className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-                  placeholder={t('equipment.modal.namePlaceholder') || 'Ví dụ: Tủ lạnh'}
+                  placeholder={t('equipment.modal.namePlaceholder') || 'Ví dụ: TV Samsung'}
               />
             </div>
 
-            {/* Mã thiết bị */}
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                {t('equipment.modal.code') || 'Mã thiết bị'} *
+                {t('equipment.modal.code') || 'Mã thiết bị'}
               </label>
               <input
                   required
-                  pattern="^[A-Za-z0-9\-]{2,30}$"
+                  pattern="^[A-Za-z0-9\\-]{2,30}$"
                   value={form.equipmentCode}
                   onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        equipmentCode: event.target.value,
-                      }))
+                      setForm((current) => ({ ...current, equipmentCode: event.target.value }))
                   }
                   className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-                  placeholder={t('equipment.modal.codePlaceholder') || 'Ví dụ: TL-102'}
+                  placeholder={t('equipment.modal.codePlaceholder') || 'Ví dụ: TV'}
                   list="existing-codes"
               />
               <datalist id="existing-codes">
@@ -622,7 +483,6 @@ export default function EquipmentManager() {
               </datalist>
             </div>
 
-            {/* Upload nhiều ảnh thiết bị */}
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
                 Ảnh thiết bị
@@ -651,7 +511,6 @@ export default function EquipmentManager() {
               </p>
             </div>
 
-            {/* Mô tả thiết bị */}
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
                 {t('equipment.modal.description') || 'Mô tả'}
@@ -660,16 +519,12 @@ export default function EquipmentManager() {
                   rows={3}
                   value={form.description}
                   onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        description: event.target.value,
-                      }))
+                      setForm((current) => ({ ...current, description: event.target.value }))
                   }
                   className="w-full resize-none rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
               />
             </div>
 
-            {/* Nút hủy/lưu */}
             <div className="flex justify-end gap-3 pt-2">
               <button
                   type="button"
@@ -689,7 +544,7 @@ export default function EquipmentManager() {
                     ? t('equipment.modal.saving') || 'Đang lưu...'
                     : modal.editing
                         ? t('equipment.modal.update') || 'Cập nhật'
-                        : t('equipment.modal.save') || 'Tạo mới'}
+                        : t('equipment.modal.save') || 'Lưu'}
               </button>
             </div>
           </form>

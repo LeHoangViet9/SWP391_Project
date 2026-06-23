@@ -1,20 +1,17 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LocaleProvider } from './context/LocaleContext';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import OtpVerificationPage from './pages/OtpVerificationPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
-import VerifyOTPPage from './pages/VerifyOTPPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import BookingPage from './pages/BookingPage';
-import AdminDashboard from './pages/AdminDashboard';
-import ReceptionistDashboard from './pages/ReceptionistDashboard';
-import HousekeeperDashboard from './pages/HousekeeperDashboard';
-import MaintenanceDashboard from './pages/MaintenanceDashboard';
-import CustomerDashboard from './pages/CustomerDashboard';
+import InvoicePage from './pages/InvoicePage';
+import DashboardRouter from './pages/DashboardRouter';
 
 export default function App() {
   return (
@@ -26,12 +23,12 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/verify-otp" element={<VerifyOTPPage />} />
+            <Route path="/verify-otp" element={<OtpVerificationPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-            {/* Customer Route — mọi role đã đăng nhập */}
+            {/* Customer Booking Route — mọi role đã đăng nhập */}
             <Route
               path="/booking"
               element={
@@ -41,65 +38,33 @@ export default function App() {
               }
             />
 
-            {/* Admin Dashboard — ADMIN toàn quyền */}
+            {/* Invoice Route — authenticated users */}
             <Route
-              path="/admin/dashboard"
+              path="/invoice/:bookingId"
               element={
-                <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <AdminDashboard />
+                <ProtectedRoute>
+                  <InvoicePage />
                 </ProtectedRoute>
               }
             />
 
-            {/* Manager Dashboard — dùng chung AdminDashboard */}
+            {/* ═══ UNIFIED DASHBOARD — replaces all role-specific dashboards ═══ */}
             <Route
-              path="/manager/dashboard"
+              path="/dashboard/*"
               element={
-                <ProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
-                  <AdminDashboard />
+                <ProtectedRoute>
+                  <DashboardRouter />
                 </ProtectedRoute>
               }
             />
 
-            {/* Receptionist Dashboard */}
-            <Route
-              path="/receptionist/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['RECEPTIONIST', 'ADMIN']}>
-                  <ReceptionistDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Housekeeper Dashboard */}
-            <Route
-              path="/housekeeper/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['HOUSEKEEPER', 'ADMIN']}>
-                  <HousekeeperDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Maintenance Dashboard */}
-            <Route
-              path="/maintenance/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['MAINTENANCE', 'ADMIN']}>
-                  <MaintenanceDashboard />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Customer Dashboard */}
-            <Route
-              path="/customer/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['CUSTOMER']}>
-                  <CustomerDashboard />
-                </ProtectedRoute>
-              }
-            />
+            {/* ═══ BACKWARD COMPATIBILITY — redirect old role-specific paths ═══ */}
+            <Route path="/admin/dashboard"        element={<Navigate to="/dashboard" replace />} />
+            <Route path="/manager/dashboard"      element={<Navigate to="/dashboard" replace />} />
+            <Route path="/receptionist/dashboard"  element={<Navigate to="/dashboard" replace />} />
+            <Route path="/housekeeper/dashboard"   element={<Navigate to="/dashboard" replace />} />
+            <Route path="/maintenance/dashboard"   element={<Navigate to="/dashboard" replace />} />
+            <Route path="/customer/dashboard"      element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

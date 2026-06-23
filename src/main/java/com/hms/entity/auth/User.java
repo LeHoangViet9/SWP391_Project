@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name="users")
@@ -43,14 +45,24 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id",nullable = false)
     private Role role;
+    private Boolean enabled;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_permissions",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    @Builder.Default
+    private Set<Permission> customPermissions = new HashSet<>();
     @Column(name = "reset_password_token",unique = true)
     private String resetPasswordToken;
     @Column(name = "reset_password_expire_at")
     private LocalDateTime resetPasswordExpiredAt;
-    @Column(name = "enabled")
-    private Boolean enabled = false; // Mặc định tài khoản mới tạo sẽ bị khóa
-    @Column(name = "otp_code")
+
+    @Column(name = "otp_code", length = 6)
     private String otpCode;
-    @Column(name = "otp_expriration")
-    private LocalDateTime otpExpiration;
+
+    @Column(name = "otp_expiry")
+    private LocalDateTime otpExpiry;
 }
