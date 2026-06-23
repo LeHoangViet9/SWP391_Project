@@ -7,6 +7,7 @@ import {
   updateRoom,
   deleteRoom,
   updateRoomStatus,
+  deleteRoomImage,
 } from '../services/roomService';
 import DataTable from './shared/DataTable';
 import { useLocale } from '../context/LocaleContext';
@@ -155,6 +156,25 @@ export default function RoomManager({ readOnly = false }) {
       notify(e.status === 403 ? t('room.toast.forbidden') : e.message, 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteImage = async (img) => {
+    if (!window.confirm(locale === 'vi' ? 'Bạn có chắc chắn muốn xóa ảnh này?' : 'Are you sure you want to delete this image?')) return;
+    try {
+      await deleteRoomImage(modal.editing.id, img, locale);
+      notify(locale === 'vi' ? 'Xóa ảnh thành công' : 'Image deleted successfully');
+      setModal(prev => ({
+        ...prev,
+        editing: {
+          ...prev.editing,
+          imageRooms: prev.editing.imageRooms.filter(url => url !== img),
+          deletedImageRooms: [...(prev.editing.deletedImageRooms || []), img]
+        }
+      }));
+      fetchData(page);
+    } catch (e) {
+      notify(e.message || 'Error deleting image', 'error');
     }
   };
 
@@ -367,14 +387,37 @@ export default function RoomManager({ readOnly = false }) {
                   </div>
               )}
 
-              {modal.editing && modal.editing.imageRooms && modal.editing.imageRooms.length > 0 && (
+              {modal.editing && ((modal.editing.imageRooms && modal.editing.imageRooms.length > 0) || (modal.editing.deletedImageRooms && modal.editing.deletedImageRooms.length > 0)) && (
                   <div className="mt-3">
                     <span className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
                       {locale === 'vi' ? 'Ảnh hiện tại:' : 'Current Images:'}
                     </span>
                     <div className="flex flex-wrap gap-2">
-                      {modal.editing.imageRooms.map((img, idx) => (
-                          <img key={idx} src={img} alt="current" className="w-12 h-12 object-cover rounded border" />
+                      {/* Active images */}
+                      {modal.editing.imageRooms && modal.editing.imageRooms.map((img, idx) => (
+                          <div key={idx} className="relative group w-16 h-16 rounded border overflow-hidden bg-slate-50 shadow-sm">
+                            <img src={img} alt="current" className="w-full h-full object-cover" />
+                            <button
+                                type="button"
+                                onClick={() => handleDeleteImage(img)}
+                                className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white p-1 rounded-bl opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center cursor-pointer shadow-md"
+                                title={locale === 'vi' ? 'Xóa ảnh' : 'Delete image'}
+                            >
+                              <span className="text-[10px] font-bold leading-none">✕</span>
+                            </button>
+                          </div>
+                      ))}
+
+                      {/* Deleted images (highlighted red) */}
+                      {modal.editing.deletedImageRooms && modal.editing.deletedImageRooms.map((img, idx) => (
+                          <div key={`del-${idx}`} className="relative w-16 h-16 rounded border-2 border-red-500 overflow-hidden bg-red-50 shadow-sm" title={locale === 'vi' ? 'Ảnh đã xóa' : 'Deleted image'}>
+                            <img src={img} alt="deleted" className="w-full h-full object-cover opacity-60" />
+                            <div className="absolute inset-0 bg-red-500 bg-opacity-20 flex items-center justify-center pointer-events-none">
+                              <span className="text-[10px] text-red-700 bg-white px-1 py-0.5 rounded font-bold uppercase shadow-sm">
+                                {locale === 'vi' ? 'Đã xóa' : 'Deleted'}
+                              </span>
+                            </div>
+                          </div>
                       ))}
                     </div>
                   </div>

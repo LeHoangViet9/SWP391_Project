@@ -33,4 +33,8 @@ public class RoomImage {
     @Column(name = "uploaded_at", updatable = false)
     @CreationTimestamp
     private LocalDateTime uploadedAt;
+
+    @Column(name = "is_deleted")
+    @Builder.Default
+    private Boolean isDeleted = false;
 }

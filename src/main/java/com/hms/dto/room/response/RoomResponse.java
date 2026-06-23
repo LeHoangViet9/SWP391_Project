@@ -19,5 +19,6 @@ public class RoomResponse {
     private String description;
     private String imageRoom;
     private List<String> imageRooms;
+    private List<String> deletedImageRooms;
 }
 
