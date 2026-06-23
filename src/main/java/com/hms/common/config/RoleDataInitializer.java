@@ -10,6 +10,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet; // THÊM IMPORT NÀY
 import java.util.List;
 
 @Component
@@ -40,12 +41,13 @@ public class RoleDataInitializer implements ApplicationRunner {
             roleRepository.findByRoleNameIgnoreCase(roleName).orElseGet(() -> {
                 Role role = Role.builder()
                         .roleName(roleName)
-                        .permissions("[]")
+                        .permissions(new HashSet<>()) // SỬA Ở ĐÂY: Dùng HashSet rỗng thay vì ArrayList
                         .build();
                 Role saved = roleRepository.save(role);
                 log.info("Seeded role: {}", roleName);
                 return saved;
             });
         }
+        log.info("All default roles have been initialized.");
     }
 }

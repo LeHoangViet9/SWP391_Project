@@ -55,14 +55,22 @@ export async function register(payload, locale = 'vi') {
   return res;
 }
 
-/** POST /api/v1/auth/active-account */
-export async function activeAccount(payload, locale = 'vi') {
-  const res = await apiFetch('/auth/active-account', {
+/** POST /api/v1/auth/verify-otp */
+export async function verifyOtp(payload, locale = 'vi') {
+  const res = await apiFetch('/auth/verify-otp', {
     method: 'POST',
     body: JSON.stringify({
       email: payload.email,
-      otp: payload.otp,
+      otpCode: payload.otpCode,
     }),
+  }, locale);
+  return res;
+}
+
+/** POST /api/v1/auth/resend-otp */
+export async function resendOtp(email, locale = 'vi') {
+  const res = await apiFetch(`/auth/resend-otp?email=${encodeURIComponent(email)}`, {
+    method: 'POST',
   }, locale);
   return res;
 }

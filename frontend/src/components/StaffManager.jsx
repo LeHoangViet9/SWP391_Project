@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
+import { usePermission } from '../hooks/usePermission';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/userService';
 
-const ROLES = ['ADMIN', 'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE', 'CUSTOMER'];
+const ROLES = ['ADMIN', 'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE']; // Loại bỏ CUSTOMER khỏi danh sách thêm mới
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -27,11 +28,17 @@ const EMPTY_FORM = {
 
 export default function StaffManager() {
   const { t } = useLocale();
+  const { hasPermission } = usePermission();
+
+  const canCreate = hasPermission('USER_CREATE');
+  const canEdit = hasPermission('USER_UPDATE');
+  const canDelete = hasPermission('USER_DELETE');
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
+  const [searchOpt, setSearchOpt] = useState('fullName');
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
@@ -41,15 +48,31 @@ export default function StaffManager() {
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
 
-  const fetchData = useCallback(async (p = page) => {
+  const fetchDataDirect = useCallback(async (p, opt, val, statusVal) => {
     setLoading(true);
     try {
-      const res = await getUsers({
+      const params = {
         page: p,
         size: 10,
-        keywords: search || undefined,
-        status: statusFilter || undefined,
-      });
+        status: statusVal || undefined,
+      };
+
+      const trimmed = val ? String(val).trim() : '';
+      if (trimmed) {
+        if (opt === 'id') {
+          params.id = trimmed;
+        } else if (opt === 'fullName') {
+          params.fullName = trimmed;
+        } else if (opt === 'email') {
+          params.email = trimmed;
+        } else if (opt === 'phone') {
+          params.phone = trimmed;
+        } else if (opt === 'roleName') {
+          params.roleName = trimmed;
+        }
+      }
+
+      const res = await getUsers(params);
       setStaffs(res?.data?.content ?? []);
       setTotalPages(res?.data?.totalPages ?? 1);
     } catch (e) {
@@ -57,18 +80,24 @@ export default function StaffManager() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, page]);
+  }, []);
+
+  const fetchData = useCallback(async (p = page) => {
+    await fetchDataDirect(p, searchOpt, search, statusFilter);
+  }, [page, searchOpt, search, statusFilter, fetchDataDirect]);
 
   useEffect(() => {
     fetchData(page);
   }, [page, statusFilter, fetchData]);
 
   const openCreate = () => {
+    if (!canCreate) return notify(t('staff.toast.forbidden') || 'Không có quyền thực hiện', 'error');
     setForm(EMPTY_FORM);
     setModal({ open: true, editing: null });
   };
 
   const openEdit = (item) => {
+    if (!canEdit) return notify(t('staff.toast.forbidden') || 'Không có quyền thực hiện', 'error');
     setForm({
       fullName: item.fullName || '',
       password: '',
@@ -140,7 +169,6 @@ export default function StaffManager() {
     <tr key={item.id} className="hover:bg-stone-50">
       <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
       <td className="px-4 py-3 font-semibold">{item.fullName}</td>
-      <td className="px-4 py-3 font-mono text-xs text-[#bfa15f]">{item.email}</td>
       <td className="px-4 py-3 text-xs">{item.email}</td>
       <td className="px-4 py-3 text-xs">{item.phone}</td>
       <td className="px-4 py-3">
@@ -159,18 +187,30 @@ export default function StaffManager() {
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
-            <Edit2 size={15} />
-          </button>
-          <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa">
-            <Trash2 size={15} />
-          </button>
+          {canEdit && (
+            <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
+              <Edit2 size={15} />
+            </button>
+          )}
+          {canDelete && (
+            <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa">
+              <Trash2 size={15} />
+            </button>
+          )}
         </div>
       </td>
     </tr>
   ));
 
-  const cols = [t('staff.columns.id'), t('staff.columns.fullName'), t('staff.columns.email'), t('staff.columns.phone'), t('staff.columns.role'), t('staff.columns.status'), t('staff.columns.actions')];
+  const cols = [
+    t('staff.columns.id'),
+    t('staff.columns.fullName'),
+    t('staff.columns.email'),
+    t('staff.columns.phone'),
+    t('staff.columns.role'),
+    t('staff.columns.status'),
+    ...(canEdit || canDelete ? [t('staff.columns.actions')] : [])
+  ];
 
   return (
     <div>
@@ -178,20 +218,38 @@ export default function StaffManager() {
 
       <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-2 flex-1">
+          <select
+            value={searchOpt}
+            onChange={(e) => {
+              setSearchOpt(e.target.value);
+              setSearch('');
+            }}
+            className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+          >
+            <option value="fullName">{t('staff.searchOptions.fullName') || 'Họ và tên'}</option>
+            <option value="email">{t('staff.searchOptions.email') || 'Email'}</option>
+            <option value="phone">{t('staff.searchOptions.phone') || 'Số điện thoại'}</option>
+            <option value="roleName">{t('staff.searchOptions.roleName') || 'Vai trò'}</option>
+            <option value="id">{t('staff.searchOptions.id') || 'Mã (ID)'}</option>
+          </select>
+
           <div className="relative flex-1 max-w-xs">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              type="text"
+              type={searchOpt === 'id' ? 'number' : 'text'}
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && fetchData(0)}
-              placeholder={t('staff.filters.searchPlaceholder')}
+              placeholder={t(`staff.placeholders.${searchOpt}`) || t('staff.filters.searchPlaceholder')}
               className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
             />
           </div>
           <select
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
+            onChange={e => {
+              setStatusFilter(e.target.value);
+              setPage(0);
+            }}
             className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white"
           >
             {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.value === '' ? t('staff.filters.allStatus') : opt.value === 'ACTIVE' ? t('staff.filters.active') : opt.value === 'INACTIVE' ? t('staff.filters.inactive') : opt.value === 'BANNED' ? t('staff.filters.banned') : opt.label}</option>)}
@@ -200,9 +258,11 @@ export default function StaffManager() {
             <RefreshCw size={14} />
           </button>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
-          <Plus size={16} /> {t('staff.addBtn')}
-        </button>
+        {canCreate && (
+          <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
+            <Plus size={16} /> {t('staff.addBtn')}
+          </button>
+        )}
       </div>
 
       <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
@@ -210,14 +270,9 @@ export default function StaffManager() {
       <Modal open={modal.open} title={modal.editing ? t('staff.modal.editTitle') : t('staff.modal.addTitle')} onClose={closeModal} size="lg">
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="col-span-2">
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.fullName')}</label>
               <input required value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.email')}</label>
-              <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
             </div>
           </div>
@@ -241,6 +296,11 @@ export default function StaffManager() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.email')}</label>
+              <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+            </div>
+            <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.phone')}</label>
               <input required value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
@@ -252,6 +312,7 @@ export default function StaffManager() {
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('staff.modal.role')}</label>
               <select required value={form.roleName} onChange={e => setForm(f => ({ ...f, roleName: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
+                {form.roleName === 'CUSTOMER' && <option value="CUSTOMER" disabled>CUSTOMER</option>}
                 {ROLES.map(role => <option key={role} value={role}>{role}</option>)}
               </select>
             </div>

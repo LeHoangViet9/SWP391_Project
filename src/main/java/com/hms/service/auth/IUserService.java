@@ -7,11 +7,17 @@ import com.hms.dto.auth.request.*;
 import com.hms.dto.auth.response.UserResponse;
 import org.springframework.data.domain.Page;
 
+import java.util.List;
+
 public interface IUserService {
 
 
     Page<UserResponse> getUsers(
-            String keywords,
+            Long id,
+            String fullName,
+            String email,
+            String phone,
+            String roleName,
             AccountStatus status,
             Integer page,
             Integer size,
@@ -24,5 +30,11 @@ public interface IUserService {
     UserResponse updateUser(Long id, UserManagementRequest request);
 
     void deleteUser(Long id);
+
+    UserResponse assignPermissionsToUser(Long userId, List<Long> permissionIds);
+    UserResponse removePermissionsFromUser(Long userId, List<Long> permissionIds);
+    UserResponse getUserPermissions(Long userId);
+
+
 
 }

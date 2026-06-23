@@ -3,8 +3,7 @@ package com.hms.controller.auth;
 import com.hms.dto.auth.request.*;
 import com.hms.common.dto.ApiResponse;
 import com.hms.dto.auth.response.UserResponse;
-import com.hms.service.auth.IAuthService;
-import com.hms.service.auth.IUserService;
+import com.hms.service.auth.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
@@ -12,6 +11,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Locale;
@@ -21,9 +21,8 @@ import java.util.Locale;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    private final IUserService userService;
     private final MessageSource messageSource;
-    private final IAuthService authService;
+    private final AuthService authService;
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> handleRegister(@Valid @RequestBody UserRegisterRequest registerRequest){
@@ -53,9 +52,10 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal String username) {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal String email) {
         Locale locale = LocaleContextHolder.getLocale();
-        UserResponse userResponse = authService.getCurrentUser(username);
+        UserResponse userResponse = authService.getCurrentUser(email);
         ApiResponse<UserResponse> response = ApiResponse.<UserResponse>builder()
                 .success(true)
                 .message(messageSource.getMessage("auth.me.success", null, "Get current user successfully", locale))
@@ -66,11 +66,12 @@ public class AuthController {
     }
 
     @PutMapping("/change-password")
-    public ResponseEntity<ApiResponse<Void>>  handleChangePassword(@AuthenticationPrincipal String username,
-                                                                   @Valid @RequestBody ChangePasswordRequest changePasswordRequest){
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Void>>  handleChangePassword(@AuthenticationPrincipal String email,
+            @Valid @RequestBody ChangePasswordRequest changePasswordRequest){
         Locale locale= LocaleContextHolder.getLocale();
         String successMessage=messageSource.getMessage("auth.changePassword.success", null, locale);
-        authService.changePassword(username,changePasswordRequest);
+        authService.changePassword(email,changePasswordRequest);
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 successMessage,
@@ -105,20 +106,19 @@ public class AuthController {
         ),HttpStatus.OK);
     }
 
-    @PostMapping("/active-account")
-    public ResponseEntity<ApiResponse<Void>> activeAccount(@Valid @RequestBody ActiveAccountRequest activeAccountRequest){
-        Locale locale= LocaleContextHolder.getLocale();
-        authService.activeUser(activeAccountRequest.getEmail(), activeAccountRequest.getOtp());
-        String successMessage = messageSource.getMessage("auth.active.success", null, "Account activated successfully", locale);
-        return new ResponseEntity<>(new ApiResponse<>(
-                true,
-                successMessage,
-                null,
-                HttpStatus.OK
-        ),HttpStatus.OK);
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse<Void>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request){
+        Locale locale = LocaleContextHolder.getLocale();
+        authService.verifyOtp(request);
+        String successMessage = messageSource.getMessage("auth.verifyOtp.success", null, locale);
+        return ResponseEntity.ok(new ApiResponse<>(true, successMessage, null, HttpStatus.OK));
     }
 
-
-
-
+    @PostMapping("/resend-otp")
+    public ResponseEntity<ApiResponse<Void>> resendOtp(@RequestParam String email){
+        Locale locale = LocaleContextHolder.getLocale();
+        authService.resendOtp(email);
+        String successMessage = messageSource.getMessage("auth.resendOtp.success", null, locale);
+        return ResponseEntity.ok(new ApiResponse<>(true, successMessage, null, HttpStatus.OK));
+    }
 }
