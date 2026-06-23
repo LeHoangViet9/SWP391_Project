@@ -3,20 +3,23 @@ package com.hms.service.hotel.impl;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
+import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.CloudinaryUtils;
+import com.hms.common.utils.LocalFileUtils;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.room.request.RoomRequest;
 import com.hms.dto.room.response.RoomResponse;
 import com.hms.entity.hotel.Room;
+import com.hms.entity.hotel.RoomImage;
 import com.hms.entity.hotel.RoomType;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.hotel.IRoomService;
 import com.hms.service.hotel.mapper.RoomMapper;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NonNull;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
@@ -25,10 +28,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class RoomServiceImpl implements IRoomService {
 
     private final RoomRepository roomRepository;
@@ -36,20 +42,29 @@ public class RoomServiceImpl implements IRoomService {
     private final RoomMapper roomMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
-    private final CloudinaryUtils  cloudinaryUtils;
+    private final LocalFileUtils localFileUtils;
 
     @Override
-    public Page<RoomResponse> getAllRooms(String keywords, Integer page, Integer size, @NonNull SortField sortBy, SortDirection direction) {
-        // Không sử dụng keywords - lấy tất cả phòng theo status (không phải INACTIVE)
+    public Page<RoomResponse> getAllRooms(
+            String keyword,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction) {
+
         Pageable pageable = pageableUtils.createPageable(
                 page,
                 size,
                 sortBy.getField(),
                 direction
         );
-        // Chỉ lấy các phòng không bị xóa (status != INACTIVE)
-        return roomRepository.findByRoomStatusNot(RoomStatus.INACTIVE, pageable).map(roomMapper::toResponse);
+
+        return roomRepository
+                .searchRooms(keyword, pageable)
+                .map(roomMapper::toResponse);
     }
+
+
 
     @Override
     public RoomResponse getRoomById(Long id) {
@@ -63,27 +78,41 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse createRoom(RoomRequest request, MultipartFile file) {
+    public RoomResponse createRoom(RoomRequest request, List<MultipartFile> file) {
         Locale locale = LocaleContextHolder.getLocale();
 
-
-        // Check if room number already exists
-        if (roomRepository.existsByRoomNumber(request.getRoomNumber())) {
-            throw new ConflictException(messageSource.getMessage("error.room.exists", null, locale));
-        }
-
-        // Check if room type exists
+        // Kiểm tra loại phòng
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
         Room room = new Room();
         populateRoomData(room, request, roomType);
+
+        // Sinh số phòng tự động theo thứ tự tăng dần dựa trên floorNumber
+        String generatedRoomNumber = generateRoomNumber(request.getFloorNumber());
+        room.setRoomNumber(generatedRoomNumber);
+
+        // Khởi tạo list ảnh trống cho đối tượng Room mới tạo
+        room.setRoomImages(new ArrayList<>());
+
+        // XỬ LÝ ẢNH MỚI: Upload lên Local Storage và lưu vào bảng room_img thay vì lưu cột cũ
         if (file != null && !file.isEmpty()) {
-            String imageUrl = cloudinaryUtils.uploadFile(file);
-            room.setImageRoom(imageUrl); // Lưu link URL từ Cloudinary vào thuộc tính entity phòng
+
+            for (MultipartFile f : file) {
+
+                String imageUrl = localFileUtils.uploadFile(f);
+
+                RoomImage roomImage = RoomImage.builder()
+                        .room(room)
+                        .imageUrl(imageUrl)
+                        .description("Ảnh khi tạo phòng")
+                        .build();
+
+                room.getRoomImages().add(roomImage);
+            }
         }
 
-        // Set default status = AVAILABLE khi tạo mới
+        // Set mặc định trạng thái phòng sẵn sàng hoạt động
         room.setRoomStatus(RoomStatus.AVAILABLE);
 
         Room saved = roomRepository.save(room);
@@ -92,28 +121,39 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse updateRoom(Long id, RoomRequest request,MultipartFile file) {
+    public RoomResponse updateRoom(Long id, RoomRequest request, List<MultipartFile> file) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        // Lấy phòng và đảm bảo phòng chưa bị soft-delete
         Room room = roomRepository.findById(id)
                 .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
 
-        // Check if room number already exists (excluding current room)
-        if (roomRepository.existsByRoomNumberAndIdNot(request.getRoomNumber(), id)) {
-            throw new ConflictException(messageSource.getMessage("error.room.exists", null, locale));
-        }
-
-        // Check if room type exists
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
+        // Nếu thay đổi tầng, tự động cập nhật số phòng theo tầng mới
+        if (!room.getFloorNumber().equals(request.getFloorNumber())) {
+            String generatedRoomNumber = generateRoomNumber(request.getFloorNumber());
+            room.setRoomNumber(generatedRoomNumber);
+        }
+
         populateRoomData(room, request, roomType);
-        // Giữ nguyên status hiện tại của phòng
+
+        // XỬ LÝ ẢNH CẬP NHẬT: Thêm một ảnh mới vào Album ảnh hiện tại của phòng
         if (file != null && !file.isEmpty()) {
-            String imageUrl = cloudinaryUtils.uploadFile(file);
-            room.setImageRoom(imageUrl); // Lưu link URL từ Cloudinary vào thuộc tính entity phòng
+
+            for (MultipartFile f : file) {
+
+                String imageUrl = localFileUtils.uploadFile(f);
+
+                RoomImage roomImage = RoomImage.builder()
+                        .room(room)
+                        .imageUrl(imageUrl)
+                        .description("Ảnh khi tạo phòng")
+                        .build();
+
+                room.getRoomImages().add(roomImage);
+            }
         }
 
         Room updated = roomRepository.save(room);
@@ -160,6 +200,12 @@ public class RoomServiceImpl implements IRoomService {
     @Transactional
     public void updateRoomStatus(Long roomId, RoomStatus status) {
         Locale locale = LocaleContextHolder.getLocale();
+        // Chặn việc đặt INACTIVE qua API status — INACTIVE chỉ dành cho soft delete (deleteRoomByID)
+        if (status == RoomStatus.INACTIVE) {
+            throw new BadRequestException(
+                    messageSource.getMessage("error.room.status.inactive.forbidden", null,
+                            "Không thể đặt trạng thái INACTIVE trực tiếp. Hãy dùng chức năng xóa phòng.", locale));
+        }
         Room room = roomRepository.findById(roomId)
                 .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
@@ -168,11 +214,29 @@ public class RoomServiceImpl implements IRoomService {
     }
 
     /**
+     * Method private để sinh số phòng tự động dựa trên floorNumber
+     */
+    private String generateRoomNumber(Integer floorNumber) {
+        List<Room> roomsOnFloor = roomRepository.findByFloorNumber(floorNumber);
+        int maxNumber = floorNumber * 100 - 1;
+        for (Room r : roomsOnFloor) {
+            try {
+                int num = Integer.parseInt(r.getRoomNumber());
+                if (num > maxNumber) {
+                    maxNumber = num;
+                }
+            } catch (NumberFormatException e) {
+                // Bỏ qua nếu số phòng không phải định dạng số
+            }
+        }
+        return String.valueOf(maxNumber + 1);
+    }
+
+    /**
      * Method private để fill data từ request vào entity
      * Tái sử dụng trong cả create và update
      */
     private void populateRoomData(Room room, RoomRequest request, RoomType roomType) {
-        room.setRoomNumber(request.getRoomNumber());
         room.setRoomType(roomType);
         room.setFloorNumber(request.getFloorNumber());
         room.setDescription(request.getDescription());
@@ -186,5 +250,23 @@ public class RoomServiceImpl implements IRoomService {
         Pageable pageable = pageableUtils.createPageable(page, size, "roomNumber", SortDirection.ASC);
         return roomRepository.findByRoomStatus(RoomStatus.AVAILABLE, pageable).map(roomMapper::toResponse);
     }
-}
 
+    @Override
+    @Transactional
+    public void deleteRoomImage(Long roomId, String imageUrl) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Room room = roomRepository.findById(roomId)
+                .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
+
+        // Find image in the room's image list
+        RoomImage imageToDelete = room.getRoomImages().stream()
+                .filter(img -> img.getImageUrl().equals(imageUrl))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(locale.getLanguage().equals("vi") ? "Không tìm thấy ảnh của phòng." : "Room image not found."));
+
+        // Set isDeleted flag and save
+        imageToDelete.setIsDeleted(true);
+        roomRepository.save(room);
+    }
+}

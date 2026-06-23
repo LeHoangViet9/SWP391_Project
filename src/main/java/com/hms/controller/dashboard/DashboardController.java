@@ -3,11 +3,13 @@ package com.hms.controller.dashboard;
 
 import com.hms.common.dto.ApiResponse;
 import com.hms.dto.dashboard.response.AdminDashboardResponse;
+import com.hms.dto.dashboard.response.MaintenanceDashboardResponse;
 import com.hms.dto.dashboard.response.ReceptionistDashboardResponse;
 import com.hms.service.dashboard.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class DashboardController {
     private final DashboardService dashboardService;
     @GetMapping("/admin")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     public ResponseEntity<ApiResponse<AdminDashboardResponse>> getAdminDashboard() {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
@@ -31,6 +34,7 @@ public class DashboardController {
 
 
     @GetMapping("/receptionist")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
     public ResponseEntity<ApiResponse<ReceptionistDashboardResponse>> getReceptionistDashboard() {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
@@ -39,6 +43,16 @@ public class DashboardController {
                 HttpStatus.OK
         ), HttpStatus.OK
         );
+    }
+    @GetMapping("/maintenance")
+    @PreAuthorize("hasAuthority('DASHBOARD_VIEW')")
+    public ResponseEntity<ApiResponse<MaintenanceDashboardResponse>> getMaintenanceDashboard() {
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                "Maintenance dashboard data retrieved successfully",
+                dashboardService.getMaintenanceDashboard(),
+                HttpStatus.OK
+        ),HttpStatus.OK);
     }
 }
 

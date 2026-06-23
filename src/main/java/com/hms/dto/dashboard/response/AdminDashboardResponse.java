@@ -17,6 +17,12 @@ public class AdminDashboardResponse {
     private BigDecimal thisMonthRevenue;    // Doanh thu gom của tháng này
     private long totalSuccessfulBookings;   // Tổng số đơn đặt phòng thành công mang lại tiền
 
+    // --- KHỐI 0: SỐ LIỆU TỔNG QUAN HỆ THỐNG ---
+    private long totalCustomers;   // Tổng số khách hàng
+    private long totalRoomTypes;   // Tổng số loại phòng
+    private long totalRooms;       // Tổng số phòng
+    private long totalStaff;       // Tổng số nhân viên (User)
+
     // --- KHỐI 2: DỮ LIỆU VẼ BIỂU ĐỒ TRÒN (CƠ CẤU) ---
     // Cơ cấu doanh số theo loại phòng (Hạng phòng nào được chuộng nhất)
     // Trả về map dạng: {"Deluxe Room": 45, "Suite Room": 20, "Standard Room": 80}

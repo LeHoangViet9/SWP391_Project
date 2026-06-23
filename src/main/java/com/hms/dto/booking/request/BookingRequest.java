@@ -1,5 +1,6 @@
 package com.hms.dto.booking.request;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -15,6 +16,10 @@ public class BookingRequest {
 
     @NotNull(message = "{booking.checkin.notnull}")
     private LocalDateTime checkInDate;
+
+    @NotNull(message = "{booking.quantity.notnull}")
+    @Min(value = 1, message = "{booking.quantity.min}")
+    private Integer quantity;
 
     @NotNull(message = "{booking.checkout.notnull}")
     private LocalDateTime checkOutDate;

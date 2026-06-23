@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --hms-font-sans: "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body,
+.font-body,
+.font-display,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+button,
+input,
+textarea,
+select {
+  font-family: var(--hms-font-sans) !important;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-family: var(--hms-font-sans);
+  }
+
+  body {
+    @apply font-body text-slate-800 antialiased;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .btn-gold {
+    @apply bg-[#bfa15f] text-white font-semibold uppercase tracking-wider
+           hover:bg-[#cda152] transition-colors duration-300;
+  }
+
+  .section-title {
+    @apply font-display text-3xl md:text-4xl font-semibold text-slate-800;
+  }
+
+  .section-subtitle {
+    @apply text-[#bfa15f] uppercase tracking-[0.2em] text-sm font-medium;
+  }
+}
+
+@keyframes slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);   opacity: 1; }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Print styles for invoice */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-container {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

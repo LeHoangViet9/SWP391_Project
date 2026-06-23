@@ -2,11 +2,13 @@ package com.hms.advise;
 
 import com.hms.common.dto.ApiResponse;
 import com.hms.common.exception.AppException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,6 +19,7 @@ import java.util.Locale;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
     @Autowired
     private MessageSource messageSource;
@@ -70,6 +73,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleException(
             Exception exception
     ) {
+        log.error("Unhandled exception", exception);
         Locale locale = LocaleContextHolder.getLocale();
 
         String message = messageSource.getMessage("error.internal.server", null, "Internal Server Error", locale);
@@ -95,5 +99,20 @@ public class GlobalExceptionHandler {
             return ResponseEntity.badRequest().body(Map.of("error", localizedMessage));
         }
         return ResponseEntity.badRequest().body(Map.of("error", exceptionMsg));
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleAuthorizationDenied(
+            AuthorizationDeniedException exception
+    ) {
+        ApiResponse<Object> response = ApiResponse.builder()
+                .success(false)
+                .message("Access denied")
+                .status(HttpStatus.FORBIDDEN)
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(response);
     }
 }

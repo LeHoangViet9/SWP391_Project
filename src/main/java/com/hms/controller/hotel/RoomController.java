@@ -4,7 +4,6 @@ import com.hms.common.dto.ApiResponse;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
-import com.hms.common.utils.CloudinaryUtils;
 import com.hms.dto.room.request.RoomRequest;
 import com.hms.dto.room.response.RoomResponse;
 import com.hms.service.hotel.IRoomService;
@@ -17,7 +16,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.util.List;
 import java.util.Locale;
 
 @RestController
@@ -27,11 +28,11 @@ public class RoomController {
 
     private final IRoomService roomService;
     private final MessageSource messageSource;
-    private final CloudinaryUtils cloudinaryUtils;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getAllRooms(
-            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
@@ -43,7 +44,7 @@ public class RoomController {
         ApiResponse<Page<RoomResponse>> response = ApiResponse.<Page<RoomResponse>>builder()
                 .success(true)
                 .message(message)
-                .data(roomService.getAllRooms(keywords, page, size, sortBy, direction))
+                .data(roomService.getAllRooms(keyword, page, size, sortBy, direction))
                 .status(HttpStatus.OK)
                 .build();
 
@@ -51,6 +52,7 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
     public ResponseEntity<ApiResponse<RoomResponse>> getRoomById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomResponse roomResponse = roomService.getRoomById(id);
@@ -67,7 +69,8 @@ public class RoomController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam("file")MultipartFile file, @ModelAttribute @Valid RoomRequest roomRequest) {
+    @PreAuthorize("hasAuthority('ROOM_CREATE')")
+    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam("imageRoom")List<MultipartFile> file, @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomResponse created = roomService.createRoom(roomRequest,file);
         String message = messageSource.getMessage("success.room.create", null, locale);
@@ -83,10 +86,11 @@ public class RoomController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROOM_UPDATE')")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
-            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "imageRoom", required = false) List<MultipartFile> file,
             @PathVariable Long id,
-            @RequestBody @Valid RoomRequest roomRequest) {
+            @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomResponse updated = roomService.updateRoom(id, roomRequest,file);
         String message = messageSource.getMessage("success.room.update", null, locale);
@@ -102,6 +106,7 @@ public class RoomController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ROOM_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteRoom(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         roomService.deleteRoomByID(id);
@@ -117,6 +122,7 @@ public class RoomController {
     }
 
     @GetMapping("/status/{status}")
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getRoomsByStatus(
             @PathVariable RoomStatus status,
             @RequestParam(required = false) Integer page,
@@ -136,6 +142,7 @@ public class RoomController {
     }
 
     @GetMapping("/floor/{floorNumber}")
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getRoomsByFloor(
             @PathVariable Integer floorNumber,
             @RequestParam(required = false) Integer page,
@@ -155,6 +162,7 @@ public class RoomController {
     }
 
     @GetMapping("/room-type/{roomTypeId}")
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getRoomsByRoomType(
             @PathVariable Long roomTypeId,
             @RequestParam(required = false) Integer page,
@@ -174,6 +182,7 @@ public class RoomController {
     }
 
     @GetMapping("/available")
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getAvailableRooms(
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
@@ -192,6 +201,7 @@ public class RoomController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('ROOM_UPDATE')")
     public ResponseEntity<ApiResponse<Void>> updateRoomStatus(
             @PathVariable Long id,
             @RequestParam RoomStatus status) {
@@ -199,6 +209,24 @@ public class RoomController {
         Locale locale = LocaleContextHolder.getLocale();
         roomService.updateRoomStatus(id, status);
         String message = messageSource.getMessage("success.room.updatestatus", null, locale);
+
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(true)
+                .message(message)
+                .status(HttpStatus.OK)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @DeleteMapping("/{id}/images")
+    @PreAuthorize("hasAuthority('ROOM_UPDATE')")
+    public ResponseEntity<ApiResponse<Void>> deleteRoomImage(
+            @PathVariable Long id,
+            @RequestParam String imageUrl) {
+        Locale locale = LocaleContextHolder.getLocale();
+        roomService.deleteRoomImage(id, imageUrl);
+        String message = locale.getLanguage().equals("vi") ? "Xóa ảnh thành công." : "Image deleted successfully.";
 
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)

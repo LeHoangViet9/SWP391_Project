@@ -18,11 +18,21 @@ public class BookingResponse {
 
     private String roomTypeName;
 
+    private Long roomId;
+
+    private String roomNumber;
+
+    private BigDecimal pricePerNight;
+
+    private Integer quantity;
+
     private LocalDateTime checkInDate;
 
     private LocalDateTime checkOutDate;
 
+    private BigDecimal totalPrice;
+
     private BookingStatus bookingStatus;
 
-    private BigDecimal totalPrice;
+    private LocalDateTime createdAt;
 }

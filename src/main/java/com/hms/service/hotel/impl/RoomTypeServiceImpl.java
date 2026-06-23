@@ -15,7 +15,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
+import com.hms.common.enums.RoomStatus;
+import com.hms.repository.hotel.RoomRepository;
+import com.hms.repository.booking.BookingRepository;
 
 import com.hms.dto.roomtype.response.RoomTypeResponse;
 import com.hms.dto.roomtype.request.RoomTypeRequest;
@@ -33,18 +35,17 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     private final RoomTypeMapper roomTypeMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
+    private final RoomRepository roomRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
     @Transactional(readOnly = true)
     public Page<RoomTypeResponse> getAllRoomType(
-            String keywords,
-            Integer maxGuests,
+            String keyword,
             Integer page,
             Integer size,
             SortField sortBy,
             SortDirection direction) {
-
-        String searchKeywords = StringUtils.hasText(keywords) ? keywords.trim() : "";
 
         Pageable pageable = pageableUtils.createPageable(
                 page,
@@ -53,38 +54,30 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
                 direction
         );
 
-        if (maxGuests != null) {
-            return roomTypeRepository
-                    .findByTypeNameContainingIgnoreCaseAndMaxGuestsGreaterThanEqualAndStatus(
-                            searchKeywords,
-                            maxGuests,
-                            AccountStatus.ACTIVE,
-                            pageable
-                    )
-                    .map(roomTypeMapper::toResponse);
-        }
-
         return roomTypeRepository
-                .findByTypeNameContainingIgnoreCaseAndStatus(searchKeywords, AccountStatus.ACTIVE, pageable)
+                .searchRoomTypes(keyword, pageable)
                 .map(roomTypeMapper::toResponse);
     }
 
+
+
     @Override
     @Transactional(readOnly = true)
-    public RoomTypeResponse getRoomTypeById(Long id){
+    public RoomTypeResponse getRoomTypeById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
         RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.roomtype.notfound", null, locale)));
         return roomTypeMapper.toResponse(roomType);
     }
 
     @Override
     @Transactional
-    public RoomTypeResponse createRoomType(RoomTypeRequest request){
+    public RoomTypeResponse createRoomType(RoomTypeRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        if(roomTypeRepository.existsByTypeNameAndStatus(request.getTypeName(), AccountStatus.ACTIVE)){
+        if (roomTypeRepository.existsByTypeNameAndStatus(request.getTypeName(), AccountStatus.ACTIVE)) {
             throw new ConflictException(messageSource.getMessage("error.roomtype.exists", null, locale));
         }
 
@@ -97,14 +90,16 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
     @Override
     @Transactional
-    public RoomTypeResponse updateRoomType(Long id, RoomTypeRequest request){
+    public RoomTypeResponse updateRoomType(Long id, RoomTypeRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
         RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
         if (!roomType.getTypeName().equalsIgnoreCase(request.getTypeName())
-                && roomTypeRepository.existsByTypeNameAndIdNotAndStatus(request.getTypeName(), id, AccountStatus.ACTIVE)) {
+                && roomTypeRepository.existsByTypeNameAndIdNotAndStatus(request.getTypeName(), id,
+                        AccountStatus.ACTIVE)) {
             throw new ConflictException(messageSource.getMessage("error.roomtype.exists", null, locale));
         }
 
@@ -115,11 +110,21 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
     @Override
     @Transactional
-    public void deleteRoomTypeByID(Long id){
+    public void deleteRoomTypeByID(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
         RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.roomtype.notfound", null, locale)));
+
+        if (roomRepository.existsByRoomTypeIdAndRoomStatusNot(id, RoomStatus.INACTIVE)) {
+            throw new ConflictException(messageSource.getMessage("error.roomtype.inuse.rooms", null, locale));
+        }
+
+        if (bookingRepository.existsByRoomTypeId(id)) {
+            throw new ConflictException(messageSource.getMessage("error.roomtype.inuse.bookings", null, locale));
+        }
+
         roomType.setStatus(AccountStatus.INACTIVE);
         roomTypeRepository.save(roomType);
     }

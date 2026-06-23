@@ -18,6 +18,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,9 +37,17 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional
     public CustomerResponse createCustomer(CustomerCreateDTO customerDTO) {
         Locale locale = LocaleContextHolder.getLocale();
-        if(customerRepository.existsByEmail(customerDTO.getEmail())) {
-            throw new ConflictException(messageSource.getMessage("error.email.existed", new Object[]{customerDTO.getEmail()}, locale));
+
+        // Nếu email đã tồn tại → trả về customer hiện tại (self-service booking flow)
+        if (customerRepository.existsByEmail(customerDTO.getEmail())) {
+            return customerRepository.findByEmailAndStatus(customerDTO.getEmail(), AccountStatus.ACTIVE)
+                    .map(customerMapper::toResponse)
+                    .orElseThrow(() ->
+                            new ConflictException(messageSource.getMessage("error.email.existed",
+                                    new Object[]{customerDTO.getEmail()}, locale))
+                    );
         }
+
         if(customerRepository.existsByPhone(customerDTO.getPhone())){
             throw new ConflictException(messageSource.getMessage("error.phone.existed", new Object[]{customerDTO.getPhone()}, locale));
         }
@@ -100,21 +109,22 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    public Page<CustomerResponse> getCustomers(String keywords, AccountStatus status, Integer page, Integer size, SortField sortBy, SortDirection direction) {
-        if (keywords == null) {
-            keywords = "";
-        }
+    public Page<CustomerResponse> getCustomers(
+            String keyword,
+            AccountStatus status,
+            Integer page,
+            Integer size,
+            SortField sortBy,
+            SortDirection direction) {
 
         Pageable pageable = pageableUtils.createPageable(
-                page,
-                size,
-                sortBy.getField(),
-                direction
-        );
+                page, size, sortBy.getField(), direction);
+
         return customerRepository
-                .searchCustomer(keywords, status, pageable)
+                .searchCustomer(keyword, status, pageable)
                 .map(customerMapper::toResponse);
     }
+
 
     @Override
     public CustomerResponse findById(Long id) {
@@ -125,5 +135,42 @@ public class CustomerServiceImpl implements CustomerService {
                 ));
 
         return customerMapper.toResponse(customer);
+    }
+
+    @Override
+    @Transactional
+    public void restoreCustomer(Long id) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.customer.notfound", new Object[]{id}, locale)
+                ));
+
+        if (customer.getStatus() == AccountStatus.ACTIVE) {
+            throw new ConflictException(
+                    messageSource.getMessage("error.customer.already_active", null, locale)
+            );
+        }
+
+        customer.setStatus(AccountStatus.ACTIVE);
+        customerRepository.save(customer);
+    }
+
+    @Override
+    @Transactional
+    public void forceDeleteCustomer(Long id) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.customer.notfound", new Object[]{id}, locale)
+                ));
+        try {
+            customerRepository.delete(customer);
+            customerRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new ConflictException(
+                    messageSource.getMessage("error.customer.cannot_delete_has_history", null, locale)
+            );
+        }
     }
 }

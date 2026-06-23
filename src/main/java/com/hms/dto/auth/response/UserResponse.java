@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -12,11 +13,13 @@ import java.time.LocalDateTime;
 public class UserResponse {
     private Long id;
     private String fullName;
-    private String username;
     private String email;
     private String phone;
     private String roleName;
     private String token;
     private String accountStatus;
     private LocalDateTime lastLoginAt;
+    /** Danh sách mã quyền hạn (permission codes) dùng để lọc menu trên UI */
+    private List<String> permissions;
 }
+

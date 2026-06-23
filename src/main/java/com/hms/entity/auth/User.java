@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name="users")
@@ -19,13 +21,11 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "user_name", nullable = false, length = 100,unique = true)
-    private String userName;
     @Column(name = "full_name",nullable = false, length = 100)
     private String fullName;
     @Column(name = "email", nullable = false,unique = true,length = 100)
     private String email;
-    @Column(name="phone",nullable = false,unique = false,length = 15)
+    @Column(name="phone",nullable = false,unique = true,length = 15)
     private String phone;
     @Column(name = "password", nullable = false,length = 100)
     private String password;
@@ -45,8 +45,24 @@ public class User {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id",nullable = false)
     private Role role;
+    private Boolean enabled;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_permissions",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    @Builder.Default
+    private Set<Permission> customPermissions = new HashSet<>();
     @Column(name = "reset_password_token",unique = true)
     private String resetPasswordToken;
     @Column(name = "reset_password_expire_at")
     private LocalDateTime resetPasswordExpiredAt;
+
+    @Column(name = "otp_code", length = 6)
+    private String otpCode;
+
+    @Column(name = "otp_expiry")
+    private LocalDateTime otpExpiry;
 }

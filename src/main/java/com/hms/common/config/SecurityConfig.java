@@ -1,8 +1,12 @@
-package com.hms.common.config; // Nếu đã chuyển vào common thì đổi thành com.hms.common.config;
+package com.hms.common.config;
 
+import com.hms.common.security.CustomPermissionEvaluator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -14,14 +18,23 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomPermissionEvaluator customPermissionEvaluator;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public MethodSecurityExpressionHandler methodSecurityExpressionHandler() {
+        DefaultMethodSecurityExpressionHandler expressionHandler = new DefaultMethodSecurityExpressionHandler();
+        expressionHandler.setPermissionEvaluator(customPermissionEvaluator);
+        return expressionHandler;
     }
 
     @Bean
@@ -31,39 +44,37 @@ public class SecurityConfig {
                 .cors(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-//
-//                        // 1. Tài nguyên tĩnh phục vụ giao diện (ThymeLeaf WebController) và luồng Auth tự do
-//                        .requestMatchers("/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
-//                        .requestMatchers("/api/v1/auth/**").permitAll()
-//
-//                        // 2. Module room & auth_user: Chỉ Admin/Manager được CRUD, Lễ tân chỉ được Xem (Read)
-//                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
-//                        .requestMatchers("/api/v1/rooms/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
-//
-//                        // 3. Module customer: Lễ tân và Quản lý quản lý hồ sơ khách hàng
-//                        .requestMatchers("/api/v1/customers/**").hasAnyRole("MANAGER", "RECEPTIONIST")
-//
-//                        // 4. Module booking_reception (Member 2): Check-in, Check-out, Gán phòng
-//                        .requestMatchers("/api/v1/bookings/**").hasAnyRole("MANAGER", "RECEPTIONIST")
-//
-//                        // 5. Module billing: Hóa đơn, thanh toán
-//                        .requestMatchers("/api/v1/invoices/**", "/api/v1/payments/**").hasAnyRole("MANAGER", "RECEPTIONIST")
-//
-//                        // 6. Module housekeeping: Lao công nhận task và cập nhật trạng thái
-//                        .requestMatchers("/api/v1/housekeeping/**").hasAnyRole("MANAGER", "HOUSEKEEPER")
-//
-//                        // 7. Module infrastructure & equipment: Quản lý thiết bị, kiểm tra, sửa chữa
-//                        .requestMatchers("/api/v1/equipments/**", "/api/v1/equipment-checks/**").hasAnyRole("ADMIN", "TECHNICIAN")
-//
-//                        // Module customer_feedback: Quản lý xem, Lễ tân tiếp nhận phản hồi của khách
-//                        .requestMatchers("/api/v1/feedbacks/**").hasAnyRole("ADMIN", "MANAGER", "RECEPTIONIST")
-//
-//                        // Module RoomType: Quản lý loại phòng
-//                        .requestMatchers("/api/v1/room-types/**").permitAll()
+                        // 1. Tài nguyên tĩnh và luồng Auth tự do
+                        .requestMatchers(
+                                "/login",
+                                "/register",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/uploads/**"
+                        ).permitAll()
 
-                        // Tất cả các request khác ngoài các prefix trên bắt buộc phải đăng nhập thành công mới được vào
+                        // 2. API Auth công khai
+                        .requestMatchers(
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password",
+                                "/api/v1/auth/verify-otp",
+                                "/api/v1/auth/resend-otp"
+                        ).permitAll()
 
-                        .anyRequest().permitAll()
+                        // 3. Module room-types: GET công khai
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/room-types/**").permitAll()
+
+                        // 4. Kiểm tra phòng trống — công khai (khách chưa đăng nhập cũng cần)
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/bookings/check-availability").permitAll()
+
+                        // Tất cả các request API khác yêu cầu đăng nhập (kiểm tra quyền chi tiết qua @PreAuthorize tại Controller)
+                        .requestMatchers("/api/v1/**").authenticated()
+
+                        // Tất cả các request còn lại phải đăng nhập
+                        .anyRequest().authenticated()
                 );
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

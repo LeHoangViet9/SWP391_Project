@@ -5,8 +5,8 @@ import lombok.Data;
 
 @Data
 public class UserLoginRequest {
-    @NotBlank(message = "{login.username.notblank}")
-    private String username;
+    @NotBlank(message = "{login.email.notblank}")
+    private String email;
 
     @NotBlank(message = "{login.password.notblank}")
     private String password;
