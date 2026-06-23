@@ -237,6 +237,37 @@ function BookingContent() {
 
   const handleSubmit = async () => {
     setError('');
+    
+    if (!booking.checkIn) {
+      setError(locale === 'vi' ? 'Vui lòng chọn ngày nhận phòng.' : 'Please select check-in date.');
+      return;
+    }
+    if (!booking.checkOut) {
+      setError(locale === 'vi' ? 'Vui lòng chọn ngày trả phòng.' : 'Please select check-out date.');
+      return;
+    }
+    const checkInDate = new Date(booking.checkIn);
+    const checkOutDate = new Date(booking.checkOut);
+    const todayStr = today();
+    const todayDate = new Date(todayStr);
+
+    checkInDate.setHours(0,0,0,0);
+    checkOutDate.setHours(0,0,0,0);
+    todayDate.setHours(0,0,0,0);
+
+    if (checkInDate < todayDate) {
+      setError(locale === 'vi' ? 'Ngày nhận phòng không được ở quá khứ.' : 'Check-in date cannot be in the past.');
+      return;
+    }
+    if (checkOutDate <= checkInDate) {
+      setError(locale === 'vi' ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.');
+      return;
+    }
+    if (!booking.quantity || booking.quantity < 1) {
+      setError(locale === 'vi' ? 'Số lượng phòng phải ít nhất là 1.' : 'Quantity must be at least 1.');
+      return;
+    }
+
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -386,7 +417,39 @@ function BookingContent() {
               <span className="text-xl font-bold text-[#bfa15f]">{formatPrice(totalEstimate, locale)}</span>
             </div>
             <button
-              onClick={() => setStep(2)}
+              onClick={() => {
+                if (!booking.checkIn) {
+                  setError(locale === 'vi' ? 'Vui lòng chọn ngày nhận phòng.' : 'Please select a check-in date.');
+                  return;
+                }
+                if (!booking.checkOut) {
+                  setError(locale === 'vi' ? 'Vui lòng chọn ngày trả phòng.' : 'Please select a check-out date.');
+                  return;
+                }
+                const checkInDate = new Date(booking.checkIn);
+                const checkOutDate = new Date(booking.checkOut);
+                const todayStr = today();
+                const todayDate = new Date(todayStr);
+
+                checkInDate.setHours(0,0,0,0);
+                checkOutDate.setHours(0,0,0,0);
+                todayDate.setHours(0,0,0,0);
+
+                if (checkInDate < todayDate) {
+                  setError(locale === 'vi' ? 'Ngày nhận phòng không được ở quá khứ.' : 'Check-in date cannot be in the past.');
+                  return;
+                }
+                if (checkOutDate <= checkInDate) {
+                  setError(locale === 'vi' ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.');
+                  return;
+                }
+                if (!booking.quantity || booking.quantity < 1) {
+                  setError(locale === 'vi' ? 'Số lượng phòng phải ít nhất là 1.' : 'Quantity must be at least 1.');
+                  return;
+                }
+                setError('');
+                setStep(2);
+              }}
               disabled={checkingAvailability || (availableRoomsCount !== null && availableRoomsCount < booking.quantity)}
               className="w-full btn-gold py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >

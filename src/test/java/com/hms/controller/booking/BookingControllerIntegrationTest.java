@@ -85,7 +85,7 @@ public class BookingControllerIntegrationTest {
         // 2. Tạo RoomType
         testRoomType = RoomType.builder()
                 .typeName("TEST-Standard")
-                .basePrice(BigDecimal.valueOf(500000))
+                .basePrice(500000)
                 .maxGuests(2)
                 .description("Cozy single bed room")
                 .status(AccountStatus.ACTIVE)

@@ -22,7 +22,7 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
     @Autowired
-    private MessageSource messageSource;    
+    private MessageSource messageSource;
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResponse<Object>> handleAppException(
             AppException exception

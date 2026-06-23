@@ -59,7 +59,7 @@ public class RoomTypeControllerIntegrationTest {
         testRoomType1 = RoomType.builder()
                 .typeName("Deluxe Room")
                 .description("Luxury room with sea view")
-                .basePrice(new BigDecimal("150.00"))
+                .basePrice(150)
                 .maxGuests(2)
                 .status(AccountStatus.ACTIVE)
                 .build();
@@ -67,7 +67,7 @@ public class RoomTypeControllerIntegrationTest {
         testRoomType2 = RoomType.builder()
                 .typeName("Standard Room")
                 .description("Cozy city view room")
-                .basePrice(new BigDecimal("80.00"))
+                .basePrice(80)
                 .maxGuests(1)
                 .status(AccountStatus.ACTIVE)
                 .build();
@@ -125,7 +125,7 @@ public class RoomTypeControllerIntegrationTest {
         RoomTypeRequest request = new RoomTypeRequest();
         request.setTypeName("Suite Room");
         request.setDescription("Ultra luxury president suite");
-        request.setBasePrice(new BigDecimal("500.00"));
+        request.setBasePrice(500);
         request.setMaxGuests(4);
 
         mockMvc.perform(post("/api/v1/room-types")
@@ -142,7 +142,7 @@ public class RoomTypeControllerIntegrationTest {
     void createRoomType_ValidationFailure_Vietnamese() throws Exception {
         RoomTypeRequest request = new RoomTypeRequest();
         request.setTypeName("");
-        request.setBasePrice(new BigDecimal("-10.00"));
+        request.setBasePrice(-10);
         request.setMaxGuests(0);
 
         mockMvc.perform(post("/api/v1/room-types")
@@ -161,7 +161,7 @@ public class RoomTypeControllerIntegrationTest {
         RoomTypeRequest request = new RoomTypeRequest();
         request.setTypeName("Deluxe Room"); // Tên đã tồn tại ở hàm setUp
         request.setDescription("Duplicate deluxe");
-        request.setBasePrice(new BigDecimal("200.00"));
+        request.setBasePrice(200);
         request.setMaxGuests(2);
 
         mockMvc.perform(post("/api/v1/room-types")
@@ -179,7 +179,7 @@ public class RoomTypeControllerIntegrationTest {
         RoomTypeRequest request = new RoomTypeRequest();
         request.setTypeName("Deluxe Room Updated");
         request.setDescription("Updated deluxe room description");
-        request.setBasePrice(new BigDecimal("175.00"));
+        request.setBasePrice(175);
         request.setMaxGuests(3);
 
         mockMvc.perform(put("/api/v1/room-types/" + testRoomType1.getId())
@@ -196,7 +196,7 @@ public class RoomTypeControllerIntegrationTest {
         RoomTypeRequest request = new RoomTypeRequest();
         request.setTypeName("Standard Room"); // Trùng với tên của testRoomType2
         request.setDescription("Try to conflict name");
-        request.setBasePrice(new BigDecimal("120.00"));
+        request.setBasePrice(120);
         request.setMaxGuests(2);
 
         mockMvc.perform(put("/api/v1/room-types/" + testRoomType1.getId())
