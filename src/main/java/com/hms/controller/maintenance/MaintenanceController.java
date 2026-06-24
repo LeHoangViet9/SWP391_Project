@@ -56,7 +56,7 @@ public class MaintenanceController {
      * - status
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_VIEW')")
     public ApiResponse<Page<MaintenanceResponse>> getAllRequests(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) MaintenanceSeverity severity,
@@ -85,7 +85,7 @@ public class MaintenanceController {
      * Xem chi tiết một yêu cầu bảo trì theo id.
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_VIEW')")
     public ApiResponse<MaintenanceResponse> getRequestById(
             @PathVariable Long id
     ) {
@@ -107,7 +107,7 @@ public class MaintenanceController {
      * - Ghi repairResult
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_UPDATE')")
     public ApiResponse<MaintenanceResponse> updateRequest(
             @PathVariable Long id,
             @Valid @RequestBody MaintenanceRequestUpdateDTO dto
@@ -125,7 +125,7 @@ public class MaintenanceController {
      * Hiện chỉ ADMIN được xóa.
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_DELETE')")
     public ApiResponse<Void> deleteRequest(
             @PathVariable Long id
     ) {
