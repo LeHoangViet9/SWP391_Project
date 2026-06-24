@@ -213,6 +213,11 @@ public class RoomServiceImpl implements IRoomService {
         roomRepository.save(room);
     }
 
+    @Override
+    public void deleteRoomImage(Long roomId, String imageUrl) {
+
+    }
+
     /**
      * Method private để sinh số phòng tự động dựa trên floorNumber
      */

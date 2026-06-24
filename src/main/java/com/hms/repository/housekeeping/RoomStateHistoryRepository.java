@@ -13,8 +13,6 @@ import java.util.List;
 @Repository
 public interface RoomStateHistoryRepository extends JpaRepository<RoomStateHistory, Long> {
 
-    List<RoomStateHistory> findByRoomIdOrderByChangedAtDesc(Long roomId);
-
     @Query(value = "SELECT h FROM RoomStateHistory h " +
             "LEFT JOIN FETCH h.triggeredByUser " +
             "LEFT JOIN FETCH h.task " +

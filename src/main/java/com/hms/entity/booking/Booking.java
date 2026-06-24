@@ -64,6 +64,31 @@ public class Booking {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "actual_check_in_time")
+    private LocalDateTime actualCheckInTime;
+
+    @Column(name = "booking_for_other")
+    @Builder.Default
+    private Boolean bookingForOther = false;
+
+    @Column(name = "guest_full_name")
+    private String guestFullName;
+
+    @Column(name = "guest_email")
+    private String guestEmail;
+
+    @Column(name = "guest_phone")
+    private String guestPhone;
+
+    @Column(name = "guest_id_type")
+    private String guestIdType;
+
+    @Column(name = "guest_id_number_card")
+    private String guestIdNumberCard;
+
+    @Column(name = "guest_nationality")
+    private String guestNationality;
+
     // Quan hệ 1-1 đảo ngược khớp hoàn toàn với Invoice bên dưới
     @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Invoice invoice;

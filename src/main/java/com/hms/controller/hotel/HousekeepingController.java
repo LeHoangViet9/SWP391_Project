@@ -15,11 +15,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.Locale;
 
-/**
- * API phục vụ nhân viên buồng phòng (Housekeeper):
- *  - Xem danh sách phòng cần dọn (DIRTY)
- *  - Cập nhật trạng thái phòng: DIRTY → CLEANING → READY
- */
 @RestController
 @RequestMapping("/api/v1/housekeeping")
 @RequiredArgsConstructor
@@ -28,10 +23,6 @@ public class HousekeepingController {
     private final IRoomService roomService;
     private final MessageSource messageSource;
 
-    /**
-     * GET /api/v1/housekeeping/dirty-rooms
-     * Lấy danh sách phòng DIRTY (cần dọn dẹp).
-     */
     @GetMapping("/dirty-rooms")
     @PreAuthorize("hasAuthority('HOUSEKEEPING_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getDirtyRooms(
@@ -43,16 +34,12 @@ public class HousekeepingController {
 
         return ResponseEntity.ok(ApiResponse.<Page<RoomResponse>>builder()
                 .success(true)
-                .message(messageSource.getMessage("success.housekeeping.dirty.rooms", null, locale))
+                .message(messageSource.getMessage("success.housekeeping.dirty.rooms", null, "Fetched dirty rooms successfully.", locale))
                 .data(data)
                 .status(HttpStatus.OK)
                 .build());
     }
 
-    /**
-     * GET /api/v1/housekeeping/cleaning-rooms
-     * Lấy danh sách phòng đang được dọn (CLEANING).
-     */
     @GetMapping("/cleaning-rooms")
     @PreAuthorize("hasAuthority('HOUSEKEEPING_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomResponse>>> getCleaningRooms(
@@ -64,17 +51,12 @@ public class HousekeepingController {
 
         return ResponseEntity.ok(ApiResponse.<Page<RoomResponse>>builder()
                 .success(true)
-                .message(messageSource.getMessage("success.housekeeping.cleaning.rooms", null, locale))
+                .message(messageSource.getMessage("success.housekeeping.cleaning.rooms", null, "Fetched cleaning rooms successfully.", locale))
                 .data(data)
                 .status(HttpStatus.OK)
                 .build());
     }
 
-    /**
-     * PATCH /api/v1/housekeeping/rooms/{id}/status?status=CLEANING|READY
-     * Housekeeper cập nhật trạng thái phòng trong luồng dọn phòng.
-     * Chỉ cho phép các chuyển đổi: DIRTY → CLEANING và CLEANING → READY.
-     */
     @PatchMapping("/rooms/{id}/status")
     @PreAuthorize("hasAuthority('HOUSEKEEPING_UPDATE')")
     public ResponseEntity<ApiResponse<Void>> updateRoomCleaningStatus(
@@ -83,11 +65,10 @@ public class HousekeepingController {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        // Validate chỉ cho phép housekeeping transitions
         if (status != RoomStatus.CLEANING && status != RoomStatus.READY && status != RoomStatus.AVAILABLE) {
             return ResponseEntity.badRequest().body(ApiResponse.<Void>builder()
                     .success(false)
-                    .message(messageSource.getMessage("error.housekeeping.invalid.status", null, locale))
+                    .message(messageSource.getMessage("error.housekeeping.invalid.status", null, "Invalid housekeeping status transition.", locale))
                     .status(HttpStatus.BAD_REQUEST)
                     .build());
         }
@@ -96,7 +77,7 @@ public class HousekeepingController {
 
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
-                .message(messageSource.getMessage("success.housekeeping.status.updated", null, locale))
+                .message(messageSource.getMessage("success.housekeeping.status.updated", null, "Housekeeping status updated successfully.", locale))
                 .status(HttpStatus.OK)
                 .build());
     }

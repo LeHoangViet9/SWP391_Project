@@ -58,7 +58,7 @@ public class BookingController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAuthority('BOOKING_VIEW')")
+    @PreAuthorize("hasAuthority('BOOKING_VIEW') or hasAuthority('CHECKIN_VIEW')")
     public ResponseEntity<ApiResponse<Page<BookingResponse>>> searchBookings(
             @RequestParam(required = false) BookingStatus status,
             @RequestParam(required = false) Long customerId,
