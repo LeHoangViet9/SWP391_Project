@@ -25,8 +25,8 @@ public class LocalFileUtils {
      */
     public String uploadFile(MultipartFile file) {
         try {
-            // Tạo thư mục uploads/rooms nếu chưa tồn tại
-            Path uploadPath = Paths.get(uploadDir, "rooms").toAbsolutePath().normalize();
+            // Tạo thư mục nếu chưa tồn tại
+            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
             Files.createDirectories(uploadPath);
 
             // Tạo tên file duy nhất để tránh trùng lặp
@@ -42,26 +42,10 @@ public class LocalFileUtils {
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
             // Trả về URL có thể truy cập từ frontend
-            return baseUrl + "/uploads/rooms/" + uniqueFilename;
+            return baseUrl + "/uploads/" + uniqueFilename;
 
         } catch (IOException e) {
             throw new RuntimeException("Không thể lưu file ảnh: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Xóa file ảnh vật lý khỏi thư mục uploads.
-     */
-    public void deleteFile(String fileUrl) {
-        if (fileUrl == null || !fileUrl.contains("/uploads/")) {
-            return;
-        }
-        try {
-            String relativePath = fileUrl.substring(fileUrl.indexOf("/uploads/") + 9);
-            Path filePath = Paths.get(uploadDir).resolve(relativePath).toAbsolutePath().normalize();
-            java.nio.file.Files.deleteIfExists(filePath);
-        } catch (java.io.IOException e) {
-            // Ignore/Log
         }
     }
 }

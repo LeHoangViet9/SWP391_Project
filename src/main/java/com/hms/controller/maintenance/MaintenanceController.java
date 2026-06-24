@@ -11,9 +11,13 @@ import com.hms.dto.maintenance.response.MaintenanceResponse;
 import com.hms.service.maintenance.MaintenanceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/v1/maintenance-requests")
@@ -21,42 +25,28 @@ import org.springframework.web.bind.annotation.*;
 public class MaintenanceController {
 
     private final MaintenanceService maintenanceService;
+    private final MessageSource messageSource;
 
-    /*
-     * Chức năng:
-     * Tạo yêu cầu bảo trì mới.
-     *
-     * Theo nghiệp vụ thầy nhắc:
-     * Request phải gắn với phòng hoặc thiết bị.
-     * Phần kiểm tra roomId/equipmentId nằm trong MaintenanceServiceImpl.
-     */
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING', 'MAINTENANCE')")
     public ApiResponse<MaintenanceResponse> createRequest(
             @Valid @RequestBody MaintenanceRequestCreateDTO dto
     ) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+
         return ApiResponse.success(
-                "Create maintenance request successfully",
+                messageSource.getMessage(
+                        "maintenance.create.success",
+                        null,
+                        locale
+                ),
                 maintenanceService.createRequest(dto)
         );
     }
 
-    /*
-     * Chức năng:
-     * Lấy danh sách yêu cầu bảo trì.
-     *
-     * Có thể lọc theo:
-     * - id
-     * - issueTitle
-     * - roomId
-     * - equipmentId
-     * - reportedBy
-     * - assignedTo
-     * - severity
-     * - status
-     */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_VIEW')")
     public ApiResponse<Page<MaintenanceResponse>> getAllRequests(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) MaintenanceSeverity severity,
@@ -66,10 +56,17 @@ public class MaintenanceController {
             @RequestParam(defaultValue = "ID") SortField sortBy,
             @RequestParam(defaultValue = "ASC") SortDirection direction
     ) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+
         return ApiResponse.success(
-                "Get maintenance request list successfully",
+                messageSource.getMessage(
+                        "maintenance.getall.success",
+                        null,
+                        locale
+                ),
                 maintenanceService.getAllRequests(
-                       keyword,
+                        keyword,
                         severity,
                         status,
                         page,
@@ -80,57 +77,59 @@ public class MaintenanceController {
         );
     }
 
-    /*
-     * Chức năng:
-     * Xem chi tiết một yêu cầu bảo trì theo id.
-     */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_VIEW')")
     public ApiResponse<MaintenanceResponse> getRequestById(
             @PathVariable Long id
     ) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+
         return ApiResponse.success(
-                "Get maintenance request successfully",
+                messageSource.getMessage(
+                        "maintenance.getbyid.success",
+                        null,
+                        locale
+                ),
                 maintenanceService.getRequestById(id)
         );
     }
 
-    /*
-     * Chức năng:
-     * Cập nhật yêu cầu bảo trì.
-     *
-     * Dùng cho:
-     * - Gán nhân viên bảo trì
-     * - Cập nhật severity
-     * - Cập nhật status
-     * - Ghi diagnosis
-     * - Ghi repairResult
-     */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_UPDATE')")
     public ApiResponse<MaintenanceResponse> updateRequest(
             @PathVariable Long id,
             @Valid @RequestBody MaintenanceRequestUpdateDTO dto
     ) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+
         return ApiResponse.success(
-                "Update maintenance request successfully",
+                messageSource.getMessage(
+                        "maintenance.update.success",
+                        null,
+                        locale
+                ),
                 maintenanceService.updateRequest(id, dto)
         );
     }
 
-    /*
-     * Chức năng:
-     * Xóa yêu cầu bảo trì.
-     *
-     * Hiện chỉ ADMIN được xóa.
-     */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_DELETE')")
     public ApiResponse<Void> deleteRequest(
             @PathVariable Long id
     ) {
+
+        Locale locale = LocaleContextHolder.getLocale();
+
         maintenanceService.deleteRequest(id);
 
-        return ApiResponse.success("Delete maintenance request successfully");
+        return ApiResponse.success(
+                messageSource.getMessage(
+                        "maintenance.delete.success",
+                        null,
+                        locale
+                )
+        );
     }
 }

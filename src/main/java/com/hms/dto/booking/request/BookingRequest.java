@@ -24,4 +24,18 @@ public class BookingRequest {
     @NotNull(message = "{booking.checkout.notnull}")
     private LocalDateTime checkOutDate;
 
+    private Boolean bookingForOther = false;
+
+    private String guestFullName;
+
+    private String guestEmail;
+
+    private String guestPhone;
+
+    private String guestIdType;
+
+    private String guestIdNumberCard;
+
+    private String guestNationality;
+
 }
