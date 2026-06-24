@@ -26,7 +26,7 @@ function formatPrice(price, locale) {
   }).format(price);
 }
 
-export default function RoomTypesSection({ guestFilter = 0 }) {
+export default function RoomTypesSection() {
   const { t, locale } = useLocale();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState(mockRoomTypes);
@@ -56,16 +56,6 @@ export default function RoomTypesSection({ guestFilter = 0 }) {
     navigate(`/booking?roomTypeId=${roomType.id}`);
   };
 
-  const filteredRooms = (() => {
-    if (guestFilter <= 0) return rooms;
-    const validCapacities = rooms
-      .map((r) => r.maxGuests)
-      .filter((cap) => cap >= guestFilter);
-    if (validCapacities.length === 0) return [];
-    const minCap = Math.min(...validCapacities);
-    return rooms.filter((r) => r.maxGuests === minCap);
-  })();
-
   return (
     <section id="room-types" className="py-16 md:py-24 bg-stone-50">
       <div className="max-w-7xl mx-auto px-4">
@@ -75,112 +65,98 @@ export default function RoomTypesSection({ guestFilter = 0 }) {
           <div className="w-20 h-0.5 bg-[#bfa15f] mx-auto mt-4" />
         </div>
 
-        {filteredRooms.length === 0 ? (
-          <div className="text-center py-16 bg-white border border-stone-200 shadow-md max-w-lg mx-auto rounded-lg px-6">
-            <Users size={48} className="text-[#bfa15f] mx-auto mb-4 opacity-80 animate-pulse" />
-            <h3 className="font-display text-lg font-bold text-slate-800 mb-2">
-              {locale === 'vi' ? 'Không có phòng phù hợp' : 'No matching rooms'}
-            </h3>
-            <p className="text-slate-600 text-sm">
-              {locale === 'vi'
-                ? `Không có hạng phòng nào của chúng tôi hỗ trợ tối đa ${guestFilter} khách. Vui lòng chọn số lượng khách ít hơn hoặc chia thành nhiều phòng.`
-                : `None of our room categories support up to ${guestFilter} guests. Please select fewer guests or split your group into multiple rooms.`}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-            {filteredRooms.map((room) => (
-              <article
-                key={room.id}
-                className="bg-white border border-stone-200 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden group"
-              >
-                <div className="relative h-56 md:h-64 overflow-hidden">
-                  <img
-                    src={room.imageUrl}
-                    alt={room.typeName}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 left-4 bg-[#bfa15f] text-white text-xs font-semibold px-3 py-1 uppercase tracking-wider">
-                    {room.status === 'ACTIVE' ? '5★' : room.status}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+          {rooms.map((room) => (
+            <article
+              key={room.id}
+              className="bg-white border border-stone-200 shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden group"
+            >
+              <div className="relative h-56 md:h-64 overflow-hidden">
+                <img
+                  src={room.imageUrl}
+                  alt={room.typeName}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 left-4 bg-[#bfa15f] text-white text-xs font-semibold px-3 py-1 uppercase tracking-wider">
+                  {room.status === 'ACTIVE' ? '5★' : room.status}
+                </div>
+                {room.totalRooms === 0 && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <span className="bg-red-600 text-white font-bold text-sm px-4 py-2 uppercase tracking-widest rounded-sm">
+                      {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
+                    </span>
                   </div>
-                  {room.totalRooms === 0 && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                      <span className="bg-red-600 text-white font-bold text-sm px-4 py-2 uppercase tracking-widest rounded-sm">
-                        {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
-                      </span>
-                    </div>
-                  )}
+                )}
+              </div>
+
+              <div className="p-6">
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <h3 className="font-display text-xl font-semibold text-slate-800">
+                    {room.typeName}
+                  </h3>
+                  <div className="flex items-center gap-1 text-[#bfa15f] shrink-0">
+                    <Users size={16} />
+                    <span className="text-sm font-medium">
+                      {room.maxGuests} {t('rooms.guests')}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="p-6">
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <h3 className="font-display text-xl font-semibold text-slate-800">
-                      {room.typeName}
-                    </h3>
-                    <div className="flex items-center gap-1 text-[#bfa15f] shrink-0">
-                      <Users size={16} />
-                      <span className="text-sm font-medium">
-                        {room.maxGuests} {t('rooms.guests')}
-                      </span>
-                    </div>
-                  </div>
+                <p className="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-2">
+                  {room.description}
+                </p>
 
-                  <p className="text-slate-600 text-sm leading-relaxed mb-4 line-clamp-2">
-                    {room.description}
-                  </p>
-
-                  {/* Amenities */}
-                  <div className="flex flex-wrap gap-2 mb-5">
-                    {room.amenities?.map((a) => {
-                      const Icon = amenityIcons[a] || Star;
-                      return (
-                        <span
-                          key={a}
-                          className="inline-flex items-center gap-1 text-xs bg-stone-100 text-slate-600 px-2.5 py-1 rounded"
-                        >
-                          <Icon size={12} className="text-[#bfa15f]" />
-                          {a}
-                        </span>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex items-end justify-between border-t border-stone-100 pt-4">
-                    <div>
-                      <span className="text-2xl font-bold text-[#bfa15f]">
-                        {formatPrice(room.basePrice, locale)}
-                      </span>
-                      <span className="text-sm text-slate-500 ml-1">{t('rooms.perNight')}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setSelectedRoom(room)}
-                        className="px-4 py-2 text-sm border border-[#bfa15f] text-[#bfa15f] hover:bg-[#bfa15f] hover:text-white transition-colors font-medium"
+                {/* Amenities */}
+                <div className="flex flex-wrap gap-2 mb-5">
+                  {room.amenities?.map((a) => {
+                    const Icon = amenityIcons[a] || Star;
+                    return (
+                      <span
+                        key={a}
+                        className="inline-flex items-center gap-1 text-xs bg-stone-100 text-slate-600 px-2.5 py-1 rounded"
                       >
-                        {t('rooms.viewDetail')}
+                        <Icon size={12} className="text-[#bfa15f]" />
+                        {a}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-end justify-between border-t border-stone-100 pt-4">
+                  <div>
+                    <span className="text-2xl font-bold text-[#bfa15f]">
+                      {formatPrice(room.basePrice, locale)}
+                    </span>
+                    <span className="text-sm text-slate-500 ml-1">{t('rooms.perNight')}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedRoom(room)}
+                      className="px-4 py-2 text-sm border border-[#bfa15f] text-[#bfa15f] hover:bg-[#bfa15f] hover:text-white transition-colors font-medium"
+                    >
+                      {t('rooms.viewDetail')}
+                    </button>
+                    {room.totalRooms === 0 ? (
+                      <button
+                        disabled
+                        className="px-4 py-2 text-sm bg-stone-300 text-stone-500 cursor-not-allowed rounded font-medium"
+                      >
+                        {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
                       </button>
-                      {room.totalRooms === 0 ? (
-                        <button
-                          disabled
-                          className="px-4 py-2 text-sm bg-stone-300 text-stone-500 cursor-not-allowed rounded font-medium"
-                        >
-                          {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleBook(room)}
-                          className="px-4 py-2 text-sm btn-gold rounded font-medium"
-                        >
-                          {t('rooms.bookNow')}
-                        </button>
-                      )}
-                    </div>
+                    ) : (
+                      <button
+                        onClick={() => handleBook(room)}
+                        className="px-4 py-2 text-sm btn-gold rounded font-medium"
+                      >
+                        {t('rooms.bookNow')}
+                      </button>
+                    )}
                   </div>
                 </div>
-              </article>
-            ))}
-          </div>
-        )}
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
 
       {/* Premium Detail Modal */}

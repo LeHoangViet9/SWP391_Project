@@ -218,23 +218,5 @@ public class RoomController {
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
-
-    @DeleteMapping("/{id}/images")
-    @PreAuthorize("hasAuthority('ROOM_UPDATE')")
-    public ResponseEntity<ApiResponse<Void>> deleteRoomImage(
-            @PathVariable Long id,
-            @RequestParam String imageUrl) {
-        Locale locale = LocaleContextHolder.getLocale();
-        roomService.deleteRoomImage(id, imageUrl);
-        String message = locale.getLanguage().equals("vi") ? "Xóa ảnh thành công." : "Image deleted successfully.";
-
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(true)
-                .message(message)
-                .status(HttpStatus.OK)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
 }
 

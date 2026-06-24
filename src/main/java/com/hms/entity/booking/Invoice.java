@@ -50,4 +50,7 @@ public class Invoice {
     private LocalDateTime updatedAt;
 
     private String note;
+
+    @Column(name = "additional_charges", precision = 12, scale = 2)
+    private BigDecimal additionalCharges;
 }

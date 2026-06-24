@@ -15,6 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
 import com.hms.common.enums.RoomStatus;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.booking.BookingRepository;

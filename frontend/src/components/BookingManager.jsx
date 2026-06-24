@@ -39,7 +39,7 @@ function getBookingStatus(item) {
 }
 
 export default function BookingManager({ readOnly = false }) {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const { hasPermission, hasAnyPermission } = usePermission();
   
   const canView = hasAnyPermission(['BOOKING_VIEW', 'BOOKING_VIEW_OWN']);
@@ -164,47 +164,6 @@ export default function BookingManager({ readOnly = false }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
-
-    if (!form.customerId) {
-      notify(locale === 'vi' ? 'Vui lòng chọn khách hàng.' : 'Please select a customer.', 'error');
-      return;
-    }
-    if (!form.roomTypeId) {
-      notify(locale === 'vi' ? 'Vui lòng chọn hạng phòng.' : 'Please select a room type.', 'error');
-      return;
-    }
-    if (!form.checkInDate) {
-      notify(locale === 'vi' ? 'Vui lòng chọn ngày nhận phòng.' : 'Please select check-in date.', 'error');
-      return;
-    }
-    if (!form.checkOutDate) {
-      notify(locale === 'vi' ? 'Vui lòng chọn ngày trả phòng.' : 'Please select check-out date.', 'error');
-      return;
-    }
-
-    const checkInDate = new Date(form.checkInDate);
-    const checkOutDate = new Date(form.checkOutDate);
-    const todayDate = new Date();
-
-    checkInDate.setHours(0,0,0,0);
-    checkOutDate.setHours(0,0,0,0);
-    todayDate.setHours(0,0,0,0);
-
-    if (!modal.editing || toInputDateTime(modal.editing.checkInDate) !== form.checkInDate) {
-      if (checkInDate < todayDate) {
-        notify(locale === 'vi' ? 'Ngày nhận phòng không được ở quá khứ.' : 'Check-in date cannot be in the past.', 'error');
-        return;
-      }
-    }
-    if (checkOutDate <= checkInDate) {
-      notify(locale === 'vi' ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.', 'error');
-      return;
-    }
-    if (!form.quantity || Number(form.quantity) < 1) {
-      notify(locale === 'vi' ? 'Số lượng phòng phải ít nhất là 1.' : 'Quantity must be at least 1.', 'error');
-      return;
-    }
-
     setSaving(true);
     const payload = {
       customerId: Number(form.customerId),

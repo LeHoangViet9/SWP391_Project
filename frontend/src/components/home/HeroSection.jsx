@@ -4,7 +4,7 @@ import { useLocale } from '../../context/LocaleContext';
 import { heroSlides } from '../../data/mockData';
 import BookingBar from './BookingBar';
 
-export default function HeroSection({ onSearchGuests }) {
+export default function HeroSection() {
   const { locale, t } = useLocale();
   const [current, setCurrent] = useState(0);
 
@@ -86,7 +86,7 @@ export default function HeroSection({ onSearchGuests }) {
 
       {/* Booking Bar — overlapping banner bottom */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 -mt-16 md:-mt-20 lg:-mt-24 pb-8">
-        <BookingBar onSearchGuests={onSearchGuests} />
+        <BookingBar />
       </div>
     </section>
   );

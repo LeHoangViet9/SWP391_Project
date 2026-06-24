@@ -61,10 +61,10 @@ LEFT JOIN r.roomType rt
 WHERE r.roomStatus <> com.hms.common.enums.RoomStatus.INACTIVE
 AND (
     CAST(:keyword AS string) IS NULL
-    OR LOWER(r.roomNumber) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-    OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-    OR CAST(r.floorNumber AS string) LIKE CONCAT('%', CAST(:keyword AS string), '%')
-    OR LOWER(CAST(r.roomStatus AS string)) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+    OR LOWER(r.roomNumber) LIKE LOWER(CAST(:keyword AS string))
+    OR LOWER(rt.typeName) LIKE LOWER(CAST(:keyword AS string))
+    OR CAST(r.floorNumber AS string) LIKE CAST(:keyword AS string)
+    OR LOWER(CAST(r.roomStatus AS string)) LIKE LOWER(CAST(:keyword AS string))
 )
 """)
     Page<Room> searchRooms(

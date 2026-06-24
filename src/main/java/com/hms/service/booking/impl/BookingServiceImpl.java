@@ -315,7 +315,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateBookingDate(BookingRequest request, Locale locale){
-        if(request.getCheckInDate().toLocalDate().isBefore(java.time.LocalDate.now())){
+        if(request.getCheckInDate().isBefore(LocalDateTime.now())){
             throw new ConflictException(messageSource.getMessage("error.booking.checkin.past", null, locale));
         }
 

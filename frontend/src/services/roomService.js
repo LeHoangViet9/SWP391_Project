@@ -51,11 +51,6 @@ export async function deleteRoom(id, locale = 'vi') {
   return apiFetch(`/rooms/${id}`, { method: 'DELETE' }, locale);
 }
 
-/** DELETE /api/v1/rooms/{id}/images */
-export async function deleteRoomImage(id, imageUrl, locale = 'vi') {
-  return apiFetch(`/rooms/${id}/images?imageUrl=${encodeURIComponent(imageUrl)}`, { method: 'DELETE' }, locale);
-}
-
 /** GET /api/v1/rooms/status/{status} */
 export async function getRoomsByStatus(status, params = {}, locale = 'vi') {
   return apiFetch(`/rooms/status/${status}${buildQuery(params)}`, {}, locale);

@@ -47,18 +47,6 @@ export const heroSlides = [
 /** Matches RoomTypeResponse + UI extensions */
 export const roomTypes = [
   {
-    id: 5,
-    typeName: 'Standard Single Room',
-    description:
-      'Phòng 22m² với giường đơn ấm cúng, thiết kế hiện đại, đầy đủ tiện nghi, lý tưởng cho khách du lịch một mình hoặc công tác.',
-    basePrice: 950000,
-    maxGuests: 1,
-    status: 'ACTIVE',
-    imageUrl:
-      'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800&q=80',
-    amenities: ['Wifi', 'Điều hòa', 'Tivi', 'Minibar'],
-  },
-  {
     id: 1,
     typeName: 'Superior Room',
     description:
