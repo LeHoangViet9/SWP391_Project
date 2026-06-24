@@ -117,6 +117,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setBookingStatus(BookingStatus.PENDING);
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
+        applyStayGuestInfo(booking, request, customer, locale);
 
         Booking saved = bookingRepository.save(booking);
 
@@ -148,6 +149,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setRoomType(roomType);
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
+        applyStayGuestInfo(booking, request, customer, locale);
 
         Booking updated = bookingRepository.save(booking);
         return bookingMapper.toResponse(updated);
@@ -355,6 +357,46 @@ public class BookingServiceImpl implements BookingService {
         }
         BigDecimal roomCharge = BillingUtils.calculateRoomChargePerNight(BigDecimal.valueOf(roomType.getBasePrice()), nights);
         return roomCharge.multiply(BigDecimal.valueOf(request.getQuantity()));
+    }
+
+    private void applyStayGuestInfo(Booking booking, BookingRequest request, Customer customer, Locale locale) {
+        boolean bookingForOther = Boolean.TRUE.equals(request.getBookingForOther());
+        booking.setBookingForOther(bookingForOther);
+
+        if (!bookingForOther) {
+            booking.setGuestFullName(customer.getFullName());
+            booking.setGuestEmail(customer.getEmail());
+            booking.setGuestPhone(customer.getPhone());
+            booking.setGuestIdType(customer.getIdType() == null ? null : customer.getIdType().name());
+            booking.setGuestIdNumberCard(customer.getIdNumberCard());
+            booking.setGuestNationality(customer.getNationality());
+            return;
+        }
+
+        validateRequiredGuestInfo(request.getGuestFullName(), "booking.guest.fullname.required", locale);
+        validateRequiredGuestInfo(request.getGuestPhone(), "booking.guest.phone.required", locale);
+        validateRequiredGuestInfo(request.getGuestIdNumberCard(), "booking.guest.id.required", locale);
+
+        booking.setGuestFullName(trimToNull(request.getGuestFullName()));
+        booking.setGuestEmail(trimToNull(request.getGuestEmail()));
+        booking.setGuestPhone(trimToNull(request.getGuestPhone()));
+        booking.setGuestIdType(trimToNull(request.getGuestIdType()));
+        booking.setGuestIdNumberCard(trimToNull(request.getGuestIdNumberCard()));
+        booking.setGuestNationality(trimToNull(request.getGuestNationality()));
+    }
+
+    private void validateRequiredGuestInfo(String value, String messageKey, Locale locale) {
+        if (trimToNull(value) == null) {
+            throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
+        }
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     /** [FIX-04] Implement checkAvailability for frontend BookingPage */
