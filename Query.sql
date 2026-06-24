@@ -1,4 +1,4 @@
--- Dọn sạch dữ liệu cũ và reset các chuỗi ID tự tăng
+-- Dọn sạch dữ liệu cũ và reset các chuỗi ID tự tăng (Đã bỏ bảng không tồn tại)
 TRUNCATE TABLE room_state_history, room_img, equipment_images, repair_requests, equipments, invoices, bookings, customers, room, room_type, users, roles RESTART IDENTITY CASCADE;
 
 -- Cập nhật/Sửa đổi các check constraint cũ của Hibernate để khớp với các giá trị Enum mới trong Java code
@@ -42,28 +42,24 @@ VALUES
     ('MAINTENANCE'),
     ('HOUSEKEEPER');
 
-
-Select * from roles;
-
-
 -- 2. BẢNG USERS (15 tài khoản đăng nhập)
 -- Mật khẩu: 123456a
 INSERT INTO users (full_name, email, phone, password, account_status, created_at, role_id) VALUES
-    ('HMS Administrator', 'admin@hms.com', '0901234560', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 1),
-    ('Nguyễn Hồng Hải', 'manager1@hms.com', '0901234561', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 2),
-    ('Trần Kim Oanh', 'manager2@hms.com', '0901234562', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 2),
-    ('Phạm Minh Trí', 'reception1@hms.com', '0901234563', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
-    ('Lê Thu Thảo', 'reception2@hms.com', '0901234564', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
-    ('Vũ Hoàng Nam', 'reception3@hms.com', '0901234565', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
-    ('Nguyễn Thị Hoa', 'housekeeper1@hms.com', '0901234566', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
-    ('Trần Thị Mai', 'housekeeper2@hms.com', '0901234567', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
-    ('Lê Thị Đào', 'housekeeper3@hms.com', '0901234568', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
-    ('Nguyễn Văn Hùng', 'maintenance1@hms.com', '0901234569', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
-    ('Trần Văn Mạnh', 'maintenance2@hms.com', '0901234570', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
-    ('Phạm Văn Dũng', 'maintenance3@hms.com', '0901234571', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
-    ('Trần Văn An', 'customer1@gmail.com', '0908111222', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
-    ('Lê Thị Bình', 'customer2@gmail.com', '0908333444', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
-    ('Nguyễn Hoàng Cường', 'customer3@gmail.com', '0908555666', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3);
+                                                                                               ('HMS Administrator', 'admin@hms.com', '0901234560', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 1),
+                                                                                               ('Nguyễn Hồng Hải', 'manager1@hms.com', '0901234561', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 2),
+                                                                                               ('Trần Kim Oanh', 'manager2@hms.com', '0901234562', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 2),
+                                                                                               ('Phạm Minh Trí', 'reception1@hms.com', '0901234563', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
+                                                                                               ('Lê Thu Thảo', 'reception2@hms.com', '0901234564', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
+                                                                                               ('Vũ Hoàng Nam', 'reception3@hms.com', '0901234565', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 4),
+                                                                                               ('Nguyễn Thị Hoa', 'housekeeper1@hms.com', '0901234566', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
+                                                                                               ('Trần Thị Mai', 'housekeeper2@hms.com', '0901234567', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
+                                                                                               ('Lê Thị Đào', 'housekeeper3@hms.com', '0901234568', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
+                                                                                               ('Nguyễn Văn Hùng', 'maintenance1@hms.com', '0901234569', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
+                                                                                               ('Trần Văn Mạnh', 'maintenance2@hms.com', '0901234570', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
+                                                                                               ('Phạm Văn Dũng', 'maintenance3@hms.com', '0901234571', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
+                                                                                               ('Trần Văn An', 'customer1@gmail.com', '0908111222', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+                                                                                               ('Lê Thị Bình', 'customer2@gmail.com', '0908333444', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+                                                                                               ('Nguyễn Hoàng Cường', 'customer3@gmail.com', '0908555666', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3);
 
 -- 3. BẢNG ROOM_TYPE (15 Loại phòng)
 INSERT INTO room_type (type_name, description, base_price, max_guests, status)
@@ -160,18 +156,11 @@ VALUES
     (14, 800000.00, 'PENDING', NULL, NULL),
     (15, 1800000.00, 'CANCELLED', NULL, NULL);
 
+-- Xóa sạch dữ liệu cũ của bảng thiết bị (Đã sửa lỗi loại bỏ bảng khống equipment_checks)
+TRUNCATE TABLE equipment_images, repair_requests, equipments RESTART IDENTITY CASCADE;
 
--- Xóa sạch dữ liệu cũ của bảng thiết bị (nếu có dở dang)
-TRUNCATE TABLE equipment_images, equipment_checks, repair_requests, equipments RESTART IDENTITY CASCADE;
-
--- Chèn dữ liệu chuẩn (đã có cột location từ bước trước)
-INSERT INTO equipments (
-    equipment_name,
-    equipment_code,
-    description,
-    status,
-    created_at
-)
+-- 8. BẢNG EQUIPMENTS
+INSERT INTO equipments (equipment_name, equipment_code, description, status, created_at)
 VALUES
     ('Tivi Sony 55 inch', 'TV-101', 'Tivi thông minh Sony 4K', 'ACTIVE', NOW()),
     ('Điều hòa Daikin 1.5 HP', 'AC-101', 'Điều hòa không khí Daikin', 'ACTIVE', NOW()),
@@ -188,8 +177,6 @@ VALUES
     ('Điều hòa Midea 1 HP', 'AC-103', 'Điều hòa Midea tiết kiệm điện', 'ACTIVE', NOW()),
     ('Ấm siêu tốc Philips', 'KT-101', 'Ấm đun nước siêu tốc 1.8 lít', 'ACTIVE', NOW()),
     ('Két sắt chống cháy Honeywell', 'SF-501', 'Két sắt vân tay Honeywell', 'ACTIVE', NOW());
--- 8. BẢNG EQUIPMENTS
--- Thêm cột location vào danh sách cột và bổ sung giá trị tương ứng ở VALUES
 
 -- 10. BẢNG EQUIPMENT_IMAGES (15 Hình ảnh thiết bị)
 INSERT INTO equipment_images (image_url, is_primary, equipment_id, created_at)
@@ -211,113 +198,18 @@ VALUES
     ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/honeywell_safe.jpg', TRUE, 15, NOW());
 
 -- 11. BẢNG REPAIR_REQUESTS (15 Phiếu sửa chữa/bảo trì)
-
-INSERT INTO repair_requests (
-    room_id,
-    equipment_id,
-    reported_by,
-    assigned_to,
-    issue_title,
-    issue_description,
-    diagnosis,
-    repair_result,
-    severity,
-    status,
-    created_at
-)
+INSERT INTO repair_requests (room_id, equipment_id, reported_by, assigned_to, issue_title, issue_description, diagnosis, repair_result, severity, status, created_at)
 VALUES
-    (1, 1, 4, 10,
-     'Lỗi Tivi không kết nối được Wifi',
-     'Khách báo tivi Sony phòng 101 không thể kết nối mạng không dây.',
-     'Lỗi cài đặt phần mềm mạng của tivi.',
-     'Đã reset cài đặt mạng và kết nối lại thành công.',
-     'LOW',
-     'COMPLETED',
-     NOW()),
-
-    (1, 2, 4, 10,
-     'Điều hòa rò rỉ nước',
-     'Điều hòa Daikin phòng 101 bị chảy nước từ cục lạnh.',
-     'Đường ống thoát nước bị tắc do bụi bẩn.',
-     'Đã vệ sinh ống thoát nước và bảo dưỡng máy lạnh.',
-     'MEDIUM',
-     'COMPLETED',
-     NOW()),
-
-    (4, 5, 4, 11,
-     'Điều hòa không mát',
-     'Điều hòa phòng 202 bật nhưng chỉ có gió, không mát.',
-     'Rò rỉ gas ở đầu nối ống đồng.',
-     'Đã hàn chỗ rò rỉ và nạp thêm gas.',
-     'HIGH',
-     'COMPLETED',
-     NOW()),
-
-    (12, 10, 4, 12,
-     'Hỏng block điều hòa trung tâm',
-     'Điều hòa trung tâm phòng 701 ngừng hoạt động hoàn toàn.',
-     'Block điều hòa bị cháy do quá tải điện áp.',
-     NULL,
-     'CRITICAL',
-     'IN_PROGRESS',
-     NOW()),
-
-    (5, 6, 7, 10,
-     'Tivi phòng 301 bị sọc màn hình',
-     'Housekeeper báo màn hình tivi phòng 301 có sọc dọc màu xanh.',
-     NULL,
-     NULL,
-     'HIGH',
-     'ASSIGNED',
-     NOW()),
-
-    (1, 14, 7, 11,
-     'Ấm siêu tốc phòng 101 hỏng đế',
-     'Đế tiếp điện ấm siêu tốc bị cháy khét.',
-     'Chập điện ở đế do tràn nước.',
-     'Đã thay đế mới.',
-     'LOW',
-     'COMPLETED',
-     NOW()),
-
-    (9, 15, 4, NULL,
-     'Két sắt phòng 501 hết pin',
-     'Khách báo két sắt không nhận mật khẩu.',
-     NULL,
-     NULL,
-     'LOW',
-     'PENDING',
-     NOW()),
-
-    (2, NULL, 7, 12,
-     'Bóng đèn trần phòng 102 bị cháy',
-     'Hỏng 2 bóng đèn LED âm trần.',
-     'Bóng đèn đã hết tuổi thọ.',
-     'Đã thay mới.',
-     'LOW',
-     'COMPLETED',
-     NOW()),
-
-    (3, NULL, 7, NULL,
-     'Khóa cửa phòng 201 bị kẹt',
-     'Khóa từ quét thẻ khó nhận.',
-     NULL,
-     NULL,
-     'MEDIUM',
-     'PENDING',
-     NOW()),
-
-    (5, 8, 4, 11,
-     'Bình nóng lạnh phòng 301 rò điện',
-     'Đèn chống giật nhấp nháy đỏ liên tục.',
-     NULL,
-     NULL,
-     'CRITICAL',
-     'ASSIGNED',
-     NOW());
-
-
-
+    (1, 1, 4, 10, 'Lỗi Tivi không kết nối được Wifi', 'Khách báo tivi Sony phòng 101 không thể kết nối mạng không dây.', 'Lỗi cài đặt phần mềm mạng của tivi.', 'Đã reset cài đặt mạng và kết nối lại thành công.', 'LOW', 'COMPLETED', NOW()),
+    (1, 2, 4, 10, 'Điều hòa rò rỉ nước', 'Điều hòa Daikin phòng 101 bị chảy nước từ cục lạnh.', 'Đường ống thoát nước bị tắc do bụi bẩn.', 'Đã vệ sinh ống thoát nước và bảo dưỡng máy lạnh.', 'MEDIUM', 'COMPLETED', NOW()),
+    (4, 5, 4, 11, 'Điều hòa không mát', 'Điều hòa phòng 202 bật nhưng chỉ có gió, không mát.', 'Rò rỉ gas ở đầu nối ống đồng.', 'Đã hàn chỗ rò rỉ và nạp thêm gas.', 'HIGH', 'COMPLETED', NOW()),
+    (12, 10, 4, 12, 'Hỏng block điều hòa trung tâm', 'Điều hòa trung tâm phòng 701 ngừng hoạt động hoàn toàn.', 'Block điều hòa bị cháy do quá tải điện áp.', NULL, 'CRITICAL', 'IN_PROGRESS', NOW()),
+    (5, 6, 7, 10, 'Tivi phòng 301 bị sọc màn hình', 'Housekeeper báo màn hình tivi phòng 301 có sọc dọc màu xanh.', NULL, NULL, 'HIGH', 'ASSIGNED', NOW()),
+    (1, 14, 7, 11, 'Ấm siêu tốc phòng 101 hỏng đế', 'Đế tiếp điện ấm siêu tốc bị cháy khét.', 'Chập điện ở đế do tràn nước.', 'Đã thay đế mới.', 'LOW', 'COMPLETED', NOW()),
+    (9, 15, 4, NULL, 'Két sắt phòng 501 hết pin', 'Khách báo két sắt không nhận mật khẩu.', NULL, NULL, 'LOW', 'PENDING', NOW()),
+    (2, NULL, 7, 12, 'Bóng đèn trần phòng 102 bị cháy', 'Hỏng 2 bóng đèn LED âm trần.', 'Bóng đèn đã hết tuổi thọ.', 'Đã thay mới.', 'LOW', 'COMPLETED', NOW()),
+    (3, NULL, 7, NULL, 'Khóa cửa phòng 201 bị kẹt', 'Khóa từ quét thẻ khó nhận.', NULL, NULL, 'MEDIUM', 'PENDING', NOW()),
+    (5, 8, 4, 11, 'Bình nóng lạnh phòng 301 rò điện', 'Đèn chống giật nhấp nháy đỏ liên tục.', NULL, NULL, 'CRITICAL', 'ASSIGNED', NOW());
 
 -- 12. BẢNG ROOM_IMG (15 Hình ảnh phòng)
 INSERT INTO room_img (room_id, image_url, description, uploaded_at)
@@ -338,7 +230,11 @@ VALUES
     (14, 'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=800&auto=format&fit=crop&q=60', 'Bungalow sát biển hướng bình minh', NOW()),
     (15, 'https://images.unsplash.com/photo-1568495248636-6432b97bd949?w=800&auto=format&fit=crop&q=60', 'Economy Room đơn giản tiết kiệm', NOW());
 
--- 13. BẢNG ROOM_STATE_HISTORY (15 Lịch sử thay đổi trạng thái phòng)
+-- 13. BẢNG ROOM_STATE_HISTORY (Đcommand FIX: Thêm hẳn 'MAINTENANCE' vào tập hợp kiểm tra)
+ALTER TABLE room_state_history DROP CONSTRAINT IF EXISTS room_state_history_triggered_by_process_check;
+ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_triggered_by_process_check
+    CHECK (triggered_by_process IN ('TASK_CLEANING','TASK_IN_PROGRESS','TASK_COMPLETION','TASK_CANCELLATION','TASK_SKIPPED','TASK_MAINTENANCE', 'HOUSEKEEPING', 'CHECKIN', 'CHECKOUT', 'MAINTENANCE')); -- <-- Đã thêm 'MAINTENANCE' ở cuối
+
 INSERT INTO room_state_history (room_id, previous_state, current_state, triggered_by_process, triggered_by_user, changed_at)
 VALUES
     (1, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
@@ -357,42 +253,20 @@ VALUES
     (14, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
     (15, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW());
 
-
-
-
-
 -- Insert default permissions
 INSERT INTO permission (name) VALUES
--- User permissions
-('USER_VIEW'), ('USER_CREATE'), ('USER_UPDATE'), ('USER_DELETE'),
-
--- Room permissions
-('ROOM_VIEW'), ('ROOM_CREATE'), ('ROOM_UPDATE'), ('ROOM_DELETE'),
-
--- Room Type permissions
-('ROOM_TYPE_VIEW'), ('ROOM_TYPE_CREATE'), ('ROOM_TYPE_UPDATE'), ('ROOM_TYPE_DELETE'),
-
--- Customer permissions
-('CUSTOMER_VIEW'), ('CUSTOMER_CREATE'), ('CUSTOMER_UPDATE'), ('CUSTOMER_DELETE'),
-
--- Booking permissions
-('BOOKING_VIEW'), ('BOOKING_CREATE'), ('BOOKING_UPDATE'), ('BOOKING_DELETE'), ('BOOKING_VIEW_OWN'),
-
--- Housekeeping permissions
-('HOUSEKEEPING_VIEW'), ('HOUSEKEEPING_CREATE'), ('HOUSEKEEPING_UPDATE'), ('HOUSEKEEPING_DELETE'),
-
--- Equipment permissions
-('EQUIPMENT_VIEW'), ('EQUIPMENT_CREATE'), ('EQUIPMENT_UPDATE'), ('EQUIPMENT_DELETE'),
-
--- Maintenance permissions
-('MAINTENANCE_VIEW'), ('MAINTENANCE_CREATE'), ('MAINTENANCE_UPDATE'), ('MAINTENANCE_DELETE'),
-
--- Feedback permissions
-('FEEDBACK_VIEW'), ('FEEDBACK_CREATE'), ('FEEDBACK_UPDATE'), ('FEEDBACK_DELETE'),
-
--- Invoice permissions
-('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE')
+                                  ('USER_VIEW'), ('USER_CREATE'), ('USER_UPDATE'), ('USER_DELETE'),
+                                  ('ROOM_VIEW'), ('ROOM_CREATE'), ('ROOM_UPDATE'), ('ROOM_DELETE'),
+                                  ('ROOM_TYPE_VIEW'), ('ROOM_TYPE_CREATE'), ('ROOM_TYPE_UPDATE'), ('ROOM_TYPE_DELETE'),
+                                  ('CUSTOMER_VIEW'), ('CUSTOMER_CREATE'), ('CUSTOMER_UPDATE'), ('CUSTOMER_DELETE'),
+                                  ('BOOKING_VIEW'), ('BOOKING_CREATE'), ('BOOKING_UPDATE'), ('BOOKING_DELETE'), ('BOOKING_VIEW_OWN'),
+                                  ('HOUSEKEEPING_VIEW'), ('HOUSEKEEPING_CREATE'), ('HOUSEKEEPING_UPDATE'), ('HOUSEKEEPING_DELETE'),
+                                  ('EQUIPMENT_VIEW'), ('EQUIPMENT_CREATE'), ('EQUIPMENT_UPDATE'), ('EQUIPMENT_DELETE'),
+                                  ('MAINTENANCE_VIEW'), ('MAINTENANCE_CREATE'), ('MAINTENANCE_UPDATE'), ('MAINTENANCE_DELETE'),
+                                  ('FEEDBACK_VIEW'), ('FEEDBACK_CREATE'), ('FEEDBACK_UPDATE'), ('FEEDBACK_DELETE'),
+                                  ('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE')
 ON CONFLICT (name) DO NOTHING;
+
 -- Assign permissions to ADMIN role (full access)
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
@@ -416,9 +290,7 @@ WHERE r.role_name = 'MANAGER'
                  'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE', 'INVOICE_DELETE'
     );
 
-
-
--- 3. RECEPTIONIST - Lễ tân: Quản lý booking, customer, invoice
+-- 3. RECEPTIONIST - Lễ tân
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r, permission p
@@ -432,7 +304,7 @@ WHERE r.role_name = 'RECEPTIONIST'
                  'EQUIPMENT_VIEW'
     );
 
--- 4. HOUSEKEEPER - Nhân viên buồng phòng: Quản lý dọn dẹp
+-- 4. HOUSEKEEPER - Nhân viên buồng phòng
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r, permission p
@@ -444,7 +316,7 @@ WHERE r.role_name = 'HOUSEKEEPER'
                  'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE'
     );
 
--- 5. MAINTENANCE - Nhân viên bảo trì: Quản lý sửa chữa, thiết bị
+-- 5. MAINTENANCE - Nhân viên bảo trì
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r, permission p
@@ -455,7 +327,7 @@ WHERE r.role_name = 'MAINTENANCE'
                  'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_UPDATE', 'MAINTENANCE_DELETE'
     );
 
--- 6. CUSTOMER - Khách hàng: Chỉ xem booking của mình
+-- 6. CUSTOMER - Khách hàng
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r, permission p
@@ -467,18 +339,15 @@ WHERE r.role_name = 'CUSTOMER'
                  'INVOICE_VIEW'
     );
 
-
+-- Tạo lại Index cho bảng phân quyền
+DROP INDEX IF EXISTS idx_user_permissions_user;
+DROP INDEX IF EXISTS idx_user_permissions_permission;
 CREATE INDEX idx_user_permissions_user ON user_permissions(user_id);
 CREATE INDEX idx_user_permissions_permission ON user_permissions(permission_id);
 
-
-select * from roles;
-
-select * from permission;
-
-select * from role_permissions;
-
-select * from users;
-
-Select * from bookings
-
+-- Kiểm tra lại dữ liệu sau khi chạy
+SELECT * FROM roles;
+SELECT * FROM permission;
+SELECT * FROM role_permissions;
+SELECT * FROM users;
+SELECT * FROM bookings;
