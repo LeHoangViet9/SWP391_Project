@@ -20,6 +20,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import com.hms.common.exception.ConflictException;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
+
+import java.util.Locale;
 
 import java.time.LocalDateTime;
 
@@ -30,6 +35,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     private final MaintenanceRepository maintenanceRepository;
     private final MaintenanceMapper maintenanceMapper;
     private final PageableUtils pageableUtils;
+    private final MessageSource messageSource;
+
+    private static final String ERROR_MAINTENANCE_NOTFOUND = "error.maintenance.notfound";
+    private static final String ERROR_ROOM_NOTFOUND = "error.room.notfound";
+    private static final String ERROR_EQUIPMENT_NOTFOUND = "error.equipment.notfound";
+    private static final String ERROR_EQUIPMENT_NOT_ASSIGNED = "error.equipment.not.assigned.room";
+    private static final String ERROR_MAINTENANCE_ROOM_OR_EQUIPMENT_REQUIRED =
+            "error.maintenance.room.or.equipment.required";
 
     // SỬA MỚI:
     // Dùng để kiểm tra roomId có tồn tại không khi tạo maintenance request.
@@ -57,25 +70,42 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      */
     @Override
     public MaintenanceResponse createRequest(MaintenanceRequestCreateDTO dto) {
+        Locale locale = LocaleContextHolder.getLocale();
 
         // SỬA MỚI:
         // Không cho tạo maintenance request nếu không gắn với phòng hoặc thiết bị.
         if (dto.getRoomId() == null && dto.getEquipmentId() == null) {
-            throw new IllegalArgumentException(
-                    "Maintenance request must be linked to a room or an equipment"
+            throw new ConflictException(
+                    messageSource.getMessage(
+                            ERROR_MAINTENANCE_ROOM_OR_EQUIPMENT_REQUIRED,
+                            null,
+                            locale
+                    )
             );
         }
 
         // SỬA MỚI:
         // Nếu có roomId thì kiểm tra phòng đó có tồn tại trong DB không.
         if (dto.getRoomId() != null && !roomRepository.existsById(dto.getRoomId())) {
-            throw new ResourceNotFoundException("Room not found");
+            throw new ResourceNotFoundException(
+                    messageSource.getMessage(
+                            ERROR_ROOM_NOTFOUND,
+                            new Object[]{dto.getRoomId()},
+                            locale
+                    )
+            );
         }
 
         // SỬA MỚI:
         // Nếu có equipmentId thì kiểm tra thiết bị đó có tồn tại trong DB không.
         if (dto.getEquipmentId() != null && !equipmentRepository.existsById(dto.getEquipmentId())) {
-            throw new ResourceNotFoundException("Equipment not found");
+            throw new ResourceNotFoundException(
+                    messageSource.getMessage(
+                            ERROR_EQUIPMENT_NOTFOUND,
+                            new Object[]{dto.getEquipmentId()},
+                            locale
+                    )
+            );
         }
 
         // SỬA MỚI:
@@ -95,8 +125,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             );
 
             if (!assigned) {
-                throw new IllegalArgumentException(
-                        "Equipment is not assigned to this room"
+                throw new ConflictException(
+                        messageSource.getMessage(
+                                ERROR_EQUIPMENT_NOT_ASSIGNED,
+                                null,
+                                locale
+                        )
                 );
             }
         }
@@ -123,12 +157,17 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      */
     @Override
     public MaintenanceResponse updateRequest(Long id, MaintenanceRequestUpdateDTO dto) {
+        Locale locale = LocaleContextHolder.getLocale();
 
         RepairRequest repairRequest =
                 maintenanceRepository.findById(id)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "Maintenance request not found"
+                                        messageSource.getMessage(
+                                                ERROR_MAINTENANCE_NOTFOUND,
+                                                new Object[]{id},
+                                                locale
+                                        )
                                 ));
 
         maintenanceMapper.updateFromDto(dto, repairRequest);
@@ -152,12 +191,16 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      */
     @Override
     public MaintenanceResponse getRequestById(Long id) {
-
+        Locale locale = LocaleContextHolder.getLocale();
         RepairRequest repairRequest =
                 maintenanceRepository.findById(id)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "Maintenance request not found"
+                                        messageSource.getMessage(
+                                                ERROR_MAINTENANCE_NOTFOUND,
+                                                new Object[]{id},
+                                                locale
+                                        )
                                 ));
 
         return maintenanceMapper.toResponse(repairRequest);
@@ -220,12 +263,16 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      */
     @Override
     public void deleteRequest(Long id) {
-
+        Locale locale = LocaleContextHolder.getLocale();
         RepairRequest repairRequest =
                 maintenanceRepository.findById(id)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "Maintenance request not found"
+                                        messageSource.getMessage(
+                                                ERROR_MAINTENANCE_NOTFOUND,
+                                                new Object[]{id},
+                                                locale
+                                        )
                                 ));
 
         maintenanceRepository.delete(repairRequest);

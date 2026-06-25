@@ -211,29 +211,15 @@ INSERT INTO room_img (room_id, image_url, description, uploaded_at) VALUES
                                                                         (14, 'https://images.unsplash.com/photo-1439066615861-d1af74d74000?w=800', 'Bungalow sát biển', NOW()),
                                                                         (15, 'https://images.unsplash.com/photo-1568495248636-6432b97bd949?w=800', 'Economy Room tiết kiệm', NOW());
 
-
-ALTER TABLE room_state_history DROP CONSTRAINT IF EXISTS room_state_history_triggered_by_process_check;
-ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_triggered_by_process_check
-    CHECK (triggered_by_process IN ('TASK_CLEANING','TASK_IN_PROGRESS','TASK_COMPLETION','TASK_CANCELLATION','TASK_SKIPPED','TASK_MAINTENANCE', 'HOUSEKEEPING', 'CHECKIN', 'CHECKOUT', 'MAINTENANCE'));
-
-
-INSERT INTO room_state_history (room_id, previous_state, current_state, triggered_by_process, triggered_by_user, changed_at)
-VALUES
-    (1, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
-    (2, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
-    (3, 'MAINTENANCE', 'AVAILABLE', 'MAINTENANCE', 10, NOW()),
-    (4, 'AVAILABLE', 'OCCUPIED', 'CHECKIN', 4, NOW()),
-    (5, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW()),
-    (6, 'OCCUPIED', 'DIRTY', 'CHECKOUT', 4, NOW()),
-    (6, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
-    (7, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
-    (8, 'AVAILABLE', 'OCCUPIED', 'CHECKIN', 5, NOW()),
-    (10, 'OCCUPIED', 'DIRTY', 'CHECKOUT', 4, NOW()),
-    (11, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW()),
-    (12, 'AVAILABLE', 'MAINTENANCE', 'MAINTENANCE', 12, NOW()),
-    (13, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()),
-    (14, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
-    (15, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW());
+INSERT INTO room_state_history (room_id, previous_state, current_state, triggered_by_process, triggered_by_user, changed_at) VALUES
+                                                                                                                                 (1, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()), (2, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
+                                                                                                                                 (3, 'MAINTENANCE', 'AVAILABLE', 'MAINTENANCE', 10, NOW()), (4, 'AVAILABLE', 'OCCUPIED', 'CHECKIN', 4, NOW()),
+                                                                                                                                 (5, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW()), (6, 'OCCUPIED', 'DIRTY', 'CHECKOUT', 4, NOW()),
+                                                                                                                                 (6, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()), (7, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
+                                                                                                                                 (8, 'AVAILABLE', 'OCCUPIED', 'CHECKIN', 5, NOW()), (10, 'OCCUPIED', 'DIRTY', 'CHECKOUT', 4, NOW()),
+                                                                                                                                 (11, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW()), (12, 'AVAILABLE', 'MAINTENANCE', 'MAINTENANCE', 12, NOW()),
+                                                                                                                                 (13, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 7, NOW()), (14, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 8, NOW()),
+                                                                                                                                 (15, 'DIRTY', 'AVAILABLE', 'HOUSEKEEPING', 9, NOW());
 
 -- =============================================================================
 -- 6. CHÈN DỮ LIỆU ĐẶT PHÒNG & HÓA ĐƠN (BOOKINGS & INVOICES)
@@ -316,7 +302,14 @@ INSERT INTO repair_requests (room_id, equipment_id, reported_by, assigned_to, is
 
 
 
-
+INSERT INTO services (service_name, price, is_available) VALUES
+                                                             ('Coca Cola (Minibar)', 25000.00, TRUE),
+                                                             ('Bia Heineken (Minibar)', 40000.00, TRUE),
+                                                             ('Nước suối Aquafina', 15000.00, TRUE),
+                                                             ('Mì ly Omachi (Minibar)', 20000.00, TRUE),
+                                                             ('Dịch vụ Giặt ủi (Theo kg)', 50000.00, TRUE),
+                                                             ('Trà gừng nóng (Room Service)', 30000.00, TRUE)
+ON CONFLICT (service_name) DO NOTHING;
 
 
 -- =============================================================================
