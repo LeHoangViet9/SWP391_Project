@@ -28,9 +28,12 @@ import com.hms.repository.customer.CustomerRepository;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.booking.BookingService;
+import com.hms.service.audit.AuditLogService;
 import com.hms.service.booking.mapper.BookingMapper;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -38,6 +41,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.hms.common.audit.Auditable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -78,6 +82,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
+    private final AuditLogService auditLogService;
 
     @Override
     @Transactional(readOnly = true)
@@ -97,6 +102,7 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    @Auditable(action = "CREATE_BOOKING", module = "BOOKING", logSuccess = false)
     public BookingResponse createBooking(BookingRequest request){
         Locale locale = LocaleContextHolder.getLocale();
         validateBookingDate(request, locale);
@@ -120,17 +126,27 @@ public class BookingServiceImpl implements BookingService {
         applyStayGuestInfo(booking, request, customer, locale);
 
         Booking saved = bookingRepository.save(booking);
+        auditLogService.logSuccess(
+                "CREATE_BOOKING",
+                "BOOKING",
+                "BOOKING",
+                saved.getId(),
+                "Booking #" + saved.getId(),
+                auditLogService.changes(null, bookingAuditSnapshot(saved))
+        );
 
         return bookingMapper.toResponse(saved);
     }
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_BOOKING", module = "BOOKING", logSuccess = false)
     public BookingResponse updateBooking(Long id, BookingRequest request){
         Locale locale = LocaleContextHolder.getLocale();
 
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.booking.notfound", null, locale)));
+        Map<String, Object> before = bookingAuditSnapshot(booking);
 
         validateBookingDate(request, locale);
 
@@ -152,23 +168,41 @@ public class BookingServiceImpl implements BookingService {
         applyStayGuestInfo(booking, request, customer, locale);
 
         Booking updated = bookingRepository.save(booking);
+        auditLogService.logSuccess(
+                "UPDATE_BOOKING",
+                "BOOKING",
+                "BOOKING",
+                updated.getId(),
+                "Booking #" + updated.getId(),
+                auditLogService.changes(before, bookingAuditSnapshot(updated))
+        );
         return bookingMapper.toResponse(updated);
     }
 
     @Override
     @Transactional
+    @Auditable(action = "CANCEL_BOOKING", module = "BOOKING", logSuccess = false)
     public void deleteBooking(Long id){
         Locale locale = LocaleContextHolder.getLocale();
 
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.booking.notfound", null, locale)));
+        Map<String, Object> before = bookingAuditSnapshot(booking);
 
         if (booking.getBookingStatus() == BookingStatus.CHECKED_IN) {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.cannot.delete.checkedin", null, locale));
         }
         booking.setBookingStatus(BookingStatus.CANCELLED);
-        bookingRepository.save(booking);
+        Booking cancelled = bookingRepository.save(booking);
+        auditLogService.logSuccess(
+                "CANCEL_BOOKING",
+                "BOOKING",
+                "BOOKING",
+                cancelled.getId(),
+                "Booking #" + cancelled.getId(),
+                auditLogService.changes(before, bookingAuditSnapshot(cancelled))
+        );
     }
 
     @Override
@@ -211,12 +245,14 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_BOOKING_STATUS", module = "BOOKING", logSuccess = false)
     public BookingResponse updateBookingStatus(Long id, BookingStatusRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, locale)));
+        Map<String, Object> before = bookingAuditSnapshot(booking);
 
         BookingStatus currentStatus = booking.getBookingStatus();
         BookingStatus newStatus = request.getStatus();
@@ -260,17 +296,27 @@ public class BookingServiceImpl implements BookingService {
         }
 
         Booking updated = bookingRepository.save(booking);
+        auditLogService.logSuccess(
+                actionForBookingStatus(newStatus),
+                "BOOKING",
+                "BOOKING",
+                updated.getId(),
+                "Booking #" + updated.getId(),
+                auditLogService.changes(before, bookingAuditSnapshot(updated))
+        );
         return bookingMapper.toResponse(updated);
     }
 
     @Override
     @Transactional
+    @Auditable(action = "CHANGE_BOOKING_ROOM", module = "BOOKING", logSuccess = false)
     public BookingResponse assignRoom(Long bookingId, BookingRoomAssignRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, locale)));
+        Map<String, Object> before = bookingAuditSnapshot(booking);
 
         // Can only assign room when booking is CONFIRMED
         if (booking.getBookingStatus() != BookingStatus.CONFIRMED) {
@@ -313,6 +359,14 @@ public class BookingServiceImpl implements BookingService {
         roomRepository.save(room);
 
         Booking updated = bookingRepository.save(booking);
+        auditLogService.logSuccess(
+                "CHANGE_BOOKING_ROOM",
+                "BOOKING",
+                "BOOKING",
+                updated.getId(),
+                "Booking #" + updated.getId(),
+                auditLogService.changes(before, bookingAuditSnapshot(updated))
+        );
         return bookingMapper.toResponse(updated);
     }
 
@@ -411,5 +465,42 @@ public class BookingServiceImpl implements BookingService {
                 roomTypeId, checkInDate, checkOutDate, null, ROOM_HOLDING_STATUSES
         );
         return Math.max(0, totalActive - booked);
+    }
+
+    private Map<String, Object> bookingAuditSnapshot(Booking booking) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("id", booking.getId());
+        snapshot.put("customerId", booking.getCustomer() == null ? null : booking.getCustomer().getId());
+        snapshot.put("customerName", booking.getCustomer() == null ? null : booking.getCustomer().getFullName());
+        snapshot.put("roomTypeId", booking.getRoomType() == null ? null : booking.getRoomType().getId());
+        snapshot.put("roomTypeName", booking.getRoomType() == null ? null : booking.getRoomType().getTypeName());
+        snapshot.put("roomId", booking.getRoom() == null ? null : booking.getRoom().getId());
+        snapshot.put("roomNumber", booking.getRoom() == null ? null : booking.getRoom().getRoomNumber());
+        snapshot.put("quantity", booking.getQuantity());
+        snapshot.put("checkInDate", booking.getCheckInDate());
+        snapshot.put("checkOutDate", booking.getCheckOutDate());
+        snapshot.put("bookingStatus", booking.getBookingStatus() == null ? null : booking.getBookingStatus().name());
+        snapshot.put("totalPrice", booking.getTotalPrice());
+        snapshot.put("bookingForOther", booking.getBookingForOther());
+        snapshot.put("guestEmail", booking.getGuestEmail());
+        snapshot.put("guestPhone", booking.getGuestPhone());
+        snapshot.put("guestIdNumberCard", booking.getGuestIdNumberCard());
+        return snapshot;
+    }
+
+    private String actionForBookingStatus(BookingStatus status) {
+        if (status == BookingStatus.CONFIRMED) {
+            return "CONFIRM_BOOKING";
+        }
+        if (status == BookingStatus.CANCELLED) {
+            return "CANCEL_BOOKING";
+        }
+        if (status == BookingStatus.CHECKED_IN) {
+            return "CHECK_IN";
+        }
+        if (status == BookingStatus.CHECKED_OUT) {
+            return "CHECK_OUT";
+        }
+        return "UPDATE_BOOKING_STATUS";
     }
 }

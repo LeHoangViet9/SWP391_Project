@@ -19,10 +19,14 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.hms.common.audit.Auditable;
+import com.hms.service.audit.AuditLogService;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 @Service
 @RequiredArgsConstructor
@@ -35,9 +39,11 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserMapper userMapper;
     private final EmailService emailService;
+    private final AuditLogService auditLogService;
 
     @Transactional
     @Override
+    @Auditable(action = "CREATE_USER", module = "USER", logSuccess = false)
     public UserResponse registerNewUser(UserRegisterRequest registerRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         if(userRepository.existsUserByEmail(registerRequest.getEmail())) {
@@ -80,24 +86,46 @@ public class AuthServiceImpl implements AuthService {
     public UserResponse login(UserLoginRequest loginRequest) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        User user = userRepository.findUserByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale)));
+        try {
+            User user = userRepository.findUserByEmail(loginRequest.getEmail())
+                    .orElseThrow(() -> new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale)));
 
-        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale));
+            if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+                throw new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale));
+            }
+
+            validateAccountStatus(user, locale);
+
+            user.setLastLoginAt(LocalDateTime.now());
+            User updatedUser = userRepository.save(user);
+
+            String accessToken = jwtTokenProvider.generateToken(
+                    updatedUser.getEmail(),
+                    updatedUser.getRole().getRoleName()
+            );
+
+            auditLogService.logSuccess(
+                    "LOGIN_SUCCESS",
+                    "AUTH",
+                    "USER",
+                    updatedUser.getId(),
+                    updatedUser.getEmail(),
+                    auditLogService.changes(null, userAuditSnapshot(updatedUser))
+            );
+
+            return userMapper.toResponse(updatedUser,accessToken);
+        } catch (RuntimeException e) {
+            auditLogService.logFailure(
+                    "LOGIN_FAILED",
+                    "AUTH",
+                    "USER",
+                    null,
+                    loginRequest.getEmail(),
+                    loginAttemptChanges(loginRequest.getEmail()),
+                    e
+            );
+            throw e;
         }
-
-        validateAccountStatus(user, locale);
-
-        user.setLastLoginAt(LocalDateTime.now());
-        User updatedUser = userRepository.save(user);
-
-        String accessToken = jwtTokenProvider.generateToken(
-                updatedUser.getEmail(),
-                updatedUser.getRole().getRoleName()
-        );
-
-        return userMapper.toResponse(updatedUser,accessToken);
     }
 
     @Override
@@ -111,6 +139,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional
     @Override
+    @Auditable(action = "CHANGE_PASSWORD", module = "USER", logSuccess = false)
     public void changePassword(String email, ChangePasswordRequest changePasswordRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findUserByEmail(email)
@@ -123,7 +152,15 @@ public class AuthServiceImpl implements AuthService {
         }
 
         user.setPassword(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
-        userRepository.save(user);
+        User updated = userRepository.save(user);
+        auditLogService.logSuccess(
+                "CHANGE_PASSWORD",
+                "USER",
+                "USER",
+                updated.getId(),
+                updated.getEmail(),
+                auditLogService.changes(null, Map.of("passwordChanged", true))
+        );
     }
     @Transactional
     @Override
@@ -139,6 +176,7 @@ public class AuthServiceImpl implements AuthService {
     }
     @Transactional
     @Override
+    @Auditable(action = "RESET_PASSWORD", module = "USER", logSuccess = false)
     public void resetPassword(ResetPasswordRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
@@ -154,7 +192,15 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setResetPasswordToken(null);
         user.setResetPasswordExpiredAt(null);
-        userRepository.save(user);
+        User updated = userRepository.save(user);
+        auditLogService.logSuccess(
+                "RESET_PASSWORD",
+                "USER",
+                "USER",
+                updated.getId(),
+                updated.getEmail(),
+                auditLogService.changes(null, Map.of("passwordReset", true))
+        );
     }
 
     private void validateAccountStatus(User user, Locale locale) {
@@ -212,5 +258,23 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         emailService.sendRegistrationOtp(user.getEmail(), otp);
+    }
+
+    private java.util.Map<String, Object> userAuditSnapshot(User user) {
+        java.util.Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("id", user.getId());
+        snapshot.put("fullName", user.getFullName());
+        snapshot.put("email", user.getEmail());
+        snapshot.put("phone", user.getPhone());
+        snapshot.put("roleName", user.getRole() == null ? null : user.getRole().getRoleName());
+        snapshot.put("accountStatus", user.getAccountStatus() == null ? null : user.getAccountStatus().name());
+        snapshot.put("lastLoginAt", user.getLastLoginAt());
+        return snapshot;
+    }
+
+    private java.util.Map<String, Object> loginAttemptChanges(String email) {
+        java.util.Map<String, Object> changes = new LinkedHashMap<>();
+        changes.put("email", email);
+        return auditLogService.changes(null, changes);
     }
 }
