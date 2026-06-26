@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -93,7 +94,7 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
                 .rating(request.getRating())
                 .category(normalizedCategory)
                 .comment(request.getComment())
-                .status(FeedbackStatus.PENDING.name().toLowerCase())
+                .status(FeedbackStatus.PENDING)
                 .build();
 
         return customerFeedbackMapper.toResponse(customerFeedbackRepository.save(feedback));
@@ -101,9 +102,17 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CustomerFeedbackResponse> searchFeedback(String keyword, Integer rating, int page, int size) {
+    public Page<CustomerFeedbackResponse> searchFeedback(String keyword, Integer rating, String status, String category, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<CustomerFeedback> feedbackPage = customerFeedbackRepository.searchFeedback(keyword, rating, pageable);
+        FeedbackStatus enumStatus = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                enumStatus = FeedbackStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Ignore or handle invalid status
+            }
+        }
+        Page<CustomerFeedback> feedbackPage = customerFeedbackRepository.searchFeedback(keyword, rating, enumStatus, category, pageable);
         return feedbackPage.map(customerFeedbackMapper::toResponse);
     }
 
@@ -117,7 +126,8 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
                 ));
 
         feedback.setReply(request.getReply());
-        feedback.setStatus(FeedbackStatus.REVIEWED.name().toLowerCase());
+        feedback.setStatus(FeedbackStatus.REVIEWED);
+        feedback.setReplyAt(LocalDateTime.now());
         return customerFeedbackMapper.toResponse(customerFeedbackRepository.save(feedback));
     }
 

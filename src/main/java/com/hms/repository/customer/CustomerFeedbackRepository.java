@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.hms.common.enums.FeedbackStatus;
 import java.util.List;
 
 @Repository
@@ -20,6 +21,8 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
     @Query("""
         SELECT cf FROM CustomerFeedback cf
         WHERE (:rating IS NULL OR cf.rating = :rating)
+        AND (:status IS NULL OR cf.status = :status)
+        AND (:category IS NULL OR LOWER(cf.category) = LOWER(:category))
         AND (
             CAST(:keyword AS string) IS NULL
             OR LOWER(cf.customer.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
@@ -30,6 +33,8 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
     Page<CustomerFeedback> searchFeedback(
             @Param("keyword") String keyword,
             @Param("rating") Integer rating,
+            @Param("status") FeedbackStatus status,
+            @Param("category") String category,
             Pageable pageable
     );
 }

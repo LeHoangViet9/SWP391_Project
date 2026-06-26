@@ -31,6 +31,7 @@ public interface BookingMapper {
     @Mapping(source = "roomType.typeName", target = "roomTypeName")
     @Mapping(source = "room.id", target = "roomId")
     @Mapping(source = "room.roomNumber", target = "roomNumber")
+    @Mapping(target = "hasFeedback", ignore = true)
     BookingResponse toResponse(Booking booking);
 
     @Mapping(target = "id", ignore = true)

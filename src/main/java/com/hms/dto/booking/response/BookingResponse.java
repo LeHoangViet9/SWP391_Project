@@ -35,4 +35,7 @@ public class BookingResponse {
     private BookingStatus bookingStatus;
 
     private LocalDateTime createdAt;
+
+    private Boolean hasFeedback;
 }
+

@@ -52,11 +52,13 @@ public class CustomerFeedbackController {
     public ResponseEntity<ApiResponse<Page<CustomerFeedbackResponse>>> searchFeedback(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer rating,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
             
         Locale locale = LocaleContextHolder.getLocale();
-        Page<CustomerFeedbackResponse> data = customerFeedbackService.searchFeedback(keyword, rating, page, size);
+        Page<CustomerFeedbackResponse> data = customerFeedbackService.searchFeedback(keyword, rating, status, category, page, size);
         
         String message = messageSource.getMessage("success.feedback.search", null, "Feedbacks retrieved successfully", locale);
         ApiResponse<Page<CustomerFeedbackResponse>> response = ApiResponse.<Page<CustomerFeedbackResponse>>builder()

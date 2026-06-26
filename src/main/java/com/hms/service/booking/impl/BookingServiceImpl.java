@@ -24,6 +24,7 @@ import com.hms.entity.hotel.RoomType;
 import com.hms.repository.auth.UserRepository;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
+import com.hms.repository.customer.CustomerFeedbackRepository;
 import com.hms.repository.customer.CustomerRepository;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
@@ -44,30 +45,13 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.EnumMap;
 
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
-    private static final List<BookingStatus> ROOM_HOLDING_STATUSES = List.of(
-            BookingStatus.PENDING,
-            BookingStatus.CONFIRMED,
-            BookingStatus.CHECKED_IN
-    );
 
-    private static final Map<BookingStatus, Set<BookingStatus>> VALID_TRANSITIONS =
-            new java.util.EnumMap<>(BookingStatus.class);
-    static {
-        VALID_TRANSITIONS.put(BookingStatus.PENDING,
-                EnumSet.of(BookingStatus.CONFIRMED, BookingStatus.CANCELLED));
-        VALID_TRANSITIONS.put(BookingStatus.CONFIRMED,
-                EnumSet.of(BookingStatus.CHECKED_IN, BookingStatus.CANCELLED, BookingStatus.NO_SHOW));
-        VALID_TRANSITIONS.put(BookingStatus.CHECKED_IN,
-                EnumSet.of(BookingStatus.CHECKED_OUT));
-        VALID_TRANSITIONS.put(BookingStatus.CHECKED_OUT, EnumSet.noneOf(BookingStatus.class));
-        VALID_TRANSITIONS.put(BookingStatus.CANCELLED,   EnumSet.noneOf(BookingStatus.class));
-        VALID_TRANSITIONS.put(BookingStatus.NO_SHOW,     EnumSet.noneOf(BookingStatus.class));
-    }
 
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
@@ -78,12 +62,20 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
+    private final CustomerFeedbackRepository customerFeedbackRepository;
+
+    private BookingResponse mapToResponse(Booking booking) {
+        if (booking == null) return null;
+        BookingResponse response = bookingMapper.toResponse(booking);
+        response.setHasFeedback(customerFeedbackRepository.existsByBookingId(booking.getId()));
+        return response;
+    }
 
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> getAllBookings(Integer page, Integer size, SortField sortBy, SortDirection direction){
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
-        return bookingRepository.findAll(pageable).map(bookingMapper::toResponse);
+        return bookingRepository.findAll(pageable).map(this::mapToResponse);
     }
 
     @Override
@@ -92,7 +84,7 @@ public class BookingServiceImpl implements BookingService {
         Locale locale = LocaleContextHolder.getLocale();
         Booking booking = bookingRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(messageSource
                 .getMessage("error.booking.notfound", null, locale)));
-        return bookingMapper.toResponse(booking);
+        return mapToResponse(booking);
     }
 
     @Override
@@ -120,7 +112,7 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
-        return bookingMapper.toResponse(saved);
+        return mapToResponse(saved);
     }
 
     @Override
@@ -150,7 +142,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setTotalPrice(totalPrice);
 
         Booking updated = bookingRepository.save(booking);
-        return bookingMapper.toResponse(updated);
+        return mapToResponse(updated);
     }
 
     @Override
@@ -173,7 +165,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.ASC);
-        return bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable).map(bookingMapper::toResponse);
+        return bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable).map(this::mapToResponse);
     }
 
     @Override
@@ -187,7 +179,7 @@ public class BookingServiceImpl implements BookingService {
 
         return customerRepository.findActiveByEmailOrPhone(user.getEmail(), user.getPhone(), AccountStatus.ACTIVE)
                 .map(customer -> bookingRepository.findHistoryByCustomerId(customer.getId(), pageable)
-                        .map(bookingMapper::toResponse))
+                        .map(this::mapToResponse))
                 .orElseGet(() -> Page.empty(pageable));
     }
 
@@ -196,7 +188,7 @@ public class BookingServiceImpl implements BookingService {
     public Page<BookingResponse> getBookingsByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size){
         Pageable pageable = pageableUtils.createPageable(page, size, "checkInDate", SortDirection.ASC);
         return bookingRepository.findByCheckInDateBetween(start, end, pageable)
-                .map(bookingMapper::toResponse);
+                .map(this::mapToResponse);
     }
 
     @Override
@@ -204,7 +196,7 @@ public class BookingServiceImpl implements BookingService {
     public Page<BookingResponse> getBookingsByCheckOutDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size){
         Pageable pageable = pageableUtils.createPageable(page,size, "checkOutDate", SortDirection.ASC);
         return bookingRepository.findByCheckOutDateBetween(start, end, pageable)
-                .map(bookingMapper::toResponse);
+                .map(this::mapToResponse);
     }
 
     @Override
@@ -220,9 +212,7 @@ public class BookingServiceImpl implements BookingService {
         BookingStatus newStatus = request.getStatus();
 
         // Verify valid status transition
-        Set<BookingStatus> allowed = VALID_TRANSITIONS.getOrDefault(
-                currentStatus, EnumSet.noneOf(BookingStatus.class));
-        if (!allowed.contains(newStatus)) {
+        if (!currentStatus.isValidTransitionTo(newStatus)) {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.invalid.transition",
                     new Object[]{currentStatus, newStatus}, locale));
@@ -258,7 +248,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         Booking updated = bookingRepository.save(booking);
-        return bookingMapper.toResponse(updated);
+        return mapToResponse(updated);
     }
 
     @Override
@@ -311,7 +301,7 @@ public class BookingServiceImpl implements BookingService {
         roomRepository.save(room);
 
         Booking updated = bookingRepository.save(booking);
-        return bookingMapper.toResponse(updated);
+        return mapToResponse(updated);
     }
 
     private void validateBookingDate(BookingRequest request, Locale locale){
@@ -335,7 +325,7 @@ public class BookingServiceImpl implements BookingService {
                 request.getCheckInDate(),
                 request.getCheckOutDate(),
                 excludedBookingId,
-                ROOM_HOLDING_STATUSES
+                BookingStatus.ROOM_HOLDING_STATUSES
         );
         long remainingQuantity = totalActiveRoomCount - bookedQuantity;
 
@@ -366,7 +356,7 @@ public class BookingServiceImpl implements BookingService {
                 List.of(RoomStatus.INACTIVE, RoomStatus.OUT_OF_ORDER)
         );
         long booked = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
-                roomTypeId, checkInDate, checkOutDate, null, ROOM_HOLDING_STATUSES
+                roomTypeId, checkInDate, checkOutDate, null, BookingStatus.ROOM_HOLDING_STATUSES
         );
         return Math.max(0, totalActive - booked);
     }

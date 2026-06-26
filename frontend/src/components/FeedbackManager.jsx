@@ -16,6 +16,10 @@ export default function FeedbackManager() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filterRating, setFilterRating] = useState(0);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [replyTarget, setReplyTarget] = useState(null);
@@ -30,16 +34,23 @@ export default function FeedbackManager() {
       const res = await searchFeedbacks({
         keyword: search.trim() || undefined,
         rating: filterRating > 0 ? filterRating : undefined,
-        page: 0,
-        size: 100
+        status: filterStatus || undefined,
+        category: filterCategory || undefined,
+        page,
+        size: 10
       }, locale);
       setFeedbacks(res?.data?.content || []);
+      setTotalPages(res?.data?.totalPages || 1);
     } catch (err) {
       notify(err.message || (isVi ? 'Không thể tải danh sách đánh giá' : 'Failed to load feedbacks'), 'error');
     } finally {
       setLoading(false);
     }
-  }, [search, filterRating, locale, isVi]);
+  }, [search, filterRating, filterStatus, filterCategory, page, locale, isVi]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [search, filterRating, filterStatus, filterCategory]);
 
   useEffect(() => {
     fetchFeedbacks();
@@ -119,7 +130,9 @@ export default function FeedbackManager() {
             ))}
           </div>
           <span className="text-xs text-white/40 mt-3">
-            {isVi ? `Dựa trên ${feedbacks.length} lượt đánh giá` : `Based on ${feedbacks.length} reviews`}
+            {isVi
+              ? `Dựa trên ${feedbacks.length} lượt đánh giá (trang hiện tại)`
+              : `Based on ${feedbacks.length} reviews (current page)`}
           </span>
         </div>
 
@@ -149,19 +162,44 @@ export default function FeedbackManager() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between gap-3 bg-[#112240] p-4 rounded-2xl border border-white/[0.08]">
-        <div className="relative flex-1 max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={isVi ? 'Tìm theo tên khách, phòng, nội dung...' : 'Search by guest name, room, comment...'}
-            className="w-full pl-8 pr-3 py-2 text-sm bg-white/5 border border-white/10 rounded-xl focus:border-[#bfa15f] outline-none text-white placeholder-white/30 transition-all"
-          />
+      <div className="flex flex-col lg:flex-row justify-between gap-4 bg-[#112240] p-4 rounded-2xl border border-white/[0.08]">
+        <div className="flex flex-col sm:flex-row gap-3 flex-1">
+          <div className="relative flex-1 max-w-xs">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={isVi ? 'Tìm theo tên khách, phòng, nội dung...' : 'Search by guest name, room, comment...'}
+              className="w-full pl-8 pr-3 py-2 text-sm bg-white/5 border border-white/10 rounded-xl focus:border-[#bfa15f] outline-none text-white placeholder-white/30 transition-all"
+            />
+          </div>
+
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-white focus:border-[#bfa15f] outline-none transition-all cursor-pointer"
+          >
+            <option value="" className="bg-[#112240] text-white">{isVi ? 'Tất cả trạng thái' : 'All Statuses'}</option>
+            <option value="PENDING" className="bg-[#112240] text-white">{isVi ? 'Chưa phản hồi' : 'Pending'}</option>
+            <option value="REVIEWED" className="bg-[#112240] text-white">{isVi ? 'Đã phản hồi' : 'Reviewed'}</option>
+            <option value="RESOLVED" className="bg-[#112240] text-white">{isVi ? 'Đã xử lý' : 'Resolved'}</option>
+          </select>
+
+          <select
+            value={filterCategory}
+            onChange={e => setFilterCategory(e.target.value)}
+            className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-white focus:border-[#bfa15f] outline-none transition-all cursor-pointer"
+          >
+            <option value="" className="bg-[#112240] text-white">{isVi ? 'Tất cả danh mục' : 'All Categories'}</option>
+            <option value="Room" className="bg-[#112240] text-white">{isVi ? 'Phòng nghỉ' : 'Room'}</option>
+            <option value="Service" className="bg-[#112240] text-white">{isVi ? 'Dịch vụ' : 'Service'}</option>
+            <option value="Cleanliness" className="bg-[#112240] text-white">{isVi ? 'Sạch sẽ' : 'Cleanliness'}</option>
+            <option value="Staff" className="bg-[#112240] text-white">{isVi ? 'Nhân viên' : 'Staff'}</option>
+          </select>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           <button
             onClick={() => setFilterRating(0)}
             className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
@@ -170,7 +208,7 @@ export default function FeedbackManager() {
                 : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
             }`}
           >
-            {isVi ? 'Tất cả' : 'All'}
+            {isVi ? 'Tất cả sao' : 'All Stars'}
           </button>
           {[5, 4, 3, 2, 1].map(stars => (
             <button
@@ -207,7 +245,7 @@ export default function FeedbackManager() {
               {/* Header Info */}
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-white/[0.05] pb-3">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-sm font-bold text-white">{item.customerName}</h4>
                     <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/10">
                       {isVi ? {
@@ -216,6 +254,19 @@ export default function FeedbackManager() {
                         'Cleanliness': 'Sạch sẽ',
                         'Staff': 'Nhân viên'
                       }[item.category] || item.category : item.category}
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-semibold border ${
+                      item.status === 'PENDING'
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        : item.status === 'REVIEWED'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                    }`}>
+                      {item.status === 'PENDING'
+                        ? (isVi ? 'Chưa phản hồi' : 'Pending')
+                        : item.status === 'REVIEWED'
+                          ? (isVi ? 'Đã phản hồi' : 'Reviewed')
+                          : (isVi ? 'Đã xử lý' : 'Resolved')}
                     </span>
                   </div>
                   <p className="text-[11px] text-white/40 mt-1">
@@ -285,6 +336,31 @@ export default function FeedbackManager() {
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-[#112240] p-4 rounded-2xl border border-white/[0.08] mt-4">
+          <span className="text-xs text-white/40">
+            {isVi ? `Trang ${page + 1} / ${totalPages}` : `Page ${page + 1} of ${totalPages}`}
+          </span>
+          <div className="flex gap-2">
+            <button
+              disabled={page === 0}
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isVi ? 'Trước' : 'Previous'}
+            </button>
+            <button
+              disabled={page === totalPages - 1}
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isVi ? 'Sau' : 'Next'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Reply Modal */}
       {replyTarget && (

@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page;
 
 public interface CustomerFeedbackService {
     CustomerFeedbackResponse createFeedback(CustomerFeedbackRequest request, String email);
-    Page<CustomerFeedbackResponse> searchFeedback(String keyword, Integer rating, int page, int size);
+    Page<CustomerFeedbackResponse> searchFeedback(String keyword, Integer rating, String status, String category, int page, int size);
     CustomerFeedbackResponse replyFeedback(Long feedbackId, FeedbackReplyRequest request);
     void deleteFeedback(Long feedbackId);
 }

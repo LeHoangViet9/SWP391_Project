@@ -1,5 +1,6 @@
 package com.hms.dto.customer.response;
 
+import com.hms.common.enums.FeedbackStatus;
 import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -14,7 +15,9 @@ public class CustomerFeedbackResponse {
     private int rating;
     private String category;
     private String comment;
-    private String status;
+    private FeedbackStatus status;
     private LocalDateTime createdAt;
     private String reply;
+    private LocalDateTime replyAt;
 }
+

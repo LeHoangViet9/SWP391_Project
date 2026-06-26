@@ -118,7 +118,8 @@ export default function CustomerBookingHistory() {
 
   const rows = items.map((item) => {
     const status = item.bookingStatus || item.status || 'PENDING';
-    const showReviewBtn = status === 'CHECKED_OUT';
+    const showReviewBtn = status === 'CHECKED_OUT' && !item.hasFeedback;
+    const hasFeedback = status === 'CHECKED_OUT' && item.hasFeedback;
 
     return (
       <tr key={item.id} className="hover:bg-stone-50">
@@ -143,6 +144,13 @@ export default function CustomerBookingHistory() {
               {isVi ? 'Đánh giá' : 'Review'}
             </button>
           )}
+          {hasFeedback && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+              <Star size={12} fill="#059669" className="text-emerald-600" />
+              {isVi ? 'Đã đánh giá' : 'Reviewed'}
+            </span>
+          )}
+          {!showReviewBtn && !hasFeedback && <span className="text-slate-400">—</span>}
         </td>
       </tr>
     );

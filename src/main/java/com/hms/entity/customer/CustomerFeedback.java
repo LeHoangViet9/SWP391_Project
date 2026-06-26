@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import com.hms.common.enums.FeedbackStatus;
 import java.time.LocalDateTime;
 
 @Entity
@@ -42,8 +43,9 @@ public class CustomerFeedback {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String comment;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private FeedbackStatus status;
 
     @Column(name = "created_at", updatable = false)
     @CreationTimestamp
@@ -51,4 +53,7 @@ public class CustomerFeedback {
 
     @Column(columnDefinition = "TEXT")
     private String reply;
+
+    @Column(name = "reply_at")
+    private LocalDateTime replyAt;
 }
