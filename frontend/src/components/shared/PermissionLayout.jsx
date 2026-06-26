@@ -13,6 +13,7 @@
 import React, { useState } from 'react';
 import { Menu, ShieldAlert, ChevronDown } from 'lucide-react';
 import PermissionSidebar from './PermissionSidebar';
+import NotificationCenter from './NotificationCenter';
 import { useAuth } from '../../context/AuthContext';
 import { useLocale } from '../../context/LocaleContext';
 import { useNavigate } from 'react-router-dom';
@@ -62,6 +63,8 @@ export default function PermissionLayout({ title, subtitle, children }) {
 
           {/* Right controls */}
           <div className="flex items-center gap-3 ml-auto">
+            <NotificationCenter />
+
             {/* Language toggle */}
             <div className="relative">
               <button

@@ -1,12 +1,14 @@
 package com.hms.controller.booking;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.hms.common.dto.ApiResponse;
+import com.hms.common.enums.PaymentMethod;
 import com.hms.common.enums.PaymentStatus;
 import com.hms.common.enums.SortDirection;
+import com.hms.dto.booking.request.PayInvoiceRequest;
 import com.hms.dto.invoice.request.InvoiceRequest;
 import com.hms.dto.invoice.response.InvoiceResponse;
 import com.hms.service.booking.InvoiceService;
-import com.hms.service.booking.impl.InvoiceServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
@@ -59,8 +61,7 @@ public class InvoiceController {
         Locale locale = LocaleContextHolder.getLocale();
 
         // Vì interface InvoiceService ép kiểu qua ép kiểu lại, bạn cần ép kiểu hoặc bổ sung hàm confirmPaymentSuccess vào interface gốc
-        InvoiceServiceImpl service = (InvoiceServiceImpl) invoiceService;
-        InvoiceResponse updatedInvoice = service.confirmPaymentSuccess(bookingId);
+        InvoiceResponse updatedInvoice = invoiceService.confirmPaymentSuccess(bookingId);
 
         return ResponseEntity.ok(ApiResponse.<InvoiceResponse>builder()
                 .success(true)
@@ -71,6 +72,59 @@ public class InvoiceController {
     }
 
     /** GET /api/v1/invoices/search — Tìm kiếm nâng cao và phân trang hóa đơn */
+    @PostMapping("/{id}/mark-as-paid")
+    @PreAuthorize("hasAuthority('INVOICE_UPDATE')")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> markAsPaid(
+            @PathVariable Long id,
+            @RequestBody(required = false) PayInvoiceRequest request) {
+        Locale locale = LocaleContextHolder.getLocale();
+        PaymentMethod method = request != null && request.getPaymentMethod() != null
+                ? request.getPaymentMethod()
+                : PaymentMethod.CASH;
+
+        InvoiceResponse updatedInvoice = invoiceService.markInvoicePaid(id, method);
+        return ResponseEntity.ok(ApiResponse.<InvoiceResponse>builder()
+                .success(true)
+                .message(messageSource.getMessage("invoice.payment.success", null, locale))
+                .data(updatedInvoice)
+                .status(HttpStatus.OK)
+                .build());
+    }
+
+    @PostMapping("/{id}/payos-link")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> createPayOsPaymentLink(@PathVariable Long id) {
+        InvoiceResponse invoice = invoiceService.createPayOsPaymentLink(id);
+        return ResponseEntity.ok(ApiResponse.<InvoiceResponse>builder()
+                .success(true)
+                .message("Tao link thanh toan PayOS thanh cong")
+                .data(invoice)
+                .status(HttpStatus.OK)
+                .build());
+    }
+
+    @PostMapping("/payos/webhook")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> handlePayOsWebhook(@RequestBody JsonNode webhookBody) {
+        InvoiceResponse invoice = invoiceService.handlePayOsWebhook(webhookBody);
+        return ResponseEntity.ok(ApiResponse.<InvoiceResponse>builder()
+                .success(true)
+                .message("PayOS webhook received")
+                .data(invoice)
+                .status(HttpStatus.OK)
+                .build());
+    }
+
+    @GetMapping("/payos/sync/{orderCode}")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> syncPayOsPaymentStatus(@PathVariable Long orderCode) {
+        InvoiceResponse invoice = invoiceService.syncPayOsPaymentStatus(orderCode);
+        return ResponseEntity.ok(ApiResponse.<InvoiceResponse>builder()
+                .success(true)
+                .message("Dong bo trang thai PayOS thanh cong")
+                .data(invoice)
+                .status(HttpStatus.OK)
+                .build());
+    }
+
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('INVOICE_VIEW')")
     public ResponseEntity<ApiResponse<Page<InvoiceResponse>>> searchInvoices(
@@ -98,7 +152,7 @@ public class InvoiceController {
 
     /** GET /api/v1/invoices/{id} — Lấy chi tiết hoá đơn */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<InvoiceResponse>> getInvoiceById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         InvoiceResponse data = invoiceService.getInvoiceById(id);
@@ -112,7 +166,7 @@ public class InvoiceController {
 
     /** GET /api/v1/invoices/booking/{bookingId} — Lấy hoá đơn theo booking */
     @GetMapping("/booking/{bookingId}")
-    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<InvoiceResponse>> getInvoiceByBookingId(@PathVariable Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
         InvoiceResponse data = invoiceService.getInvoiceByBookingId(bookingId);

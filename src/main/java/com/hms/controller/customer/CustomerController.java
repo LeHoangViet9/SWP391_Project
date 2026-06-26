@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Locale;
@@ -47,7 +48,21 @@ public class CustomerController {
     }
 
     // 2. Lấy chi tiết 1 khách hàng -> Quyền xem (CUSTOMER_VIEW)
-    @GetMapping("/{id}")
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<CustomerResponse>> findCurrentCustomer(
+            @AuthenticationPrincipal String email
+    ) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("customer.getbyid.success", null, locale),
+                customerService.findCurrentCustomer(email),
+                HttpStatus.OK
+        ), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<ApiResponse<CustomerResponse>> findById(@PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
@@ -73,7 +88,7 @@ public class CustomerController {
     }
 
     // 4. Cập nhật thông tin khách hàng -> Quyền cập nhật (CUSTOMER_UPDATE) hoặc Khách hàng tự cập nhật profile của mình
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('CUSTOMER_UPDATE') or (hasRole('CUSTOMER') and #customerCreateDTO.email == authentication.name)")
     public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(@Valid @RequestBody CustomerCreateDTO  customerCreateDTO, @PathVariable Long id){
         Locale locale = LocaleContextHolder.getLocale();
@@ -86,7 +101,7 @@ public class CustomerController {
     }
 
     // 5. Xóa mềm khách hàng -> Quyền xóa (CUSTOMER_DELETE)
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteCustomer(
             @PathVariable Long id
@@ -104,7 +119,7 @@ public class CustomerController {
     }
 
     // 6. Khôi phục khách hàng -> Bản chất là cập nhật trạng thái (CUSTOMER_UPDATE)
-    @PutMapping("/{id}/restore")
+    @PutMapping("/{id:\\d+}/restore")
     @PreAuthorize("hasAuthority('CUSTOMER_UPDATE')")
     public ResponseEntity<ApiResponse<Void>> restoreCustomer(
             @PathVariable Long id
@@ -122,7 +137,7 @@ public class CustomerController {
     }
 
     // 7. Xóa vĩnh viễn khách hàng -> Quyền xóa hoàn toàn (CUSTOMER_DELETE)
-    @DeleteMapping("/{id}/force")
+    @DeleteMapping("/{id:\\d+}/force")
     @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<ApiResponse<Void>> forceDeleteCustomer(
             @PathVariable Long id

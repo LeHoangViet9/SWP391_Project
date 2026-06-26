@@ -1,6 +1,8 @@
 package com.hms.service.booking.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.hms.common.enums.*;
+import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
@@ -11,6 +13,7 @@ import com.hms.entity.booking.Invoice;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
 import com.hms.service.booking.InvoiceService;
+import com.hms.service.booking.PayOsService;
 import com.hms.service.booking.mapper.InvoiceMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +43,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final InvoiceMapper invoiceMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
+    private final PayOsService payOsService;
 
     @Value("${app.finance.vat-rate:0.08}")
     private BigDecimal vatRate;
@@ -135,6 +139,89 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
+    @Transactional
+    public InvoiceResponse markInvoicePaid(Long invoiceId, PaymentMethod paymentMethod) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage(MSG_INVOICE_NOT_FOUND, null, locale)));
+
+        invoice.setPaymentMethod(paymentMethod);
+        markPaid(invoice);
+        return calculateAndBuildResponse(invoice, invoice.getBooking());
+    }
+
+    @Override
+    @Transactional
+    public InvoiceResponse createPayOsPaymentLink(Long invoiceId) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage(MSG_INVOICE_NOT_FOUND, null, locale)));
+
+        if (invoice.getPaymentStatus() == PaymentStatus.PAID) {
+            return calculateAndBuildResponse(invoice, invoice.getBooking());
+        }
+
+        if (invoice.getPaymentStatus() == PaymentStatus.CANCELLED) {
+            invoice.setPaymentStatus(PaymentStatus.PENDING);
+        }
+
+        if (invoice.getCheckoutUrl() == null || invoice.getCheckoutUrl().isBlank()) {
+            PayOsService.PayOsPaymentLink paymentLink = payOsService.createPaymentLink(invoice);
+            invoice.setPaymentLinkId(paymentLink.paymentLinkId());
+            invoice.setCheckoutUrl(paymentLink.checkoutUrl());
+        }
+
+        invoice.setPaymentMethod(PaymentMethod.PAYOS);
+        invoice.setUpdatedAt(LocalDateTime.now());
+        invoiceRepository.save(invoice);
+
+        return calculateAndBuildResponse(invoice, invoice.getBooking());
+    }
+
+    @Override
+    @Transactional
+    public InvoiceResponse syncPayOsPaymentStatus(Long orderCode) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Invoice invoice = invoiceRepository.findById(orderCode)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage(MSG_INVOICE_NOT_FOUND, null, locale)));
+
+        PayOsService.PayOsPaymentStatus status = payOsService.getPaymentStatus(orderCode);
+        applyPayOsStatus(invoice, status.status());
+        return calculateAndBuildResponse(invoice, invoice.getBooking());
+    }
+
+    @Override
+    @Transactional
+    public InvoiceResponse handlePayOsWebhook(JsonNode webhookBody) {
+        if (!payOsService.isValidWebhook(webhookBody)) {
+            throw new BadRequestException("Chu ky webhook PayOS khong hop le");
+        }
+
+        JsonNode data = webhookBody.path("data");
+        long orderCode = data.path("orderCode").asLong(0);
+        if (orderCode <= 0) {
+            throw new BadRequestException("Webhook PayOS thieu orderCode");
+        }
+
+        Locale locale = LocaleContextHolder.getLocale();
+        Invoice invoice = invoiceRepository.findById(orderCode)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage(MSG_INVOICE_NOT_FOUND, null, locale)));
+
+        String status = data.path("code").asText("");
+        if ("00".equals(status) || webhookBody.path("success").asBoolean(false)) {
+            applyPayOsStatus(invoice, "PAID");
+        } else {
+            applyPayOsStatus(invoice, data.path("desc").asText(""));
+        }
+
+        return calculateAndBuildResponse(invoice, invoice.getBooking());
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public InvoiceResponse getInvoiceByBookingId(Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -184,6 +271,33 @@ public class InvoiceServiceImpl implements InvoiceService {
         return invoicePage.map(invoice -> calculateAndBuildResponse(invoice, invoice.getBooking()));
     }
 
+    private void applyPayOsStatus(Invoice invoice, String payOsStatus) {
+        if ("PAID".equalsIgnoreCase(payOsStatus)) {
+            invoice.setPaymentMethod(PaymentMethod.PAYOS);
+            markPaid(invoice);
+            return;
+        }
+
+        if ("CANCELLED".equalsIgnoreCase(payOsStatus) || "CANCELED".equalsIgnoreCase(payOsStatus)) {
+            invoice.setPaymentStatus(PaymentStatus.CANCELLED);
+            invoice.setUpdatedAt(LocalDateTime.now());
+            invoiceRepository.save(invoice);
+        }
+    }
+
+    private void markPaid(Invoice invoice) {
+        invoice.setPaymentStatus(PaymentStatus.PAID);
+        if (invoice.getPaidAt() == null) {
+            invoice.setPaidAt(LocalDateTime.now());
+        }
+        invoice.setUpdatedAt(LocalDateTime.now());
+        invoiceRepository.save(invoice);
+
+        Booking booking = invoice.getBooking();
+        booking.setBookingStatus(BookingStatus.CONFIRMED);
+        bookingRepository.save(booking);
+    }
+
     /**
      * Tái tính toán dòng tiền khi truy vấn dữ liệu cũ để tránh lỗi không đồng bộ cấu hình VAT
      */
@@ -230,8 +344,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         // Đồng bộ hiển thị tổng tiền chuẩn
         response.setTotalAmount(calculatedTotal);
+        response.setPaymentLinkId(invoice.getPaymentLinkId());
+        response.setCheckoutUrl(invoice.getCheckoutUrl());
 
-        if (invoice.getPaymentStatus() == PaymentStatus.PENDING) {
+        if (invoice.getPaymentStatus() == PaymentStatus.PENDING && invoice.getPaymentMethod() == PaymentMethod.TRANSFER) {
             String paymentContent = "HMS" + booking.getId();
 
             try {

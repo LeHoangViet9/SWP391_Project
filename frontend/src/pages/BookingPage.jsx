@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Calendar, Users, Building2, CreditCard, CheckCircle, ArrowLeft,
 } from 'lucide-react';
@@ -51,6 +51,7 @@ function BookingContent() {
   const { t, locale } = useLocale();
   const { user } = useAuth();
   const [params] = useSearchParams();
+  const navigate = useNavigate();
 
   const roomTypeId = params.get('roomTypeId') || '1';
   const [roomType, setRoomType] = useState(null);
@@ -317,6 +318,9 @@ function BookingContent() {
       const res = await createBooking(payload, locale);
       setBookingResult(res.data);
       setStep(3);
+      setTimeout(() => {
+        navigate(`/invoice/${res.data.id}`);
+      }, 1500);
     } catch (err) {
       const msg = err.message || t('bookingPage.submitFailed');
       setFailureMessage(msg);
@@ -610,24 +614,26 @@ function BookingContent() {
           </div>
         )}
 
-        {/* Step 3: Success */}
+        {/* Step 3: Redirecting to Payment */}
         {step === 3 && bookingResult && (
-          <div className="bg-white border border-stone-200 shadow-lg p-8 text-center">
-            <CheckCircle size={56} className="text-green-500 mx-auto mb-4" />
-            <h3 className="font-display text-2xl font-bold text-slate-800 mb-2">{t('bookingPage.successTitle')}</h3>
-            <p className="text-slate-500 mb-6">{t('bookingPage.successDesc')}</p>
-            <div className="bg-stone-50 p-6 text-left space-y-2 text-sm mb-6">
-              <p><span className="text-slate-500">{t('bookingPage.bookingId')}:</span> <strong>#{bookingResult.id}</strong></p>
-              <p><span className="text-slate-500">{t('bookingPage.roomType')}:</span> <strong>{bookingResult.roomTypeName}</strong></p>
-              <p><span className="text-slate-500">{t('booking.checkIn')}:</span> <strong>{bookingResult.checkInDate?.split('T')[0]}</strong></p>
-              <p><span className="text-slate-500">{t('booking.checkOut')}:</span> <strong>{bookingResult.checkOutDate?.split('T')[0]}</strong></p>
-              {bookingResult.bookingForOther && (
-                <p><span className="text-slate-500">{locale === 'vi' ? 'Người lưu trú' : 'Stay guest'}:</span> <strong>{bookingResult.guestFullName}</strong></p>
-              )}
-              <p><span className="text-slate-500">{t('bookingPage.total')}:</span> <strong className="text-[#bfa15f]">{formatPrice(Number(bookingResult.totalPrice), locale)}</strong></p>
-              <p><span className="text-slate-500">{t('bookingPage.status')}:</span> <strong>{bookingResult.bookingStatus}</strong></p>
+          <div className="bg-white border border-stone-200 shadow-lg p-12 text-center flex flex-col items-center justify-center space-y-6">
+            <div className="w-16 h-16 bg-[#bfa15f]/10 rounded-full flex items-center justify-center text-[#bfa15f] animate-bounce">
+              <CreditCard size={32} />
             </div>
-            <Link to="/" className="btn-gold inline-block px-8 py-3 rounded">{t('bookingPage.backHome')}</Link>
+            <div>
+              <h3 className="font-display text-2xl font-bold text-slate-800 mb-2">
+                {locale === 'vi' ? 'Đặt phòng thành công!' : 'Booking Successful!'}
+              </h3>
+              <p className="text-slate-500">
+                {locale === 'vi' 
+                  ? 'Hệ thống đang khởi tạo hóa đơn và chuyển hướng bạn đến trang quét mã thanh toán...' 
+                  : 'System is generating your invoice and redirecting you to the payment page...'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-[#bfa15f] font-semibold">
+              <div className="w-4 h-4 border-2 border-[#bfa15f] border-t-transparent rounded-full animate-spin" />
+              <span>{locale === 'vi' ? 'Đang chuyển hướng...' : 'Redirecting...'}</span>
+            </div>
           </div>
         )}
       </main>

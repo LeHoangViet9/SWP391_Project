@@ -6,6 +6,7 @@ import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.common.enums.PaymentStatus;
+import com.hms.common.enums.PaymentMethod;
 import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
@@ -120,6 +121,21 @@ public class BookingServiceImpl implements BookingService {
         applyStayGuestInfo(booking, request, customer, locale);
 
         Booking saved = bookingRepository.save(booking);
+
+        // Auto-create PENDING Invoice for the new booking (including 8% VAT)
+        BigDecimal vatRate = BigDecimal.valueOf(0.08);
+        BigDecimal vatAmount = saved.getTotalPrice().multiply(vatRate).setScale(0, java.math.RoundingMode.HALF_UP);
+        BigDecimal totalAmount = saved.getTotalPrice().add(vatAmount);
+
+        Invoice invoice = Invoice.builder()
+                .booking(saved)
+                .amount(totalAmount)
+                .paymentStatus(PaymentStatus.PENDING)
+                .paymentMethod(PaymentMethod.TRANSFER)
+                .createdAt(LocalDateTime.now())
+                .build();
+        invoiceRepository.save(invoice);
+        saved.setInvoice(invoice);
 
         return bookingMapper.toResponse(saved);
     }

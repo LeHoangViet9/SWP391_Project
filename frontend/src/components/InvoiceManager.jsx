@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Printer, CreditCard, RefreshCw, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
-import { searchInvoices, markAsPaid } from '../services/invoiceService';
+import { searchInvoices, markAsPaid, createPayOsPaymentLink } from '../services/invoiceService';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
@@ -10,7 +10,8 @@ import Toast from './shared/Toast';
 const PAYMENT_METHODS = [
   { value: 'CASH', label: { vi: 'Tiền mặt', en: 'Cash' } },
   { value: 'CARD', label: { vi: 'Thẻ ngân hàng', en: 'Credit/Debit Card' } },
-  { value: 'BANK_TRANSFER', label: { vi: 'Chuyển khoản', en: 'Bank Transfer' } },
+    { value: 'TRANSFER', label: { vi: 'Chuyen khoan', en: 'Bank Transfer' } },
+  { value: 'PAYOS', label: { vi: 'PayOS', en: 'PayOS' } },
 ];
 
 export default function InvoiceManager() {

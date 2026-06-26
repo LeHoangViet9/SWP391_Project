@@ -1,5 +1,5 @@
 -- Dọn sạch dữ liệu cũ và reset các chuỗi ID tự tăng (Đã bỏ bảng không tồn tại)
-TRUNCATE TABLE room_state_history, room_img, equipment_images, repair_requests, equipments, invoices, bookings, customers, room, room_type, users, roles RESTART IDENTITY CASCADE;
+--TRUNCATE TABLE room_state_history, room_img, equipment_images, repair_requests, equipments, invoices, bookings, customers, room, room_type, users, roles RESTART IDENTITY CASCADE;
 
 -- Cập nhật/Sửa đổi các check constraint cũ của Hibernate để khớp với các giá trị Enum mới trong Java code
 -- 1. Đồng bộ với MaintenanceStatus enum

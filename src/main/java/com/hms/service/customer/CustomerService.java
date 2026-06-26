@@ -22,6 +22,7 @@ public interface CustomerService {
             SortField sortBy,
             SortDirection direction);
     CustomerResponse findById(Long id);
+    CustomerResponse findCurrentCustomer(String email);
     void restoreCustomer(Long id);
     void forceDeleteCustomer(Long id);
 }

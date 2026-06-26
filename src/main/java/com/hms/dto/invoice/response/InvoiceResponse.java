@@ -39,6 +39,8 @@ public class InvoiceResponse {
     // THÊM: Dữ liệu trả về để Frontend hiển thị QR Code
     private String qrCodeUrl;
     private String paymentContent;
+    private String paymentLinkId;
+    private String checkoutUrl;
 
 
 }

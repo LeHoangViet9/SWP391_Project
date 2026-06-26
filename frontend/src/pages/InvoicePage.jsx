@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-    Printer, Download, ArrowLeft, Building2, FileText,
+    Printer, Download, ArrowLeft, FileText,
     CreditCard, QrCode, CheckCircle2, Crown,
+    ExternalLink, Copy, Check
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useLocale } from '../context/LocaleContext';
-import { getInvoiceByBookingId } from '../services/invoiceService';
+import { getInvoiceByBookingId, createPayOsPaymentLink } from '../services/invoiceService';
 
 function formatPrice(price, locale) {
     return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
@@ -23,52 +24,6 @@ function formatDate(dateStr) {
     return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-// Generate a simple QR-like pattern placeholder using SVG
-function QrPlaceholder({ value }) {
-    return (
-        <div className="inline-flex flex-col items-center gap-2">
-            <div className="w-28 h-28 bg-white border-2 border-stone-200 rounded-lg flex items-center justify-center relative overflow-hidden">
-                {/* SVG QR Pattern placeholder */}
-                <svg viewBox="0 0 100 100" className="w-24 h-24">
-                    {/* Corner squares */}
-                    <rect x="5" y="5" width="25" height="25" fill="#1a2332" rx="3" />
-                    <rect x="8" y="8" width="19" height="19" fill="white" rx="2" />
-                    <rect x="11" y="11" width="13" height="13" fill="#1a2332" rx="1" />
-
-                    <rect x="70" y="5" width="25" height="25" fill="#1a2332" rx="3" />
-                    <rect x="73" y="8" width="19" height="19" fill="white" rx="2" />
-                    <rect x="76" y="11" width="13" height="13" fill="#1a2332" rx="1" />
-
-                    <rect x="5" y="70" width="25" height="25" fill="#1a2332" rx="3" />
-                    <rect x="8" y="73" width="19" height="19" fill="white" rx="2" />
-                    <rect x="11" y="76" width="13" height="13" fill="#1a2332" rx="1" />
-
-                    {/* Random data cells */}
-                    {[
-                        [35,5],[40,5],[50,5],[55,5],[60,5],
-                        [35,10],[45,10],[55,10],[65,10],
-                        [5,35],[10,35],[15,35],[25,35],[35,35],[40,35],[55,35],[60,35],[70,35],[80,35],[90,35],
-                        [5,40],[20,40],[35,40],[50,40],[65,40],[75,40],[85,40],
-                        [10,45],[25,45],[40,45],[45,45],[55,45],[70,45],[80,45],[90,45],
-                        [5,50],[15,50],[30,50],[45,50],[60,50],[75,50],[85,50],
-                        [5,55],[20,55],[35,55],[50,55],[65,55],[80,55],[90,55],
-                        [10,60],[25,60],[40,60],[55,60],[70,60],[85,60],
-                        [5,65],[15,65],[30,65],[45,65],[60,65],[75,65],
-                        [35,70],[45,70],[55,70],[65,70],[80,70],[90,70],
-                        [35,75],[50,75],[60,75],[75,75],[85,75],
-                        [35,80],[40,80],[55,80],[70,80],[90,80],
-                        [35,85],[45,85],[60,85],[75,85],[80,85],[90,85],
-                        [35,90],[50,90],[65,90],[85,90],[90,90],
-                    ].map(([x, y], i) => (
-                        <rect key={i} x={x} y={y} width="4" height="4" fill="#1a2332" rx="0.5" />
-                    ))}
-                </svg>
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono">{value}</span>
-        </div>
-    );
-}
-
 export default function InvoicePage() {
     const { bookingId } = useParams();
     const { locale } = useLocale();
@@ -77,10 +32,12 @@ export default function InvoicePage() {
     const [invoice, setInvoice] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [paymentMode, setPaymentMode] = useState('vietqr'); // 'vietqr' or 'payos'
+    const [generatingPayOs, setGeneratingPayOs] = useState(false);
+    const [copied, setCopied] = useState(false);
 
-    useEffect(() => {
+    const fetchInvoice = () => {
         if (!bookingId) return;
-        setLoading(true);
         getInvoiceByBookingId(bookingId, locale)
             .then((res) => {
                 if (res?.data) {
@@ -93,24 +50,69 @@ export default function InvoicePage() {
                 setError(err.message || (isVi ? 'Lỗi tải hóa đơn.' : 'Failed to load invoice.'));
             })
             .finally(() => setLoading(false));
+    };
+
+    // Initial load
+    useEffect(() => {
+        setLoading(true);
+        fetchInvoice();
     }, [bookingId, locale]);
+
+    // Status Polling for Pending Invoices
+    useEffect(() => {
+        if (!invoice || invoice.paymentStatus === 'PAID') return;
+
+        const interval = setInterval(() => {
+            getInvoiceByBookingId(bookingId, locale)
+                .then((res) => {
+                    if (res?.data) {
+                        setInvoice(res.data);
+                    }
+                })
+                .catch((err) => {
+                    console.error('Failed to poll invoice status:', err);
+                });
+        }, 4000);
+
+        return () => clearInterval(interval);
+    }, [bookingId, locale, invoice?.paymentStatus]);
 
     const handlePrint = () => window.print();
 
-    const handleDownloadPDF = () => {
-        // Uses browser print dialog with "Save as PDF" option
-        window.print();
+    const handleCopyContent = (text) => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
-    // Calculate invoice data
-    const subtotal = invoice?.totalAmount || invoice?.totalPrice || 0;
-    const vatRate = 0.10;
-    const serviceRate = 0.05;
-    const vatAmount = subtotal * vatRate;
-    const serviceAmount = subtotal * serviceRate;
-    const grandTotal = subtotal + vatAmount + serviceAmount;
+    const handleGeneratePayOs = async () => {
+        if (!invoice) return;
+        setGeneratingPayOs(true);
+        try {
+            const res = await createPayOsPaymentLink(invoice.invoiceId, locale);
+            if (res?.data) {
+                setInvoice(res.data);
+                // Automatically redirect or open PayOS checkout link in a new tab
+                if (res.data.checkoutUrl) {
+                    window.open(res.data.checkoutUrl, '_blank');
+                }
+            }
+        } catch (err) {
+            console.error('Failed to generate PayOS payment link:', err);
+            setError(isVi ? 'Không thể khởi tạo liên kết PayOS. Vui lòng thử lại.' : 'Could not generate PayOS link. Please try again.');
+        } finally {
+            setGeneratingPayOs(false);
+        }
+    };
 
-    const invoiceNumber = `INV-${String(bookingId).padStart(6, '0')}`;
+    // Calculate invoice data (respecting backend outputs first)
+    const subtotal = invoice?.roomPriceSubTotal || invoice?.totalPrice || 0;
+    const vatAmount = invoice?.vatAmount || 0;
+    const serviceAmount = invoice?.serviceSubTotal || 0;
+    const additionalAmount = invoice?.additionalCharges || 0;
+    const grandTotal = invoice?.totalAmount || (subtotal + vatAmount + serviceAmount + additionalAmount);
+
+    const invoiceNumber = invoice?.invoiceId ? `INV-${String(invoice.invoiceId).padStart(6, '0')}` : `INV-${String(bookingId).padStart(6, '0')}`;
     const invoiceDate = invoice?.createdAt ? formatDate(invoice.createdAt) : formatDate(new Date().toISOString());
 
     // Build line items from invoice data
@@ -127,7 +129,7 @@ export default function InvoicePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex flex-col">
+            <div className="min-h-screen flex flex-col bg-stone-50">
                 <Header />
                 <div className="flex-1 flex items-center justify-center">
                     <div className="flex items-center gap-3 text-[#bfa15f]">
@@ -142,13 +144,13 @@ export default function InvoicePage() {
 
     if (error) {
         return (
-            <div className="min-h-screen flex flex-col">
+            <div className="min-h-screen flex flex-col bg-stone-50">
                 <Header />
                 <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
+                    <div className="text-center bg-white p-8 border border-stone-200 shadow-xl max-w-md w-full mx-4 rounded-xl">
                         <FileText size={48} className="text-stone-300 mx-auto mb-4" />
-                        <p className="text-slate-600 mb-4">{error}</p>
-                        <Link to="/" className="text-[#bfa15f] font-semibold hover:underline">
+                        <p className="text-slate-600 mb-6 font-medium">{error}</p>
+                        <Link to="/" className="inline-block btn-gold px-6 py-2.5 rounded-lg text-sm font-semibold">
                             ← {isVi ? 'Về trang chủ' : 'Back to home'}
                         </Link>
                     </div>
@@ -158,12 +160,26 @@ export default function InvoicePage() {
         );
     }
 
+    const isPaid = invoice?.paymentStatus === 'PAID';
+
     return (
         <div className="min-h-screen flex flex-col bg-stone-100">
             {/* Header - hidden in print */}
             <div className="no-print">
                 <Header />
             </div>
+
+            {/* Dynamic Success Payment Banner */}
+            {isPaid && (
+                <div className="bg-emerald-50 border-b border-emerald-200 py-4 px-8 text-center flex items-center justify-center gap-3 no-print">
+                    <CheckCircle2 size={24} className="text-emerald-600 animate-bounce" />
+                    <span className="text-emerald-800 font-bold text-sm">
+                        {isVi 
+                          ? 'Thanh toán thành công! Phòng của bạn đã được xác nhận giữ chỗ.' 
+                          : 'Payment successful! Your room has been successfully reserved.'}
+                    </span>
+                </div>
+            )}
 
             <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8 md:py-12">
                 {/* Action buttons - hidden in print */}
@@ -182,7 +198,7 @@ export default function InvoicePage() {
                         </button>
                         <button
                             onClick={handleDownloadPDF}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 btn-gold rounded-lg text-sm"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 btn-gold rounded-lg text-sm font-semibold"
                         >
                             <Download size={16} />
                             {isVi ? 'Tải PDF' : 'Download PDF'}
@@ -209,9 +225,11 @@ export default function InvoicePage() {
                             </div>
                             {/* Invoice badge */}
                             <div className="text-right">
-                            <span className="inline-block bg-[#bfa15f]/20 text-[#bfa15f] text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
-                              {isVi ? 'Hóa đơn' : 'Invoice'}
-                            </span>
+                                <span className={`inline-block text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider ${
+                                    isPaid ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                                }`}>
+                                  {isPaid ? (isVi ? 'Hóa đơn đã trả' : 'Paid Receipt') : (isVi ? 'Hóa đơn tạm tính' : 'Invoice Due')}
+                                </span>
                             </div>
                         </div>
 
@@ -247,17 +265,15 @@ export default function InvoicePage() {
                             </div>
                             <div>
                                 <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{isVi ? 'Trạng thái' : 'Status'}</p>
-                                <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${
-                                    invoice?.paymentStatus === 'PAID'
-                                        ? 'bg-emerald-100 text-emerald-700'
-                                        : 'bg-amber-100 text-amber-700'
+                                <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                                    isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                                 }`}>
-                  {invoice?.paymentStatus === 'PAID' ? (
-                      <><CheckCircle2 size={12} /> {isVi ? 'Đã thanh toán' : 'Paid'}</>
-                  ) : (
-                      isVi ? 'Chờ thanh toán' : 'Pending'
-                  )}
-                </span>
+                                  {isPaid ? (
+                                      <><CheckCircle2 size={12} /> {isVi ? 'Đã thanh toán' : 'Paid'}</>
+                                  ) : (
+                                      isVi ? 'Chờ thanh toán' : 'Pending'
+                                  )}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -324,35 +340,161 @@ export default function InvoicePage() {
                                         <span className="text-slate-700">{formatPrice(subtotal, locale)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">{isVi ? 'Thuế VAT' : 'VAT'} (10%)</span>
+                                        <span className="text-slate-500">{isVi ? 'Thuế VAT' : 'VAT'} (8%)</span>
                                         <span className="text-slate-700">{formatPrice(vatAmount, locale)}</span>
                                     </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">{isVi ? 'Phí dịch vụ' : 'Service Fee'} (5%)</span>
-                                        <span className="text-slate-700">{formatPrice(serviceAmount, locale)}</span>
-                                    </div>
+                                    {additionalAmount > 0 && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">{isVi ? 'Phụ phí' : 'Additional charges'}</span>
+                                            <span className="text-slate-700">{formatPrice(additionalAmount, locale)}</span>
+                                        </div>
+                                    )}
                                     <div className="h-px bg-stone-200 my-2" />
                                     <div className="flex justify-between items-baseline">
                                         <span className="text-base font-bold text-slate-800">{isVi ? 'Tổng cộng' : 'Total Amount Due'}</span>
                                         <span className="text-2xl font-bold text-[#bfa15f]">{formatPrice(grandTotal, locale)}</span>
                                     </div>
 
-                                    {/* Payment method */}
-                                    <div className="pt-3 flex items-center gap-2 text-xs text-slate-400">
-                                        <CreditCard size={14} />
-                                        <span>{isVi ? 'Phương thức:' : 'Payment:'} </span>
-                                        <span className="font-semibold text-slate-600">
-                      {invoice?.paymentMethod || (isVi ? 'Tiền mặt / Chuyển khoản' : 'Cash / Bank Transfer')}
-                    </span>
-                                    </div>
+                                    {/* Payment method selection / status (Only show selector when pending and not printing) */}
+                                    {!isPaid ? (
+                                        <div className="pt-4 no-print space-y-3">
+                                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                                {isVi ? 'Chọn cổng thanh toán:' : 'Choose payment gateway:'}
+                                            </p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={() => setPaymentMode('vietqr')}
+                                                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${
+                                                        paymentMode === 'vietqr'
+                                                          ? 'bg-[#bfa15f]/10 border-[#bfa15f] text-[#bfa15f]'
+                                                          : 'bg-white border-stone-200 text-slate-600 hover:bg-stone-50'
+                                                    }`}
+                                                >
+                                                    {isVi ? 'Chuyển khoản (VietQR)' : 'VietQR Bank Transfer'}
+                                                </button>
+                                                <button
+                                                    onClick={() => setPaymentMode('payos')}
+                                                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${
+                                                        paymentMode === 'payos'
+                                                          ? 'bg-[#bfa15f]/10 border-[#bfa15f] text-[#bfa15f]'
+                                                          : 'bg-white border-stone-200 text-slate-600 hover:bg-stone-50'
+                                                    }`}
+                                                >
+                                                    PayOS (Online Card)
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="pt-3 flex items-center gap-2 text-xs text-slate-400">
+                                            <CreditCard size={14} />
+                                            <span>{isVi ? 'Phương thức thanh toán:' : 'Payment method:'} </span>
+                                            <span className="font-semibold text-slate-600">
+                                              {invoice?.paymentMethod || (isVi ? 'Chuyển khoản VietQR' : 'VietQR Transfer')}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
-                                {/* QR Code */}
-                                <div className="flex flex-col items-center justify-center sm:border-l sm:border-stone-200 sm:pl-6">
-                                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
-                                        {isVi ? 'Quét để thanh toán' : 'Scan to Pay'}
-                                    </p>
-                                    <QrPlaceholder value={invoiceNumber} />
+                                {/* QR Code Payment Section */}
+                                <div className="flex flex-col items-center justify-center sm:border-l sm:border-stone-200 sm:pl-6 min-w-[220px]">
+                                    {isPaid ? (
+                                        <div className="flex flex-col items-center justify-center p-4 text-center space-y-2">
+                                            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+                                                <CheckCircle2 size={36} />
+                                            </div>
+                                            <span className="text-emerald-700 font-bold text-sm">{isVi ? 'ĐÃ THANH TOÁN' : 'PAID'}</span>
+                                            <span className="text-xs text-slate-400 font-mono">
+                                                {invoice.paidAt ? formatDate(invoice.paidAt) : formatDate(new Date().toISOString())}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-3">
+                                                {isVi ? 'Quét để thanh toán' : 'Scan to Pay'}
+                                            </p>
+                                            {paymentMode === 'vietqr' ? (
+                                                <div className="flex flex-col items-center gap-2">
+                                                    {invoice?.qrCodeUrl ? (
+                                                        <div className="w-40 h-40 bg-white border border-stone-200 rounded-xl p-1.5 flex items-center justify-center shadow-inner">
+                                                            <img src={invoice.qrCodeUrl} alt="VietQR Code" className="w-full h-full object-contain" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-40 h-40 bg-white border border-stone-200 rounded-xl flex items-center justify-center">
+                                                            <div className="w-6 h-6 border-2 border-[#bfa15f] border-t-transparent rounded-full animate-spin" />
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Copy details */}
+                                                    <div className="w-full max-w-[200px] mt-2 space-y-1.5 text-[10px] text-slate-500 bg-stone-100 p-2 rounded-lg font-mono">
+                                                        <div className="flex justify-between items-center">
+                                                            <span>STK: 123456789</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span>Nội dung:</span>
+                                                            <button 
+                                                                onClick={() => handleCopyContent(invoice?.paymentContent || `HMS${bookingId}`)}
+                                                                className="text-[#bfa15f] hover:underline flex items-center gap-0.5"
+                                                            >
+                                                                {invoice?.paymentContent || `HMS${bookingId}`}
+                                                                {copied ? <Check size={10} className="text-green-600" /> : <Copy size={10} />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center gap-3 py-4">
+                                                    {invoice?.checkoutUrl ? (
+                                                        <div className="text-center space-y-4">
+                                                            <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center text-[#bfa15f] mx-auto animate-pulse">
+                                                                <QrCode size={40} />
+                                                            </div>
+                                                            <a
+                                                                href={invoice.checkoutUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#bfa15f] text-white rounded-lg text-xs font-bold hover:bg-[#a3854a] transition-all shadow-md hover:shadow-lg no-print"
+                                                            >
+                                                                <span>{isVi ? 'Thanh toán PayOS' : 'Pay via PayOS'}</span>
+                                                                <ExternalLink size={12} />
+                                                            </a>
+                                                            <p className="text-[10px] text-slate-400 max-w-[180px] leading-relaxed">
+                                                                {isVi 
+                                                                  ? 'Bấm nút để mở trang cổng thanh toán PayOS trên tab mới' 
+                                                                  : 'Click button to open PayOS gateway on a new tab'}
+                                                            </p>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-center space-y-3">
+                                                            <button
+                                                                onClick={handleGeneratePayOs}
+                                                                disabled={generatingPayOs}
+                                                                className="px-5 py-2.5 btn-gold rounded-lg text-xs font-bold shadow-md hover:shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
+                                                            >
+                                                                {generatingPayOs ? (
+                                                                    <>
+                                                                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                                        <span>{isVi ? 'Đang tạo...' : 'Generating...'}</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <span>{isVi ? 'Khởi tạo link PayOS' : 'Generate PayOS Link'}</span>
+                                                                )}
+                                                            </button>
+                                                            <p className="text-[10px] text-slate-400 max-w-[180px]">
+                                                                {isVi 
+                                                                  ? 'Khởi tạo liên kết PayOS trực tiếp để quét mã và thẻ ngân hàng' 
+                                                                  : 'Generate a PayOS link to pay via QR or bank card'}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="mt-3 flex items-center gap-1.5 text-[10px] text-slate-400 animate-pulse font-semibold">
+                                                <div className="w-2.5 h-2.5 border border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                                <span>{isVi ? 'Đang đợi bạn quét mã...' : 'Waiting for payment...'}</span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -70,6 +70,7 @@ export default function CustomerBookingHistory() {
     t('bookingHistory.columns.status'),
     t('bookingHistory.columns.totalPrice'),
     t('bookingHistory.columns.createdAt'),
+    locale === 'vi' ? 'Thao tác' : 'Actions',
   ];
 
   const rows = items.map((item) => {
@@ -88,6 +89,20 @@ export default function CustomerBookingHistory() {
         </td>
         <td className="px-4 py-3 text-xs font-bold text-[#bfa15f]">{formatMoney(item.totalPrice, locale)}</td>
         <td className="px-4 py-3 text-xs text-slate-400">{formatDateTime(item.createdAt, locale)}</td>
+        <td className="px-4 py-3 text-xs">
+          <Link
+            to={`/invoice/${item.id}`}
+            className={`inline-flex items-center justify-center px-3 py-1.5 font-bold rounded-lg transition-all text-center min-w-[95px] ${
+              status === 'PENDING'
+                ? 'bg-[#bfa15f] text-white hover:bg-[#a3854a] shadow-sm shadow-[#bfa15f]/20'
+                : 'bg-stone-100 text-slate-600 hover:bg-[#bfa15f]/10 hover:text-[#bfa15f]'
+            }`}
+          >
+            {status === 'PENDING' 
+              ? (locale === 'vi' ? 'Thanh toán' : 'Pay Now') 
+              : (locale === 'vi' ? 'Xem hóa đơn' : 'View Invoice')}
+          </Link>
+        </td>
       </tr>
     );
   });

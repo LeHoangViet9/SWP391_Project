@@ -138,6 +138,17 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
+    public CustomerResponse findCurrentCustomer(String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Customer customer = customerRepository.findByEmailAndStatus(email, AccountStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.customer.profile.notfound", null, locale)
+                ));
+
+        return customerMapper.toResponse(customer);
+    }
+
+    @Override
     @Transactional
     public void restoreCustomer(Long id) {
         Locale locale = LocaleContextHolder.getLocale();

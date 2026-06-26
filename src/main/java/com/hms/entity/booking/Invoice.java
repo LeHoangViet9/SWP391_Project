@@ -53,4 +53,10 @@ public class Invoice {
 
     @Column(name = "additional_charges", precision = 12, scale = 2)
     private BigDecimal additionalCharges;
+
+    @Column(name = "payment_link_id")
+    private String paymentLinkId;
+
+    @Column(name = "checkout_url", length = 500)
+    private String checkoutUrl;
 }

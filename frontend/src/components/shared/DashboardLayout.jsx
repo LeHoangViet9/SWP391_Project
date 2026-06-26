@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLocale } from '../../context/LocaleContext';
+import NotificationCenter from './NotificationCenter';
 
 export default function DashboardLayout({
   title,
@@ -153,6 +154,8 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-4">
+            <NotificationCenter />
+
             <div className="relative">
               <button
                 onClick={() => setLangOpen(!langOpen)}

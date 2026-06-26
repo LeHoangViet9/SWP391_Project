@@ -1,5 +1,6 @@
 package com.hms.service.booking;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.hms.common.enums.PaymentMethod;
 import com.hms.common.enums.PaymentStatus;
 import com.hms.common.enums.SortDirection;
@@ -34,4 +35,12 @@ public interface InvoiceService {
     InvoiceResponse getInvoiceById(Long invoiceId);
 
     InvoiceResponse confirmPaymentSuccess(Long bookingId);
+
+    InvoiceResponse markInvoicePaid(Long invoiceId, PaymentMethod paymentMethod);
+
+    InvoiceResponse createPayOsPaymentLink(Long invoiceId);
+
+    InvoiceResponse syncPayOsPaymentStatus(Long orderCode);
+
+    InvoiceResponse handlePayOsWebhook(JsonNode webhookBody);
 }

@@ -12,6 +12,7 @@ import UnauthorizedPage from './pages/UnauthorizedPage';
 import BookingPage from './pages/BookingPage';
 import InvoicePage from './pages/InvoicePage';
 import DashboardRouter from './pages/DashboardRouter';
+import PayOsRealtimeDemo from './pages/PayOsRealtimeDemo';
 
 export default function App() {
   return (

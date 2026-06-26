@@ -40,6 +40,18 @@ export async function markAsPaid(id, paymentMethod, locale = 'vi') {
   }, locale);
 }
 
+/** POST /api/v1/invoices/{id}/payos-link */
+export async function createPayOsPaymentLink(id, locale = 'vi') {
+  return apiFetch(`/invoices/${id}/payos-link`, {
+    method: 'POST',
+  }, locale);
+}
+
+/** GET /api/v1/invoices/payos/sync/{orderCode} */
+export async function syncPayOsPaymentStatus(orderCode, locale = 'vi') {
+  return apiFetch(`/invoices/payos/sync/${orderCode}`, {}, locale);
+}
+
 /** POST /api/v1/invoices/{id}/process-payments */
 export async function processPayments(id, paymentMethod, locale = 'vi') {
   return apiFetch(`/invoices/${id}/process-payments`, {
