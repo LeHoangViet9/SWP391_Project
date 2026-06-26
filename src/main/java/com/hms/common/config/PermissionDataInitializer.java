@@ -134,6 +134,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
     private void assignPermissionsToReceptionist() {
         List<String> receptionistPerms = Arrays.asList(
+                "DASHBOARD_VIEW",
                 "ROOM_VIEW",
                 "ROOM_TYPE_VIEW",
                 "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE",
@@ -148,6 +149,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
     private void assignPermissionsToHousekeeper() {
         List<String> housekeeperPerms = Arrays.asList(
+                "DASHBOARD_VIEW",
                 "ROOM_VIEW",
                 "HOUSEKEEPING_VIEW", "HOUSEKEEPING_CREATE", "HOUSEKEEPING_UPDATE",
                 "EQUIPMENT_VIEW",
@@ -158,6 +160,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
     private void assignPermissionsToMaintenance() {
         List<String> maintenancePerms = Arrays.asList(
+                "DASHBOARD_VIEW",
                 "ROOM_VIEW",
                 "EQUIPMENT_VIEW", "EQUIPMENT_CREATE", "EQUIPMENT_UPDATE",
                 "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE"
