@@ -321,3 +321,5 @@ CREATE INDEX IF NOT EXISTS idx_user_permissions_permission ON user_permissions(p
 DELETE FROM invoices WHERE booking_id = 12;
 
 select * from invoices
+
+select * from users

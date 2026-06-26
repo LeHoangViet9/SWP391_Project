@@ -4,9 +4,10 @@ package com.hms.service.dashboard.impl;
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.BookingStatus;
 import com.hms.common.enums.MaintenanceStatus;
+import com.hms.common.exception.BadRequestException;
 import com.hms.dto.dashboard.response.AdminDashboardResponse;
+import com.hms.dto.dashboard.response.HouseKeepingDashboardResponse;
 import com.hms.dto.dashboard.response.MaintenanceDashboardResponse;
-import com.hms.dto.dashboard.response.ManagerDashboardResponse;
 import com.hms.dto.dashboard.response.ReceptionistDashboardResponse;
 import com.hms.repository.auth.UserRepository;
 import com.hms.repository.booking.BookingRepository;
@@ -15,6 +16,9 @@ import com.hms.repository.customer.CustomerRepository;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.repository.maintenance.MaintenanceRepository;
+import com.hms.repository.housekeeping.HouseKeepingTaskRepository;
+import com.hms.common.exception.ResourceNotFoundException;
+import com.hms.entity.auth.User;
 import com.hms.service.dashboard.DashboardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -42,6 +46,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final CustomerRepository customerRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final UserRepository userRepository;
+    private final HouseKeepingTaskRepository housekeepingTaskRepository;
 
 
     @Override
@@ -180,6 +185,58 @@ public class DashboardServiceImpl implements DashboardService {
                 .build();
     }
 
+    @Override
+    public HouseKeepingDashboardResponse getHousekeeperDashboard(String housekeeperEmail) {
+        User housekeeper = userRepository.findUserByEmail(housekeeperEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + housekeeperEmail));
+
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfToday = today.atStartOfDay();
+        LocalDateTime startOfTomorrow = today.plusDays(1).atStartOfDay();
+
+        long myAssignedTasksCount = housekeepingTaskRepository.countByAssignedTo_IdAndCreatedAtBetween(
+                housekeeper.getId(),
+                startOfToday,
+                startOfTomorrow
+        );
+
+        Map<String, Long> roomStatusOverview = convertRoomStatusStats(
+                roomRepository.countRoomsGroupedByStatus()
+        );
+
+        long dirtyRoomsCount = roomStatusOverview.getOrDefault("DIRTY", 0L);
+        long cleaningRoomsCount = roomStatusOverview.getOrDefault("CLEANING", 0L);
+        long availableRoomsCount = roomStatusOverview.getOrDefault("AVAILABLE", 0L);
+
+        return HouseKeepingDashboardResponse.builder()
+                .dirtyRoomsCount(dirtyRoomsCount)
+                .cleaningRoomsCount(cleaningRoomsCount)
+                .availableRoomsCount(availableRoomsCount)
+                .myAssignedTasksCount(myAssignedTasksCount)
+                .build();
+    }
+
+    @Override
+    public Object getDashboardData(String email) {
+        User user = userRepository.findUserByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+        String role = user.getRole() != null ? user.getRole().getRoleName().toUpperCase() : "";
+
+        switch (role) {
+            case "ADMIN":
+            case "MANAGER":
+                return getAdminDashboard();
+            case "RECEPTIONIST":
+                return getReceptionistDashboard();
+            case "MAINTENANCE":
+                return getMaintenanceDashboard();
+            case "HOUSEKEEPER":
+                return getHousekeeperDashboard(email);
+            default:
+                throw new BadRequestException("Role has no dashboard: " + role);
+        }
+    }
 
 
     private List<AdminDashboardResponse.RevenueChartPoint> buildSevenDayRevenueTrend(LocalDate today) {
