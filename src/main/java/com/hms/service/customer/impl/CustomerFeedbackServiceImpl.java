@@ -3,9 +3,11 @@ package com.hms.service.customer.impl;
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.BookingStatus;
 import com.hms.common.enums.FeedbackStatus;
+import com.hms.common.enums.SortDirection;
 import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
+import com.hms.common.utils.PageableUtils;
 import com.hms.dto.customer.request.CustomerFeedbackRequest;
 import com.hms.dto.customer.request.FeedbackReplyRequest;
 import com.hms.dto.customer.response.CustomerFeedbackResponse;
@@ -21,29 +23,33 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Locale;
 import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
+
+    private static final Set<String> VALID_CATEGORIES = Set.of("Room", "Service", "Cleanliness", "Staff");
 
     private final CustomerFeedbackRepository customerFeedbackRepository;
     private final BookingRepository bookingRepository;
     private final CustomerRepository customerRepository;
     private final MessageSource messageSource;
     private final CustomerFeedbackMapper customerFeedbackMapper;
+    private final PageableUtils pageableUtils;
 
     @Override
     @Transactional
     public CustomerFeedbackResponse createFeedback(CustomerFeedbackRequest request, String email) {
         Locale locale = LocaleContextHolder.getLocale();
+
         Customer customer = customerRepository.findByEmailAndStatus(email, AccountStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.feedback.customer.notfound", null, locale)
@@ -72,27 +78,17 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
             );
         }
 
-        if (request.getCategory() == null) {
+        if (!VALID_CATEGORIES.contains(request.getCategory())) {
             throw new BadRequestException(
                     messageSource.getMessage("error.feedback.category.invalid", null, locale)
             );
         }
 
-        String normalizedCategory = switch (request.getCategory().toLowerCase()) {
-            case "room" -> "Room";
-            case "service" -> "Service";
-            case "cleanliness" -> "Cleanliness";
-            case "staff" -> "Staff";
-            default -> throw new BadRequestException(
-                    messageSource.getMessage("error.feedback.category.invalid", null, locale)
-            );
-        };
-
         CustomerFeedback feedback = CustomerFeedback.builder()
                 .booking(booking)
                 .customer(customer)
                 .rating(request.getRating())
-                .category(normalizedCategory)
+                .category(request.getCategory())
                 .comment(request.getComment())
                 .status(FeedbackStatus.PENDING)
                 .build();
@@ -101,25 +97,31 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<CustomerFeedbackResponse> searchFeedback(String keyword, Integer rating, String status, String category, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+    public Page<CustomerFeedbackResponse> searchFeedback(String keyword, Integer rating, String status, String category, Integer page, Integer size) {
+        Locale locale = LocaleContextHolder.getLocale();
+        Pageable pageable = pageableUtils.createPageable(page, size, "createdAt", SortDirection.DESC);
+
         FeedbackStatus enumStatus = null;
         if (status != null && !status.isBlank()) {
             try {
                 enumStatus = FeedbackStatus.valueOf(status.toUpperCase());
             } catch (IllegalArgumentException e) {
-                // Ignore or handle invalid status
+                throw new BadRequestException(
+                        messageSource.getMessage("error.feedback.status.invalid", null, "Invalid feedback status: " + status, locale)
+                );
             }
         }
-        Page<CustomerFeedback> feedbackPage = customerFeedbackRepository.searchFeedback(keyword, rating, enumStatus, category, pageable);
-        return feedbackPage.map(customerFeedbackMapper::toResponse);
+
+        return customerFeedbackRepository
+                .searchFeedback(keyword, rating, enumStatus, category, pageable)
+                .map(customerFeedbackMapper::toResponse);
     }
 
     @Override
     @Transactional
     public CustomerFeedbackResponse replyFeedback(Long feedbackId, FeedbackReplyRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
+
         CustomerFeedback feedback = customerFeedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.feedback.notfound", null, locale)
@@ -132,13 +134,15 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
     }
 
     @Override
-    @Transactional 
+    @Transactional
     public void deleteFeedback(Long feedbackId) {
         Locale locale = LocaleContextHolder.getLocale();
+
         CustomerFeedback feedback = customerFeedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.feedback.notfound", null, locale)
                 ));
+
         customerFeedbackRepository.delete(feedback);
     }
 }

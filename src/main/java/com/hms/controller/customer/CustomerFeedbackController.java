@@ -26,27 +26,22 @@ public class CustomerFeedbackController {
     private final CustomerFeedbackService customerFeedbackService;
     private final MessageSource messageSource;
 
+    // 1. Gửi đánh giá -> Quyền tạo (FEEDBACK_CREATE)
     @PostMapping
     @PreAuthorize("hasAuthority('FEEDBACK_CREATE')")
     public ResponseEntity<ApiResponse<CustomerFeedbackResponse>> createFeedback(
             @Valid @RequestBody CustomerFeedbackRequest request,
             @AuthenticationPrincipal String email) {
-        
         Locale locale = LocaleContextHolder.getLocale();
-        CustomerFeedbackResponse data = customerFeedbackService.createFeedback(request, email);
-        
-        String message = messageSource.getMessage("success.feedback.create", null, "Feedback submitted successfully", locale);
-        ApiResponse<CustomerFeedbackResponse> response = ApiResponse.<CustomerFeedbackResponse>builder()
-                .success(true)
-                .message(message)
-                .data(data)
-                .status(HttpStatus.CREATED)
-                .statusCode(HttpStatus.CREATED.value())
-                .build();
-                
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.create", null, "Feedback submitted successfully", locale),
+                customerFeedbackService.createFeedback(request, email),
+                HttpStatus.CREATED
+        ), HttpStatus.CREATED);
     }
 
+    // 2. Tìm kiếm & lọc đánh giá -> Quyền xem (FEEDBACK_VIEW)
     @GetMapping
     @PreAuthorize("hasAuthority('FEEDBACK_VIEW')")
     public ResponseEntity<ApiResponse<Page<CustomerFeedbackResponse>>> searchFeedback(
@@ -54,60 +49,43 @@ public class CustomerFeedbackController {
             @RequestParam(required = false) Integer rating,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String category,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-            
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
         Locale locale = LocaleContextHolder.getLocale();
-        Page<CustomerFeedbackResponse> data = customerFeedbackService.searchFeedback(keyword, rating, status, category, page, size);
-        
-        String message = messageSource.getMessage("success.feedback.search", null, "Feedbacks retrieved successfully", locale);
-        ApiResponse<Page<CustomerFeedbackResponse>> response = ApiResponse.<Page<CustomerFeedbackResponse>>builder()
-                .success(true)
-                .message(message)
-                .data(data)
-                .status(HttpStatus.OK)
-                .statusCode(HttpStatus.OK.value())
-                .build();
-                
-        return ResponseEntity.ok(response);
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.search", null, "Feedbacks retrieved successfully", locale),
+                customerFeedbackService.searchFeedback(keyword, rating, status, category, page, size),
+                HttpStatus.OK
+        ), HttpStatus.OK);
     }
 
+    // 3. Phản hồi đánh giá -> Quyền cập nhật (FEEDBACK_UPDATE)
     @PutMapping("/{id}/reply")
     @PreAuthorize("hasAuthority('FEEDBACK_UPDATE')")
     public ResponseEntity<ApiResponse<CustomerFeedbackResponse>> replyFeedback(
             @PathVariable Long id,
             @Valid @RequestBody FeedbackReplyRequest request) {
-            
         Locale locale = LocaleContextHolder.getLocale();
-        CustomerFeedbackResponse data = customerFeedbackService.replyFeedback(id, request);
-        
-        String message = messageSource.getMessage("success.feedback.reply", null, "Reply submitted successfully", locale);
-        ApiResponse<CustomerFeedbackResponse> response = ApiResponse.<CustomerFeedbackResponse>builder()
-                .success(true)
-                .message(message)
-                .data(data)
-                .status(HttpStatus.OK)
-                .statusCode(HttpStatus.OK.value())
-                .build();
-                
-        return ResponseEntity.ok(response);
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.reply", null, "Reply submitted successfully", locale),
+                customerFeedbackService.replyFeedback(id, request),
+                HttpStatus.OK
+        ), HttpStatus.OK);
     }
 
+    // 4. Xóa đánh giá -> Quyền xóa (FEEDBACK_DELETE)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('FEEDBACK_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteFeedback(@PathVariable Long id) {
-        
         Locale locale = LocaleContextHolder.getLocale();
         customerFeedbackService.deleteFeedback(id);
-        
-        String message = messageSource.getMessage("success.feedback.delete", null, "Feedback deleted successfully", locale);
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(true)
-                .message(message)
-                .status(HttpStatus.OK)
-                .statusCode(HttpStatus.OK.value())
-                .build();
-                
-        return ResponseEntity.ok(response);
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.delete", null, "Feedback deleted successfully", locale),
+                null,
+                HttpStatus.OK
+        ), HttpStatus.OK);
     }
 }
