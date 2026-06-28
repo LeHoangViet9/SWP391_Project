@@ -2,6 +2,7 @@ package com.hms.service.booking.impl;
 
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.BookingStatus;
+import com.hms.common.enums.IdType;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
@@ -48,6 +49,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
+
+    private static final String CCCD_PATTERN = "\\d{12}";
 
     private static final List<BookingStatus> ROOM_HOLDING_STATUSES = List.of(
             BookingStatus.PENDING,
@@ -362,6 +365,7 @@ public class BookingServiceImpl implements BookingService {
     private void applyStayGuestInfo(Booking booking, BookingRequest request, Customer customer, Locale locale) {
         boolean bookingForOther = Boolean.TRUE.equals(request.getBookingForOther());
         booking.setBookingForOther(bookingForOther);
+        validateCccd(customer.getIdType(), customer.getIdNumberCard(), "booking.booker.cccd.invalid", locale);
 
         if (!bookingForOther) {
             booking.setGuestFullName(customer.getFullName());
@@ -376,6 +380,13 @@ public class BookingServiceImpl implements BookingService {
         validateRequiredGuestInfo(request.getGuestFullName(), "booking.guest.fullname.required", locale);
         validateRequiredGuestInfo(request.getGuestPhone(), "booking.guest.phone.required", locale);
         validateRequiredGuestInfo(request.getGuestIdNumberCard(), "booking.guest.id.required", locale);
+        validateCccd(request.getGuestIdType(), request.getGuestIdNumberCard(), "booking.guest.cccd.invalid", locale);
+
+        if (customer.getIdType() == IdType.CCCD
+                && "CCCD".equalsIgnoreCase(trimToNull(request.getGuestIdType()))
+                && customer.getIdNumberCard().trim().equals(request.getGuestIdNumberCard().trim())) {
+            throw new BadRequestException(messageSource.getMessage("booking.cccd.duplicate", null, locale));
+        }
 
         booking.setGuestFullName(trimToNull(request.getGuestFullName()));
         booking.setGuestEmail(trimToNull(request.getGuestEmail()));
@@ -387,6 +398,19 @@ public class BookingServiceImpl implements BookingService {
 
     private void validateRequiredGuestInfo(String value, String messageKey, Locale locale) {
         if (trimToNull(value) == null) {
+            throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
+        }
+    }
+
+    private void validateCccd(IdType idType, String idNumberCard, String messageKey, Locale locale) {
+        if (idType == IdType.CCCD && (trimToNull(idNumberCard) == null || !idNumberCard.trim().matches(CCCD_PATTERN))) {
+            throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
+        }
+    }
+
+    private void validateCccd(String idType, String idNumberCard, String messageKey, Locale locale) {
+        if ("CCCD".equalsIgnoreCase(trimToNull(idType))
+                && (trimToNull(idNumberCard) == null || !idNumberCard.trim().matches(CCCD_PATTERN))) {
             throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
         }
     }

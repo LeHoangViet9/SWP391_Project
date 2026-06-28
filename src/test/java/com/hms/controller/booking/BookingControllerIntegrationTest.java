@@ -75,7 +75,7 @@ public class BookingControllerIntegrationTest {
                 .fullName("John Doe Test")
                 .email("test.john.doe@hms-test.com")
                 .phone("0999999999")
-                .idNumberCard("999999999")
+                .idNumberCard("999999999999")
                 .idType(com.hms.common.enums.IdType.CCCD)
                 .nationality("Vietnam")
                 .status(AccountStatus.ACTIVE)
@@ -217,5 +217,59 @@ public class BookingControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(invalidReq)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    void createBookingWithInvalidBookerCccd_BadRequest() throws Exception {
+        testCustomer.setIdNumberCard("12345678901");
+        customerRepository.save(testCustomer);
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createBookingRequest())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    void createBookingForOtherWithInvalidGuestCccd_BadRequest() throws Exception {
+        BookingRequest request = createBookingRequest();
+        request.setBookingForOther(true);
+        request.setGuestFullName("Guest Test");
+        request.setGuestPhone("0988888888");
+        request.setGuestIdType("CCCD");
+        request.setGuestIdNumberCard("12345678901A");
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    void createBookingForOtherWithDuplicateCccd_BadRequest() throws Exception {
+        BookingRequest request = createBookingRequest();
+        request.setBookingForOther(true);
+        request.setGuestFullName("Guest Test");
+        request.setGuestPhone("0988888888");
+        request.setGuestIdType("CCCD");
+        request.setGuestIdNumberCard(testCustomer.getIdNumberCard());
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    private BookingRequest createBookingRequest() {
+        BookingRequest request = new BookingRequest();
+        request.setCustomerId(testCustomer.getId());
+        request.setRoomTypeId(testRoomType.getId());
+        request.setCheckInDate(LocalDateTime.now().plusDays(2));
+        request.setCheckOutDate(LocalDateTime.now().plusDays(4));
+        request.setQuantity(1);
+        return request;
     }
 }
