@@ -17,6 +17,9 @@ import com.hms.entity.hotel.RoomType;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.hotel.IRoomService;
+import com.hms.service.audit.AuditLogService;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import com.hms.service.hotel.mapper.RoomMapper;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.hms.common.audit.Auditable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +47,7 @@ public class RoomServiceImpl implements IRoomService {
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
     private final LocalFileUtils localFileUtils;
+    private final AuditLogService auditLogService;
 
     @Override
     public Page<RoomResponse> getAllRooms(
@@ -78,6 +83,7 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
+    @Auditable(action = "CREATE_ROOM", module = "ROOM", logSuccess = false)
     public RoomResponse createRoom(RoomRequest request, List<MultipartFile> file) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -116,17 +122,27 @@ public class RoomServiceImpl implements IRoomService {
         room.setRoomStatus(RoomStatus.AVAILABLE);
 
         Room saved = roomRepository.save(room);
+        auditLogService.logSuccess(
+                "CREATE_ROOM",
+                "ROOM",
+                "ROOM",
+                saved.getId(),
+                saved.getRoomNumber(),
+                auditLogService.changes(null, roomAuditSnapshot(saved))
+        );
         return roomMapper.toResponse(saved);
     }
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_ROOM", module = "ROOM", logSuccess = false)
     public RoomResponse updateRoom(Long id, RoomRequest request, List<MultipartFile> file) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Room room = roomRepository.findById(id)
                 .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
+        Map<String, Object> before = roomAuditSnapshot(room);
 
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
@@ -157,11 +173,20 @@ public class RoomServiceImpl implements IRoomService {
         }
 
         Room updated = roomRepository.save(room);
+        auditLogService.logSuccess(
+                "UPDATE_ROOM",
+                "ROOM",
+                "ROOM",
+                updated.getId(),
+                updated.getRoomNumber(),
+                auditLogService.changes(before, roomAuditSnapshot(updated))
+        );
         return roomMapper.toResponse(updated);
     }
 
     @Override
     @Transactional
+    @Auditable(action = "DELETE_ROOM", module = "ROOM", logSuccess = false)
     public void deleteRoomByID(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         // Lấy phòng và đảm bảo phòng chưa bị soft-delete
@@ -170,8 +195,17 @@ public class RoomServiceImpl implements IRoomService {
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
 
         // Soft delete: Set status = INACTIVE thay vì xóa thực sự
+        Map<String, Object> before = roomAuditSnapshot(room);
         room.setRoomStatus(RoomStatus.INACTIVE);
-        roomRepository.save(room);
+        Room deleted = roomRepository.save(room);
+        auditLogService.logSuccess(
+                "DELETE_ROOM",
+                "ROOM",
+                "ROOM",
+                deleted.getId(),
+                deleted.getRoomNumber(),
+                auditLogService.changes(before, roomAuditSnapshot(deleted))
+        );
     }
 
     @Override
@@ -198,6 +232,7 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_ROOM_STATUS", module = "ROOM", logSuccess = false)
     public void updateRoomStatus(Long roomId, RoomStatus status) {
         Locale locale = LocaleContextHolder.getLocale();
         // Chặn việc đặt INACTIVE qua API status — INACTIVE chỉ dành cho soft delete (deleteRoomByID)
@@ -209,8 +244,17 @@ public class RoomServiceImpl implements IRoomService {
         Room room = roomRepository.findById(roomId)
                 .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
+        Map<String, Object> before = roomAuditSnapshot(room);
         room.setRoomStatus(status);
-        roomRepository.save(room);
+        Room updated = roomRepository.save(room);
+        auditLogService.logSuccess(
+                "UPDATE_ROOM_STATUS",
+                "ROOM",
+                "ROOM",
+                updated.getId(),
+                updated.getRoomNumber(),
+                auditLogService.changes(before, roomAuditSnapshot(updated))
+        );
     }
 
     @Override
@@ -254,5 +298,17 @@ public class RoomServiceImpl implements IRoomService {
     public Page<RoomResponse> getAvailableRooms(Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "roomNumber", SortDirection.ASC);
         return roomRepository.findByRoomStatus(RoomStatus.AVAILABLE, pageable).map(roomMapper::toResponse);
+    }
+
+    private Map<String, Object> roomAuditSnapshot(Room room) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("id", room.getId());
+        snapshot.put("roomNumber", room.getRoomNumber());
+        snapshot.put("roomTypeId", room.getRoomType() == null ? null : room.getRoomType().getId());
+        snapshot.put("roomTypeName", room.getRoomType() == null ? null : room.getRoomType().getTypeName());
+        snapshot.put("roomStatus", room.getRoomStatus() == null ? null : room.getRoomStatus().name());
+        snapshot.put("floorNumber", room.getFloorNumber());
+        snapshot.put("description", room.getDescription());
+        return snapshot;
     }
 }

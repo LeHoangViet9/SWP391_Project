@@ -21,6 +21,9 @@ import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import com.hms.service.audit.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
@@ -30,6 +33,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.hms.common.audit.Auditable;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +52,7 @@ public class UserServiceImpl implements IUserService {
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final PageableUtils pageableUtils;
+    private final AuditLogService auditLogService;
 
     @Override
     public Page<UserResponse> getUsers(
@@ -60,6 +65,7 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     @Transactional
+    @Auditable(action = "CREATE_USER", module = "USER", logSuccess = false)
     public UserResponse createUser(UserManagementRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
         validatePasswordForManagement(request, true, locale);
@@ -85,11 +91,21 @@ public class UserServiceImpl implements IUserService {
                 .role(role)
                 .build();
 
-        return userMapper.toResponse(userRepository.save(user), null);
+        User saved = userRepository.save(user);
+        auditLogService.logSuccess(
+                "CREATE_USER",
+                "USER",
+                "USER",
+                saved.getId(),
+                saved.getEmail(),
+                auditLogService.changes(null, userAuditSnapshot(saved))
+        );
+        return userMapper.toResponse(saved, null);
     }
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_USER", module = "USER", logSuccess = false)
     public UserResponse updateUser(Long id, UserManagementRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -97,6 +113,8 @@ public class UserServiceImpl implements IUserService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(ERROR_USER_INVALID, null, locale)
                 ));
+        Map<String, Object> before = userAuditSnapshot(user);
+        String previousRole = user.getRole() == null ? null : user.getRole().getRoleName();
 
         validatePasswordForManagement(request, false, locale);
 
@@ -119,11 +137,24 @@ public class UserServiceImpl implements IUserService {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
-        return userMapper.toResponse(userRepository.save(user), null);
+        User updated = userRepository.save(user);
+        String action = previousRole != null && !previousRole.equalsIgnoreCase(updated.getRole().getRoleName())
+                ? "UPDATE_ROLE"
+                : "UPDATE_USER";
+        auditLogService.logSuccess(
+                action,
+                "USER",
+                "USER",
+                updated.getId(),
+                updated.getEmail(),
+                auditLogService.changes(before, userAuditSnapshot(updated))
+        );
+        return userMapper.toResponse(updated, null);
     }
 
     @Override
     @Transactional
+    @Auditable(action = "DELETE_USER", module = "USER", logSuccess = false)
     public void deleteUser(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -131,18 +162,29 @@ public class UserServiceImpl implements IUserService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(ERROR_USER_INVALID, null, locale)
                 ));
+        Map<String, Object> before = userAuditSnapshot(user);
         user.setAccountStatus(AccountStatus.INACTIVE);
-        userRepository.save(user);
+        User deleted = userRepository.save(user);
+        auditLogService.logSuccess(
+                "DELETE_USER",
+                "USER",
+                "USER",
+                deleted.getId(),
+                deleted.getEmail(),
+                auditLogService.changes(before, userAuditSnapshot(deleted))
+        );
     }
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_USER_PERMISSIONS", module = "USER", logSuccess = false)
     public UserResponse assignPermissionsToUser(Long userId, List<Long> permissionIds) {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(ERROR_USER_INVALID, null, locale)
                 ));
+        Map<String, Object> before = userAuditSnapshot(user);
 
         List<Permission> permissions = permissionRepository.findAllById(permissionIds);
 
@@ -155,11 +197,21 @@ public class UserServiceImpl implements IUserService {
         // Gán quyền mới (ghi đè sử dụng Set để tránh trùng dữ liệu)
         user.setCustomPermissions(new HashSet<>(permissions));
 
-        return userMapper.toResponse(userRepository.save(user), null);
+        User updated = userRepository.save(user);
+        auditLogService.logSuccess(
+                "UPDATE_USER_PERMISSIONS",
+                "USER",
+                "USER",
+                updated.getId(),
+                updated.getEmail(),
+                auditLogService.changes(before, userAuditSnapshot(updated))
+        );
+        return userMapper.toResponse(updated, null);
     }
 
     @Override
     @Transactional
+    @Auditable(action = "UPDATE_USER_PERMISSIONS", module = "USER", logSuccess = false)
     public UserResponse removePermissionsFromUser(Long userId, List<Long> permissionIds) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -167,12 +219,22 @@ public class UserServiceImpl implements IUserService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(ERROR_USER_INVALID, null, locale)
                 ));
+        Map<String, Object> before = userAuditSnapshot(user);
 
         if (user.getCustomPermissions() != null) {
             user.getCustomPermissions().removeIf(p -> permissionIds.contains(p.getId()));
         }
 
-        return userMapper.toResponse(userRepository.save(user), null);
+        User updated = userRepository.save(user);
+        auditLogService.logSuccess(
+                "UPDATE_USER_PERMISSIONS",
+                "USER",
+                "USER",
+                updated.getId(),
+                updated.getEmail(),
+                auditLogService.changes(before, userAuditSnapshot(updated))
+        );
+        return userMapper.toResponse(updated, null);
     }
 
     @Override
@@ -203,5 +265,20 @@ public class UserServiceImpl implements IUserService {
         if (!blankPassword && !password.equals(request.getRePassword())) {
             throw new ConflictException(messageSource.getMessage("user.repassword.message", null, locale));
         }
+    }
+
+    private Map<String, Object> userAuditSnapshot(User user) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("id", user.getId());
+        snapshot.put("fullName", user.getFullName());
+        snapshot.put("email", user.getEmail());
+        snapshot.put("phone", user.getPhone());
+        snapshot.put("roleName", user.getRole() == null ? null : user.getRole().getRoleName());
+        snapshot.put("accountStatus", user.getAccountStatus() == null ? null : user.getAccountStatus().name());
+        snapshot.put("enabled", user.getEnabled());
+        snapshot.put("permissions", user.getCustomPermissions() == null
+                ? List.of()
+                : user.getCustomPermissions().stream().map(Permission::getName).sorted().toList());
+        return snapshot;
     }
 }

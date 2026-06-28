@@ -50,6 +50,7 @@ import {
   FileText,
   UserCircle,
   KeyRound,
+  ScrollText,
 } from 'lucide-react';
 
 /**
@@ -98,6 +99,15 @@ export const MENU_CONFIG = [
   },
 
   // ── Nhóm: Phòng Ốc ───────────────────────────────────────────────
+  {
+    key: 'audit-logs',
+    label: 'Audit Log',
+    labelEn: 'Audit Log',
+    path: '/dashboard/audit-logs',
+    icon: ScrollText,
+    permissions: ['AUDIT_LOG_VIEW'],
+    group: 'system',
+  },
   {
     key: 'room-types',
     label: 'Loại Phòng',

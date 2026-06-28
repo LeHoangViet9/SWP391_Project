@@ -31,12 +31,14 @@ import ChangePassword from '../components/ChangePassword';
 import RolePermissionManager from '../components/RolePermissionManager';
 import FeedbackManager from '../components/FeedbackManager';
 import InvoiceManager from '../components/InvoiceManager';
+import AuditLogManager from '../components/AuditLogManager';
 
 /**
  * Route-to-component mapping.
  * Keys match the `path` suffix in menuConfig.js (e.g., '/dashboard/reports' → 'reports').
  */
 const ROUTE_COMPONENTS = {
+  'audit-logs':       { Component: AuditLogManager,        title: 'Audit Log',              titleEn: 'Audit Log' },
   'reports':          { Component: ReportManager,          title: 'Báo Cáo',              titleEn: 'Dashboard Reports' },
   'roles':            { Component: RolePermissionManager,  title: 'Phân Quyền',            titleEn: 'Role Configuration' },
   'staff':            { Component: StaffManager,           title: 'Quản Lý Nhân Viên',     titleEn: 'Staff Management' },

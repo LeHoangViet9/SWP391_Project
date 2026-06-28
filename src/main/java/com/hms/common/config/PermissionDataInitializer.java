@@ -65,7 +65,10 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE",
 
                 // System/UI permissions
-                "DASHBOARD_VIEW"
+                "DASHBOARD_VIEW",
+
+                // Audit log permissions
+                "AUDIT_LOG_VIEW"
         );
 
         for (String permName : allPermissions) {
@@ -93,7 +96,8 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE",
                 "ROOM_VIEW", "ROOM_CREATE", "ROOM_UPDATE", "ROOM_DELETE",
                 "ROOM_TYPE_VIEW", "ROOM_TYPE_CREATE", "ROOM_TYPE_UPDATE", "ROOM_TYPE_DELETE",
-                "DASHBOARD_VIEW"
+                "DASHBOARD_VIEW",
+                "AUDIT_LOG_VIEW"
         );
         syncRolePermissions("ADMIN", adminPerms);
     }
@@ -127,7 +131,8 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "EQUIPMENT_VIEW", "EQUIPMENT_CREATE", "EQUIPMENT_UPDATE", "EQUIPMENT_DELETE",
                 "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE", "MAINTENANCE_DELETE",
                 "FEEDBACK_VIEW", "FEEDBACK_UPDATE", "FEEDBACK_DELETE",
-                "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE"
+                "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE",
+                "AUDIT_LOG_VIEW"
         );
         syncRolePermissions("MANAGER", managerPerms);
     }
