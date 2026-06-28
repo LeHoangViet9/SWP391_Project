@@ -16,7 +16,8 @@ const PERMISSION_GROUPS = {
   MAINTENANCE: { vi: 'Bảo trì & Sửa chữa', en: 'Maintenance' },
   FEEDBACK: { vi: 'Phản hồi', en: 'Feedback' },
   INVOICE: { vi: 'Hóa đơn & Thanh toán', en: 'Invoice & Payment' },
-  DASHBOARD: { vi: 'Báo cáo & Dashboard', en: 'Reports & Dashboard' }
+  DASHBOARD: { vi: 'Báo cáo & Dashboard', en: 'Reports & Dashboard' },
+  AUDIT_LOG: { vi: 'Audit Log', en: 'Audit Log' }
 };
 
 export default function RolePermissionManager() {
@@ -113,6 +114,7 @@ export default function RolePermissionManager() {
     // Handle special cases or default prefix
     let groupKey = parts[0];
     if (perm.name.startsWith('ROOM_TYPE')) groupKey = 'ROOM_TYPE';
+    if (perm.name.startsWith('AUDIT_LOG')) groupKey = 'AUDIT_LOG';
     if (!PERMISSION_GROUPS[groupKey]) groupKey = 'OTHER';
 
     if (!acc[groupKey]) acc[groupKey] = [];

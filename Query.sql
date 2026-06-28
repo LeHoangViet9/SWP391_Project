@@ -351,3 +351,77 @@ SELECT * FROM permission;
 SELECT * FROM role_permissions;
 SELECT * FROM users;
 SELECT * FROM bookings;
+
+-- =========================================================
+-- AUDIT LOG - secure append-only design for PostgreSQL
+-- =========================================================
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id BIGSERIAL PRIMARY KEY,
+    actor_user_id BIGINT,
+    actor_username VARCHAR(100),
+    actor_role VARCHAR(50),
+    actor_email VARCHAR(120),
+    action VARCHAR(100) NOT NULL,
+    module VARCHAR(50) NOT NULL,
+    resource_type VARCHAR(80),
+    resource_id VARCHAR(80),
+    resource_name VARCHAR(255),
+    changes JSONB,
+    ip_address VARCHAR(64),
+    user_agent VARCHAR(512),
+    status VARCHAR(20) NOT NULL,
+    error_message VARCHAR(1000),
+    request_id VARCHAR(100),
+    previous_hash VARCHAR(64),
+    row_hash VARCHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_user_id ON audit_logs(actor_user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_module ON audit_logs(module);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_status ON audit_logs(status);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_request_id ON audit_logs(request_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_changes_gin ON audit_logs USING GIN (changes);
+
+-- Add permission for viewing audit logs. Only ADMIN/MANAGER should receive it.
+INSERT INTO permission (name)
+SELECT 'AUDIT_LOG_VIEW'
+WHERE NOT EXISTS (SELECT 1 FROM permission WHERE name = 'AUDIT_LOG_VIEW');
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+CROSS JOIN permission p
+WHERE r.role_name IN ('ADMIN', 'MANAGER')
+  AND p.name = 'AUDIT_LOG_VIEW'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM role_permissions rp
+      WHERE rp.role_id = r.id AND rp.permission_id = p.id
+  );
+
+-- Append-only guard: application users can INSERT/SELECT, but cannot UPDATE/DELETE audit history.
+CREATE OR REPLACE FUNCTION prevent_audit_logs_update_delete()
+RETURNS trigger AS $$
+BEGIN
+    RAISE EXCEPTION 'audit_logs is append-only';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_prevent_audit_logs_update ON audit_logs;
+CREATE TRIGGER trg_prevent_audit_logs_update
+BEFORE UPDATE ON audit_logs
+FOR EACH ROW EXECUTE FUNCTION prevent_audit_logs_update_delete();
+
+DROP TRIGGER IF EXISTS trg_prevent_audit_logs_delete ON audit_logs;
+CREATE TRIGGER trg_prevent_audit_logs_delete
+BEFORE DELETE ON audit_logs
+FOR EACH ROW EXECUTE FUNCTION prevent_audit_logs_update_delete();
+
+-- Scaling notes:
+-- 1. Partition by created_at monthly when the table grows large.
+-- 2. Keep hot logs in PostgreSQL and export old logs to immutable storage/SIEM.
+-- 3. Use retention such as 6-12 months online, longer archive if required by business policy.
