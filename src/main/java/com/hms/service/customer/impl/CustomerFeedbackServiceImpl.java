@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -94,6 +95,56 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
                 .build();
 
         return customerFeedbackMapper.toResponse(customerFeedbackRepository.save(feedback));
+    }
+
+    @Override
+    public List<CustomerFeedbackResponse> getMyFeedbacks(String email) {
+        return customerFeedbackRepository.findByCustomerEmail(email)
+                .stream()
+                .map(customerFeedbackMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public CustomerFeedbackResponse updateMyFeedback(Long feedbackId, CustomerFeedbackRequest request, String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        CustomerFeedback feedback = customerFeedbackRepository.findByIdAndCustomerEmail(feedbackId, email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.feedback.notfound", null, locale)
+                ));
+
+        if (feedback.getStatus() != FeedbackStatus.PENDING) {
+            throw new BadRequestException(
+                    messageSource.getMessage("error.feedback.cannot_update_after_reply", null,
+                            "Cannot update feedback that has already been reviewed!", locale)
+            );
+        }
+
+        if (!VALID_CATEGORIES.contains(request.getCategory())) {
+            throw new BadRequestException(
+                    messageSource.getMessage("error.feedback.category.invalid", null, locale)
+            );
+        }
+
+        feedback.setRating(request.getRating());
+        feedback.setCategory(request.getCategory());
+        feedback.setComment(request.getComment());
+        return customerFeedbackMapper.toResponse(customerFeedbackRepository.save(feedback));
+    }
+
+    @Override
+    @Transactional
+    public void deleteMyFeedback(Long feedbackId, String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        CustomerFeedback feedback = customerFeedbackRepository.findByIdAndCustomerEmail(feedbackId, email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.feedback.notfound", null, locale)
+                ));
+
+        customerFeedbackRepository.delete(feedback);
     }
 
     @Override

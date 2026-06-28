@@ -16,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Locale;
 
 @RestController
@@ -41,7 +42,53 @@ public class CustomerFeedbackController {
         ), HttpStatus.CREATED);
     }
 
-    // 2. Tìm kiếm & lọc đánh giá -> Quyền xem (FEEDBACK_VIEW)
+    // 2. Xem danh sách feedback của bản thân -> Quyền (FEEDBACK_VIEW_OWN)
+    @GetMapping("/my")
+    @PreAuthorize("hasAuthority('FEEDBACK_VIEW_OWN')")
+    public ResponseEntity<ApiResponse<List<CustomerFeedbackResponse>>> getMyFeedbacks(
+            @AuthenticationPrincipal String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.getmy", null, "Feedbacks retrieved successfully", locale),
+                customerFeedbackService.getMyFeedbacks(email),
+                HttpStatus.OK
+        ), HttpStatus.OK);
+    }
+
+    // 3. Sửa feedback của bản thân (chỉ khi PENDING) -> Quyền (FEEDBACK_UPDATE_OWN)
+    @PutMapping("/my/{id}")
+    @PreAuthorize("hasAuthority('FEEDBACK_UPDATE_OWN')")
+    public ResponseEntity<ApiResponse<CustomerFeedbackResponse>> updateMyFeedback(
+            @PathVariable Long id,
+            @Valid @RequestBody CustomerFeedbackRequest request,
+            @AuthenticationPrincipal String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.update", null, "Feedback updated successfully!", locale),
+                customerFeedbackService.updateMyFeedback(id, request, email),
+                HttpStatus.OK
+        ), HttpStatus.OK);
+    }
+
+    // 4. Xóa feedback của bản thân -> Quyền (FEEDBACK_DELETE_OWN)
+    @DeleteMapping("/my/{id}")
+    @PreAuthorize("hasAuthority('FEEDBACK_DELETE_OWN')")
+    public ResponseEntity<ApiResponse<Void>> deleteMyFeedback(
+            @PathVariable Long id,
+            @AuthenticationPrincipal String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+        customerFeedbackService.deleteMyFeedback(id, email);
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.delete", null, "Feedback deleted successfully!", locale),
+                null,
+                HttpStatus.OK
+        ), HttpStatus.OK);
+    }
+
+    // 5. Tìm kiếm & lọc đánh giá -> Quyền xem (FEEDBACK_VIEW)
     @GetMapping
     @PreAuthorize("hasAuthority('FEEDBACK_VIEW')")
     public ResponseEntity<ApiResponse<Page<CustomerFeedbackResponse>>> searchFeedback(

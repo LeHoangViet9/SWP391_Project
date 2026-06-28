@@ -57,6 +57,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
                 // Feedback permissions
                 "FEEDBACK_VIEW", "FEEDBACK_CREATE", "FEEDBACK_UPDATE", "FEEDBACK_DELETE",
+                "FEEDBACK_VIEW_OWN", "FEEDBACK_UPDATE_OWN", "FEEDBACK_DELETE_OWN",
 
                 // Invoice permissions
                 "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE",
@@ -163,7 +164,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
     private void assignPermissionsToCustomer() {
         List<String> customerPerms = Arrays.asList(
                 "BOOKING_VIEW_OWN", "BOOKING_CREATE",
-                "FEEDBACK_CREATE"
+                "FEEDBACK_CREATE", "FEEDBACK_VIEW_OWN", "FEEDBACK_UPDATE_OWN", "FEEDBACK_DELETE_OWN"
         );
         syncRolePermissions("CUSTOMER", customerPerms);
     }

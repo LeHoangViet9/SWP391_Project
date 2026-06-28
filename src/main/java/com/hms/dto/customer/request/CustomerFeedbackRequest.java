@@ -21,6 +21,6 @@ public class CustomerFeedbackRequest {
     private String category;
 
     @NotBlank(message = "Comment is required")
-    @Size(max = 255, message = "Comment must not exceed 255 characters")
+    @Size(max = 2000, message = "Comment must not exceed 2000 characters")
     private String comment;
 }
