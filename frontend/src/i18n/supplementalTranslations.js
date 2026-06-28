@@ -327,6 +327,8 @@ export const supplementalTranslations = {
         forbiddenEdit: 'Bạn không có quyền sửa đặt phòng.',
         forbiddenDelete: 'Bạn không có quyền xóa đặt phòng.',
         deleteConfirm: 'Xóa đặt phòng #{id}?',
+        statusConfirm: 'Xác nhận chuyển trạng thái đặt phòng sang "{status}"?',
+        statusSuccess: 'Cập nhật trạng thái thành công!',
       },
     },
 
@@ -752,6 +754,8 @@ export const supplementalTranslations = {
         forbiddenEdit: 'You do not have permission to edit bookings.',
         forbiddenDelete: 'You do not have permission to delete bookings.',
         deleteConfirm: 'Delete booking #{id}?',
+        statusConfirm: 'Confirm changing booking status to "{status}"?',
+        statusSuccess: 'Booking status updated successfully!',
       },
     },
 

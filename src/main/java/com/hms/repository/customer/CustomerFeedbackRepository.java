@@ -9,7 +9,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.hms.common.enums.FeedbackStatus;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedback, Long> {
@@ -17,6 +19,13 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
     List<CustomerFeedback> findByCustomerId(Long customerId);
 
     boolean existsByBookingId(Long bookingId);
+
+    /**
+     * Batch query: trả về tập booking IDs đã có feedback.
+     * Dùng thay cho N lần gọi existsByBookingId khi render page — tránh N+1.
+     */
+    @Query("SELECT cf.booking.id FROM CustomerFeedback cf WHERE cf.booking.id IN :ids")
+    Set<Long> findBookingIdsWithFeedback(@Param("ids") Collection<Long> ids);
 
     @Query("""
         SELECT cf FROM CustomerFeedback cf

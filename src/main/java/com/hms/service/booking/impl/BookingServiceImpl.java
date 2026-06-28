@@ -30,8 +30,10 @@ import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.booking.BookingService;
 import com.hms.service.booking.mapper.BookingMapper;
-import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -42,10 +44,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.EnumMap;
 
 @Service
 @RequiredArgsConstructor
@@ -64,6 +62,12 @@ public class BookingServiceImpl implements BookingService {
     private final PageableUtils pageableUtils;
     private final CustomerFeedbackRepository customerFeedbackRepository;
 
+    private static final List<BookingStatus> ROOM_HOLDING_STATUSES = List.of(
+            BookingStatus.PENDING,
+            BookingStatus.CONFIRMED,
+            BookingStatus.CHECKED_IN
+    );
+
     private BookingResponse mapToResponse(Booking booking) {
         if (booking == null) return null;
         BookingResponse response = bookingMapper.toResponse(booking);
@@ -71,11 +75,39 @@ public class BookingServiceImpl implements BookingService {
         return response;
     }
 
+    /**
+     * Batch-convert a Page of bookings to Page of responses.
+     * Fetches hasFeedback flags with a single IN query instead of one query per booking (N+1).
+     */
+    private Page<BookingResponse> mapPageToResponse(Page<Booking> bookingPage) {
+        if (bookingPage.isEmpty()) return bookingPage.map(bookingMapper::toResponse);
+        Set<Long> ids = bookingPage.getContent().stream().map(Booking::getId).collect(Collectors.toSet());
+        Set<Long> feedbackedIds = customerFeedbackRepository.findBookingIdsWithFeedback(ids);
+        return bookingPage.map(b -> {
+            BookingResponse r = bookingMapper.toResponse(b);
+            r.setHasFeedback(feedbackedIds.contains(b.getId()));
+            return r;
+        });
+    }
+
+    private boolean isValidTransition(BookingStatus currentStatus, BookingStatus newStatus) {
+        if (currentStatus == BookingStatus.PENDING) {
+            return newStatus == BookingStatus.CONFIRMED || newStatus == BookingStatus.CANCELLED;
+        }
+        if (currentStatus == BookingStatus.CONFIRMED) {
+            return newStatus == BookingStatus.CHECKED_IN || newStatus == BookingStatus.CANCELLED || newStatus == BookingStatus.NO_SHOW;
+        }
+        if (currentStatus == BookingStatus.CHECKED_IN) {
+            return newStatus == BookingStatus.CHECKED_OUT;
+        }
+        return false;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> getAllBookings(Integer page, Integer size, SortField sortBy, SortDirection direction){
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
-        return bookingRepository.findAll(pageable).map(this::mapToResponse);
+        return mapPageToResponse(bookingRepository.findAll(pageable));
     }
 
     @Override
@@ -123,6 +155,11 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.booking.notfound", null, locale)));
 
+        if (booking.getBookingStatus() != BookingStatus.PENDING && booking.getBookingStatus() != BookingStatus.CONFIRMED) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "error.booking.cannot.update", new Object[]{booking.getBookingStatus()}, locale));
+        }
+
         validateBookingDate(request, locale);
 
         Customer customer = customerRepository.findByIdAndStatus(request.getCustomerId(), AccountStatus.ACTIVE)
@@ -157,6 +194,12 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.cannot.delete.checkedin", null, locale));
         }
+        if (booking.getBookingStatus() == BookingStatus.CHECKED_OUT
+                || booking.getBookingStatus() == BookingStatus.CANCELLED
+                || booking.getBookingStatus() == BookingStatus.NO_SHOW) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "error.booking.cannot.delete.terminal", new Object[]{booking.getBookingStatus()}, locale));
+        }
         booking.setBookingStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
     }
@@ -165,7 +208,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.ASC);
-        return bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable).map(this::mapToResponse);
+        return mapPageToResponse(bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable));
     }
 
     @Override
@@ -178,8 +221,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
 
         return customerRepository.findActiveByEmailOrPhone(user.getEmail(), user.getPhone(), AccountStatus.ACTIVE)
-                .map(customer -> bookingRepository.findHistoryByCustomerId(customer.getId(), pageable)
-                        .map(this::mapToResponse))
+                .map(customer -> mapPageToResponse(bookingRepository.findHistoryByCustomerId(customer.getId(), pageable)))
                 .orElseGet(() -> Page.empty(pageable));
     }
 
@@ -187,16 +229,14 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> getBookingsByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size){
         Pageable pageable = pageableUtils.createPageable(page, size, "checkInDate", SortDirection.ASC);
-        return bookingRepository.findByCheckInDateBetween(start, end, pageable)
-                .map(this::mapToResponse);
+        return mapPageToResponse(bookingRepository.findByCheckInDateBetween(start, end, pageable));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> getBookingsByCheckOutDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size){
         Pageable pageable = pageableUtils.createPageable(page,size, "checkOutDate", SortDirection.ASC);
-        return bookingRepository.findByCheckOutDateBetween(start, end, pageable)
-                .map(this::mapToResponse);
+        return mapPageToResponse(bookingRepository.findByCheckOutDateBetween(start, end, pageable));
     }
 
     @Override
@@ -212,7 +252,7 @@ public class BookingServiceImpl implements BookingService {
         BookingStatus newStatus = request.getStatus();
 
         // Verify valid status transition
-        if (!currentStatus.isValidTransitionTo(newStatus)) {
+        if (!isValidTransition(currentStatus, newStatus)) {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.invalid.transition",
                     new Object[]{currentStatus, newStatus}, locale));
@@ -325,7 +365,7 @@ public class BookingServiceImpl implements BookingService {
                 request.getCheckInDate(),
                 request.getCheckOutDate(),
                 excludedBookingId,
-                BookingStatus.ROOM_HOLDING_STATUSES
+                ROOM_HOLDING_STATUSES
         );
         long remainingQuantity = totalActiveRoomCount - bookedQuantity;
 
@@ -356,7 +396,7 @@ public class BookingServiceImpl implements BookingService {
                 List.of(RoomStatus.INACTIVE, RoomStatus.OUT_OF_ORDER)
         );
         long booked = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
-                roomTypeId, checkInDate, checkOutDate, null, BookingStatus.ROOM_HOLDING_STATUSES
+                roomTypeId, checkInDate, checkOutDate, null, ROOM_HOLDING_STATUSES
         );
         return Math.max(0, totalActive - booked);
     }

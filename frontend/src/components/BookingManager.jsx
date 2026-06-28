@@ -278,13 +278,13 @@ export default function BookingManager({ readOnly = false }) {
 
   const handleUpdateStatus = async (item, newStatus) => {
     const statusText = t(`booking.status.${newStatus}`) || newStatus;
-    if (!window.confirm(`Xác nhận chuyển trạng thái đơn đặt phòng sang "${statusText}"?`)) return;
+    if (!window.confirm(t('booking.toast.statusConfirm', { status: statusText }).replace('{status}', statusText))) return;
     try {
       await updateBookingStatus(item.id, { status: newStatus });
-      notify('Cập nhật trạng thái thành công!');
+      notify(t('booking.toast.statusSuccess') || 'Cập nhật trạng thái thành công!');
       if (subTab === 'overview') fetchTodayData(); else fetchData(page);
     } catch (err) {
-      notify(err.message || 'Lỗi cập nhật trạng thái', 'error');
+      notify(err.message || t('booking.toast.loadError'), 'error');
     }
   };
 
