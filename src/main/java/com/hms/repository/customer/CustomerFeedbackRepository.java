@@ -27,16 +27,33 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
     @Query("SELECT cf.booking.id FROM CustomerFeedback cf WHERE cf.booking.id IN :ids")
     Set<Long> findBookingIdsWithFeedback(@Param("ids") Collection<Long> ids);
 
-    @Query("""
-        SELECT cf FROM CustomerFeedback cf
+    @Query(value = """
+        SELECT DISTINCT cf FROM CustomerFeedback cf
+        LEFT JOIN FETCH cf.customer c
+        LEFT JOIN FETCH cf.booking b
+        LEFT JOIN FETCH b.roomType rt
         WHERE (:rating IS NULL OR cf.rating = :rating)
         AND (:status IS NULL OR cf.status = :status)
         AND (:category IS NULL OR LOWER(cf.category) = LOWER(:category))
         AND (
             CAST(:keyword AS string) IS NULL
-            OR LOWER(cf.customer.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+            OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
             OR LOWER(cf.comment) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-            OR LOWER(cf.booking.roomType.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+            OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+        )
+    """, countQuery = """
+        SELECT COUNT(cf) FROM CustomerFeedback cf
+        LEFT JOIN cf.customer c
+        LEFT JOIN cf.booking b
+        LEFT JOIN b.roomType rt
+        WHERE (:rating IS NULL OR cf.rating = :rating)
+        AND (:status IS NULL OR cf.status = :status)
+        AND (:category IS NULL OR LOWER(cf.category) = LOWER(:category))
+        AND (
+            CAST(:keyword AS string) IS NULL
+            OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+            OR LOWER(cf.comment) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+            OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
         )
     """)
     Page<CustomerFeedback> searchFeedback(
