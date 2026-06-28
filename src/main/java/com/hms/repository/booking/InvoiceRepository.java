@@ -33,7 +33,15 @@ public interface InvoiceRepository extends JpaRepository<Invoice,Long> {
     boolean existsByBookingId(Long bookingId);
 
 
-    @Query("SELECT i FROM Invoice i " +
+    @Query(value = "SELECT DISTINCT i FROM Invoice i " +
+            "LEFT JOIN FETCH i.booking b " +
+            "LEFT JOIN FETCH b.customer c " +
+            "LEFT JOIN FETCH b.room r " +
+            "WHERE (:keyword IS NULL OR c.fullName ILIKE :keyword OR i.note ILIKE :keyword) " +
+            "AND (:status IS NULL OR i.paymentStatus = :status) " +
+            "AND (CAST(:fromDate AS localdatetime) IS NULL OR i.createdAt >= :fromDate) " +
+            "AND (CAST(:toDate AS localdatetime) IS NULL OR i.createdAt <= :toDate)",
+           countQuery = "SELECT COUNT(i) FROM Invoice i " +
             "LEFT JOIN i.booking b " +
             "LEFT JOIN b.customer c " +
             "WHERE (:keyword IS NULL OR c.fullName ILIKE :keyword OR i.note ILIKE :keyword) " +
@@ -41,11 +49,12 @@ public interface InvoiceRepository extends JpaRepository<Invoice,Long> {
             "AND (CAST(:fromDate AS localdatetime) IS NULL OR i.createdAt >= :fromDate) " +
             "AND (CAST(:toDate AS localdatetime) IS NULL OR i.createdAt <= :toDate)")
     Page<Invoice> findInvoicesAdvanced(
-            String keyword,
-            PaymentStatus status,
-            LocalDateTime fromDate,
-            LocalDateTime toDate,
+            @Param("keyword") String keyword,
+            @Param("status") PaymentStatus status,
+            @Param("fromDate") LocalDateTime fromDate,
+            @Param("toDate") LocalDateTime toDate,
             Pageable pageable
     );
+
 
 }
