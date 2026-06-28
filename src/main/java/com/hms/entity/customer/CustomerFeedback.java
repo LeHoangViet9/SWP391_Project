@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import com.hms.common.enums.FeedbackStatus;
@@ -14,6 +16,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "customer_feedback")
+@SQLDelete(sql = "UPDATE customer_feedback SET deleted = true WHERE feedback_id = ?")
+@SQLRestriction("deleted = false")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,6 +27,7 @@ public class CustomerFeedback {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "feedback_id")
     private Long id;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", nullable = false)
@@ -56,4 +61,8 @@ public class CustomerFeedback {
 
     @Column(name = "reply_at")
     private LocalDateTime replyAt;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
 }
