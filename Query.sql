@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS customer_feedback (
     status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'resolved')),
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     reply TEXT,
+    reply_at TIMESTAMP WITHOUT TIME ZONE,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT fk_customer_feedback_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
     CONSTRAINT fk_customer_feedback_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
