@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS customer_feedback (
     rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
     category VARCHAR(50) NOT NULL CHECK (category IN ('Room', 'Service', 'Cleanliness', 'Staff')),
     comment TEXT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'resolved')),
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'REVIEWED', 'RESOLVED')),
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     reply TEXT,
     reply_at TIMESTAMP WITHOUT TIME ZONE,
@@ -47,6 +47,11 @@ ALTER TABLE invoices ADD CONSTRAINT invoices_payment_method_check
 ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_id_type_check;
 ALTER TABLE customers ADD CONSTRAINT customers_id_type_check
     CHECK (id_type IN ('CCCD', 'PASSPORT', 'OTHER'));
+
+-- 7. Đồng bộ với FeedbackStatus enum
+ALTER TABLE customer_feedback DROP CONSTRAINT IF EXISTS customer_feedback_status_check;
+ALTER TABLE customer_feedback ADD CONSTRAINT customer_feedback_status_check
+    CHECK (status IN ('PENDING', 'REVIEWED', 'RESOLVED'));
 
 -- 1. BẢNG ROLES (6 Vai trò tiêu chuẩn của hệ thống)
 INSERT INTO roles (role_name)
