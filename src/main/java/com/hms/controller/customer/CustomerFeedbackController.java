@@ -38,7 +38,7 @@ public class CustomerFeedbackController {
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
-                messageSource.getMessage("success.feedback.create", null, "Feedback submitted successfully", locale),
+                messageSource.getMessage("success.feedback.create", null, locale),
                 customerFeedbackService.createFeedback(request, email),
                 HttpStatus.CREATED
         ), HttpStatus.CREATED);
@@ -52,7 +52,7 @@ public class CustomerFeedbackController {
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
-                messageSource.getMessage("success.feedback.getmy", null, "Feedbacks retrieved successfully", locale),
+                messageSource.getMessage("success.feedback.getmy", null, locale),
                 customerFeedbackService.getMyFeedbacks(email),
                 HttpStatus.OK
         ), HttpStatus.OK);
@@ -68,7 +68,7 @@ public class CustomerFeedbackController {
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
-                messageSource.getMessage("success.feedback.update", null, "Feedback updated successfully!", locale),
+                messageSource.getMessage("success.feedback.update", null, locale),
                 customerFeedbackService.updateMyFeedback(id, request, email),
                 HttpStatus.OK
         ), HttpStatus.OK);
@@ -84,7 +84,7 @@ public class CustomerFeedbackController {
         customerFeedbackService.deleteMyFeedback(id, email);
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
-                messageSource.getMessage("success.feedback.delete", null, "Feedback deleted successfully!", locale),
+                messageSource.getMessage("success.feedback.delete", null, locale),
                 null,
                 HttpStatus.OK
         ), HttpStatus.OK);
@@ -101,7 +101,7 @@ public class CustomerFeedbackController {
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
-                messageSource.getMessage("success.feedback.search", null, "Feedbacks retrieved successfully", locale),
+                messageSource.getMessage("success.feedback.search", null, locale),
                 customerFeedbackService.searchFeedback(keyword, status, page, size),
                 HttpStatus.OK
         ), HttpStatus.OK);
@@ -116,7 +116,7 @@ public class CustomerFeedbackController {
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
-                messageSource.getMessage("success.feedback.reply", null, "Reply submitted successfully", locale),
+                messageSource.getMessage("success.feedback.reply", null, locale),
                 customerFeedbackService.replyFeedback(id, request),
                 HttpStatus.OK
         ), HttpStatus.OK);
@@ -130,7 +130,7 @@ public class CustomerFeedbackController {
         customerFeedbackService.deleteFeedback(id);
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
-                messageSource.getMessage("success.feedback.delete", null, "Feedback deleted successfully", locale),
+                messageSource.getMessage("success.feedback.delete", null, locale),
                 null,
                 HttpStatus.OK
         ), HttpStatus.OK);
@@ -145,7 +145,7 @@ public class CustomerFeedbackController {
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
-                messageSource.getMessage("success.feedback.stats", null, "Feedback stats retrieved successfully", locale),
+                messageSource.getMessage("success.feedback.stats", null, locale),
                 customerFeedbackService.getFeedbackStats(keyword, status),
                 HttpStatus.OK
         ), HttpStatus.OK);
