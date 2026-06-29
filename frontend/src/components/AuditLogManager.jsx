@@ -1,13 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Search, ShieldCheck, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  Braces,
+  CheckCircle2,
+  Clock,
+  Database,
+  Eye,
+  FileJson,
+  Filter,
+  Globe2,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  UserRound,
+  X,
+} from 'lucide-react';
 import { getAuditLogs } from '../services/auditLogService';
 import { useLocale } from '../context/LocaleContext';
-import DataTable from './shared/DataTable';
+import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
 const STATUS_OPTIONS = ['', 'SUCCESS', 'FAILED'];
-const MODULE_OPTIONS = ['', 'AUTH', 'USER', 'ROOM', 'BOOKING', 'CUSTOMER', 'BILLING', 'HOUSEKEEPING', 'MAINTENANCE', 'EQUIPMENT'];
-const RESOURCE_OPTIONS = ['', 'USER', 'ROOM', 'BOOKING', 'CUSTOMER', 'PAYMENT', 'INVOICE', 'HOUSEKEEPING_TASK', 'MAINTENANCE_TASK', 'EQUIPMENT'];
+const MODULE_OPTIONS = ['', 'AUTH', 'USER', 'ROOM', 'BOOKING', 'CUSTOMER', 'BILLING', 'HOUSEKEEPING', 'MAINTENANCE', 'EQUIPMENT', 'REPORT', 'API'];
+const RESOURCE_OPTIONS = ['', 'AUTH_REQUEST', 'USER', 'ROOM', 'BOOKING', 'CUSTOMER', 'PAYMENT', 'INVOICE', 'HOUSEKEEPING_TASK', 'MAINTENANCE_TASK', 'EQUIPMENT', 'REPORT'];
 const DEFAULT_FILTERS = {
   action: '',
   module: '',
@@ -29,6 +44,7 @@ export default function AuditLogManager() {
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS);
+  const [selectedLog, setSelectedLog] = useState(null);
 
   const closeToast = () => setToast((current) => ({ ...current, message: '' }));
 
@@ -43,6 +59,16 @@ export default function AuditLogManager() {
     page,
     size: 10,
   }), [appliedFilters, page]);
+
+  const pageStats = useMemo(() => {
+    const success = logs.filter((log) => log.status === 'SUCCESS').length;
+    const failed = logs.filter((log) => log.status === 'FAILED').length;
+    return { success, failed, total: logs.length };
+  }, [logs]);
+
+  const activeFilterCount = useMemo(() => (
+    Object.values(appliedFilters).filter((value) => value !== '').length
+  ), [appliedFilters]);
 
   const loadLogs = async (requestFilters = apiFilters) => {
     setLoading(true);
@@ -72,24 +98,23 @@ export default function AuditLogManager() {
   const handleSearch = (event) => {
     event.preventDefault();
     setAppliedFilters(filters);
-    if (page !== 0) {
-      setPage(0);
-    }
+    if (page !== 0) setPage(0);
   };
 
   const handleResetFilters = () => {
     setFilters(DEFAULT_FILTERS);
     setAppliedFilters(DEFAULT_FILTERS);
-    if (page !== 0) {
-      setPage(0);
-    }
+    if (page !== 0) setPage(0);
   };
 
   const formatTime = (value) => {
     if (!value) return '-';
     return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
-      dateStyle: 'short',
-      timeStyle: 'medium',
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     }).format(new Date(value));
   };
 
@@ -105,9 +130,9 @@ export default function AuditLogManager() {
   const formatChangeValue = (value) => {
     if (value === null || value === undefined || value === '') return '-';
     if (typeof value === 'boolean') return value ? (isVi ? 'Co' : 'Yes') : 'No';
-    if (Array.isArray(value)) return `${value.length} ${isVi ? 'muc' : 'items'}`;
+    if (Array.isArray(value)) return value.length === 0 ? '[]' : value.join(', ');
     if (isPlainObject(value)) {
-      return value.name || value.fullName || value.roomNumber || value.email || value.id || `${Object.keys(value).length} ${isVi ? 'truong' : 'fields'}`;
+      return value.name || value.fullName || value.roomNumber || value.email || value.id || JSON.stringify(value);
     }
     return String(value);
   };
@@ -116,238 +141,404 @@ export default function AuditLogManager() {
     JSON.stringify(beforeValue) !== JSON.stringify(afterValue)
   );
 
-  const renderValue = (value, tone = 'default') => (
-    <span className={`break-words ${
-      tone === 'before'
-        ? 'text-slate-500 line-through decoration-slate-300'
-        : tone === 'after'
-          ? 'font-semibold text-slate-800'
-          : 'text-slate-700'
-    }`}>
-      {formatChangeValue(value)}
-    </span>
-  );
-
-  const renderChanges = (changes) => {
-    if (!changes) return '-';
-
+  const getChangedFields = (changes) => {
+    if (!changes) return [];
     const before = changes.before;
     const after = changes.after;
-    const hasBeforeAfter = Object.prototype.hasOwnProperty.call(changes, 'before')
-      || Object.prototype.hasOwnProperty.call(changes, 'after');
 
-    if (hasBeforeAfter && isPlainObject(before) && isPlainObject(after)) {
-      const fields = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]))
+    if (isPlainObject(before) && isPlainObject(after)) {
+      return Array.from(new Set([...Object.keys(before), ...Object.keys(after)]))
         .filter((field) => hasDifferentValue(before[field], after[field]))
-        .slice(0, 8);
-
-      if (fields.length === 0) {
-        return <span className="text-xs text-slate-400">{isVi ? 'Khong co thay doi' : 'No changes'}</span>;
-      }
-
-      return (
-        <div className="max-w-[520px] rounded-md border border-stone-200 bg-white text-xs text-slate-600">
-          <div className="grid grid-cols-[120px_1fr_1fr] border-b border-stone-100 bg-slate-50 px-3 py-2 font-semibold text-slate-500">
-            <span>{isVi ? 'Truong' : 'Field'}</span>
-            <span>{isVi ? 'Truoc' : 'Before'}</span>
-            <span>{isVi ? 'Sau' : 'After'}</span>
-          </div>
-          {fields.map((field) => (
-            <div key={field} className="grid grid-cols-[120px_1fr_1fr] gap-3 border-b border-stone-100 px-3 py-2 last:border-b-0">
-              <span className="font-medium text-slate-500">{formatFieldName(field)}</span>
-              {renderValue(before[field], 'before')}
-              {renderValue(after[field], 'after')}
-            </div>
-          ))}
-        </div>
-      );
+        .map((field) => ({ field, before: before[field], after: after[field] }));
     }
 
-    const visibleChanges = isPlainObject(after)
-      ? after
-      : isPlainObject(changes)
-        ? changes
-        : {};
+    const source = isPlainObject(after) ? after : isPlainObject(changes) ? changes : {};
+    return Object.entries(source).map(([field, value]) => ({ field, before: undefined, after: value }));
+  };
 
-    const fields = Object.entries(visibleChanges).slice(0, 8);
-    if (fields.length === 0) return '-';
+  const renderChangeSummary = (log) => {
+    const changedFields = getChangedFields(log.changes);
+    if (changedFields.length === 0) {
+      return <span className="text-xs text-slate-400">{isVi ? 'Khong co du lieu' : 'No details'}</span>;
+    }
 
     return (
-      <div className="max-w-[420px] rounded-md border border-stone-200 bg-white text-xs text-slate-600">
-        <div className="border-b border-stone-100 bg-slate-50 px-3 py-2 font-semibold text-slate-500">
-          {hasBeforeAfter ? (isVi ? 'Du lieu sau thao tac' : 'Data after action') : (isVi ? 'Chi tiet thay doi' : 'Change details')}
-        </div>
-        {fields.map(([field, value]) => (
-          <div key={field} className="grid grid-cols-[120px_1fr] gap-3 border-b border-stone-100 px-3 py-2 last:border-b-0">
-            <span className="font-medium text-slate-500">{formatFieldName(field)}</span>
-            {renderValue(value)}
-          </div>
+      <div className="flex max-w-[360px] flex-wrap items-center gap-1.5">
+        {changedFields.slice(0, 3).map(({ field, before, after }) => (
+          <span
+            key={field}
+            className="inline-flex max-w-full items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600"
+            title={`${formatFieldName(field)}: ${formatChangeValue(before)} -> ${formatChangeValue(after)}`}
+          >
+            <span className="font-semibold text-slate-500">{formatFieldName(field)}</span>
+            <span className="truncate text-slate-800">{formatChangeValue(after)}</span>
+          </span>
         ))}
+        {changedFields.length > 3 && (
+          <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">
+            +{changedFields.length - 3}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={() => setSelectedLog(log)}
+          className="inline-flex items-center gap-1 rounded-md border border-[#bfa15f]/30 bg-[#bfa15f]/10 px-2 py-1 text-[11px] font-bold text-[#8a6f32] hover:bg-[#bfa15f]/15"
+        >
+          <Eye size={12} />
+          {isVi ? 'Chi tiet' : 'Details'}
+        </button>
       </div>
     );
   };
 
-  const rows = logs.map((log) => (
-    <tr key={log.id} className="align-top">
-      <td className="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">#{log.id}</td>
-      <td className="px-4 py-3 whitespace-nowrap">{formatTime(log.createdAt)}</td>
-      <td className="px-4 py-3">
-        <span className="font-mono text-xs font-semibold text-slate-700">{log.action}</span>
-        <div className="text-[11px] text-slate-400 mt-1">{log.module}</div>
-      </td>
-      <td className="px-4 py-3">
-        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-bold ${
-          log.status === 'SUCCESS'
-            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-            : 'bg-red-50 text-red-700 border border-red-100'
-        }`}>
-          {log.status}
-        </span>
-        {log.errorMessage && <div className="text-xs text-red-500 mt-1 max-w-[240px]">{log.errorMessage}</div>}
-      </td>
-      <td className="px-4 py-3">
-        <div className="font-medium text-slate-700">{log.actorUsername || '-'}</div>
-        <div className="text-[11px] text-slate-400">{log.actorRole || '-'}</div>
-      </td>
-      <td className="px-4 py-3">
-        <div className="font-medium text-slate-700">{log.resourceType || '-'}</div>
-        <div className="text-[11px] text-slate-400">{log.resourceId || '-'}</div>
-      </td>
-      <td className="px-4 py-3">{renderChanges(log.changes)}</td>
-      <td className="px-4 py-3 text-xs text-slate-500">
-        <div>{log.ipAddress || '-'}</div>
-        <div className="font-mono text-[10px] mt-1 max-w-[180px] truncate" title={log.requestId}>{log.requestId || '-'}</div>
-      </td>
-    </tr>
-  ));
+  const renderStatus = (status) => {
+    const success = status === 'SUCCESS';
+    const Icon = success ? CheckCircle2 : AlertTriangle;
+    return (
+      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${
+        success
+          ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
+          : 'bg-red-50 text-red-700 ring-1 ring-red-100'
+      }`}>
+        <Icon size={13} />
+        {status}
+      </span>
+    );
+  };
+
+  const renderFilterSelect = (label, value, field, options) => (
+    <label className="min-w-0 space-y-1">
+      <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => handleFilterChange(field, event.target.value)}
+        className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#bfa15f] focus:ring-2 focus:ring-[#bfa15f]/15"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>{option || (isVi ? 'Tat ca' : 'All')}</option>
+        ))}
+      </select>
+    </label>
+  );
+
+  const renderDetailModal = () => {
+    const changedFields = selectedLog ? getChangedFields(selectedLog.changes) : [];
+    const rawJson = selectedLog ? JSON.stringify(selectedLog.changes, null, 2) : '';
+
+    return (
+      <Modal
+        open={Boolean(selectedLog)}
+        title={selectedLog ? `${selectedLog.action} #${selectedLog.id}` : 'Audit Log'}
+        onClose={() => setSelectedLog(null)}
+        size="2xl"
+      >
+        {selectedLog && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
+              <InfoTile icon={CheckCircle2} label="Status" value={selectedLog.status} tone={selectedLog.status === 'SUCCESS' ? 'green' : 'red'} />
+              <InfoTile icon={Database} label="Module" value={selectedLog.module} />
+              <InfoTile icon={UserRound} label="Actor" value={selectedLog.actorUsername || selectedLog.actorEmail || '-'} />
+              <InfoTile icon={Clock} label="Time" value={formatTime(selectedLog.createdAt)} />
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <InfoTile icon={Database} label="Resource" value={`${selectedLog.resourceType || '-'} ${selectedLog.resourceId ? `#${selectedLog.resourceId}` : ''}`} />
+              <InfoTile icon={Globe2} label="IP" value={selectedLog.ipAddress || '-'} />
+              <InfoTile icon={Braces} label="Request ID" value={selectedLog.requestId || '-'} />
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+              <div className="flex flex-col gap-2 border-b border-stone-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                  <FileJson size={16} className="text-[#bfa15f]" />
+                  {isVi ? 'Chi tiet thay doi' : 'Change details'}
+                </div>
+                <div className="text-xs font-semibold text-slate-400">
+                  {changedFields.length} {isVi ? 'truong du lieu' : 'fields'}
+                </div>
+              </div>
+              <div className="max-h-[46vh] overflow-auto">
+                {changedFields.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-sm text-slate-400">
+                    {isVi ? 'Khong co chi tiet thay doi.' : 'No change details.'}
+                  </div>
+                ) : (
+                  <table className="w-full min-w-[760px] text-sm">
+                    <thead className="sticky top-0 z-10 border-b border-stone-200 bg-white text-[11px] uppercase tracking-wide text-slate-400">
+                      <tr>
+                        <th className="w-[190px] px-4 py-3 text-left font-bold">{isVi ? 'Truong' : 'Field'}</th>
+                        <th className="px-4 py-3 text-left font-bold">{isVi ? 'Truoc' : 'Before'}</th>
+                        <th className="px-4 py-3 text-left font-bold">{isVi ? 'Sau' : 'After'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {changedFields.map(({ field, before, after }) => (
+                        <tr key={field} className="align-top hover:bg-slate-50/70">
+                          <td className="px-4 py-3 font-bold text-slate-700">{formatFieldName(field)}</td>
+                          <td className="px-4 py-3">
+                            <div className="min-h-10 rounded-lg border border-stone-200 bg-slate-50 px-3 py-2 text-slate-600 break-words">
+                              {formatChangeValue(before)}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="min-h-10 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 font-semibold text-slate-900 break-words">
+                              {formatChangeValue(after)}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            <details className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+              <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-slate-100">
+                {isVi ? 'Xem JSON goc' : 'View raw JSON'}
+              </summary>
+              <pre className="max-h-64 overflow-auto border-t border-white/10 p-4 text-xs leading-relaxed text-slate-100">
+                {rawJson}
+              </pre>
+            </details>
+          </div>
+        )}
+      </Modal>
+    );
+  };
 
   return (
     <div className="space-y-5">
       <Toast type={toast.type} message={toast.message} onClose={closeToast} />
+      {renderDetailModal()}
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-slate-900 text-[#bfa15f] flex items-center justify-center">
-            <ShieldCheck size={20} />
+      <div className="flex flex-col gap-4 border-b border-stone-200 pb-5 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-[#bfa15f] shadow-sm">
+            <ShieldCheck size={24} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800">Audit Log</h2>
-            <p className="text-xs text-slate-500">
-              {isVi ? 'Theo doi thao tac quan trong trong he thong' : 'Track important system activities'}
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-slate-900">Audit Log</h2>
+              {activeFilterCount > 0 && (
+                <span className="rounded-full bg-[#bfa15f]/10 px-2.5 py-1 text-xs font-bold text-[#8a6f32]">
+                  {activeFilterCount} {isVi ? 'bo loc' : 'filters'}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-slate-500">
+              {isVi ? 'Theo doi thao tac, tai nguyen va dau vet request trong he thong.' : 'Track actions, resources and request traces in the system.'}
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleSearch} className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-[180px_130px_160px_120px_130px_190px_190px_auto_auto_auto]">
-          <label className="space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Action</span>
+        <div className="grid grid-cols-3 gap-2 sm:w-[360px]">
+          <StatTile label={isVi ? 'Trang nay' : 'This page'} value={pageStats.total} tone="slate" />
+          <StatTile label="Success" value={pageStats.success} tone="green" />
+          <StatTile label="Failed" value={pageStats.failed} tone="red" />
+        </div>
+      </div>
+
+      <form onSubmit={handleSearch} className="rounded-xl border border-stone-200 bg-slate-50/70 p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+            <Filter size={16} className="text-[#bfa15f]" />
+            {isVi ? 'Bo loc audit' : 'Audit filters'}
+          </div>
+          <button
+            type="button"
+            onClick={() => loadLogs()}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 text-xs font-bold text-slate-600 hover:bg-stone-50"
+          >
+            <RefreshCw size={13} />
+            {isVi ? 'Tai lai' : 'Reload'}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-7">
+          <label className="min-w-0 space-y-1 xl:col-span-2">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Action</span>
             <input
               value={filters.action}
               onChange={(event) => handleFilterChange('action', event.target.value)}
               placeholder="LOGIN_SUCCESS"
-              className="h-9 w-full rounded-md border border-stone-200 px-3 text-sm focus:outline-none focus:border-[#bfa15f]"
+              className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-[#bfa15f] focus:ring-2 focus:ring-[#bfa15f]/15"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Module</span>
-            <select
-              value={filters.module}
-              onChange={(event) => handleFilterChange('module', event.target.value)}
-              className="h-9 w-full rounded-md border border-stone-200 px-3 text-sm focus:outline-none focus:border-[#bfa15f]"
-            >
-              {MODULE_OPTIONS.map((option) => (
-                <option key={option} value={option}>{option || (isVi ? 'Tat ca' : 'All')}</option>
-              ))}
-            </select>
-          </label>
-          <label className="space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Resource</span>
-            <select
-              value={filters.resourceType}
-              onChange={(event) => handleFilterChange('resourceType', event.target.value)}
-              className="h-9 w-full rounded-md border border-stone-200 px-3 text-sm focus:outline-none focus:border-[#bfa15f]"
-            >
-              {RESOURCE_OPTIONS.map((option) => (
-                <option key={option} value={option}>{option || (isVi ? 'Tat ca' : 'All')}</option>
-              ))}
-            </select>
-          </label>
-          <label className="space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Actor ID</span>
+
+          {renderFilterSelect('Module', filters.module, 'module', MODULE_OPTIONS)}
+          {renderFilterSelect('Resource', filters.resourceType, 'resourceType', RESOURCE_OPTIONS)}
+
+          <label className="min-w-0 space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Actor ID</span>
             <input
               type="number"
               min="1"
               value={filters.actorUserId}
               onChange={(event) => handleFilterChange('actorUserId', event.target.value)}
               placeholder="1"
-              className="h-9 w-full rounded-md border border-stone-200 px-3 text-sm focus:outline-none focus:border-[#bfa15f]"
+              className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-300 focus:border-[#bfa15f] focus:ring-2 focus:ring-[#bfa15f]/15"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Status</span>
-            <select
-              value={filters.status}
-              onChange={(event) => handleFilterChange('status', event.target.value)}
-              className="h-9 w-full rounded-md border border-stone-200 px-3 text-sm focus:outline-none focus:border-[#bfa15f]"
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option} value={option}>{option || (isVi ? 'Tat ca' : 'All')}</option>
-              ))}
-            </select>
-          </label>
-          <label className="space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{isVi ? 'Tu ngay' : 'From'}</span>
+
+          {renderFilterSelect('Status', filters.status, 'status', STATUS_OPTIONS)}
+
+          <label className="min-w-0 space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isVi ? 'Tu ngay' : 'From'}</span>
             <input
               type="datetime-local"
               value={filters.fromTime}
               onChange={(event) => handleFilterChange('fromTime', event.target.value)}
-              className="h-9 w-full rounded-md border border-stone-200 px-3 text-sm focus:outline-none focus:border-[#bfa15f]"
+              className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#bfa15f] focus:ring-2 focus:ring-[#bfa15f]/15"
             />
           </label>
-          <label className="space-y-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{isVi ? 'Den ngay' : 'To'}</span>
+
+          <label className="min-w-0 space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isVi ? 'Den ngay' : 'To'}</span>
             <input
               type="datetime-local"
               value={filters.toTime}
               onChange={(event) => handleFilterChange('toTime', event.target.value)}
-              className="h-9 w-full rounded-md border border-stone-200 px-3 text-sm focus:outline-none focus:border-[#bfa15f]"
+              className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#bfa15f] focus:ring-2 focus:ring-[#bfa15f]/15"
             />
           </label>
-          <button
-            type="submit"
-            className="mt-5 h-9 inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-800"
-          >
-            <Search size={15} />
-            {isVi ? 'Loc' : 'Filter'}
-          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
           <button
             type="button"
             onClick={handleResetFilters}
-            className="mt-5 h-9 inline-flex items-center justify-center gap-2 rounded-md border border-stone-200 px-3 text-sm font-semibold text-slate-700 hover:bg-stone-50"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-stone-50"
           >
             <X size={15} />
             {isVi ? 'Xoa loc' : 'Clear'}
           </button>
           <button
-            type="button"
-            onClick={() => loadLogs()}
-            className="mt-5 h-9 inline-flex items-center justify-center gap-2 rounded-md border border-stone-200 px-3 text-sm font-semibold text-slate-700 hover:bg-stone-50"
+            type="submit"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 text-sm font-bold text-white shadow-sm hover:bg-slate-800"
           >
-            <RefreshCw size={15} />
-            {isVi ? 'Tai lai' : 'Reload'}
+            <Search size={15} />
+            {isVi ? 'Loc du lieu' : 'Filter logs'}
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
 
-      <DataTable
-        columns={['ID', isVi ? 'Thoi gian' : 'Time', 'Action', 'Status', 'Actor', 'Resource', 'Changes', 'Trace']}
-        rows={rows}
-        loading={loading}
-        page={page}
-        totalPages={totalPages}
-        onPageChange={setPage}
-        emptyText={isVi ? 'Chua co audit log.' : 'No audit logs found.'}
-      />
+      <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+        <div className="overflow-x-auto">
+          <table className="min-w-[1120px] w-full text-sm">
+            <thead className="border-b border-stone-200 bg-white text-[11px] uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="px-4 py-3 text-left font-bold">ID</th>
+                <th className="px-4 py-3 text-left font-bold">{isVi ? 'Thoi gian' : 'Time'}</th>
+                <th className="px-4 py-3 text-left font-bold">Action</th>
+                <th className="px-4 py-3 text-left font-bold">Status</th>
+                <th className="px-4 py-3 text-left font-bold">Actor</th>
+                <th className="px-4 py-3 text-left font-bold">Resource</th>
+                <th className="px-4 py-3 text-left font-bold">Changes</th>
+                <th className="px-4 py-3 text-left font-bold">Trace</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-14 text-center text-slate-400">
+                    <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-[#bfa15f] border-t-transparent" />
+                    {isVi ? 'Dang tai audit log...' : 'Loading audit logs...'}
+                  </td>
+                </tr>
+              ) : logs.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-4 py-14 text-center text-slate-400">
+                    {isVi ? 'Chua co audit log phu hop.' : 'No matching audit logs.'}
+                  </td>
+                </tr>
+              ) : logs.map((log) => (
+                <tr key={log.id} className="transition hover:bg-slate-50/70">
+                  <td className="whitespace-nowrap px-4 py-4 font-bold text-slate-800">#{log.id}</td>
+                  <td className="whitespace-nowrap px-4 py-4 text-slate-600">{formatTime(log.createdAt)}</td>
+                  <td className="px-4 py-4">
+                    <div className="font-mono text-xs font-bold text-slate-800">{log.action}</div>
+                    <div className="mt-1 text-[11px] font-semibold uppercase text-slate-400">{log.module}</div>
+                  </td>
+                  <td className="px-4 py-4">{renderStatus(log.status)}</td>
+                  <td className="px-4 py-4">
+                    <div className="font-semibold text-slate-800">{log.actorUsername || '-'}</div>
+                    <div className="mt-1 text-xs text-slate-400">{log.actorRole || log.actorEmail || '-'}</div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="font-semibold text-slate-800">{log.resourceType || '-'}</div>
+                    <div className="mt-1 text-xs text-slate-400">{log.resourceName || log.resourceId || '-'}</div>
+                  </td>
+                  <td className="px-4 py-4">{renderChangeSummary(log)}</td>
+                  <td className="px-4 py-4 text-xs text-slate-500">
+                    <div className="font-medium">{log.ipAddress || '-'}</div>
+                    <div className="mt-1 max-w-[180px] truncate font-mono text-[10px] text-slate-400" title={log.requestId}>
+                      {log.requestId || '-'}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-stone-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            {isVi ? 'Trang' : 'Page'} <strong>{page + 1}</strong> / {Math.max(totalPages, 1)}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.max(current - 1, 0))}
+              disabled={page === 0}
+              className="h-9 rounded-lg border border-stone-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isVi ? 'Truoc' : 'Previous'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((current) => Math.min(current + 1, Math.max(totalPages - 1, 0)))}
+              disabled={page >= totalPages - 1}
+              className="h-9 rounded-lg border border-stone-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {isVi ? 'Sau' : 'Next'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatTile({ label, value, tone }) {
+  const toneClass = {
+    green: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+    red: 'bg-red-50 text-red-700 ring-red-100',
+    slate: 'bg-slate-50 text-slate-700 ring-slate-200',
+  }[tone] || 'bg-slate-50 text-slate-700 ring-slate-200';
+
+  return (
+    <div className={`rounded-lg px-3 py-2 ring-1 ${toneClass}`}>
+      <div className="text-[11px] font-bold uppercase tracking-wide opacity-70">{label}</div>
+      <div className="text-lg font-black">{value}</div>
+    </div>
+  );
+}
+
+function InfoTile({ icon: Icon, label, value, tone = 'slate' }) {
+  const toneClass = {
+    green: 'border-emerald-100 bg-emerald-50 text-emerald-700',
+    red: 'border-red-100 bg-red-50 text-red-700',
+    slate: 'border-stone-200 bg-slate-50 text-slate-800',
+  }[tone] || 'border-stone-200 bg-slate-50 text-slate-800';
+
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${toneClass}`}>
+      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide opacity-70">
+        {Icon && <Icon size={13} />}
+        {label}
+      </div>
+      <div className="mt-1 break-words text-sm font-bold" title={String(value)}>{value}</div>
     </div>
   );
 }

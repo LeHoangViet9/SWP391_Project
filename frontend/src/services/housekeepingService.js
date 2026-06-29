@@ -39,3 +39,69 @@ export async function payInvoice(invoiceId, paymentMethod, locale = 'vi') {
     body: JSON.stringify({ paymentMethod }),
   }, locale);
 }
+
+// Housekeeping Tasks API calls
+export async function searchTasks(params = {}, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/search${buildQuery(params)}`, {}, locale);
+}
+
+export async function getTaskById(id, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/${id}`, {}, locale);
+}
+
+export async function getPendingTasksByRoom(roomId, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/pending/room/${roomId}`, {}, locale);
+}
+
+export async function getUncompletedByUser(userId, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/uncompleted/user/${userId}`, {}, locale);
+}
+
+export async function getRoomStateHistory(roomId, params = {}, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/rooms/${roomId}/state-history${buildQuery(params)}`, {}, locale);
+}
+
+export async function createTask(payload, locale = 'vi') {
+  return apiFetch('/housekeeping-tasks', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }, locale);
+}
+
+export async function updateTask(id, payload, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/updateTask/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }, locale);
+}
+
+export async function deleteTask(id, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/deleteTask/${id}`, {
+    method: 'DELETE'
+  }, locale);
+}
+
+export async function reportRoomIssue(roomId, payload, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/rooms/${roomId}/report-issue`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }, locale);
+}
+
+// Exported wrapper object for components importing { housekeepingService }
+export const housekeepingService = {
+  getDirtyRooms,
+  getCleaningRooms,
+  updateRoomCleaningStatus,
+  getInvoiceByBookingId,
+  payInvoice,
+  searchTasks,
+  getTaskById,
+  getPendingTasksByRoom,
+  getUncompletedByUser,
+  getRoomStateHistory,
+  createTask,
+  updateTask,
+  deleteTask,
+  reportRoomIssue
+};

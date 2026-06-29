@@ -202,6 +202,10 @@ export default function RolePermissionManager() {
               const groupPerms = groupedPermissions[groupKey] || [];
               if (groupPerms.length === 0) return null;
 
+              if (groupKey === 'AUDIT_LOG' && selectedRole && !['ADMIN', 'MANAGER'].includes(selectedRole.roleName.toUpperCase())) {
+                return null;
+              }
+
               const label = isVi ? groupLabel.vi : groupLabel.en;
               const allChecked = groupPerms.every(p => rolePermissions.has(p.id));
               const someChecked = groupPerms.some(p => rolePermissions.has(p.id));

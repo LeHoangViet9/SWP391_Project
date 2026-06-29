@@ -61,12 +61,6 @@ public class SensitiveDataMasker {
             return value;
         }
 
-        if (normalizedKey.contains("email")) {
-            return maskEmail(text);
-        }
-        if (normalizedKey.contains("phone")) {
-            return maskKeepLast(text, 4);
-        }
         if (normalizedKey.contains("idnumber")
                 || normalizedKey.contains("identity")
                 || normalizedKey.contains("passport")
@@ -78,17 +72,6 @@ public class SensitiveDataMasker {
         }
 
         return text;
-    }
-
-    private String maskEmail(String email) {
-        int atIndex = email.indexOf('@');
-        if (atIndex <= 0) {
-            return "***";
-        }
-        String localPart = email.substring(0, atIndex);
-        String domain = email.substring(atIndex);
-        String visible = localPart.substring(0, Math.min(2, localPart.length()));
-        return visible + "***" + domain;
     }
 
     private String maskKeepLast(String value, int keepLast) {

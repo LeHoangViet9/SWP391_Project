@@ -25,6 +25,8 @@ import EquipmentManager from '../components/EquipmentManager';
 import AssignEquipmentToRoom from '../components/AssignEquipmentToRoom';
 import MaintenanceManager from '../components/MaintenanceManager';
 import HousekeepingBoard from '../components/HousekeepingBoard';
+import HousekeepingManager from '../components/HousekeepingManager';
+import HousekeeperTaskBoard from '../components/HousekeeperTaskBoard';
 import CustomerBookingHistory from '../components/CustomerBookingHistory';
 import AccountInfo from '../components/AccountInfo';
 import ChangePassword from '../components/ChangePassword';
@@ -63,10 +65,19 @@ const ROUTE_COMPONENTS = {
  */
 function ContentPage({ routeKey }) {
   const { locale } = useLocale();
+  const { user } = useAuth();
   const route = ROUTE_COMPONENTS[routeKey];
   if (!route) return <Navigate to="/dashboard" replace />;
 
-  const { Component } = route;
+  let Component = route.Component;
+  if (routeKey === 'housekeeping') {
+    if (user?.roleName === 'HOUSEKEEPER') {
+      Component = HousekeeperTaskBoard;
+    } else if (user?.roleName === 'ADMIN' || user?.roleName === 'MANAGER') {
+      Component = HousekeepingManager;
+    }
+  }
+
   const title = locale === 'vi' ? route.title : route.titleEn;
 
   return (
@@ -83,8 +94,8 @@ export default function DashboardRouter() {
   const { user } = useAuth();
 
   const visibleMenu = useMemo(
-    () => filterMenuByPermissions(user?.permissions ?? []),
-    [user?.permissions]
+    () => filterMenuByPermissions(user?.permissions ?? [], user?.roleName),
+    [user?.permissions, user?.roleName]
   );
 
   const allowedRouteKeys = useMemo(() => {

@@ -11,6 +11,7 @@ import Toast from './shared/Toast';
 import { housekeepingService } from '../services/housekeepingService';
 import { useLocale } from '../context/LocaleContext';
 import { getUsers } from '../services/userService';
+import { useAuth } from '../context/AuthContext';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TASK_STATUSES = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 const SORT_FIELDS = ['ID', 'ROOM_ID', 'ASSIGNED_TO_ID', 'STATUS', 'CREATED_AT'];
@@ -476,6 +477,7 @@ const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale }) => {
 };
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function HousekeepingManager() {
+    const { user } = useAuth();
     const { locale } = useLocale();
     // ── State: Data ──────────────────────────────────────────────────────────
     const [tasks, setTasks] = useState([]);
@@ -568,7 +570,11 @@ export default function HousekeepingManager() {
     const handleCreateTask = async (formData) => {
         setActionLoading(true);
         try {
-            const res = await housekeepingService.createTask(formData, locale);
+            const payload = {
+                ...formData,
+                assignedById: user?.id
+            };
+            const res = await housekeepingService.createTask(payload, locale);
             notify(res?.message || 'Tạo tác vụ thành công!');
             setShowCreateModal(false);
             fetchTasks();

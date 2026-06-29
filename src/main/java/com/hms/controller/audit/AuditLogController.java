@@ -25,7 +25,7 @@ public class AuditLogController {
     private final AuditLogService auditLogService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('AUDIT_LOG_VIEW')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER') and hasAuthority('AUDIT_LOG_VIEW')")
     public ResponseEntity<ApiResponse<Page<AuditLogResponse>>> search(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String action,
@@ -49,7 +49,7 @@ public class AuditLogController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('AUDIT_LOG_VIEW')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER') and hasAuthority('AUDIT_LOG_VIEW')")
     public ResponseEntity<ApiResponse<AuditLogResponse>> getById(@PathVariable Long id) {
         ApiResponse<AuditLogResponse> response = ApiResponse.<AuditLogResponse>builder()
                 .success(true)

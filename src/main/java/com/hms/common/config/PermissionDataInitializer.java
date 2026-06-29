@@ -81,7 +81,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
         }
 
         // 2. Gán permissions cho từng role
-        assignPermissionsToAdmin();
+        assignPermissionsToAdmin(allPermissions);
         assignPermissionsToManager();
         assignPermissionsToReceptionist();
         assignPermissionsToHousekeeper();
@@ -91,15 +91,8 @@ public class PermissionDataInitializer implements ApplicationRunner {
         log.info("All permissions have been assigned to roles.");
     }
 
-    private void assignPermissionsToAdmin() {
-        List<String> adminPerms = Arrays.asList(
-                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE",
-                "ROOM_VIEW", "ROOM_CREATE", "ROOM_UPDATE", "ROOM_DELETE",
-                "ROOM_TYPE_VIEW", "ROOM_TYPE_CREATE", "ROOM_TYPE_UPDATE", "ROOM_TYPE_DELETE",
-                "DASHBOARD_VIEW",
-                "AUDIT_LOG_VIEW"
-        );
-        syncRolePermissions("ADMIN", adminPerms);
+    private void assignPermissionsToAdmin(List<String> allPermissions) {
+        syncRolePermissions("ADMIN", allPermissions);
     }
 
     private void syncRolePermissions(String roleName, List<String> requiredPermNames) {
