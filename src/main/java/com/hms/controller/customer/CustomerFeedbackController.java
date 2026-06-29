@@ -4,6 +4,7 @@ import com.hms.common.dto.ApiResponse;
 import com.hms.dto.customer.request.CustomerFeedbackRequest;
 import com.hms.dto.customer.request.FeedbackReplyRequest;
 import com.hms.dto.customer.response.CustomerFeedbackResponse;
+import com.hms.dto.customer.response.FeedbackStatsResponse;
 import com.hms.service.customer.CustomerFeedbackService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -132,6 +133,22 @@ public class CustomerFeedbackController {
                 true,
                 messageSource.getMessage("success.feedback.delete", null, "Feedback deleted successfully", locale),
                 null,
+                HttpStatus.OK
+        ), HttpStatus.OK);
+    }
+
+    // 5. Thống kê phản hồi khách hàng -> Quyền xem (FEEDBACK_VIEW)
+    @GetMapping("/stats")
+    @PreAuthorize("hasAuthority('FEEDBACK_VIEW')")
+    public ResponseEntity<ApiResponse<FeedbackStatsResponse>> getFeedbackStats(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String category) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.stats", null, "Feedback stats retrieved successfully", locale),
+                customerFeedbackService.getFeedbackStats(keyword, status, category),
                 HttpStatus.OK
         ), HttpStatus.OK);
     }

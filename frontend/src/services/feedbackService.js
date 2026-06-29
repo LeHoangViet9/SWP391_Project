@@ -36,3 +36,28 @@ export async function deleteFeedback(id, locale = 'vi') {
     method: 'DELETE',
   }, locale);
 }
+
+/** GET /api/v1/feedbacks/my */
+export async function getMyFeedbacks(locale = 'vi') {
+  return apiFetch('/feedbacks/my', {}, locale);
+}
+
+/** PUT /api/v1/feedbacks/my/{id} */
+export async function updateMyFeedback(id, payload, locale = 'vi') {
+  return apiFetch(`/feedbacks/my/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
+/** DELETE /api/v1/feedbacks/my/{id} */
+export async function deleteMyFeedback(id, locale = 'vi') {
+  return apiFetch(`/feedbacks/my/${id}`, {
+    method: 'DELETE',
+  }, locale);
+}
+
+/** GET /api/v1/feedbacks/stats */
+export async function getFeedbackStats(params = {}, locale = 'vi') {
+  return apiFetch(`/feedbacks/stats${buildQuery(params)}`, {}, locale);
+}

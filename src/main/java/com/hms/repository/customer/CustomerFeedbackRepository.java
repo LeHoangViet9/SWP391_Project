@@ -64,4 +64,25 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
             @Param("category") String category,
             Pageable pageable
     );
+
+    @Query("""
+        SELECT cf.rating, COUNT(cf) FROM CustomerFeedback cf
+        LEFT JOIN cf.customer c
+        LEFT JOIN cf.booking b
+        LEFT JOIN b.roomType rt
+        WHERE (:status IS NULL OR cf.status = :status)
+        AND (:category IS NULL OR LOWER(cf.category) = LOWER(CAST(:category AS string)))
+        AND (
+            CAST(:keyword AS string) IS NULL
+            OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+            OR LOWER(cf.comment) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+            OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+        )
+        GROUP BY cf.rating
+    """)
+    List<Object[]> getFeedbackStats(
+            @Param("keyword") String keyword,
+            @Param("status") FeedbackStatus status,
+            @Param("category") String category
+    );
 }

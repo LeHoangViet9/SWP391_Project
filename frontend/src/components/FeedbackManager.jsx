@@ -3,7 +3,7 @@ import { Star, MessageSquare, Search, Reply, Send, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
 import Toast from './shared/Toast';
-import { searchFeedbacks, replyFeedback, deleteFeedback } from '../services/feedbackService';
+import { searchFeedbacks, replyFeedback, deleteFeedback, getFeedbackStats } from '../services/feedbackService';
 
 export default function FeedbackManager() {
   const { hasAnyPermission } = useAuth();
@@ -24,6 +24,11 @@ export default function FeedbackManager() {
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [replyTarget, setReplyTarget] = useState(null);
   const [replyText, setReplyText] = useState('');
+  const [stats, setStats] = useState({
+    averageRating: 0.0,
+    totalReviews: 0,
+    ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+  });
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -31,16 +36,29 @@ export default function FeedbackManager() {
   const fetchFeedbacks = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await searchFeedbacks({
-        keyword: search.trim() || undefined,
-        rating: filterRating > 0 ? filterRating : undefined,
-        status: filterStatus || undefined,
-        category: filterCategory || undefined,
-        page,
-        size: 10
-      }, locale);
-      setFeedbacks(res?.data?.content || []);
-      setTotalPages(res?.data?.totalPages || 1);
+      const [listRes, statsRes] = await Promise.all([
+        searchFeedbacks({
+          keyword: search.trim() || undefined,
+          rating: filterRating > 0 ? filterRating : undefined,
+          status: filterStatus || undefined,
+          category: filterCategory || undefined,
+          page,
+          size: 10
+        }, locale),
+        getFeedbackStats({
+          keyword: search.trim() || undefined,
+          status: filterStatus || undefined,
+          category: filterCategory || undefined
+        }, locale).catch(err => {
+          console.error('Failed to fetch stats:', err);
+          return null;
+        })
+      ]);
+      setFeedbacks(listRes?.data?.content || []);
+      setTotalPages(listRes?.data?.totalPages || 1);
+      if (statsRes?.data) {
+        setStats(statsRes.data);
+      }
     } catch (err) {
       notify(err.message || (isVi ? 'Không thể tải danh sách đánh giá' : 'Failed to load feedbacks'), 'error');
     } finally {
@@ -87,11 +105,11 @@ export default function FeedbackManager() {
     }
   };
 
-  // Metrics (computed based on fetched feedbacks)
-  const avgRating = feedbacks.length > 0 ? (feedbacks.reduce((acc, curr) => acc + curr.rating, 0) / feedbacks.length).toFixed(1) : '0.0';
+  // Metrics (computed dynamically from backend across whole dataset matching active filters)
+  const avgRating = (stats.averageRating || 0.0).toFixed(1);
   const ratingCounts = [5, 4, 3, 2, 1].map(stars => ({
     stars,
-    count: feedbacks.filter(f => f.rating === stars).length
+    count: stats.ratingDistribution?.[stars] || 0
   }));
 
   return (
@@ -131,8 +149,8 @@ export default function FeedbackManager() {
           </div>
           <span className="text-xs text-white/40 mt-3">
             {isVi
-              ? `Dựa trên ${feedbacks.length} lượt đánh giá (trang hiện tại)`
-              : `Based on ${feedbacks.length} reviews (current page)`}
+              ? `Dựa trên ${stats.totalReviews} lượt đánh giá`
+              : `Based on ${stats.totalReviews} reviews`}
           </span>
         </div>
 
@@ -142,7 +160,7 @@ export default function FeedbackManager() {
             {isVi ? 'Phân Phối Điểm Đánh Giá' : 'Rating Distribution'}
           </span>
           {ratingCounts.map(({ stars, count }) => {
-            const pct = feedbacks.length > 0 ? (count / feedbacks.length) * 100 : 0;
+            const pct = stats.totalReviews > 0 ? (count / stats.totalReviews) * 100 : 0;
             return (
               <div key={stars} className="flex items-center gap-3 text-sm text-white/70">
                 <span className="w-8 font-semibold flex items-center justify-end gap-1">
@@ -378,12 +396,18 @@ export default function FeedbackManager() {
 
             <form onSubmit={handleSaveReply} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                  {isVi ? 'Nội dung phản hồi' : 'Response Message'}
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider">
+                    {isVi ? 'Nội dung phản hồi' : 'Response Message'}
+                  </label>
+                  <span className={`text-[10px] ${replyText.length > 1000 ? 'text-red-500 font-bold' : 'text-white/40'}`}>
+                    {replyText.length}/1000
+                  </span>
+                </div>
                 <textarea
                   required
                   rows={4}
+                  maxLength={1000}
                   value={replyText}
                   onChange={e => setReplyText(e.target.value)}
                   placeholder={isVi ? 'Nhập lời cảm ơn hoặc giải đáp thắc mắc...' : 'Type your reply message...'}
@@ -401,7 +425,8 @@ export default function FeedbackManager() {
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center gap-1.5 px-5 py-2 text-sm btn-gold rounded-xl font-semibold shadow"
+                  disabled={replyText.length > 1000}
+                  className="flex items-center gap-1.5 px-5 py-2 text-sm btn-gold rounded-xl font-semibold shadow disabled:opacity-50"
                 >
                   <Send size={14} />
                   {isVi ? 'Gửi phản hồi' : 'Send'}

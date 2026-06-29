@@ -14,6 +14,12 @@ CREATE TABLE IF NOT EXISTS customer_feedback (
     CONSTRAINT fk_customer_feedback_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
 );
 
+-- Định nghĩa Indexes cho customer_feedback để tăng hiệu năng và tránh race condition
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_feedback_booking ON customer_feedback (booking_id) WHERE (deleted = false);
+CREATE INDEX IF NOT EXISTS idx_feedback_customer_id ON customer_feedback (customer_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_rating ON customer_feedback (rating);
+CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON customer_feedback (created_at DESC);
+
 -- Dọn sạch dữ liệu cũ và reset các chuỗi ID tự tăng
 TRUNCATE TABLE room_state_history, room_img, equipment_images, equipment_checks, repair_requests, equipments, invoices, bookings, customers, room, room_type, users, roles, customer_feedback RESTART IDENTITY CASCADE;
 
@@ -84,7 +90,12 @@ INSERT INTO users (full_name, email, phone, password, account_status, created_at
     ('Phạm Văn Dũng', 'maintenance3@hms.com', '0901234571', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
     ('Trần Văn An', 'customer1@gmail.com', '0908111222', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
     ('Lê Thị Bình', 'customer2@gmail.com', '0908333444', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
-    ('Nguyễn Hoàng Cường', 'customer3@gmail.com', '0908555666', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3);
+    ('Nguyễn Hoàng Cường', 'customer3@gmail.com', '0908555666', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+    ('John Doe', 'john.doe@gmail.com', '0908777888', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+    ('Alice Smith', 'alice.smith@gmail.com', '0908999000', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+    ('Phạm Minh Hùng', 'hung.pham@gmail.com', '0902111333', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+    ('Vũ Thị Lan', 'lan.vu@gmail.com', '0902444555', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+    ('Đỗ Quốc Anh', 'anh.do@gmail.com', '0902777888', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3);
 
 -- 3. BẢNG ROOM_TYPE (15 Loại phòng)
 INSERT INTO room_type (type_name, description, base_price, max_guests, status)
@@ -146,10 +157,10 @@ VALUES
 -- 6. BẢNG BOOKINGS (15 Đơn đặt phòng)
 INSERT INTO bookings (customer_id, room_id, type_id, price_per_night, quantity, check_in_date, check_out_date, booking_status, total_price, created_by, created_at)
 VALUES
-    (1, 1, 1, 500000.00, 1, '2026-06-15 14:00:00', '2026-06-17 12:00:00', 'CONFIRMED', 1000000.00, 1, NOW()),
-    (2, 2, 2, 700000.00, 1, '2026-06-20 14:00:00', '2026-06-22 12:00:00', 'CONFIRMED', 1400000.00, 1, NOW()),
-    (3, 4, 4, 1000000.00, 1, '2026-06-10 14:00:00', '2026-06-12 12:00:00', 'CHECKED_IN', 2000000.00, 1, NOW()),
-    (4, 5, 5, 1200000.00, 1, '2026-06-11 14:00:00', '2026-06-13 12:00:00', 'CHECKED_IN', 2400000.00, 1, NOW()),
+    (1, 1, 1, 500000.00, 1, '2026-06-15 14:00:00', '2026-06-17 12:00:00', 'CHECKED_OUT', 1000000.00, 1, NOW()),
+    (2, 2, 2, 700000.00, 1, '2026-06-20 14:00:00', '2026-06-22 12:00:00', 'CHECKED_OUT', 1400000.00, 1, NOW()),
+    (3, 4, 4, 1000000.00, 1, '2026-06-10 14:00:00', '2026-06-12 12:00:00', 'CHECKED_OUT', 2000000.00, 1, NOW()),
+    (4, 5, 5, 1200000.00, 1, '2026-06-11 14:00:00', '2026-06-13 12:00:00', 'CHECKED_OUT', 2400000.00, 1, NOW()),
     (5, 6, 6, 1500000.00, 1, '2026-06-01 14:00:00', '2026-06-03 12:00:00', 'CHECKED_OUT', 3000000.00, 1, NOW()),
     (6, 3, 3, 800000.00, 1, '2026-06-02 14:00:00', '2026-06-04 12:00:00', 'CHECKED_OUT', 1600000.00, 1, NOW()),
     (7, 8, 8, 3000000.00, 1, '2026-06-08 14:00:00', '2026-06-10 12:00:00', 'CHECKED_OUT', 6000000.00, 1, NOW()),
@@ -159,7 +170,7 @@ VALUES
     (11, 10, 10, 1100000.00, 1, '2026-06-05 14:00:00', '2026-06-06 12:00:00', 'CHECKED_OUT', 1100000.00, 1, NOW()),
     (12, 11, 11, 2000000.00, 1, '2026-06-06 14:00:00', '2026-06-08 12:00:00', 'CHECKED_OUT', 4000000.00, 1, NOW()),
     (13, NULL, 12, 12000000.00, 1, '2026-07-01 14:00:00', '2026-07-05 12:00:00', 'PENDING', 48000000.00, 1, NOW()),
-    (14, 15, 15, 400000.00, 1, '2026-06-12 14:00:00', '2026-06-14 12:00:00', 'CONFIRMED', 800000.00, 1, NOW()),
+    (14, 15, 15, 400000.00, 1, '2026-06-12 14:00:00', '2026-06-14 12:00:00', 'CHECKED_OUT', 800000.00, 1, NOW()),
     (15, NULL, 13, 1800000.00, 1, '2026-06-15 14:00:00', '2026-06-16 12:00:00', 'CANCELLED', 1800000.00, 1, NOW());
 
 -- 7. BẢNG INVOICES (15 Hóa đơn, liên kết 1-1 với Bookings)
@@ -180,6 +191,17 @@ VALUES
     (13, 48000000.00, 'PENDING', NULL, NULL),
     (14, 800000.00, 'PENDING', NULL, NULL),
     (15, 1800000.00, 'CANCELLED', NULL, NULL);
+
+
+-- 7b. BẢNG CUSTOMER_FEEDBACK (Một số đánh giá mẫu để kiểm thử)
+INSERT INTO customer_feedback (booking_id, customer_id, rating, category, comment, status, created_at, reply, reply_at)
+VALUES
+    (5, 5, 5, 'Room', 'Phòng Suite view biển rất đẹp, thiết bị hiện đại!', 'PENDING', NOW() - INTERVAL '3 days', NULL, NULL),
+    (6, 6, 4, 'Cleanliness', 'Khách sạn sạch sẽ, nhân viên dọn phòng chu đáo.', 'REVIEWED', NOW() - INTERVAL '2 days', 'Cảm ơn anh Hùng đã phản hồi tích cực! Rất hân hạnh được phục vụ anh.', NOW() - INTERVAL '1 days'),
+    (7, 7, 3, 'Service', 'Đồ ăn sáng hơi ít món, wifi thi thoảng bị chập chờn.', 'PENDING', NOW() - INTERVAL '1 days', NULL, NULL),
+    (11, 11, 2, 'Staff', 'Nhân viên lễ tân lúc check-out thái độ chưa chuyên nghiệp.', 'PENDING', NOW() - INTERVAL '12 hours', NULL, NULL),
+    (12, 12, 1, 'Room', 'Phòng bị hỏng điều hòa nóng quá không chịu được!', 'RESOLVED', NOW() - INTERVAL '6 hours', 'Chúng tôi thành thật xin lỗi về trải nghiệm này. Khách sạn đã sửa chữa điều hòa và liên hệ hỗ trợ đổi phòng cho quý khách.', NOW() - INTERVAL '5 hours');
+
 
 
 -- Xóa sạch dữ liệu cũ của bảng thiết bị (nếu có dở dang)
@@ -429,6 +451,7 @@ INSERT INTO permission (name) VALUES
 
 -- Feedback permissions
 ('FEEDBACK_VIEW'), ('FEEDBACK_CREATE'), ('FEEDBACK_UPDATE'), ('FEEDBACK_DELETE'),
+('FEEDBACK_VIEW_OWN'), ('FEEDBACK_UPDATE_OWN'), ('FEEDBACK_DELETE_OWN'),
 
 -- Invoice permissions
 ('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE')
@@ -504,6 +527,9 @@ WHERE r.role_name = 'CUSTOMER'
                  'BOOKING_VIEW_OWN',
                  'ROOM_TYPE_VIEW',
                  'FEEDBACK_CREATE',
+                 'FEEDBACK_VIEW_OWN',
+                 'FEEDBACK_UPDATE_OWN',
+                 'FEEDBACK_DELETE_OWN',
                  'INVOICE_VIEW'
     );
 

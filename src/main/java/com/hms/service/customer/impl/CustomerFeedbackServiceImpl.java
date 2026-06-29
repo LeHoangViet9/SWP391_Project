@@ -11,6 +11,7 @@ import com.hms.common.utils.PageableUtils;
 import com.hms.dto.customer.request.CustomerFeedbackRequest;
 import com.hms.dto.customer.request.FeedbackReplyRequest;
 import com.hms.dto.customer.response.CustomerFeedbackResponse;
+import com.hms.dto.customer.response.FeedbackStatsResponse;
 import com.hms.entity.booking.Booking;
 import com.hms.entity.customer.Customer;
 import com.hms.entity.customer.CustomerFeedback;
@@ -28,8 +29,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -195,5 +198,50 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
                 ));
 
         customerFeedbackRepository.delete(feedback);
+    }
+
+    @Override
+    public FeedbackStatsResponse getFeedbackStats(String keyword, String status, String category) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        FeedbackStatus enumStatus = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                enumStatus = FeedbackStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException(
+                        messageSource.getMessage("error.feedback.status.invalid", null, "Invalid feedback status: " + status, locale)
+                );
+            }
+        }
+
+        List<Object[]> rawStats = customerFeedbackRepository.getFeedbackStats(keyword, enumStatus, category);
+
+        Map<Integer, Long> distribution = new HashMap<>();
+        for (int i = 1; i <= 5; i++) {
+            distribution.put(i, 0L);
+        }
+
+        long totalReviews = 0;
+        long totalRatingSum = 0;
+
+        for (Object[] row : rawStats) {
+            Integer rating = (Integer) row[0];
+            Long count = (Long) row[1];
+            if (rating != null && count != null) {
+                distribution.put(rating, count);
+                totalReviews += count;
+                totalRatingSum += (rating * count);
+            }
+        }
+
+        double averageRating = totalReviews > 0 ? (double) totalRatingSum / totalReviews : 0.0;
+        averageRating = Math.round(averageRating * 10.0) / 10.0;
+
+        return FeedbackStatsResponse.builder()
+                .averageRating(averageRating)
+                .totalReviews(totalReviews)
+                .ratingDistribution(distribution)
+                .build();
     }
 }
