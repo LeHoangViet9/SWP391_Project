@@ -113,8 +113,7 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
 
         if (feedback.getStatus() != FeedbackStatus.PENDING) {
             throw new BadRequestException(
-                    messageSource.getMessage("error.feedback.cannot_update_after_reply", null,
-                            "Cannot update feedback that has already been reviewed!", locale));
+                    messageSource.getMessage("error.feedback.cannot_update_after_reply", null, locale));
         }
 
         if (!VALID_CATEGORIES.contains(request.getCategory())) {
