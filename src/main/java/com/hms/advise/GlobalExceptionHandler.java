@@ -115,4 +115,32 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.FORBIDDEN)
                 .body(response);
     }
+
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTypeMismatch(
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException exception
+    ) {
+        Locale locale = LocaleContextHolder.getLocale();
+        String message;
+        if (exception.getRequiredType() != null && exception.getRequiredType().isEnum()) {
+            String enumName = exception.getRequiredType().getSimpleName().toLowerCase();
+            if ("feedbackstatus".equals(enumName)) {
+                message = messageSource.getMessage("error.feedback.status.invalid", null, "Invalid feedback status!", locale);
+            } else {
+                message = "Invalid value: " + exception.getValue() + " for parameter: " + exception.getName();
+            }
+        } else {
+            message = "Invalid value for parameter: " + exception.getName();
+        }
+
+        ApiResponse<Object> response = ApiResponse.builder()
+                .success(false)
+                .message(message)
+                .status(HttpStatus.BAD_REQUEST)
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
 }

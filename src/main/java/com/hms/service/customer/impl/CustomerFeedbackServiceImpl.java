@@ -56,36 +56,30 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
 
         Customer customer = customerRepository.findByEmailAndStatus(email, AccountStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage("error.feedback.customer.notfound", null, locale)
-                ));
+                        messageSource.getMessage("error.feedback.customer.notfound", null, locale)));
 
         Booking booking = bookingRepository.findById(request.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage("error.feedback.booking.notfound", null, locale)
-                ));
+                        messageSource.getMessage("error.feedback.booking.notfound", null, locale)));
 
         if (!booking.getCustomer().getId().equals(customer.getId())) {
             throw new BadRequestException(
-                    messageSource.getMessage("error.feedback.booking.not_owner", null, locale)
-            );
+                    messageSource.getMessage("error.feedback.booking.not_owner", null, locale));
         }
 
         if (booking.getBookingStatus() != BookingStatus.CHECKED_OUT) {
             throw new BadRequestException(
-                    messageSource.getMessage("error.feedback.booking.not_checked_out", null, locale)
-            );
+                    messageSource.getMessage("error.feedback.booking.not_checked_out", null, locale));
         }
 
         if (customerFeedbackRepository.existsByBookingId(booking.getId())) {
             throw new ConflictException(
-                    messageSource.getMessage("error.feedback.already_exists", null, locale)
-            );
+                    messageSource.getMessage("error.feedback.already_exists", null, locale));
         }
 
         if (!VALID_CATEGORIES.contains(request.getCategory())) {
             throw new BadRequestException(
-                    messageSource.getMessage("error.feedback.category.invalid", null, locale)
-            );
+                    messageSource.getMessage("error.feedback.category.invalid", null, locale));
         }
 
         CustomerFeedback feedback = CustomerFeedback.builder()
@@ -115,20 +109,17 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
 
         CustomerFeedback feedback = customerFeedbackRepository.findByIdAndCustomerEmail(feedbackId, email)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage("error.feedback.notfound", null, locale)
-                ));
+                        messageSource.getMessage("error.feedback.notfound", null, locale)));
 
         if (feedback.getStatus() != FeedbackStatus.PENDING) {
             throw new BadRequestException(
                     messageSource.getMessage("error.feedback.cannot_update_after_reply", null,
-                            "Cannot update feedback that has already been reviewed!", locale)
-            );
+                            "Cannot update feedback that has already been reviewed!", locale));
         }
 
         if (!VALID_CATEGORIES.contains(request.getCategory())) {
             throw new BadRequestException(
-                    messageSource.getMessage("error.feedback.category.invalid", null, locale)
-            );
+                    messageSource.getMessage("error.feedback.category.invalid", null, locale));
         }
 
         feedback.setRating(request.getRating());
@@ -144,30 +135,17 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
 
         CustomerFeedback feedback = customerFeedbackRepository.findByIdAndCustomerEmail(feedbackId, email)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage("error.feedback.notfound", null, locale)
-                ));
+                        messageSource.getMessage("error.feedback.notfound", null, locale)));
 
         customerFeedbackRepository.delete(feedback);
     }
 
     @Override
-    public Page<CustomerFeedbackResponse> searchFeedback(String keyword, Integer rating, String status, String category, Integer page, Integer size) {
-        Locale locale = LocaleContextHolder.getLocale();
+    public Page<CustomerFeedbackResponse> searchFeedback(String keyword, FeedbackStatus status, Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "createdAt", SortDirection.DESC);
 
-        FeedbackStatus enumStatus = null;
-        if (status != null && !status.isBlank()) {
-            try {
-                enumStatus = FeedbackStatus.valueOf(status.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new BadRequestException(
-                        messageSource.getMessage("error.feedback.status.invalid", null, "Invalid feedback status: " + status, locale)
-                );
-            }
-        }
-
         return customerFeedbackRepository
-                .searchFeedback(keyword, rating, enumStatus, category, pageable)
+                .searchFeedback(keyword, status, pageable)
                 .map(customerFeedbackMapper::toResponse);
     }
 
@@ -178,8 +156,7 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
 
         CustomerFeedback feedback = customerFeedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage("error.feedback.notfound", null, locale)
-                ));
+                        messageSource.getMessage("error.feedback.notfound", null, locale)));
 
         feedback.setReply(request.getReply());
         feedback.setStatus(FeedbackStatus.REVIEWED);
@@ -194,28 +171,14 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
 
         CustomerFeedback feedback = customerFeedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage("error.feedback.notfound", null, locale)
-                ));
+                        messageSource.getMessage("error.feedback.notfound", null, locale)));
 
         customerFeedbackRepository.delete(feedback);
     }
 
     @Override
-    public FeedbackStatsResponse getFeedbackStats(String keyword, String status, String category) {
-        Locale locale = LocaleContextHolder.getLocale();
-
-        FeedbackStatus enumStatus = null;
-        if (status != null && !status.isBlank()) {
-            try {
-                enumStatus = FeedbackStatus.valueOf(status.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new BadRequestException(
-                        messageSource.getMessage("error.feedback.status.invalid", null, "Invalid feedback status: " + status, locale)
-                );
-            }
-        }
-
-        List<Object[]> rawStats = customerFeedbackRepository.getFeedbackStats(keyword, enumStatus, category);
+    public FeedbackStatsResponse getFeedbackStats(String keyword, FeedbackStatus status) {
+        List<Object[]> rawStats = customerFeedbackRepository.getFeedbackStats(keyword, status);
 
         Map<Integer, Long> distribution = new HashMap<>();
         for (int i = 1; i <= 5; i++) {

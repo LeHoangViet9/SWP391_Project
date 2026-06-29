@@ -4,6 +4,7 @@ import com.hms.dto.customer.request.CustomerFeedbackRequest;
 import com.hms.dto.customer.request.FeedbackReplyRequest;
 import com.hms.dto.customer.response.CustomerFeedbackResponse;
 import com.hms.dto.customer.response.FeedbackStatsResponse;
+import com.hms.common.enums.FeedbackStatus;
 import org.springframework.data.domain.Page;
 import java.util.List;
 
@@ -12,8 +13,8 @@ public interface CustomerFeedbackService {
     List<CustomerFeedbackResponse> getMyFeedbacks(String email);
     CustomerFeedbackResponse updateMyFeedback(Long feedbackId, CustomerFeedbackRequest request, String email);
     void deleteMyFeedback(Long feedbackId, String email);
-    Page<CustomerFeedbackResponse> searchFeedback(String keyword, Integer rating, String status, String category, Integer page, Integer size);
+    Page<CustomerFeedbackResponse> searchFeedback(String keyword, FeedbackStatus status, Integer page, Integer size);
     CustomerFeedbackResponse replyFeedback(Long feedbackId, FeedbackReplyRequest request);
     void deleteFeedback(Long feedbackId);
-    FeedbackStatsResponse getFeedbackStats(String keyword, String status, String category);
+    FeedbackStatsResponse getFeedbackStats(String keyword, FeedbackStatus status);
 }

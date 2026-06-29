@@ -18,7 +18,7 @@ import java.util.Set;
 @Repository
 public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedback, Long> {
 
-    @EntityGraph(attributePaths = {"customer", "booking", "booking.roomType"})
+    @EntityGraph(attributePaths = { "customer", "booking", "booking.roomType" })
     List<CustomerFeedback> findByCustomerEmail(String email);
 
     Optional<CustomerFeedback> findByIdAndCustomerEmail(Long id, String email);
@@ -29,60 +29,59 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
     Set<Long> findBookingIdsWithFeedback(@Param("ids") Collection<Long> ids);
 
     @Query(value = """
-        SELECT DISTINCT cf FROM CustomerFeedback cf
-        LEFT JOIN FETCH cf.customer c
-        LEFT JOIN FETCH cf.booking b
-        LEFT JOIN FETCH b.roomType rt
-        WHERE (:rating IS NULL OR cf.rating = :rating)
-        AND (:status IS NULL OR cf.status = :status)
-        AND (:category IS NULL OR LOWER(cf.category) = LOWER(CAST(:category AS string)))
-        AND (
-            CAST(:keyword AS string) IS NULL
-            OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-            OR LOWER(cf.comment) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-            OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-        )
-    """, countQuery = """
-        SELECT COUNT(cf) FROM CustomerFeedback cf
-        LEFT JOIN cf.customer c
-        LEFT JOIN cf.booking b
-        LEFT JOIN b.roomType rt
-        WHERE (:rating IS NULL OR cf.rating = :rating)
-        AND (:status IS NULL OR cf.status = :status)
-        AND (:category IS NULL OR LOWER(cf.category) = LOWER(CAST(:category AS string)))
-        AND (
-            CAST(:keyword AS string) IS NULL
-            OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-            OR LOWER(cf.comment) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-            OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-        )
-    """)
+                SELECT DISTINCT cf FROM CustomerFeedback cf
+                LEFT JOIN FETCH cf.customer c
+                LEFT JOIN FETCH cf.booking b
+                LEFT JOIN FETCH b.roomType rt
+                WHERE (:status IS NULL OR cf.status = :status)
+                AND (
+                    CAST(:keyword AS string) IS NULL
+                    OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                    OR LOWER(c.email) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                    OR c.phone LIKE CONCAT('%', CAST(:keyword AS string), '%')
+                    OR c.idNumberCard LIKE CONCAT('%', CAST(:keyword AS string), '%')
+                    OR LOWER(cf.comment) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                    OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                )
+            """, countQuery = """
+                SELECT COUNT(cf) FROM CustomerFeedback cf
+                LEFT JOIN cf.customer c
+                LEFT JOIN cf.booking b
+                LEFT JOIN b.roomType rt
+                WHERE (:status IS NULL OR cf.status = :status)
+                AND (
+                    CAST(:keyword AS string) IS NULL
+                    OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                    OR LOWER(c.email) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                    OR c.phone LIKE CONCAT('%', CAST(:keyword AS string), '%')
+                    OR c.idNumberCard LIKE CONCAT('%', CAST(:keyword AS string), '%')
+                    OR LOWER(cf.comment) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                    OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                )
+            """)
     Page<CustomerFeedback> searchFeedback(
             @Param("keyword") String keyword,
-            @Param("rating") Integer rating,
             @Param("status") FeedbackStatus status,
-            @Param("category") String category,
-            Pageable pageable
-    );
+            Pageable pageable);
 
     @Query("""
-        SELECT cf.rating, COUNT(cf) FROM CustomerFeedback cf
-        LEFT JOIN cf.customer c
-        LEFT JOIN cf.booking b
-        LEFT JOIN b.roomType rt
-        WHERE (:status IS NULL OR cf.status = :status)
-        AND (:category IS NULL OR LOWER(cf.category) = LOWER(CAST(:category AS string)))
-        AND (
-            CAST(:keyword AS string) IS NULL
-            OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-            OR LOWER(cf.comment) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-            OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-        )
-        GROUP BY cf.rating
-    """)
+                SELECT cf.rating, COUNT(cf) FROM CustomerFeedback cf
+                LEFT JOIN cf.customer c
+                LEFT JOIN cf.booking b
+                LEFT JOIN b.roomType rt
+                WHERE (:status IS NULL OR cf.status = :status)
+                AND (
+                    CAST(:keyword AS string) IS NULL
+                    OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                    OR LOWER(c.email) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                    OR c.phone LIKE CONCAT('%', CAST(:keyword AS string), '%')
+                    OR c.idNumberCard LIKE CONCAT('%', CAST(:keyword AS string), '%')
+                    OR LOWER(cf.comment) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                    OR LOWER(rt.typeName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                )
+                GROUP BY cf.rating
+            """)
     List<Object[]> getFeedbackStats(
             @Param("keyword") String keyword,
-            @Param("status") FeedbackStatus status,
-            @Param("category") String category
-    );
+            @Param("status") FeedbackStatus status);
 }

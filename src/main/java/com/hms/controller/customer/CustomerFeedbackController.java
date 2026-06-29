@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.hms.common.enums.FeedbackStatus;
 
 import java.util.List;
 import java.util.Locale;
@@ -94,16 +95,14 @@ public class CustomerFeedbackController {
     @PreAuthorize("hasAuthority('FEEDBACK_VIEW')")
     public ResponseEntity<ApiResponse<Page<CustomerFeedbackResponse>>> searchFeedback(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer rating,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String category,
+            @RequestParam(required = false) FeedbackStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("success.feedback.search", null, "Feedbacks retrieved successfully", locale),
-                customerFeedbackService.searchFeedback(keyword, rating, status, category, page, size),
+                customerFeedbackService.searchFeedback(keyword, status, page, size),
                 HttpStatus.OK
         ), HttpStatus.OK);
     }
@@ -142,13 +141,12 @@ public class CustomerFeedbackController {
     @PreAuthorize("hasAuthority('FEEDBACK_VIEW')")
     public ResponseEntity<ApiResponse<FeedbackStatsResponse>> getFeedbackStats(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String category) {
+            @RequestParam(required = false) FeedbackStatus status) {
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("success.feedback.stats", null, "Feedback stats retrieved successfully", locale),
-                customerFeedbackService.getFeedbackStats(keyword, status, category),
+                customerFeedbackService.getFeedbackStats(keyword, status),
                 HttpStatus.OK
         ), HttpStatus.OK);
     }
