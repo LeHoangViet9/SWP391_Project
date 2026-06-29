@@ -10,8 +10,8 @@ import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
 const STATUS_OPTIONS = [
-  { value: 'PENDING', label: 'Chờ xử lý', color: 'bg-amber-100 text-amber-700' },
-  { value: 'CONFIRMED', label: 'Đã xác nhận', color: 'bg-blue-100 text-blue-700' },
+  { value: 'PENDING_PAYMENT', label: 'Chờ thanh toán', color: 'bg-amber-100 text-amber-700' },
+  { value: 'PENDING_CHECK_IN', label: 'Chờ check-in', color: 'bg-blue-100 text-blue-700' },
   { value: 'CHECKED_IN', label: 'Đã Check-in', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'CHECKED_OUT', label: 'Đã Check-out', color: 'bg-slate-100 text-slate-700' },
   { value: 'CANCELLED', label: 'Đã hủy', color: 'bg-red-100 text-red-700' },
@@ -35,7 +35,7 @@ function localDateTime(date) {
 }
 
 function getBookingStatus(item) {
-  return item.bookingStatus || item.status || 'PENDING';
+  return item.bookingStatus || item.status || 'PENDING_PAYMENT';
 }
 
 export default function BookingManager({ readOnly = false }) {
@@ -121,7 +121,7 @@ export default function BookingManager({ readOnly = false }) {
         const res = await getAllBookings({ page: 0, size: 100 });
         const list = res?.data?.content ?? [];
         const todayStr = new Date().toDateString();
-        setTodayCheckIns(list.filter(b => new Date(b.checkInDate).toDateString() === todayStr && getBookingStatus(b) === 'CONFIRMED'));
+        setTodayCheckIns(list.filter(b => new Date(b.checkInDate).toDateString() === todayStr && getBookingStatus(b) === 'PENDING_CHECK_IN'));
         setTodayCheckOuts(list.filter(b => new Date(b.checkOutDate).toDateString() === todayStr && getBookingStatus(b) === 'CHECKED_IN'));
       } catch (err) {
         notify(err.message, 'error');
@@ -321,14 +321,8 @@ export default function BookingManager({ readOnly = false }) {
         {!readOnly && isReceptionistOrAbove && (
           <td className="px-4 py-3">
             <div className="flex flex-wrap items-center gap-1.5">
-              {status === 'PENDING' && (
+              {status === 'PENDING_PAYMENT' && (
                 <>
-                  <button
-                    onClick={() => handleUpdateStatus(item, 'CONFIRMED')}
-                    className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-1 rounded text-xs font-bold transition-colors"
-                  >
-                    Xác nhận
-                  </button>
                   <button
                     onClick={() => handleUpdateStatus(item, 'CANCELLED')}
                     className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold transition-colors"
@@ -337,7 +331,7 @@ export default function BookingManager({ readOnly = false }) {
                   </button>
                 </>
               )}
-              {status === 'CONFIRMED' && (
+              {status === 'PENDING_CHECK_IN' && (
                 <>
                   {!item.roomId ? (
                     <button

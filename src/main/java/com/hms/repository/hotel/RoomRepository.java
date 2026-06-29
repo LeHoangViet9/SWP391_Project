@@ -85,7 +85,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
                 AND NOT EXISTS (
                     SELECT b FROM Booking b
                     WHERE b.room.id = r.id
-                    AND b.bookingStatus IN (com.hms.common.enums.BookingStatus.CONFIRMED, com.hms.common.enums.BookingStatus.CHECKED_IN)
+                    AND b.bookingStatus IN (com.hms.common.enums.BookingStatus.PENDING_CHECK_IN, com.hms.common.enums.BookingStatus.CHECKED_IN)
                     AND b.checkInDate < :checkOutDate
                     AND b.checkOutDate > :checkInDate
                 )
@@ -102,4 +102,24 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Room r WHERE r.id = :id")
     Optional<Room> findByIdWithPessimisticWrite(@Param("id") Long id);
+
+    @Query("""
+            SELECT r FROM Room r
+            WHERE r.roomType.id = :roomTypeId
+            AND r.roomStatus IN (com.hms.common.enums.RoomStatus.AVAILABLE,
+                                 com.hms.common.enums.RoomStatus.READY)
+            AND NOT EXISTS (
+                SELECT b FROM Booking b
+                WHERE b.room.id = r.id
+                AND b.bookingStatus IN :statuses
+                AND b.checkInDate < :checkOutDate
+                AND b.checkOutDate > :checkInDate
+            )
+            ORDER BY r.floorNumber, r.roomNumber
+            """)
+    List<Room> findRoomsAvailableForCart(
+            @Param("roomTypeId") Long roomTypeId,
+            @Param("checkInDate") LocalDateTime checkInDate,
+            @Param("checkOutDate") LocalDateTime checkOutDate,
+            @Param("statuses") Collection<com.hms.common.enums.BookingStatus> statuses);
 }

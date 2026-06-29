@@ -275,6 +275,8 @@ export const supplementalTranslations = {
         actions: 'Thao tác',
       },
       status: {
+        PENDING_PAYMENT: 'Chờ thanh toán',
+        PENDING_CHECK_IN: 'Chờ check-in',
         PENDING: 'Chờ xử lý',
         CONFIRMED: 'Đã xác nhận',
         CHECKED_IN: 'Đã check-in',
@@ -709,6 +711,8 @@ export const supplementalTranslations = {
         actions: 'Actions',
       },
       status: {
+        PENDING_PAYMENT: 'Pending payment',
+        PENDING_CHECK_IN: 'Pending check-in',
         PENDING: 'Pending',
         CONFIRMED: 'Confirmed',
         CHECKED_IN: 'Checked in',

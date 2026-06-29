@@ -10,6 +10,8 @@ import com.hms.dto.booking.response.BookingResponse;
 import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import com.hms.dto.checkin.response.AvailableRoomResponseDTO;
 
 public interface BookingService {
 
@@ -35,4 +37,5 @@ public interface BookingService {
 
     BookingResponse assignRoom(Long bookingId, BookingRoomAssignRequest request);
     long checkAvailability(Long roomTypeId, LocalDateTime checkInDate, LocalDateTime checkOutDate);
+    List<AvailableRoomResponseDTO> getAvailableRooms(Long roomTypeId, LocalDateTime checkInDate, LocalDateTime checkOutDate);
 }

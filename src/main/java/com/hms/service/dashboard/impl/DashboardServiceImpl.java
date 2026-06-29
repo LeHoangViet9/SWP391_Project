@@ -109,7 +109,7 @@ public class DashboardServiceImpl implements DashboardService {
 
 
         long expectedCheckIns = bookingRepository.countByBookingStatusAndCheckInDateBetween(
-                BookingStatus.CONFIRMED,
+                BookingStatus.PENDING_CHECK_IN,
                 startOfToday,
                 startOfTomorrow
         );
@@ -136,7 +136,7 @@ public class DashboardServiceImpl implements DashboardService {
         );
 
 
-        long pendingBookings = bookingRepository.countBookingByBookingStatus(BookingStatus.PENDING);
+        long pendingBookings = bookingRepository.countBookingByBookingStatus(BookingStatus.PENDING_PAYMENT);
 
 
         Map<String, Long> roomStatusOverview = convertRoomStatusStats(
