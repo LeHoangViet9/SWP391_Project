@@ -46,6 +46,9 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 // Booking permissions
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE", "BOOKING_DELETE", "BOOKING_VIEW_OWN",
 
+                // Check-in permissions
+                "CHECKIN_VIEW", "CHECKIN_PROCESS",
+
                 // Housekeeping permissions
                 "HOUSEKEEPING_VIEW", "HOUSEKEEPING_CREATE", "HOUSEKEEPING_UPDATE", "HOUSEKEEPING_DELETE",
 
@@ -120,6 +123,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "ROOM_TYPE_VIEW",
                 "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE", "CUSTOMER_DELETE",
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE", "BOOKING_DELETE",
+                "CHECKIN_VIEW", "CHECKIN_PROCESS",
                 "HOUSEKEEPING_VIEW", "HOUSEKEEPING_CREATE", "HOUSEKEEPING_UPDATE", "HOUSEKEEPING_DELETE",
                 "EQUIPMENT_VIEW", "EQUIPMENT_CREATE", "EQUIPMENT_UPDATE", "EQUIPMENT_DELETE",
                 "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE", "MAINTENANCE_DELETE",
@@ -131,10 +135,12 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
     private void assignPermissionsToReceptionist() {
         List<String> receptionistPerms = Arrays.asList(
+                "DASHBOARD_VIEW",
                 "ROOM_VIEW",
                 "ROOM_TYPE_VIEW",
                 "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE",
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE",
+                "CHECKIN_VIEW", "CHECKIN_PROCESS",
                 "HOUSEKEEPING_VIEW",
                 "FEEDBACK_VIEW",
                 "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE"
@@ -144,6 +150,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
     private void assignPermissionsToHousekeeper() {
         List<String> housekeeperPerms = Arrays.asList(
+                "DASHBOARD_VIEW",
                 "ROOM_VIEW",
                 "HOUSEKEEPING_VIEW", "HOUSEKEEPING_CREATE", "HOUSEKEEPING_UPDATE",
                 "EQUIPMENT_VIEW",
@@ -154,6 +161,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
     private void assignPermissionsToMaintenance() {
         List<String> maintenancePerms = Arrays.asList(
+                "DASHBOARD_VIEW",
                 "ROOM_VIEW",
                 "EQUIPMENT_VIEW", "EQUIPMENT_CREATE", "EQUIPMENT_UPDATE",
                 "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE"

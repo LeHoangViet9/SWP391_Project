@@ -213,6 +213,11 @@ public class RoomServiceImpl implements IRoomService {
         roomRepository.save(room);
     }
 
+    @Override
+    public void deleteRoomImage(Long roomId, String imageUrl) {
+
+    }
+
     /**
      * Method private để sinh số phòng tự động dựa trên floorNumber
      */
@@ -249,24 +254,5 @@ public class RoomServiceImpl implements IRoomService {
     public Page<RoomResponse> getAvailableRooms(Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "roomNumber", SortDirection.ASC);
         return roomRepository.findByRoomStatus(RoomStatus.AVAILABLE, pageable).map(roomMapper::toResponse);
-    }
-
-    @Override
-    @Transactional
-    public void deleteRoomImage(Long roomId, String imageUrl) {
-        Locale locale = LocaleContextHolder.getLocale();
-        Room room = roomRepository.findById(roomId)
-                .filter(r -> r.getRoomStatus() != RoomStatus.INACTIVE)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.room.notfound", null, locale)));
-
-        // Find image in the room's image list
-        RoomImage imageToDelete = room.getRoomImages().stream()
-                .filter(img -> img.getImageUrl().equals(imageUrl))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException(locale.getLanguage().equals("vi") ? "Không tìm thấy ảnh của phòng." : "Room image not found."));
-
-        // Set isDeleted flag and save
-        imageToDelete.setIsDeleted(true);
-        roomRepository.save(room);
     }
 }

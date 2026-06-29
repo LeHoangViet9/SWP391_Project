@@ -22,12 +22,12 @@ public class InvoiceResponse {
     private String roomNumber;
     private Long numberOfNights;
 
-    // Chi tiết các khoản tiền để hiển thị lên UI
     private BigDecimal roomPricePerNight;
-    private BigDecimal roomPriceSubTotal; // Tiền phòng = Giá * Số đêm
-    private BigDecimal serviceSubTotal;   // Tổng tiền toàn bộ dịch vụ đã dùng
-    private BigDecimal additionalCharges; // Phụ phí
-    private BigDecimal totalAmount;       // Tổng số tiền cuối cùng phải trả
+    private BigDecimal roomPriceSubTotal;
+    private BigDecimal serviceSubTotal;
+    private BigDecimal vatAmount;
+    private BigDecimal additionalCharges;
+    private BigDecimal totalAmount;
 
     private PaymentStatus paymentStatus;
     private PaymentMethod paymentMethod;
@@ -35,6 +35,10 @@ public class InvoiceResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String note;
+
+    // THÊM: Dữ liệu trả về để Frontend hiển thị QR Code
+    private String qrCodeUrl;
+    private String paymentContent;
 
 
 }

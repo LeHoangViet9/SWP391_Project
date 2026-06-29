@@ -56,5 +56,4 @@ public interface InvoiceRepository extends JpaRepository<Invoice,Long> {
             Pageable pageable
     );
 
-
 }

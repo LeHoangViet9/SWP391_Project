@@ -76,6 +76,16 @@ function BookingContent() {
     nationality: locale === 'vi' ? 'Việt Nam' : 'Vietnam',
   });
 
+  const [bookingForOther, setBookingForOther] = useState(false);
+  const [stayGuestForm, setStayGuestForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    idType: 'CCCD',
+    idNumberCard: '',
+    nationality: locale === 'vi' ? 'Việt Nam' : 'Vietnam',
+  });
+
 
   useEffect(() => {
     const mock = mockRoomTypes.find((r) => String(r.id) === roomTypeId);
@@ -221,15 +231,44 @@ function BookingContent() {
     }
 
     const idCardRegex = /^[A-Za-z0-9\-]{6,20}$/;
+    const cccdRegex = /^\d{12}$/;
     if (!customerForm.idNumberCard.trim()) {
       return locale === 'vi' ? 'Số CCCD/Passport không được để trống' : 'ID/Passport number is required';
     }
-    if (!idCardRegex.test(customerForm.idNumberCard)) {
+    if (customerForm.idType === 'CCCD' && !cccdRegex.test(customerForm.idNumberCard.trim())) {
+      return locale === 'vi' ? 'Số CCCD của người đặt phòng phải gồm đúng 12 chữ số' : 'The booker CCCD must contain exactly 12 digits';
+    }
+    if (customerForm.idType !== 'CCCD' && !idCardRegex.test(customerForm.idNumberCard.trim())) {
       return locale === 'vi' ? 'Số CCCD/Passport không hợp lệ (phải từ 6-20 ký tự chữ hoặc số)' : 'Invalid ID/Passport number (must be 6-20 alphanumeric characters)';
     }
 
     if (!customerForm.nationality.trim()) {
       return locale === 'vi' ? 'Quốc tịch không được để trống' : 'Nationality is required';
+    }
+
+    if (bookingForOther) {
+      if (!stayGuestForm.fullName.trim()) {
+        return locale === 'vi' ? 'Vui lòng nhập họ tên người được đặt hộ' : 'Stay guest full name is required';
+      }
+      if (!stayGuestForm.phone.trim() || !phoneRegex.test(stayGuestForm.phone)) {
+        return locale === 'vi' ? 'Số điện thoại người được đặt hộ phải gồm 10 chữ số và bắt đầu bằng số 0' : 'Stay guest phone must be 10 digits starting with 0';
+      }
+      if (!stayGuestForm.idNumberCard.trim()) {
+        return locale === 'vi' ? 'CCCD/Passport người được đặt hộ không được để trống' : 'Stay guest ID/Passport number is required';
+      }
+      if (stayGuestForm.idType === 'CCCD' && !cccdRegex.test(stayGuestForm.idNumberCard.trim())) {
+        return locale === 'vi' ? 'Số CCCD của người được đặt hộ phải gồm đúng 12 chữ số' : 'The stay guest CCCD must contain exactly 12 digits';
+      }
+      if (stayGuestForm.idType !== 'CCCD' && !idCardRegex.test(stayGuestForm.idNumberCard.trim())) {
+        return locale === 'vi' ? 'CCCD/Passport người được đặt hộ không hợp lệ' : 'Stay guest ID/Passport number is invalid';
+      }
+      if (
+        customerForm.idType === 'CCCD'
+        && stayGuestForm.idType === 'CCCD'
+        && customerForm.idNumberCard.trim() === stayGuestForm.idNumberCard.trim()
+      ) {
+        return locale === 'vi' ? 'Số CCCD của người đặt phòng và người được đặt hộ không được trùng nhau' : 'The booker and stay guest CCCD numbers must be different';
+      }
     }
 
     return null;
@@ -282,6 +321,13 @@ function BookingContent() {
         checkInDate: toCheckIn(booking.checkIn),
         checkOutDate: toCheckOut(booking.checkOut),
         quantity: booking.quantity,
+        bookingForOther,
+        guestFullName: bookingForOther ? stayGuestForm.fullName : customerForm.fullName,
+        guestEmail: bookingForOther ? stayGuestForm.email : customerForm.email,
+        guestPhone: bookingForOther ? stayGuestForm.phone : customerForm.phone,
+        guestIdType: bookingForOther ? stayGuestForm.idType : customerForm.idType,
+        guestIdNumberCard: bookingForOther ? stayGuestForm.idNumberCard : customerForm.idNumberCard,
+        guestNationality: bookingForOther ? stayGuestForm.nationality : customerForm.nationality,
       };
 
       console.log('[Booking] POST /api/v1/bookings', payload);
@@ -498,13 +544,88 @@ function BookingContent() {
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idNumber')}</label>
-                <input type="text" required value={customerForm.idNumberCard} onChange={(e) => setCustomerForm({ ...customerForm, idNumberCard: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                <input
+                  type="text"
+                  required
+                  inputMode={customerForm.idType === 'CCCD' ? 'numeric' : 'text'}
+                  maxLength={customerForm.idType === 'CCCD' ? 12 : 20}
+                  pattern={customerForm.idType === 'CCCD' ? '[0-9]{12}' : '[A-Za-z0-9-]{6,20}'}
+                  value={customerForm.idNumberCard}
+                  onChange={(e) => setCustomerForm({ ...customerForm, idNumberCard: e.target.value })}
+                  className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]"
+                />
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.nationality')}</label>
                 <input type="text" required value={customerForm.nationality} onChange={(e) => setCustomerForm({ ...customerForm, nationality: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
               </div>
             </div>
+
+            <label className="flex items-start gap-3 rounded border border-stone-200 bg-stone-50 p-4 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={bookingForOther}
+                onChange={(e) => setBookingForOther(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-[#bfa15f]"
+              />
+              <span>
+                <span className="block font-semibold text-slate-800">
+                  {locale === 'vi' ? 'Đặt hộ người khác' : 'Book for another guest'}
+                </span>
+                <span className="text-slate-500">
+                  {locale === 'vi'
+                    ? 'Thông tin bên dưới là người sẽ trực tiếp lưu trú và cần được lễ tân kiểm tra khi check-in.'
+                    : 'The information below is for the actual stay guest and will be verified at check-in.'}
+                </span>
+              </span>
+            </label>
+
+            {bookingForOther && (
+              <div className="rounded border border-amber-200 bg-amber-50 p-4">
+                <h4 className="mb-3 text-sm font-bold text-amber-800">
+                  {locale === 'vi' ? 'Thông tin người được đặt hộ' : 'Stay guest information'}
+                </h4>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('auth.fullName')}</label>
+                    <input type="text" required value={stayGuestForm.fullName} onChange={(e) => setStayGuestForm({ ...stayGuestForm, fullName: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">Email</label>
+                    <input type="email" value={stayGuestForm.email} onChange={(e) => setStayGuestForm({ ...stayGuestForm, email: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('auth.phone')}</label>
+                    <input type="tel" required value={stayGuestForm.phone} onChange={(e) => setStayGuestForm({ ...stayGuestForm, phone: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idType')}</label>
+                    <select value={stayGuestForm.idType} onChange={(e) => setStayGuestForm({ ...stayGuestForm, idType: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]">
+                      <option value="CCCD">CCCD</option>
+                      <option value="PASSPORT">Passport</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idNumber')}</label>
+                    <input
+                      type="text"
+                      required
+                      inputMode={stayGuestForm.idType === 'CCCD' ? 'numeric' : 'text'}
+                      maxLength={stayGuestForm.idType === 'CCCD' ? 12 : 20}
+                      pattern={stayGuestForm.idType === 'CCCD' ? '[0-9]{12}' : '[A-Za-z0-9-]{6,20}'}
+                      value={stayGuestForm.idNumberCard}
+                      onChange={(e) => setStayGuestForm({ ...stayGuestForm, idNumberCard: e.target.value })}
+                      className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.nationality')}</label>
+                    <input type="text" value={stayGuestForm.nationality} onChange={(e) => setStayGuestForm({ ...stayGuestForm, nationality: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="bg-stone-50 p-4">
               <div className="flex justify-between text-sm text-slate-600 mb-1">
                 <span>{roomType.typeName} × {booking.quantity}</span>
@@ -535,6 +656,9 @@ function BookingContent() {
               <p><span className="text-slate-500">{t('bookingPage.roomType')}:</span> <strong>{bookingResult.roomTypeName}</strong></p>
               <p><span className="text-slate-500">{t('booking.checkIn')}:</span> <strong>{bookingResult.checkInDate?.split('T')[0]}</strong></p>
               <p><span className="text-slate-500">{t('booking.checkOut')}:</span> <strong>{bookingResult.checkOutDate?.split('T')[0]}</strong></p>
+              {bookingResult.bookingForOther && (
+                <p><span className="text-slate-500">{locale === 'vi' ? 'Người lưu trú' : 'Stay guest'}:</span> <strong>{bookingResult.guestFullName}</strong></p>
+              )}
               <p><span className="text-slate-500">{t('bookingPage.total')}:</span> <strong className="text-[#bfa15f]">{formatPrice(Number(bookingResult.totalPrice), locale)}</strong></p>
               <p><span className="text-slate-500">{t('bookingPage.status')}:</span> <strong>{bookingResult.bookingStatus}</strong></p>
             </div>

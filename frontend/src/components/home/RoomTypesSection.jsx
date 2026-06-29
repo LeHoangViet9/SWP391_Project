@@ -26,7 +26,7 @@ function formatPrice(price, locale) {
   }).format(price);
 }
 
-export default function RoomTypesSection({ guestFilter = 0 }) {
+export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkOut = '' }) {
   const { t, locale } = useLocale();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState(mockRoomTypes);
@@ -53,7 +53,10 @@ export default function RoomTypesSection({ guestFilter = 0 }) {
   }, [locale]);
 
   const handleBook = (roomType) => {
-    navigate(`/booking?roomTypeId=${roomType.id}`);
+    let url = `/booking?roomTypeId=${roomType.id}`;
+    if (checkIn) url += `&checkIn=${checkIn}`;
+    if (checkOut) url += `&checkOut=${checkOut}`;
+    navigate(url);
   };
 
   const filteredRooms = (() => {

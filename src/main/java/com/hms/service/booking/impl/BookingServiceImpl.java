@@ -2,6 +2,7 @@ package com.hms.service.booking.impl;
 
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.BookingStatus;
+import com.hms.common.enums.IdType;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
@@ -49,6 +50,7 @@ import java.time.temporal.ChronoUnit;
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
+    private static final String CCCD_PATTERN = "\\d{12}";
 
 
     private final BookingRepository bookingRepository;
@@ -141,6 +143,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setBookingStatus(BookingStatus.PENDING);
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
+        applyStayGuestInfo(booking, request, customer, locale);
 
         Booking saved = bookingRepository.save(booking);
 
@@ -177,6 +180,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setRoomType(roomType);
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
+        applyStayGuestInfo(booking, request, customer, locale);
 
         Booking updated = bookingRepository.save(booking);
         return mapToResponse(updated);
@@ -345,7 +349,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateBookingDate(BookingRequest request, Locale locale){
-        if(request.getCheckInDate().toLocalDate().isBefore(java.time.LocalDate.now())){
+        if(request.getCheckInDate().isBefore(LocalDateTime.now())){
             throw new ConflictException(messageSource.getMessage("error.booking.checkin.past", null, locale));
         }
 
@@ -385,6 +389,67 @@ public class BookingServiceImpl implements BookingService {
         }
         BigDecimal roomCharge = BillingUtils.calculateRoomChargePerNight(BigDecimal.valueOf(roomType.getBasePrice()), nights);
         return roomCharge.multiply(BigDecimal.valueOf(request.getQuantity()));
+    }
+
+    private void applyStayGuestInfo(Booking booking, BookingRequest request, Customer customer, Locale locale) {
+        boolean bookingForOther = Boolean.TRUE.equals(request.getBookingForOther());
+        booking.setBookingForOther(bookingForOther);
+        validateCccd(customer.getIdType(), customer.getIdNumberCard(), "booking.booker.cccd.invalid", locale);
+
+        if (!bookingForOther) {
+            booking.setGuestFullName(customer.getFullName());
+            booking.setGuestEmail(customer.getEmail());
+            booking.setGuestPhone(customer.getPhone());
+            booking.setGuestIdType(customer.getIdType() == null ? null : customer.getIdType().name());
+            booking.setGuestIdNumberCard(customer.getIdNumberCard());
+            booking.setGuestNationality(customer.getNationality());
+            return;
+        }
+
+        validateRequiredGuestInfo(request.getGuestFullName(), "booking.guest.fullname.required", locale);
+        validateRequiredGuestInfo(request.getGuestPhone(), "booking.guest.phone.required", locale);
+        validateRequiredGuestInfo(request.getGuestIdNumberCard(), "booking.guest.id.required", locale);
+        validateCccd(request.getGuestIdType(), request.getGuestIdNumberCard(), "booking.guest.cccd.invalid", locale);
+
+        if (customer.getIdType() == IdType.CCCD
+                && "CCCD".equalsIgnoreCase(trimToNull(request.getGuestIdType()))
+                && customer.getIdNumberCard().trim().equals(request.getGuestIdNumberCard().trim())) {
+            throw new BadRequestException(messageSource.getMessage("booking.cccd.duplicate", null, locale));
+        }
+
+        booking.setGuestFullName(trimToNull(request.getGuestFullName()));
+        booking.setGuestEmail(trimToNull(request.getGuestEmail()));
+        booking.setGuestPhone(trimToNull(request.getGuestPhone()));
+        booking.setGuestIdType(trimToNull(request.getGuestIdType()));
+        booking.setGuestIdNumberCard(trimToNull(request.getGuestIdNumberCard()));
+        booking.setGuestNationality(trimToNull(request.getGuestNationality()));
+    }
+
+    private void validateRequiredGuestInfo(String value, String messageKey, Locale locale) {
+        if (trimToNull(value) == null) {
+            throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
+        }
+    }
+
+    private void validateCccd(IdType idType, String idNumberCard, String messageKey, Locale locale) {
+        if (idType == IdType.CCCD && (trimToNull(idNumberCard) == null || !idNumberCard.trim().matches(CCCD_PATTERN))) {
+            throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
+        }
+    }
+
+    private void validateCccd(String idType, String idNumberCard, String messageKey, Locale locale) {
+        if ("CCCD".equalsIgnoreCase(trimToNull(idType))
+                && (trimToNull(idNumberCard) == null || !idNumberCard.trim().matches(CCCD_PATTERN))) {
+            throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
+        }
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     /** [FIX-04] Implement checkAvailability for frontend BookingPage */

@@ -37,10 +37,10 @@ LEFT JOIN re.room r
 WHERE (:status IS NULL OR e.status = :status)
 AND (
     CAST(:keyword AS string) IS NULL
-    OR LOWER(e.equipmentName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-    OR LOWER(e.equipmentCode) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-    OR CAST(e.id AS string) LIKE CONCAT('%', CAST(:keyword AS string), '%')
-    OR LOWER(r.roomNumber) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+    OR LOWER(e.equipmentName) LIKE LOWER(CAST(:keyword AS string))
+    OR LOWER(e.equipmentCode) LIKE LOWER(CAST(:keyword AS string))
+    OR CAST(e.id AS string) LIKE CAST(:keyword AS string)
+    OR LOWER(r.roomNumber) LIKE LOWER(CAST(:keyword AS string))
 )
 """)
     Page<Equipment> searchEquipment(

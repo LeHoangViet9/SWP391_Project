@@ -5,6 +5,7 @@ import { useLocale } from '../context/LocaleContext';
 import Toast from './shared/Toast';
 
 const PERMISSION_GROUPS = {
+  CHECKIN: { vi: 'Check-in', en: 'Check-in' },
   USER: { vi: 'Quản lý Tài khoản', en: 'User Management' },
   ROOM: { vi: 'Quản lý Phòng', en: 'Room Management' },
   ROOM_TYPE: { vi: 'Quản lý Loại Phòng', en: 'Room Type Management' },

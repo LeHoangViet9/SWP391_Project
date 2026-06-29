@@ -1,5 +1,17 @@
-node_modules
-dist
-.DS_Store
-*.local
-.env
+node_modules/
+.vite/
+dist/
+
+# Tránh commit thư mục node_modules của frontend
+**/node_modules/
+frontend/node_modules/
+
+# Tránh commit các file tạm, file cache của Vite
+**/dist/
+**/.vite/
+frontend/.vite/
+
+# Tránh các file log lỗi
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

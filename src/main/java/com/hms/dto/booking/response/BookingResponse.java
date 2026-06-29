@@ -37,5 +37,19 @@ public class BookingResponse {
     private LocalDateTime createdAt;
 
     private Boolean hasFeedback;
+
+    private Boolean bookingForOther;
+
+    private String guestFullName;
+
+    private String guestEmail;
+
+    private String guestPhone;
+
+    private String guestIdType;
+
+    private String guestIdNumberCard;
+
+    private String guestNationality;
 }
 
