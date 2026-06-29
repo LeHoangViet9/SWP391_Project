@@ -114,10 +114,24 @@ export default function RoomTypesSection({ guestFilter = 0 }) {
 
                 <div className="p-6">
                   <div className="flex items-start justify-between gap-4 mb-3">
-                    <h3 className="font-display text-xl font-semibold text-slate-800">
-                      {room.typeName}
-                    </h3>
-                    <div className="flex items-center gap-1 text-[#bfa15f] shrink-0">
+                    <div>
+                      <h3 className="font-display text-xl font-semibold text-slate-800">
+                        {room.typeName}
+                      </h3>
+                      {room.reviewCount > 0 ? (
+                        <div className="flex items-center gap-1 text-amber-500 font-bold text-xs mt-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 w-fit">
+                          <Star size={11} fill="#f59e0b" className="text-amber-500" />
+                          <span>{room.averageRating}</span>
+                          <span className="text-slate-400 font-normal">({room.reviewCount} {locale === 'vi' ? 'đánh giá' : 'reviews'})</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-slate-400 font-medium text-[10px] mt-1 bg-stone-100 px-2 py-0.5 rounded border border-stone-200/50 w-fit">
+                          <Star size={11} className="text-slate-300" />
+                          <span>{locale === 'vi' ? 'Chưa có đánh giá' : 'No reviews'}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 text-[#bfa15f] shrink-0 mt-1">
                       <Users size={16} />
                       <span className="text-sm font-medium">
                         {room.maxGuests} {t('rooms.guests')}
@@ -225,7 +239,7 @@ export default function RoomTypesSection({ guestFilter = 0 }) {
               </div>
 
               {/* Specs Grid */}
-              <div className="grid grid-cols-2 gap-4 bg-stone-50 p-4 border border-stone-200/50 rounded-md">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-stone-50 p-4 border border-stone-200/50 rounded-md">
                 <div>
                   <span className="text-xs text-slate-400 block uppercase tracking-wider font-semibold">
                     {locale === 'vi' ? 'Sức chứa tối đa' : 'Maximum Capacity'}
@@ -233,6 +247,23 @@ export default function RoomTypesSection({ guestFilter = 0 }) {
                   <span className="font-semibold text-slate-800 flex items-center gap-1.5 mt-1 text-sm">
                     <Users size={16} className="text-[#bfa15f]" />
                     {selectedRoom.maxGuests} {t('rooms.guests')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-400 block uppercase tracking-wider font-semibold">
+                    {locale === 'vi' ? 'Đánh giá từ khách' : 'Guest Rating'}
+                  </span>
+                  <span className="font-semibold text-slate-800 flex items-center gap-1.5 mt-1 text-sm">
+                    <Star size={16} fill={selectedRoom.reviewCount > 0 ? "#f59e0b" : "none"} className={selectedRoom.reviewCount > 0 ? "text-amber-500" : "text-slate-300"} />
+                    {selectedRoom.reviewCount > 0 ? (
+                      <span>
+                        {selectedRoom.averageRating} <span className="text-xs text-slate-500 font-normal">({selectedRoom.reviewCount} {locale === 'vi' ? 'đánh giá' : 'reviews'})</span>
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400 font-normal">
+                        {locale === 'vi' ? 'Chưa có' : 'None yet'}
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div>

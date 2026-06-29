@@ -35,11 +35,7 @@ const STATUS_COLORS = {
   NO_SHOW: 'bg-orange-100 text-orange-700',
 };
 
-const FEEDBACK_STATUS_COLORS = {
-  PENDING: 'bg-amber-50 text-amber-600 border border-amber-200',
-  REVIEWED: 'bg-emerald-50 text-emerald-600 border border-emerald-200',
-  RESOLVED: 'bg-blue-50 text-blue-600 border border-blue-200',
-};
+
 
 export default function CustomerBookingHistory() {
   const { locale, t } = useLocale();
@@ -238,11 +234,7 @@ export default function CustomerBookingHistory() {
                       />
                     ))}
                   </div>
-                  <span className={`px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider ${FEEDBACK_STATUS_COLORS[fb.status] || 'bg-stone-100 text-stone-600'}`}>
-                    {isVi 
-                      ? (fb.status === 'PENDING' ? 'Chờ duyệt' : fb.status === 'REVIEWED' ? 'Đã duyệt' : 'Đã phản hồi')
-                      : fb.status}
-                  </span>
+
                 </div>
                 
                 <p className="text-[10px] text-slate-500 group-hover:text-slate-700 italic truncate w-full mt-0.5">
@@ -440,11 +432,7 @@ export default function CustomerBookingHistory() {
                     <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide bg-[#bfa15f]/10 text-[#bfa15f] border border-[#bfa15f]/20">
                       {isVi ? `Mục: ${t(`feedback.category.${viewReplyTarget.category}`) || viewReplyTarget.category}` : `Category: ${viewReplyTarget.category}`}
                     </span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide ${FEEDBACK_STATUS_COLORS[viewReplyTarget.status] || 'bg-stone-100 text-stone-600'}`}>
-                      {isVi 
-                        ? (viewReplyTarget.status === 'PENDING' ? 'Chờ duyệt' : viewReplyTarget.status === 'REVIEWED' ? 'Đã duyệt' : 'Đã phản hồi')
-                        : viewReplyTarget.status}
-                    </span>
+
                   </div>
                   <span className="text-xs text-slate-400 font-medium">
                     {formatDateTime(viewReplyTarget.createdAt, locale)}
@@ -515,7 +503,7 @@ export default function CustomerBookingHistory() {
               </button>
 
               <div className="flex items-center gap-2">
-                {viewReplyTarget.status === 'PENDING' && (
+                {!viewReplyTarget.reply && (
                   <button
                     type="button"
                     onClick={() => handleEditFromView(viewReplyTarget)}

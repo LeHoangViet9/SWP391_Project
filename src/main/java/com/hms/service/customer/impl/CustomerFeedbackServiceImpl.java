@@ -140,11 +140,11 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
     }
 
     @Override
-    public Page<CustomerFeedbackResponse> searchFeedback(String keyword, FeedbackStatus status, Integer page, Integer size) {
+    public Page<CustomerFeedbackResponse> searchFeedback(String keyword, FeedbackStatus status, Integer rating, String category, Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "createdAt", SortDirection.DESC);
 
         return customerFeedbackRepository
-                .searchFeedback(keyword, status, pageable)
+                .searchFeedback(keyword, status, rating, category, pageable)
                 .map(customerFeedbackMapper::toResponse);
     }
 
@@ -176,8 +176,8 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
     }
 
     @Override
-    public FeedbackStatsResponse getFeedbackStats(String keyword, FeedbackStatus status) {
-        List<Object[]> rawStats = customerFeedbackRepository.getFeedbackStats(keyword, status);
+    public FeedbackStatsResponse getFeedbackStats(String keyword, FeedbackStatus status, String category) {
+        List<Object[]> rawStats = customerFeedbackRepository.getFeedbackStats(keyword, status, category);
 
         Map<Integer, Long> distribution = new HashMap<>();
         for (int i = 1; i <= 5; i++) {
@@ -205,5 +205,27 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
                 .totalReviews(totalReviews)
                 .ratingDistribution(distribution)
                 .build();
+    }
+
+    @Override
+    public List<CustomerFeedbackResponse> getPublicFeedbacks() {
+        return customerFeedbackRepository.findByStatusOrderByCreatedAtDesc(FeedbackStatus.REVIEWED)
+                .stream()
+                .map(customerFeedbackMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    public Page<CustomerFeedbackResponse> searchPublicFeedback(String keyword, Integer rating, String category, Integer page, Integer size) {
+        Pageable pageable = pageableUtils.createPageable(page, size, "createdAt", SortDirection.DESC);
+
+        return customerFeedbackRepository
+                .searchFeedback(keyword, FeedbackStatus.REVIEWED, rating, category, pageable)
+                .map(customerFeedbackMapper::toResponse);
+    }
+
+    @Override
+    public FeedbackStatsResponse getPublicFeedbackStats(String keyword, String category) {
+        return getFeedbackStats(keyword, FeedbackStatus.REVIEWED, category);
     }
 }

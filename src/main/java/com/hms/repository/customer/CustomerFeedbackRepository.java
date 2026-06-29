@@ -25,6 +25,12 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
 
     boolean existsByBookingId(Long bookingId);
 
+    @EntityGraph(attributePaths = { "customer", "booking", "booking.roomType" })
+    List<CustomerFeedback> findTop5ByStatusAndRatingGreaterThanEqualOrderByCreatedAtDesc(FeedbackStatus status, int rating);
+
+    @EntityGraph(attributePaths = { "customer", "booking", "booking.roomType" })
+    List<CustomerFeedback> findByStatusOrderByCreatedAtDesc(FeedbackStatus status);
+
     @Query("SELECT cf.booking.id FROM CustomerFeedback cf WHERE cf.booking.id IN :ids")
     Set<Long> findBookingIdsWithFeedback(@Param("ids") Collection<Long> ids);
 
@@ -34,6 +40,8 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
                 LEFT JOIN FETCH cf.booking b
                 LEFT JOIN FETCH b.roomType rt
                 WHERE (:status IS NULL OR cf.status = :status)
+                AND (:rating IS NULL OR cf.rating = :rating)
+                AND (:category IS NULL OR cf.category = :category)
                 AND (
                     CAST(:keyword AS string) IS NULL
                     OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
@@ -49,6 +57,8 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
                 LEFT JOIN cf.booking b
                 LEFT JOIN b.roomType rt
                 WHERE (:status IS NULL OR cf.status = :status)
+                AND (:rating IS NULL OR cf.rating = :rating)
+                AND (:category IS NULL OR cf.category = :category)
                 AND (
                     CAST(:keyword AS string) IS NULL
                     OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
@@ -62,6 +72,8 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
     Page<CustomerFeedback> searchFeedback(
             @Param("keyword") String keyword,
             @Param("status") FeedbackStatus status,
+            @Param("rating") Integer rating,
+            @Param("category") String category,
             Pageable pageable);
 
     @Query("""
@@ -70,6 +82,7 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
                 LEFT JOIN cf.booking b
                 LEFT JOIN b.roomType rt
                 WHERE (:status IS NULL OR cf.status = :status)
+                AND (:category IS NULL OR cf.category = :category)
                 AND (
                     CAST(:keyword AS string) IS NULL
                     OR LOWER(c.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
@@ -83,5 +96,12 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
             """)
     List<Object[]> getFeedbackStats(
             @Param("keyword") String keyword,
-            @Param("status") FeedbackStatus status);
+            @Param("status") FeedbackStatus status,
+            @Param("category") String category);
+
+    @Query("""
+        SELECT AVG(cf.rating), COUNT(cf) FROM CustomerFeedback cf
+        WHERE cf.booking.roomType.id = :roomTypeId
+    """)
+    List<Object[]> getRatingStatsByRoomTypeId(@Param("roomTypeId") Long roomTypeId);
 }

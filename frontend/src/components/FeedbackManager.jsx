@@ -193,16 +193,7 @@ export default function FeedbackManager() {
             />
           </div>
 
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-white focus:border-[#bfa15f] outline-none transition-all cursor-pointer"
-          >
-            <option value="" className="bg-[#112240] text-white">{isVi ? 'Tất cả trạng thái' : 'All Statuses'}</option>
-            <option value="PENDING" className="bg-[#112240] text-white">{isVi ? 'Chưa phản hồi' : 'Pending'}</option>
-            <option value="REVIEWED" className="bg-[#112240] text-white">{isVi ? 'Đã phản hồi' : 'Reviewed'}</option>
-            <option value="RESOLVED" className="bg-[#112240] text-white">{isVi ? 'Đã xử lý' : 'Resolved'}</option>
-          </select>
+
 
           <select
             value={filterCategory}
@@ -273,19 +264,7 @@ export default function FeedbackManager() {
                         'Staff': 'Nhân viên'
                       }[item.category] || item.category : item.category}
                     </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-semibold border ${
-                      item.status === 'PENDING'
-                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                        : item.status === 'REVIEWED'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                    }`}>
-                      {item.status === 'PENDING'
-                        ? (isVi ? 'Chưa phản hồi' : 'Pending')
-                        : item.status === 'REVIEWED'
-                          ? (isVi ? 'Đã phản hồi' : 'Reviewed')
-                          : (isVi ? 'Đã xử lý' : 'Resolved')}
-                    </span>
+
                   </div>
                   <p className="text-[11px] text-white/40 mt-1">
                     {item.roomTypeName} &bull; {new Date(item.createdAt).toLocaleDateString(isVi ? 'vi-VN' : 'en-US')}

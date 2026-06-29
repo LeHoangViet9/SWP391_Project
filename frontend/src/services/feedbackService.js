@@ -61,3 +61,18 @@ export async function deleteMyFeedback(id, locale = 'vi') {
 export async function getFeedbackStats(params = {}, locale = 'vi') {
   return apiFetch(`/feedbacks/stats${buildQuery(params)}`, {}, locale);
 }
+
+/** GET /api/v1/feedbacks/public */
+export async function getPublicFeedbacks(locale = 'vi') {
+  return apiFetch('/feedbacks/public', {}, locale);
+}
+
+/** GET /api/v1/feedbacks/public/search */
+export async function searchPublicFeedbacks(params = {}, locale = 'vi') {
+  return apiFetch(`/feedbacks/public/search${buildQuery(params)}`, {}, locale);
+}
+
+/** GET /api/v1/feedbacks/public/stats */
+export async function getPublicFeedbackStats(params = {}, locale = 'vi') {
+  return apiFetch(`/feedbacks/public/stats${buildQuery(params)}`, {}, locale);
+}

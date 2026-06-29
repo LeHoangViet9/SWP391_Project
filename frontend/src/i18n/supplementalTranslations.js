@@ -424,6 +424,13 @@ export const supplementalTranslations = {
         passwordMismatch: 'Mật khẩu xác nhận không khớp.',
       },
     },
+    homeFeedback: {
+      title: 'Đánh Giá Từ Khách Hàng',
+      subtitle: 'Trải Nghiệm Thực Tế',
+      noFeedback: 'Chưa có đánh giá nào được công bố.',
+      categoryLabel: 'Danh mục',
+      replyFromHotel: 'Phản hồi từ khách sạn',
+    },
   },
 
   en: {
@@ -850,6 +857,13 @@ export const supplementalTranslations = {
         passwordRequired: 'Please enter a password for the new account.',
         passwordMismatch: 'Confirm password does not match.',
       },
+    },
+    homeFeedback: {
+      title: 'Guest Reviews & Feedback',
+      subtitle: 'Real Experiences',
+      noFeedback: 'No public reviews available yet.',
+      categoryLabel: 'Category',
+      replyFromHotel: 'Response from Hotel',
     },
   },
 };

@@ -96,13 +96,15 @@ public class CustomerFeedbackController {
     public ResponseEntity<ApiResponse<Page<CustomerFeedbackResponse>>> searchFeedback(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) FeedbackStatus status,
+            @RequestParam(required = false) Integer rating,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("success.feedback.search", null, locale),
-                customerFeedbackService.searchFeedback(keyword, status, page, size),
+                customerFeedbackService.searchFeedback(keyword, status, rating, category, page, size),
                 HttpStatus.OK
         ), HttpStatus.OK);
     }
@@ -141,12 +143,56 @@ public class CustomerFeedbackController {
     @PreAuthorize("hasAuthority('FEEDBACK_VIEW')")
     public ResponseEntity<ApiResponse<FeedbackStatsResponse>> getFeedbackStats(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) FeedbackStatus status) {
+            @RequestParam(required = false) FeedbackStatus status,
+            @RequestParam(required = false) String category) {
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("success.feedback.stats", null, locale),
-                customerFeedbackService.getFeedbackStats(keyword, status),
+                customerFeedbackService.getFeedbackStats(keyword, status, category),
+                HttpStatus.OK
+        ), HttpStatus.OK);
+     }
+
+    // 6. Lấy danh sách feedback công khai hiển thị trên trang chủ -> Không cần PreAuthorize
+    @GetMapping("/public")
+    public ResponseEntity<ApiResponse<List<CustomerFeedbackResponse>>> getPublicFeedbacks() {
+        Locale locale = LocaleContextHolder.getLocale();
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.getpublic", null, locale),
+                customerFeedbackService.getPublicFeedbacks(),
+                HttpStatus.OK
+        ), HttpStatus.OK);
+    }
+
+    // 7. Tìm kiếm & lọc đánh giá công khai -> Không cần PreAuthorize
+    @GetMapping("/public/search")
+    public ResponseEntity<ApiResponse<Page<CustomerFeedbackResponse>>> searchPublicFeedback(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer rating,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.search", null, locale),
+                customerFeedbackService.searchPublicFeedback(keyword, rating, category, page, size),
+                HttpStatus.OK
+        ), HttpStatus.OK);
+    }
+
+    // 8. Thống kê phản hồi công khai -> Không cần PreAuthorize
+    @GetMapping("/public/stats")
+    public ResponseEntity<ApiResponse<FeedbackStatsResponse>> getPublicFeedbackStats(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                messageSource.getMessage("success.feedback.stats", null, locale),
+                customerFeedbackService.getPublicFeedbackStats(keyword, category),
                 HttpStatus.OK
         ), HttpStatus.OK);
     }
