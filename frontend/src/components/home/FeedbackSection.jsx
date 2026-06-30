@@ -1,69 +1,58 @@
 import { useEffect, useState } from 'react';
-import { Star, MessageSquare, Quote } from 'lucide-react';
+import { Star, Award, ShieldCheck, Heart } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
-import { getPublicFeedbacks } from '../../services/feedbackService';
+import { getPublicFeedbackStats } from '../../services/feedbackService';
 
-const MOCK_FEEDBACKS = [
-  {
-    id: 'mock-1',
-    customerName: 'Nguyễn Văn Hải',
-    rating: 5,
-    category: 'Service',
-    comment: 'Dịch vụ tuyệt vời, nhân viên rất nhiệt tình và chu đáo. Tôi sẽ quay lại!',
-    roomTypeName: 'Executive Suite',
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    reply: 'Cảm ơn bạn Hải đã đánh giá tốt về dịch vụ của chúng tôi! Rất hân hạnh được phục vụ quý khách.'
-  },
-  {
-    id: 'mock-2',
-    customerName: 'Lê Thị Bình',
-    rating: 5,
-    category: 'Room',
-    comment: 'Phòng sạch sẽ, view đẹp hướng sông Hương thơ mộng, không gian rất yên tĩnh và sang trọng.',
-    roomTypeName: 'Deluxe River View',
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    reply: 'Rất vui vì bạn Bình đã có một kỳ nghỉ thoải mái tại khách sạn! Chúc bạn luôn hạnh phúc.'
-  },
-  {
-    id: 'mock-3',
-    customerName: 'John Doe',
-    rating: 5,
-    category: 'Staff',
-    comment: 'Outstanding hospitality. The receptionist was super friendly and helpful throughout our stay.',
-    roomTypeName: 'Signature Suite',
-    createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
-    reply: 'Thank you John for your kind words! We hope to welcome you back to HMS Hotel soon.'
-  }
-];
+const DEFAULT_STATS = {
+  averageRating: 0,
+  totalReviews: 0,
+  ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+};
 
 export default function FeedbackSection() {
   const { locale, t } = useLocale();
-  const [feedbacks, setFeedbacks] = useState([]);
+  const [stats, setStats] = useState(DEFAULT_STATS);
   const [loading, setLoading] = useState(true);
   const isVi = locale === 'vi';
 
   useEffect(() => {
-    async function fetchFeedbacks() {
+    async function fetchStats() {
       try {
-        const res = await getPublicFeedbacks(locale);
-        let list = res?.data || [];
-        if (list.length < 3) {
-          list = [...list, ...MOCK_FEEDBACKS.slice(0, 3 - list.length)];
+        const res = await getPublicFeedbackStats({}, locale);
+        if (res?.data) {
+          setStats(res.data);
         }
-        setFeedbacks(list);
       } catch (error) {
-        console.warn('Failed to fetch public feedbacks, using mock data:', error);
-        setFeedbacks(MOCK_FEEDBACKS);
+        console.warn('Failed to fetch public feedback stats:', error);
       } finally {
         setLoading(false);
       }
     }
-    fetchFeedbacks();
+    fetchStats();
   }, [locale]);
+
+  const { averageRating, totalReviews, ratingDistribution } = stats;
+
+  // Calculate percentages safely
+  const getPercentage = (ratingKey) => {
+    const count = ratingDistribution[ratingKey] || 0;
+    if (totalReviews <= 0) return 0;
+    return Math.round((count / totalReviews) * 100);
+  };
+
+  // Determine feedback label based on rating
+  const getRatingLabel = (rating) => {
+    if (totalReviews === 0) return isVi ? 'Chưa có đánh giá' : 'No reviews yet';
+    if (rating >= 4.5) return isVi ? 'Tuyệt vời' : 'Excellent';
+    if (rating >= 4.0) return isVi ? 'Rất tốt' : 'Very Good';
+    if (rating >= 3.0) return isVi ? 'Trung bình' : 'Good';
+    return isVi ? 'Cần cải thiện' : 'Needs Improvement';
+  };
 
   return (
     <section id="reviews" className="py-16 md:py-24 bg-gradient-to-b from-[#faf9f6] to-[#f4f2ec]">
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Section Header */}
         <div className="text-center mb-12">
           <p className="section-subtitle mb-2">{t('homeFeedback.subtitle')}</p>
           <h2 className="section-title text-slate-800">{t('homeFeedback.title')}</h2>
@@ -74,75 +63,108 @@ export default function FeedbackSection() {
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#bfa15f]" />
           </div>
-        ) : feedbacks.length === 0 ? (
-          <div className="text-center text-slate-500 py-12">
-            <p>{t('homeFeedback.noFeedback')}</p>
-          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {feedbacks.slice(0, 3).map((item) => (
-              <div 
-                key={item.id} 
-                className="bg-white/80 backdrop-blur-md rounded-2xl p-6 border border-stone-200/60 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
-              >
-                <div>
-                  {/* Top Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h4 className="font-semibold text-slate-800 text-sm">
-                        {item.customerName || item.customerFullName}
-                      </h4>
-                      <p className="text-[11px] text-slate-400">
-                        {item.roomTypeName}
-                      </p>
-                    </div>
-                    <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold bg-[#bfa15f]/10 text-[#bfa15f] border border-[#bfa15f]/25">
-                      {isVi ? {
-                        'Room': 'Phòng nghỉ',
-                        'Service': 'Dịch vụ',
-                        'Cleanliness': 'Sạch sẽ',
-                        'Staff': 'Nhân viên'
-                      }[item.category] || item.category : item.category}
-                    </span>
+          <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 md:p-12 border border-stone-200/60 shadow-xl">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
+              
+              {/* Left Column: Big Average Rating Score */}
+              <div className="col-span-1 md:col-span-5 text-center flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-stone-200/80 pb-8 md:pb-0 md:pr-8">
+                <span className="text-xs uppercase tracking-widest text-[#bfa15f] font-bold mb-3">
+                  {isVi ? 'Độ hài lòng chung' : 'Overall Guest Rating'}
+                </span>
+                
+                {/* Big Score Display */}
+                <div className="relative mb-2">
+                  <div className="text-7xl md:text-8xl font-serif font-semibold text-slate-800 leading-none">
+                    {averageRating.toFixed(1)}
                   </div>
-
-                  {/* Stars Rating */}
-                  <div className="flex text-amber-500 gap-0.5 mb-3">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star
-                        key={i}
-                        size={14}
-                        fill={i < item.rating ? '#f59e0b' : 'none'}
-                        className={i < item.rating ? 'text-amber-500' : 'text-slate-200'}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Comment */}
-                  <div className="relative mb-4">
-                    <Quote size={24} className="text-stone-200 absolute -top-2 -left-2 rotate-180 -z-0 opacity-60" />
-                    <p className="text-xs text-slate-600 leading-relaxed italic relative z-10 pl-4">
-                      "{item.comment}"
-                    </p>
+                  <div className="text-sm font-semibold text-slate-400 mt-2">
+                    / 5.0
                   </div>
                 </div>
 
-                {/* Reply from Hotel */}
-                {item.reply && (
-                  <div className="mt-4 pt-4 border-t border-stone-100 bg-stone-50/70 p-3.5 rounded-xl border border-stone-200/40">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <MessageSquare size={12} className="text-[#bfa15f]" />
-                      <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                        {t('homeFeedback.replyFromHotel')}
+                {/* Stars Display */}
+                <div className="flex text-amber-500 gap-1 my-3">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const ratingValue = i + 1;
+                    const isFilled = ratingValue <= Math.floor(averageRating);
+                    const isHalf = !isFilled && ratingValue - 0.5 <= averageRating;
+                    return (
+                      <Star
+                        key={i}
+                        size={22}
+                        fill={isFilled ? '#f59e0b' : isHalf ? 'url(#halfGrad)' : 'none'}
+                        className="text-amber-500"
+                      />
+                    );
+                  })}
+                  {/* SVG Gradient Definition for half filled star */}
+                  <svg className="w-0 h-0 absolute">
+                    <defs>
+                      <linearGradient id="halfGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="50%" stopColor="#f59e0b" />
+                        <stop offset="50%" stopColor="transparent" stopOpacity="1" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+
+                {/* Rating Descriptive Label & Total Counts */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full mb-2">
+                  <Award size={13} />
+                  {getRatingLabel(averageRating)}
+                </span>
+
+                <p className="text-xs text-slate-400 mt-1">
+                  {isVi ? `Dựa trên ${totalReviews} lượt đánh giá thực tế` : `Based on ${totalReviews} verified guest reviews`}
+                </p>
+              </div>
+
+              {/* Right Column: Rating Distribution Breakdown */}
+              <div className="col-span-1 md:col-span-7 space-y-3.5">
+                {[5, 4, 3, 2, 1].map((stars) => {
+                  const pct = getPercentage(stars);
+                  return (
+                    <div key={stars} className="flex items-center gap-3">
+                      {/* Star Count Label */}
+                      <span className="w-10 text-xs font-semibold text-slate-500 flex items-center justify-end gap-1">
+                        {stars} <Star size={11} className="text-amber-500 shrink-0 fill-amber-500" />
+                      </span>
+                      
+                      {/* Progress Bar Container */}
+                      <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#bfa15f] to-[#d8b975] rounded-full transition-all duration-1000 ease-out"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      
+                      {/* Percentage & Count */}
+                      <span className="w-12 text-xs text-right font-medium text-slate-400">
+                        {pct}%
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed italic">
-                      "{item.reply}"
-                    </p>
+                  );
+                })}
+
+                {/* Trust Badges Footer */}
+                <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-stone-150/80">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-[#bfa15f]" />
+                    <span className="text-[10px] md:text-xs font-medium text-slate-500">
+                      {isVi ? '100% Đánh giá thật' : '100% Verified Guests'}
+                    </span>
                   </div>
-                )}
+                  <div className="flex items-center gap-2 justify-end">
+                    <Heart size={16} className="text-[#bfa15f]" />
+                    <span className="text-[10px] md:text-xs font-medium text-slate-500">
+                      {isVi ? 'Môi trường thân thiện' : 'Hospitality Standard'}
+                    </span>
+                  </div>
+                </div>
               </div>
-            ))}
+
+            </div>
           </div>
         )}
       </div>

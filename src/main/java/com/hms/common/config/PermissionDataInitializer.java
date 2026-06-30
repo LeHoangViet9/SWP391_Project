@@ -142,7 +142,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE",
                 "CHECKIN_VIEW", "CHECKIN_PROCESS",
                 "HOUSEKEEPING_VIEW",
-                "FEEDBACK_VIEW",
+                "FEEDBACK_VIEW", "FEEDBACK_UPDATE",
                 "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE"
         );
         syncRolePermissions("RECEPTIONIST", receptionistPerms);

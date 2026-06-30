@@ -209,7 +209,7 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
 
     @Override
     public List<CustomerFeedbackResponse> getPublicFeedbacks() {
-        return customerFeedbackRepository.findByStatusOrderByCreatedAtDesc(FeedbackStatus.REVIEWED)
+        return customerFeedbackRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
                 .map(customerFeedbackMapper::toResponse)
                 .toList();
@@ -220,12 +220,12 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
         Pageable pageable = pageableUtils.createPageable(page, size, "createdAt", SortDirection.DESC);
 
         return customerFeedbackRepository
-                .searchFeedback(keyword, FeedbackStatus.REVIEWED, rating, category, pageable)
+                .searchFeedback(keyword, null, rating, category, pageable)
                 .map(customerFeedbackMapper::toResponse);
     }
 
     @Override
     public FeedbackStatsResponse getPublicFeedbackStats(String keyword, String category) {
-        return getFeedbackStats(keyword, FeedbackStatus.REVIEWED, category);
+        return getFeedbackStats(keyword, null, category);
     }
 }

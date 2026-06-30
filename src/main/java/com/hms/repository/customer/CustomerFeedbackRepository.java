@@ -31,6 +31,9 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
     @EntityGraph(attributePaths = { "customer", "booking", "booking.roomType" })
     List<CustomerFeedback> findByStatusOrderByCreatedAtDesc(FeedbackStatus status);
 
+    @EntityGraph(attributePaths = { "customer", "booking", "booking.roomType" })
+    List<CustomerFeedback> findAllByOrderByCreatedAtDesc();
+
     @Query("SELECT cf.booking.id FROM CustomerFeedback cf WHERE cf.booking.id IN :ids")
     Set<Long> findBookingIdsWithFeedback(@Param("ids") Collection<Long> ids);
 
