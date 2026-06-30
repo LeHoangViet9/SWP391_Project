@@ -4,5 +4,4 @@ public enum EquipmentStatus {
     ACTIVE,
     INACTIVE,
     MAINTENANCE,
-    BROKEN
 }

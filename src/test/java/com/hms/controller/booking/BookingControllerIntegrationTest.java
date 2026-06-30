@@ -172,14 +172,14 @@ public class BookingControllerIntegrationTest {
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.paymentStatus", is("PAID")));
 
-        assertEquals(BookingStatus.PENDING_CHECK_IN,
+        assertEquals(BookingStatus.CONFIRMED,
                 bookingInvoice.getBooking().getBookingStatus());
 
         // Kiểm tra trạng thái phòng vật lý đổi sang RESERVED
         Room updatedRoom = roomRepository.findById(testRoom.getId()).orElseThrow();
         assertEquals(RoomStatus.RESERVED, updatedRoom.getRoomStatus());
 
-        // --- 3. Khách check-in (PENDING_CHECK_IN -> CHECKED_IN) ---
+        // --- 3. Khách check-in (CONFIRMED -> CHECKED_IN) ---
         BookingStatusRequest checkinReq = new BookingStatusRequest();
         checkinReq.setStatus(BookingStatus.CHECKED_IN);
 

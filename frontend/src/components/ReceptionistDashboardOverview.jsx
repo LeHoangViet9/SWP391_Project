@@ -1,25 +1,6 @@
-import React from 'react';
-import {
-  CalendarCheck, LogIn, LogOut, RefreshCw,
-  BedDouble, CheckCircle2
-} from 'lucide-react';
-
-function KpiCard({ icon: Icon, label, value, color }) {
-  return (
-    <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm flex items-start gap-4 hover:shadow-md transition-all duration-300">
-      <div
-        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: `${color}15` }}
-      >
-        <Icon size={22} style={{ color }} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-slate-800 leading-tight truncate">{value}</p>
-      </div>
-    </div>
-  );
-}
+import { RefreshCw, BedDouble } from 'lucide-react';
+import DashboardCard from './DashboardCard';
+import { receptionDashboardCards } from '../data/dashboardData';
 
 function StatusBar({ label, count, color, percentage }) {
   return (
@@ -50,8 +31,7 @@ export default function ReceptionistDashboardOverview({ data, refetch }) {
     { key: 'CLEANING', label: 'Phòng đang dọn dẹp', color: '#f59e0b' },
     { key: 'DIRTY', label: 'Phòng bẩn cần dọn dẹp', color: '#f97316' },
     { key: 'MAINTENANCE', label: 'Phòng đang bảo trì', color: '#ef4444' },
-    { key: 'CHECKOUT_PENDING', label: 'Chờ check-out', color: '#8b5cf6' },
-    { key: 'OUT_OF_ORDER', label: 'Phòng hỏng không hoạt động', color: '#64748b' }
+    { key: 'CHECKOUT_PENDING', label: 'Chờ check-out', color: '#8b5cf6' }
   ];
 
   return (
@@ -73,36 +53,16 @@ export default function ReceptionistDashboardOverview({ data, refetch }) {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <KpiCard
-          icon={LogIn}
-          label="Dự kiến nhận phòng"
-          value={data?.expectedCheckIns ?? 0}
-          color="#3b82f6"
-        />
-        <KpiCard
-          icon={LogOut}
-          label="Dự kiến trả phòng"
-          value={data?.expectedCheckOuts ?? 0}
-          color="#8b5cf6"
-        />
-        <KpiCard
-          icon={CheckCircle2}
-          label="Đã nhận phòng"
-          value={data?.actualCheckIns ?? 0}
-          color="#10b981"
-        />
-        <KpiCard
-          icon={CheckCircle2}
-          label="Đã trả phòng"
-          value={data?.actualCheckOuts ?? 0}
-          color="#14b8a6"
-        />
-        <KpiCard
-          icon={CalendarCheck}
-          label="Chờ duyệt đặt phòng"
-          value={data?.pendingBookings ?? 0}
-          color="#f59e0b"
-        />
+        {receptionDashboardCards.map((card) => (
+          <DashboardCard
+            key={card.key}
+            title={card.title}
+            value={card.getValue(data)}
+            icon={card.icon}
+            linkPath={card.linkPath}
+            color={card.color}
+          />
+        ))}
       </div>
 
       {/* Room Status Overview */}

@@ -1,9 +1,7 @@
-import React from 'react';
-import {
-  Hammer, AlertCircle, Wrench, CheckCircle2,
-  RefreshCw, DollarSign, Activity
-} from 'lucide-react';
+import { RefreshCw, Activity } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
+import DashboardCard from './DashboardCard';
+import { maintenanceDashboardCards } from '../data/dashboardData';
 
 function formatVND(value, locale = 'vi') {
   if (!value && value !== 0) return '0';
@@ -16,23 +14,6 @@ function formatVND(value, locale = 'vi') {
   if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1)} tỷ`;
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)} tr`;
   return new Intl.NumberFormat('vi-VN').format(num);
-}
-
-function KpiCard({ icon: Icon, label, value, color }) {
-  return (
-    <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm flex items-start gap-4 hover:shadow-md transition-all duration-300">
-      <div
-        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: `${color}15` }}
-      >
-        <Icon size={22} style={{ color }} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-slate-800 leading-tight truncate">{value}</p>
-      </div>
-    </div>
-  );
 }
 
 function SeverityBar({ label, count, max, color }) {
@@ -85,36 +66,16 @@ export default function MaintenanceDashboardOverview({ data, refetch }) {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <KpiCard
-          icon={Hammer}
-          label="Tổng yêu cầu"
-          value={data?.totalRequests ?? 0}
-          color="#64748b"
-        />
-        <KpiCard
-          icon={AlertCircle}
-          label="Chưa xử lý"
-          value={data?.pendingRequests ?? 0}
-          color="#ef4444"
-        />
-        <KpiCard
-          icon={Wrench}
-          label="Đang sửa chữa"
-          value={data?.inProgressRequests ?? 0}
-          color="#3b82f6"
-        />
-        <KpiCard
-          icon={CheckCircle2}
-          label="Đã hoàn thành"
-          value={data?.completedRequests ?? 0}
-          color="#10b981"
-        />
-        <KpiCard
-          icon={DollarSign}
-          label="Tổng chi phí"
-          value={`${formatVND(data?.totalCost, locale)} ₫`}
-          color="#bfa15f"
-        />
+        {maintenanceDashboardCards.map((card) => (
+          <DashboardCard
+            key={card.key}
+            title={card.title}
+            value={card.getValue(data, formatVND, locale)}
+            icon={card.icon}
+            linkPath={card.linkPath}
+            color={card.color}
+          />
+        ))}
       </div>
 
       {/* Severity Breakdown */}

@@ -78,7 +78,6 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(MSG_BOOKING_NOT_FOUND, null, locale)));
 
-        // 1. Tính số đêm lưu trú
         long numberOfNights = ChronoUnit.DAYS.between(
                 booking.getCheckInDate().toLocalDate(),
                 booking.getCheckOutDate().toLocalDate()
@@ -87,22 +86,18 @@ public class InvoiceServiceImpl implements InvoiceService {
             numberOfNights = 1;
         }
 
-        // 2. Tính toán dòng tiền
         BigDecimal roomPricePerNight = booking.getPricePerNight();
         BigDecimal roomPriceSubTotal = roomPricePerNight
                 .multiply(BigDecimal.valueOf(numberOfNights))
                 .multiply(BigDecimal.valueOf(booking.getQuantity()));
 
-        // Sửa lỗi chính tả từ request cũ (chages -> charges nếu DTO của bạn sửa đổi, hoặc giữ nguyên theo DTO)
         BigDecimal additionalCharges = request.getAdditionalChages() != null ? request.getAdditionalChages() : BigDecimal.ZERO;
 
         BigDecimal subTotalBeforeTax = roomPriceSubTotal.add(additionalCharges);
         BigDecimal vatAmount = subTotalBeforeTax.multiply(vatRate).setScale(0, RoundingMode.HALF_UP);
 
-        // Tổng tiền đúng chuẩn khi tạo mới (Đã cộng VAT)
         BigDecimal total = subTotalBeforeTax.add(vatAmount);
 
-        // 3. Khởi tạo & Lưu thực thể Hóa đơn
         Invoice invoice = invoiceMapper.toEntity(request);
         invoice.setBooking(booking);
         invoice.setAmount(total);
@@ -130,8 +125,9 @@ public class InvoiceServiceImpl implements InvoiceService {
                     messageSource.getMessage(MSG_INVOICE_NOT_FOUND, null, locale));
         }
 
+        // [XÓA PENDING_CHECK_IN] Nếu đã quét xong 100% từ trước và đơn đã là CONFIRMED thì chỉ trả về kết quả
         if (invoice.getPaymentStatus() == PaymentStatus.PAID
-                && booking.getBookingStatus() == BookingStatus.PENDING_CHECK_IN) {
+                && booking.getBookingStatus() == BookingStatus.CONFIRMED) {
             return calculateAndBuildResponse(invoice, booking);
         }
 
@@ -142,11 +138,13 @@ public class InvoiceServiceImpl implements InvoiceService {
             throw new ConflictException("Giỏ hàng đã hết hạn hoặc đơn đặt phòng đã bị hủy.");
         }
 
+        // Đánh dấu hoá đơn đã trả tiền hoàn tất 100%
         invoice.setPaymentStatus(PaymentStatus.PAID);
         invoice.setPaidAt(LocalDateTime.now());
         invoiceRepository.save(invoice);
 
-        booking.setBookingStatus(BookingStatus.PENDING_CHECK_IN);
+        // [XÓA PENDING_CHECK_IN] Chuyển trạng thái booking sang CONFIRMED (Đã thanh toán thành công, chờ ngày khách đến quầy)
+        booking.setBookingStatus(BookingStatus.CONFIRMED);
         booking.setHoldExpiresAt(null);
         bookingRepository.save(booking);
 
@@ -175,9 +173,10 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .toList();
         validateCombinedBookings(bookings);
 
+        // [SỬA TẠI ĐÂY] Nếu toàn bộ danh sách đã PAID và trạng thái đã chuyển sang CONFIRMED từ trước thì trả về kết quả luôn
         boolean allPaid = bookings.stream().allMatch(booking ->
                 booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID
-                        && booking.getBookingStatus() == BookingStatus.PENDING_CHECK_IN);
+                        && booking.getBookingStatus() == BookingStatus.CONFIRMED);
         if (allPaid) return buildCombinedInvoiceResponse(bookings);
 
         LocalDateTime now = LocalDateTime.now();
@@ -194,7 +193,9 @@ public class InvoiceServiceImpl implements InvoiceService {
             Invoice invoice = booking.getInvoice();
             invoice.setPaymentStatus(PaymentStatus.PAID);
             invoice.setPaidAt(now);
-            booking.setBookingStatus(BookingStatus.PENDING_CHECK_IN);
+
+            // [SỬA TẠI ĐÂY] Đồng bộ chuyển trạng thái booking sang CONFIRMED thay vì PENDING_CHECK_IN cũ
+            booking.setBookingStatus(BookingStatus.CONFIRMED);
             booking.setHoldExpiresAt(null);
         });
         invoiceRepository.saveAll(bookings.stream().map(Booking::getInvoice).toList());
@@ -324,6 +325,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     /**
      * Tái tính toán dòng tiền khi truy vấn dữ liệu cũ để tránh lỗi không đồng bộ cấu hình VAT
      */
+
     private InvoiceResponse calculateAndBuildResponse(Invoice invoice, Booking booking) {
         long numberOfNights = Math.max(1, ChronoUnit.DAYS.between(
                 booking.getCheckInDate().toLocalDate(),
@@ -334,22 +336,16 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .multiply(BigDecimal.valueOf(numberOfNights))
                 .multiply(BigDecimal.valueOf(booking.getQuantity()));
 
-        // Tạm thời gán bằng ZERO vì bạn không dùng trường này trong Entity Invoice nữa
         BigDecimal additionalCharges = BigDecimal.ZERO;
 
-        // Tổng tiền trước thuế = Tiền phòng + Phụ phí
         BigDecimal subTotalBeforeTax = roomPriceSubTotal.add(additionalCharges);
         BigDecimal vatAmount = subTotalBeforeTax.multiply(vatRate).setScale(0, RoundingMode.HALF_UP);
 
         BigDecimal correctTotalAmount = subTotalBeforeTax.add(vatAmount);
 
-        // Đảm bảo truyền đúng tham số khớp hoàn toàn với hàm buildInvoiceResponse phía dưới
         return buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges, vatAmount, correctTotalAmount);
     }
 
-    /**
-     * Map DTO và tạo chuỗi kết nối VietQR đồng bộ theo biến calculatedTotal
-     */
     private InvoiceResponse buildInvoiceResponse(Invoice invoice, Booking booking, long numberOfNights, BigDecimal roomPricePerNight,
                                                  BigDecimal roomPriceSubTotal, BigDecimal additionalCharges, BigDecimal vatAmount, BigDecimal calculatedTotal) {
         InvoiceResponse response = invoiceMapper.toResponse(invoice);
@@ -367,11 +363,10 @@ public class InvoiceServiceImpl implements InvoiceService {
         response.setNumberOfNights(numberOfNights);
         response.setRoomPricePerNight(roomPricePerNight);
         response.setRoomPriceSubTotal(roomPriceSubTotal);
-        response.setServiceSubTotal(BigDecimal.ZERO); // Không dùng bảng dịch vụ nữa, đặt bằng 0
+        response.setServiceSubTotal(BigDecimal.ZERO);
         response.setVatAmount(vatAmount);
         response.setAdditionalCharges(additionalCharges);
 
-        // Đồng bộ hiển thị tổng tiền chuẩn
         response.setTotalAmount(calculatedTotal);
 
         if (invoice.getPaymentStatus() == PaymentStatus.PENDING) {

@@ -38,7 +38,7 @@ ALTER TABLE repair_requests DROP CONSTRAINT IF EXISTS repair_requests_status_che
 ALTER TABLE repair_requests ADD CONSTRAINT repair_requests_status_check CHECK (status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'));
 
 ALTER TABLE room DROP CONSTRAINT IF EXISTS room_room_status_check;
-ALTER TABLE room ADD CONSTRAINT room_room_status_check CHECK (room_status IN ('AVAILABLE', 'MAINTENANCE', 'INACTIVE', 'RESERVED', 'CLEANING', 'DIRTY', 'OCCUPIED', 'READY', 'OUT_OF_ORDER', 'CHECKOUT_PENDING'));
+ALTER TABLE room ADD CONSTRAINT room_room_status_check CHECK (room_status IN ('AVAILABLE', 'MAINTENANCE', 'INACTIVE', 'RESERVED', 'CLEANING', 'DIRTY', 'OCCUPIED', 'READY', 'CHECKOUT_PENDING'));
 
 ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_booking_status_check;
 ALTER TABLE bookings ADD CONSTRAINT bookings_booking_status_check CHECK (booking_status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED', 'NO_SHOW'));
@@ -64,7 +64,7 @@ ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_previous_state_
     CHECK (previous_state IN (
                               'AVAILABLE', 'MAINTENANCE', 'INACTIVE', 'RESERVED',
                               'CLEANING', 'DIRTY', 'OCCUPIED', 'READY',
-                              'OUT_OF_ORDER', 'CHECKOUT_PENDING'
+                              'CHECKOUT_PENDING'
         ));
 
 ALTER TABLE room_state_history DROP CONSTRAINT IF EXISTS room_state_history_current_state_check;
@@ -72,7 +72,7 @@ ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_current_state_c
     CHECK (current_state IN (
                              'AVAILABLE', 'MAINTENANCE', 'INACTIVE', 'RESERVED',
                              'CLEANING', 'DIRTY', 'OCCUPIED', 'READY',
-                             'OUT_OF_ORDER', 'CHECKOUT_PENDING'
+                             'CHECKOUT_PENDING'
         ));
 
 -- =============================================================================
