@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { roomTypes as mockRoomTypes } from '../data/mockData';
 import { apiFetch } from '../services/api';
 import { createBooking } from '../services/bookingService';
+import { getCombinedInvoice } from '../services/invoiceService';
 import {
   getStoredCustomerId,
   saveCustomerId,
@@ -150,6 +151,7 @@ function BookingContent() {
   const [guestCounts, setGuestCounts] = useState([{ adults: 1, children: 0, infants: 0 }]);
   const [cartItems, setCartItems] = useState(loadBookingCart);
   const [bookingResults, setBookingResults] = useState([]);
+  const [combinedInvoiceTotal, setCombinedInvoiceTotal] = useState(0);
 
   const [booking, setBooking] = useState({
     checkIn: params.get('checkIn') || today(),
@@ -205,6 +207,7 @@ function BookingContent() {
     if (!booking.checkIn || !booking.checkOut || !roomTypeId) return;
 
     setCheckingAvailability(true);
+    setAvailableRoomsCount(null);
     setError('');
 
     const checkInDateTime = toCheckIn(booking.checkIn);
@@ -213,11 +216,21 @@ function BookingContent() {
     apiFetch(`/bookings/check-availability?roomTypeId=${roomTypeId}&checkInDate=${encodeURIComponent(checkInDateTime)}&checkOutDate=${encodeURIComponent(checkOutDateTime)}`, {}, locale)
       .then((res) => {
         if (res && res.data !== undefined) {
-          setAvailableRoomsCount(res.data);
-          if (res.data < booking.quantity) {
+          const parsedCount = Number(res.data);
+          const availableCount = Number.isFinite(parsedCount) ? Math.max(0, Math.floor(parsedCount)) : 0;
+          setAvailableRoomsCount(availableCount);
+          setBooking((current) => {
+            const nextQuantity = availableCount === 0
+              ? 0
+              : Math.min(Math.max(current.quantity || 1, 1), availableCount);
+            return nextQuantity === current.quantity
+              ? current
+              : { ...current, quantity: nextQuantity };
+          });
+          if (availableCount === 0) {
             setError(locale === 'vi'
-              ? `Hết phòng! Chỉ còn lại ${res.data} phòng trống của hạng phòng này trong khoảng thời gian đã chọn.`
-              : `Sold out! Only ${res.data} rooms left for this room type during the selected dates.`);
+              ? 'Loại phòng này đã hết phòng trong khoảng thời gian đã chọn.'
+              : 'This room type is sold out for the selected dates.');
           }
         }
       })
@@ -227,7 +240,7 @@ function BookingContent() {
       .finally(() => {
         setCheckingAvailability(false);
       });
-  }, [roomTypeId, booking.checkIn, booking.checkOut, booking.quantity, locale]);
+  }, [roomTypeId, booking.checkIn, booking.checkOut, locale]);
 
   useEffect(() => {
     setGuestCounts((current) => Array.from(
@@ -415,6 +428,14 @@ function BookingContent() {
         const res = await createBooking(payload, locale);
         createdBookings.push(res.data);
         completedKeys.push(item.key);
+      }
+      const createdBookingIds = createdBookings.map((created) => created.id);
+      const fallbackTotal = createdBookings.reduce((total, created) => total + Number(created.totalPrice || 0), 0);
+      try {
+        const combinedInvoiceRes = await getCombinedInvoice(createdBookingIds, locale);
+        setCombinedInvoiceTotal(Number(combinedInvoiceRes?.data?.totalAmount ?? fallbackTotal));
+      } catch {
+        setCombinedInvoiceTotal(fallbackTotal);
       }
       setBookingResults(createdBookings);
       setBookingResult(createdBookings[0]);
@@ -615,16 +636,28 @@ function BookingContent() {
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">
                   {locale === 'vi' ? 'Số lượng phòng' : 'Number of rooms'}
                 </label>
-                <select value={booking.quantity} onChange={(e) => { touchSelectionField('quantity'); setBooking({ ...booking, quantity: Number(e.target.value) }); }} className={selectionFieldClassName('quantity')}>
-                  {Array.from({ length: Math.max(1, Math.min(availableRoomsCount ?? 10, 10)) }, (_, index) => index + 1).map((quantity) => (
+                <select
+                  value={availableRoomsCount === 0 ? '' : booking.quantity}
+                  disabled={checkingAvailability || availableRoomsCount === null || availableRoomsCount === 0}
+                  onChange={(e) => { touchSelectionField('quantity'); setBooking({ ...booking, quantity: Number(e.target.value) }); }}
+                  className={`${selectionFieldClassName('quantity')} disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-slate-400`}
+                >
+                  {availableRoomsCount === 0 ? (
+                    <option value="">{locale === 'vi' ? 'Đã hết phòng' : 'Sold out'}</option>
+                  ) : Array.from({ length: availableRoomsCount ?? 0 }, (_, index) => index + 1).map((quantity) => (
                     <option key={quantity} value={quantity}>{quantity} {locale === 'vi' ? 'phòng' : 'rooms'}</option>
                   ))}
                 </select>
+                <p className={`mt-1 text-xs font-medium ${availableRoomsCount === 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {checkingAvailability || availableRoomsCount === null
+                    ? (locale === 'vi' ? 'Đang kiểm tra phòng trống...' : 'Checking available rooms...')
+                    : (locale === 'vi' ? `Còn ${availableRoomsCount} phòng trống` : `${availableRoomsCount} rooms available`)}
+                </p>
                 {renderSelectionError('quantity')}
               </div>
             </div>
             <div className="bg-stone-50 p-4 flex justify-between items-center">
-              <span className="text-slate-600">{nights} {t('bookingPage.nights')} × {booking.quantity} {t('booking.rooms')}</span>
+              <span className="text-slate-600">{nights} {t('bookingPage.nights')} × {booking.quantity || 0} {t('booking.rooms')}</span>
               <span className="text-xl font-bold text-[#bfa15f]">{formatPrice(totalEstimate, locale)}</span>
             </div>
             <div className="space-y-4 border-y border-dashed border-stone-300 py-5">
@@ -664,7 +697,7 @@ function BookingContent() {
             <button
               type="button"
               onClick={handleSelectRoom}
-              disabled={currentSelectionInCart || checkingAvailability || (availableRoomsCount !== null && availableRoomsCount < booking.quantity)}
+              disabled={currentSelectionInCart || checkingAvailability || availableRoomsCount === null || availableRoomsCount === 0 || booking.quantity > availableRoomsCount}
               className="w-full btn-gold py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {checkingAvailability
@@ -840,8 +873,8 @@ function BookingContent() {
             <h3 className="font-display text-2xl font-bold text-slate-800 mb-2">{t('bookingPage.successTitle')}</h3>
             <p className="text-slate-500 mb-6">
               {locale === 'vi'
-                ? `${bookingResults.length} đơn đặt phòng đã được tạo. Vui lòng thanh toán từng đơn.`
-                : `${bookingResults.length} bookings were created. Please pay for each booking.`}
+                ? `${bookingResults.length} đơn đặt phòng đã được tạo và gộp vào một hóa đơn.`
+                : `${bookingResults.length} bookings were created and combined into one invoice.`}
             </p>
             <div className="mb-6 space-y-3 text-left">
               {bookingResults.map((result) => (
@@ -853,9 +886,6 @@ function BookingContent() {
                       <p className="text-slate-500">{result.checkInDate?.split('T')[0]} - {result.checkOutDate?.split('T')[0]}</p>
                       <p className="font-bold text-[#bfa15f]">{formatPrice(Number(result.totalPrice), locale)}</p>
                     </div>
-                    <Link to={`/invoice/${result.id}`} className="btn-gold inline-block rounded px-5 py-2.5">
-                      {locale === 'vi' ? 'Thanh toán' : 'Pay now'}
-                    </Link>
                   </div>
                 </div>
               ))}
@@ -864,6 +894,16 @@ function BookingContent() {
               <Clock size={18} />
               <strong>{locale === 'vi' ? 'Phòng được giữ trong' : 'Room held for'} {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}</strong>
             </div>
+            <div className="mb-5 rounded-xl border border-[#bfa15f]/30 bg-[#bfa15f]/10 p-5">
+              <p className="text-sm font-semibold text-slate-600">{locale === 'vi' ? 'Tổng tiền cần thanh toán' : 'Total amount due'}</p>
+              <p className="mt-1 text-3xl font-bold text-[#bfa15f]">{formatPrice(combinedInvoiceTotal, locale)}</p>
+            </div>
+            <Link
+              to={`/invoice/batch?${bookingResults.map((result) => `bookingIds=${result.id}`).join('&')}`}
+              className="btn-gold inline-block rounded px-8 py-3"
+            >
+              {locale === 'vi' ? 'Thanh toán một hóa đơn' : 'Pay combined invoice'}
+            </Link>
           </div>
         )}
         </section>

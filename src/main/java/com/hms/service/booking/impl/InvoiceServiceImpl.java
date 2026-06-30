@@ -2,10 +2,12 @@ package com.hms.service.booking.impl;
 
 import com.hms.common.enums.*;
 import com.hms.common.exception.ConflictException;
+import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.invoice.request.InvoiceRequest;
 import com.hms.dto.invoice.response.InvoiceResponse;
+import com.hms.dto.invoice.response.CombinedInvoiceResponse;
 import com.hms.entity.booking.Booking;
 import com.hms.entity.booking.Invoice;
 import com.hms.repository.booking.BookingRepository;
@@ -29,6 +31,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
+import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -85,7 +89,9 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         // 2. Tính toán dòng tiền
         BigDecimal roomPricePerNight = booking.getPricePerNight();
-        BigDecimal roomPriceSubTotal = roomPricePerNight.multiply(BigDecimal.valueOf(numberOfNights));
+        BigDecimal roomPriceSubTotal = roomPricePerNight
+                .multiply(BigDecimal.valueOf(numberOfNights))
+                .multiply(BigDecimal.valueOf(booking.getQuantity()));
 
         // Sửa lỗi chính tả từ request cũ (chages -> charges nếu DTO của bạn sửa đổi, hoặc giữ nguyên theo DTO)
         BigDecimal additionalCharges = request.getAdditionalChages() != null ? request.getAdditionalChages() : BigDecimal.ZERO;
@@ -149,6 +155,55 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional(readOnly = true)
+    public CombinedInvoiceResponse getCombinedInvoice(List<Long> bookingIds) {
+        List<Long> normalizedIds = normalizeBookingIds(bookingIds);
+        List<Booking> bookings = normalizedIds.stream()
+                .map(id -> bookingRepository.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng #" + id)))
+                .toList();
+        validateCombinedBookings(bookings);
+        return buildCombinedInvoiceResponse(bookings);
+    }
+
+    @Override
+    @Transactional
+    public CombinedInvoiceResponse confirmCombinedPaymentSuccess(List<Long> bookingIds) {
+        List<Long> normalizedIds = normalizeBookingIds(bookingIds);
+        List<Booking> bookings = normalizedIds.stream()
+                .map(id -> bookingRepository.findByIdWithPessimisticWrite(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng #" + id)))
+                .toList();
+        validateCombinedBookings(bookings);
+
+        boolean allPaid = bookings.stream().allMatch(booking ->
+                booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID
+                        && booking.getBookingStatus() == BookingStatus.PENDING_CHECK_IN);
+        if (allPaid) return buildCombinedInvoiceResponse(bookings);
+
+        LocalDateTime now = LocalDateTime.now();
+        boolean invalid = bookings.stream().anyMatch(booking ->
+                booking.getBookingStatus() != BookingStatus.PENDING_PAYMENT
+                        || booking.getHoldExpiresAt() == null
+                        || !booking.getHoldExpiresAt().isAfter(now)
+                        || booking.getInvoice().getPaymentStatus() != PaymentStatus.PENDING);
+        if (invalid) {
+            throw new ConflictException("Một hoặc nhiều phòng trong hóa đơn đã hết hạn hoặc không còn chờ thanh toán.");
+        }
+
+        bookings.forEach(booking -> {
+            Invoice invoice = booking.getInvoice();
+            invoice.setPaymentStatus(PaymentStatus.PAID);
+            invoice.setPaidAt(now);
+            booking.setBookingStatus(BookingStatus.PENDING_CHECK_IN);
+            booking.setHoldExpiresAt(null);
+        });
+        invoiceRepository.saveAll(bookings.stream().map(Booking::getInvoice).toList());
+        bookingRepository.saveAll(bookings);
+        return buildCombinedInvoiceResponse(bookings);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public InvoiceResponse getInvoiceByBookingId(Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
         Booking booking = bookingRepository.findById(bookingId)
@@ -197,6 +252,75 @@ public class InvoiceServiceImpl implements InvoiceService {
         return invoicePage.map(invoice -> calculateAndBuildResponse(invoice, invoice.getBooking()));
     }
 
+    private List<Long> normalizeBookingIds(List<Long> bookingIds) {
+        if (bookingIds == null || bookingIds.isEmpty()) {
+            throw new BadRequestException("Hóa đơn tổng phải có ít nhất một đơn đặt phòng.");
+        }
+        return bookingIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
+    private void validateCombinedBookings(List<Booking> bookings) {
+        if (bookings.isEmpty()) {
+            throw new BadRequestException("Hóa đơn tổng phải có ít nhất một đơn đặt phòng.");
+        }
+        Long customerId = bookings.get(0).getCustomer().getId();
+        boolean invalidCustomer = bookings.stream()
+                .anyMatch(booking -> !Objects.equals(customerId, booking.getCustomer().getId()));
+        if (invalidCustomer) {
+            throw new BadRequestException("Các đơn trong hóa đơn tổng phải thuộc cùng một khách hàng.");
+        }
+        if (bookings.stream().anyMatch(booking -> booking.getInvoice() == null)) {
+            throw new ResourceNotFoundException("Một hoặc nhiều đơn đặt phòng chưa có hóa đơn.");
+        }
+    }
+
+    private CombinedInvoiceResponse buildCombinedInvoiceResponse(List<Booking> bookings) {
+        List<InvoiceResponse> items = bookings.stream()
+                .map(booking -> calculateAndBuildResponse(booking.getInvoice(), booking))
+                .toList();
+        BigDecimal totalAmount = items.stream()
+                .map(InvoiceResponse::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        List<Long> bookingIds = bookings.stream().map(Booking::getId).sorted().toList();
+        String hash = Integer.toUnsignedString(bookingIds.toString().hashCode());
+        String paymentContent = "HMSB" + hash;
+        boolean allPaid = bookings.stream()
+                .allMatch(booking -> booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID);
+
+        CombinedInvoiceResponse response = CombinedInvoiceResponse.builder()
+                .invoiceCode("INV-GROUP-" + hash)
+                .bookingIds(bookingIds)
+                .items(items)
+                .customerName(bookings.get(0).getCustomer().getFullName())
+                .totalAmount(totalAmount)
+                .paymentStatus(allPaid ? PaymentStatus.PAID : PaymentStatus.PENDING)
+                .createdAt(bookings.stream().map(Booking::getCreatedAt).filter(Objects::nonNull).min(LocalDateTime::compareTo).orElse(null))
+                .holdExpiresAt(bookings.stream().map(Booking::getHoldExpiresAt).filter(Objects::nonNull).min(LocalDateTime::compareTo).orElse(null))
+                .build();
+
+        if (!allPaid) {
+            response.setPaymentContent(paymentContent);
+            response.setQrCodeUrl(buildQrUrl(totalAmount, paymentContent));
+        }
+        return response;
+    }
+
+    private String buildQrUrl(BigDecimal amount, String paymentContent) {
+        try {
+            String encodedAccountName = URLEncoder.encode(bankAccountName, StandardCharsets.UTF_8);
+            String encodedContent = URLEncoder.encode(paymentContent, StandardCharsets.UTF_8);
+            return String.format(vietQrApiUrl, bankId, bankAccountNo,
+                    amount.toBigInteger().toString(), encodedContent, encodedAccountName);
+        } catch (Exception e) {
+            log.error("Không thể tạo VietQR cho nội dung {}", paymentContent, e);
+            return null;
+        }
+    }
+
     /**
      * Tái tính toán dòng tiền khi truy vấn dữ liệu cũ để tránh lỗi không đồng bộ cấu hình VAT
      */
@@ -206,7 +330,9 @@ public class InvoiceServiceImpl implements InvoiceService {
                 booking.getCheckOutDate().toLocalDate()
         ));
         BigDecimal roomPricePerNight = booking.getPricePerNight();
-        BigDecimal roomPriceSubTotal = roomPricePerNight.multiply(BigDecimal.valueOf(numberOfNights));
+        BigDecimal roomPriceSubTotal = roomPricePerNight
+                .multiply(BigDecimal.valueOf(numberOfNights))
+                .multiply(BigDecimal.valueOf(booking.getQuantity()));
 
         // Tạm thời gán bằng ZERO vì bạn không dùng trường này trong Entity Invoice nữa
         BigDecimal additionalCharges = BigDecimal.ZERO;
@@ -233,6 +359,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         response.setCustomerName(booking.getCustomer() != null ? booking.getCustomer().getFullName() : "N/A");
         response.setRoomNumber(booking.getRoom() != null ? booking.getRoom().getRoomNumber() : "N/A");
+        response.setRoomTypeName(booking.getRoomType() != null ? booking.getRoomType().getTypeName() : "N/A");
+        response.setQuantity(booking.getQuantity());
+        response.setCheckInDate(booking.getCheckInDate());
+        response.setCheckOutDate(booking.getCheckOutDate());
 
         response.setNumberOfNights(numberOfNights);
         response.setRoomPricePerNight(roomPricePerNight);
@@ -247,20 +377,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         if (invoice.getPaymentStatus() == PaymentStatus.PENDING) {
             String paymentContent = "HMS" + booking.getId();
 
-            try {
-                String encodedAccountName = URLEncoder.encode(bankAccountName, StandardCharsets.UTF_8);
-                String encodedContent = URLEncoder.encode(paymentContent, StandardCharsets.UTF_8);
-                String amountStr = calculatedTotal.toBigInteger().toString();
-
-                String qrUrl = String.format(vietQrApiUrl,
-                        bankId, bankAccountNo, amountStr, encodedContent, encodedAccountName);
-
-                response.setQrCodeUrl(qrUrl);
-                response.setPaymentContent(paymentContent);
-            } catch (Exception e) {
-                log.error("Lỗi khi encode dữ liệu link VietQR cho Booking ID: {}", booking.getId(), e);
-                response.setQrCodeUrl(null);
-            }
+            response.setQrCodeUrl(buildQrUrl(calculatedTotal, paymentContent));
+            response.setPaymentContent(paymentContent);
         }
 
         return response;

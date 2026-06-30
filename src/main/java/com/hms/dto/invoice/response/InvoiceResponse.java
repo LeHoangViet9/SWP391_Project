@@ -20,6 +20,10 @@ public class InvoiceResponse {
     private Long bookingId;
     private String customerName;
     private String roomNumber;
+    private String roomTypeName;
+    private Integer quantity;
+    private LocalDateTime checkInDate;
+    private LocalDateTime checkOutDate;
     private Long numberOfNights;
 
     private BigDecimal roomPricePerNight;

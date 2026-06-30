@@ -4,6 +4,7 @@ import { Users, Wifi, Wind, Coffee, Bath, Star, X, ShieldCheck, Sparkles, Car, C
 import { useLocale } from '../../context/LocaleContext';
 import { roomTypes as mockRoomTypes } from '../../data/mockData';
 import { getRoomTypes } from '../../services/roomService';
+import { apiFetch } from '../../services/api';
 
 const amenityIcons = {
   'Wifi': Wifi,
@@ -31,6 +32,8 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
   const navigate = useNavigate();
   const [rooms, setRooms] = useState(mockRoomTypes);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [availabilityByRoomType, setAvailabilityByRoomType] = useState({});
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
 
   useEffect(() => {
     getRoomTypes({ page: 0, size: 10 }, locale)
@@ -52,7 +55,42 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
       });
   }, [locale]);
 
+  useEffect(() => {
+    if (!checkIn || !checkOut || rooms.length === 0) return undefined;
+    let cancelled = false;
+    setCheckingAvailability(true);
+    setAvailabilityByRoomType({});
+
+    const checkInDate = `${checkIn}T14:00:00`;
+    const checkOutDate = `${checkOut}T12:00:00`;
+    Promise.all(rooms.map(async (room) => {
+      try {
+        const response = await apiFetch(
+          `/bookings/check-availability?roomTypeId=${room.id}&checkInDate=${encodeURIComponent(checkInDate)}&checkOutDate=${encodeURIComponent(checkOutDate)}`,
+          {},
+          locale,
+        );
+        return [room.id, Math.max(0, Number(response?.data) || 0)];
+      } catch {
+        return [room.id, null];
+      }
+    })).then((entries) => {
+      if (!cancelled) setAvailabilityByRoomType(Object.fromEntries(entries));
+    }).finally(() => {
+      if (!cancelled) setCheckingAvailability(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [rooms, checkIn, checkOut, locale]);
+
+  const getAvailableCount = (room) => availabilityByRoomType[room.id];
+  const isRoomSoldOut = (room) => {
+    const availableCount = getAvailableCount(room);
+    return availableCount === 0 || (availableCount == null && room.totalRooms === 0);
+  };
+
   const handleBook = (roomType) => {
+    if (checkingAvailability || isRoomSoldOut(roomType)) return;
     let url = `/booking?roomTypeId=${roomType.id}`;
     if (checkIn) url += `&checkIn=${checkIn}`;
     if (checkOut) url += `&checkOut=${checkOut}`;
@@ -106,7 +144,7 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                   <div className="absolute top-4 left-4 bg-[#bfa15f] text-white text-xs font-semibold px-3 py-1 uppercase tracking-wider">
                     {room.status === 'ACTIVE' ? '5★' : room.status}
                   </div>
-                  {room.totalRooms === 0 && (
+                  {isRoomSoldOut(room) && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                       <span className="bg-red-600 text-white font-bold text-sm px-4 py-2 uppercase tracking-widest rounded-sm">
                         {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
@@ -176,12 +214,19 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                       >
                         {t('rooms.viewDetail')}
                       </button>
-                      {room.totalRooms === 0 ? (
+                      {checkingAvailability && getAvailableCount(room) == null ? (
                         <button
                           disabled
-                          className="px-4 py-2 text-sm bg-stone-300 text-stone-500 cursor-not-allowed rounded font-medium"
+                          className="px-4 py-2 text-sm bg-stone-200 text-stone-500 cursor-wait rounded font-medium"
                         >
-                          {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
+                          {locale === 'vi' ? 'Đang kiểm tra...' : 'Checking...'}
+                        </button>
+                      ) : isRoomSoldOut(room) ? (
+                        <button
+                          disabled
+                          className="px-4 py-2 text-sm bg-red-600 text-white cursor-not-allowed rounded font-bold"
+                        >
+                          {locale === 'vi' ? 'ĐÃ HẾT PHÒNG' : 'SOLD OUT'}
                         </button>
                       ) : (
                         <button
@@ -313,12 +358,19 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                 >
                   {locale === 'vi' ? 'Đóng' : 'Close'}
                 </button>
-                {selectedRoom.totalRooms === 0 ? (
+                {checkingAvailability && getAvailableCount(selectedRoom) == null ? (
                   <button
                     disabled
-                    className="px-6 py-2.5 text-xs bg-stone-300 text-stone-500 cursor-not-allowed font-medium rounded-sm uppercase tracking-wider"
+                    className="px-6 py-2.5 text-xs bg-stone-200 text-stone-500 cursor-wait font-medium rounded-sm uppercase tracking-wider"
                   >
-                    {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
+                    {locale === 'vi' ? 'Đang kiểm tra...' : 'Checking...'}
+                  </button>
+                ) : isRoomSoldOut(selectedRoom) ? (
+                  <button
+                    disabled
+                    className="px-6 py-2.5 text-xs bg-red-600 text-white cursor-not-allowed font-bold rounded-sm uppercase tracking-wider"
+                  >
+                    {locale === 'vi' ? 'Đã hết phòng' : 'Sold Out'}
                   </button>
                 ) : (
                   <button
