@@ -42,7 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "BOOKING_VIEW",
         "BOOKING_CREATE",
         "BOOKING_UPDATE",
-        "BOOKING_DELETE"
+        "BOOKING_DELETE",
+        "INVOICE_UPDATE"
 })
 public class BookingControllerIntegrationTest {
 
@@ -75,7 +76,7 @@ public class BookingControllerIntegrationTest {
                 .fullName("John Doe Test")
                 .email("test.john.doe@hms-test.com")
                 .phone("0999999999")
-                .idNumberCard("999999999")
+                .idNumberCard("999999999999")
                 .idType(com.hms.common.enums.IdType.CCCD)
                 .nationality("Vietnam")
                 .status(AccountStatus.ACTIVE)
@@ -104,11 +105,41 @@ public class BookingControllerIntegrationTest {
     }
 
     @Test
+    void createBooking_MultipleRooms_AutoAssignsPhysicalRooms() throws Exception {
+        Room secondRoom = roomRepository.save(Room.builder()
+                .roomNumber("TEST-102")
+                .floorNumber(1)
+                .roomType(testRoomType)
+                .roomStatus(RoomStatus.AVAILABLE)
+                .description("Second room")
+                .build());
+
+        BookingRequest request = new BookingRequest();
+        request.setCustomerId(testCustomer.getId());
+        request.setRoomTypeId(testRoomType.getId());
+        request.setCheckInDate(LocalDateTime.now().plusDays(5));
+        request.setCheckOutDate(LocalDateTime.now().plusDays(7));
+        request.setQuantity(2);
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.quantity", is(2)))
+                .andExpect(jsonPath("$.data.roomIds", hasSize(2)))
+                .andExpect(jsonPath("$.data.roomNumbers", containsInAnyOrder("TEST-101", "TEST-102")));
+
+        assertEquals(RoomStatus.RESERVED, roomRepository.findById(testRoom.getId()).orElseThrow().getRoomStatus());
+        assertEquals(RoomStatus.RESERVED, roomRepository.findById(secondRoom.getId()).orElseThrow().getRoomStatus());
+    }
+
+    @Test
     void testBookingLifecycleFlow_Success() throws Exception {
-        // --- 1. Tạo đơn đặt phòng mới (status = PENDING) ---
+        // --- 1. Thêm một phòng cụ thể vào giỏ (status = PENDING_PAYMENT) ---
         BookingRequest createReq = new BookingRequest();
         createReq.setCustomerId(testCustomer.getId());
         createReq.setRoomTypeId(testRoomType.getId());
+        createReq.setRoomId(testRoom.getId());
         createReq.setCheckInDate(LocalDateTime.now().plusDays(2));
         createReq.setCheckOutDate(LocalDateTime.now().plusDays(4));
         createReq.setQuantity(1);
@@ -118,24 +149,15 @@ public class BookingControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(createReq)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.data.bookingStatus", is("PENDING")))
+                .andExpect(jsonPath("$.data.bookingStatus", is("PENDING_PAYMENT")))
+                .andExpect(jsonPath("$.data.roomId", is(testRoom.getId().intValue())))
+                .andExpect(jsonPath("$.data.holdExpiresAt", notNullValue()))
                 .andReturn().getResponse().getContentAsString();
 
         Long bookingId = objectMapper.readTree(createRes).path("data").path("id").asLong();
         assertNotNull(bookingId);
 
-        // --- 2. Xác nhận đơn đặt phòng (PENDING -> CONFIRMED) ---
-        BookingStatusRequest confirmReq = new BookingStatusRequest();
-        confirmReq.setStatus(BookingStatus.CONFIRMED);
-
-        mockMvc.perform(patch("/api/v1/bookings/" + bookingId + "/status")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(confirmReq)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.data.bookingStatus", is("CONFIRMED")));
-
-        // Kiểm tra Invoice đã được tự tạo thành công
+        // Hóa đơn được tạo ngay cùng mục giỏ hàng.
         List<Invoice> invoices = invoiceRepository.findAll();
         Invoice bookingInvoice = invoices.stream()
                 .filter(i -> i.getBooking().getId().equals(bookingId))
@@ -144,23 +166,20 @@ public class BookingControllerIntegrationTest {
         assertNotNull(bookingInvoice, "Invoice should be automatically generated for the booking");
         assertEquals(PaymentStatus.PENDING, bookingInvoice.getPaymentStatus());
 
-        // --- 3. Gán phòng vật lý cho đơn CONFIRMED ---
-        BookingRoomAssignRequest assignReq = new BookingRoomAssignRequest();
-        assignReq.setRoomId(testRoom.getId());
-
-        mockMvc.perform(patch("/api/v1/bookings/" + bookingId + "/assign-room")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(assignReq)))
+        // --- 2. Thanh toán thành công -> tự động chờ check-in ---
+        mockMvc.perform(post("/api/v1/invoices/webhook/payment-success/" + bookingId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.data.roomId", is(testRoom.getId().intValue())))
-                .andExpect(jsonPath("$.data.roomNumber", is("TEST-101")));
+                .andExpect(jsonPath("$.data.paymentStatus", is("PAID")));
+
+        assertEquals(BookingStatus.PENDING_CHECK_IN,
+                bookingInvoice.getBooking().getBookingStatus());
 
         // Kiểm tra trạng thái phòng vật lý đổi sang RESERVED
         Room updatedRoom = roomRepository.findById(testRoom.getId()).orElseThrow();
         assertEquals(RoomStatus.RESERVED, updatedRoom.getRoomStatus());
 
-        // --- 4. Khách check-in (CONFIRMED -> CHECKED_IN) ---
+        // --- 3. Khách check-in (PENDING_CHECK_IN -> CHECKED_IN) ---
         BookingStatusRequest checkinReq = new BookingStatusRequest();
         checkinReq.setStatus(BookingStatus.CHECKED_IN);
 
@@ -217,5 +236,59 @@ public class BookingControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(invalidReq)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    void createBookingWithInvalidBookerCccd_BadRequest() throws Exception {
+        testCustomer.setIdNumberCard("12345678901");
+        customerRepository.save(testCustomer);
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createBookingRequest())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    void createBookingForOtherWithInvalidGuestCccd_BadRequest() throws Exception {
+        BookingRequest request = createBookingRequest();
+        request.setBookingForOther(true);
+        request.setGuestFullName("Guest Test");
+        request.setGuestPhone("0988888888");
+        request.setGuestIdType("CCCD");
+        request.setGuestIdNumberCard("12345678901A");
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    void createBookingForOtherWithDuplicateCccd_BadRequest() throws Exception {
+        BookingRequest request = createBookingRequest();
+        request.setBookingForOther(true);
+        request.setGuestFullName("Guest Test");
+        request.setGuestPhone("0988888888");
+        request.setGuestIdType("CCCD");
+        request.setGuestIdNumberCard(testCustomer.getIdNumberCard());
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    private BookingRequest createBookingRequest() {
+        BookingRequest request = new BookingRequest();
+        request.setCustomerId(testCustomer.getId());
+        request.setRoomTypeId(testRoomType.getId());
+        request.setCheckInDate(LocalDateTime.now().plusDays(2));
+        request.setCheckOutDate(LocalDateTime.now().plusDays(4));
+        request.setQuantity(1);
+        return request;
     }
 }

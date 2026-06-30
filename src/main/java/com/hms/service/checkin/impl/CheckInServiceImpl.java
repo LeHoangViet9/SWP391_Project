@@ -62,7 +62,7 @@ public class CheckInServiceImpl implements CheckInService {
             );
         }
 
-        if (booking.getBookingStatus() != BookingStatus.CONFIRMED) {
+        if (booking.getBookingStatus() != BookingStatus.PENDING_CHECK_IN) {
             throw new ConflictException(
                     messageSource.getMessage(
                             "error.checkin.booking.status.invalid",
@@ -133,7 +133,7 @@ public class CheckInServiceImpl implements CheckInService {
         boolean isOverlapping = bookingRepository.existsOverlappingBooking(
                 assignedRoom.getId(),
                 booking.getId(),
-                List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN),
+                List.of(BookingStatus.PENDING_CHECK_IN, BookingStatus.CHECKED_IN),
                 booking.getCheckInDate(),
                 booking.getCheckOutDate()
         );
@@ -149,16 +149,18 @@ public class CheckInServiceImpl implements CheckInService {
         }
 
         // 5. Update Status
-        RoomStatus previousRoomStatus = assignedRoom.getRoomStatus();
+        List<Room> assignedRooms = booking.getRooms() != null && !booking.getRooms().isEmpty()
+                ? booking.getRooms()
+                : List.of(assignedRoom);
 
         booking.setBookingStatus(BookingStatus.CHECKED_IN);
         booking.setRoom(assignedRoom);
         booking.setActualCheckInTime(now);
 
-        assignedRoom.setRoomStatus(RoomStatus.OCCUPIED);
+        assignedRooms.forEach(room -> room.setRoomStatus(RoomStatus.OCCUPIED));
 
         bookingRepository.save(booking);
-        roomRepository.save(assignedRoom);
+        roomRepository.saveAll(assignedRooms);
 
         // 6. Audit Log (RoomStateHistory)
         User triggerUser = null;
@@ -166,15 +168,14 @@ public class CheckInServiceImpl implements CheckInService {
             triggerUser = userRepository.findById(userId).orElse(null);
         }
 
-        RoomStateHistory history = RoomStateHistory.builder()
-                .room(assignedRoom)
-                .previousState(previousRoomStatus)
+        final User historyUser = triggerUser;
+        assignedRooms.forEach(room -> roomStateHistoryRepository.save(RoomStateHistory.builder()
+                .room(room)
+                .previousState(RoomStatus.RESERVED)
                 .currentState(RoomStatus.OCCUPIED)
                 .triggeredByProcess(ProcessTrigger.CHECKIN)
-                .triggeredByUser(triggerUser)
-                .build();
-
-        roomStateHistoryRepository.save(history);
+                .triggeredByUser(historyUser)
+                .build()));
 
         // 7. Return Response
         return CheckInResponseDTO.builder()

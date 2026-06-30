@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import jakarta.validation.Valid;
 
 @Data
 public class BookingRequest {
@@ -14,12 +16,19 @@ public class BookingRequest {
     @NotNull(message = "{booking.roomtype.notnull}")
     private Long roomTypeId;
 
+    // The concrete room selected in the cart. When omitted, the backend picks one
+    // atomically so older clients remain compatible.
+    private Long roomId;
+
     @NotNull(message = "{booking.checkin.notnull}")
     private LocalDateTime checkInDate;
 
     @NotNull(message = "{booking.quantity.notnull}")
     @Min(value = 1, message = "{booking.quantity.min}")
     private Integer quantity;
+
+    @Valid
+    private List<RoomGuestRequest> roomGuests;
 
     @NotNull(message = "{booking.checkout.notnull}")
     private LocalDateTime checkOutDate;

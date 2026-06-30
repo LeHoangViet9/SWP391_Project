@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.List;
+import com.hms.dto.checkin.response.AvailableRoomResponseDTO;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
@@ -284,6 +286,20 @@ public class BookingController {
                 .success(true)
                 .message("success.booking.check.availability")
                 .data(availableRooms)
+                .status(HttpStatus.OK)
+                .build());
+    }
+
+    @GetMapping("/available-rooms")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<ApiResponse<List<AvailableRoomResponseDTO>>> getAvailableRooms(
+            @RequestParam Long roomTypeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkInDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkOutDate) {
+        return ResponseEntity.ok(ApiResponse.<List<AvailableRoomResponseDTO>>builder()
+                .success(true)
+                .message("Available rooms retrieved successfully")
+                .data(bookingService.getAvailableRooms(roomTypeId, checkInDate, checkOutDate))
                 .status(HttpStatus.OK)
                 .build());
     }

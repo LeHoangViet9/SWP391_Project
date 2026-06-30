@@ -2,6 +2,7 @@ package com.hms.service.booking.impl;
 
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.BookingStatus;
+import com.hms.common.enums.IdType;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
@@ -15,22 +16,29 @@ import com.hms.dto.booking.request.BookingRequest;
 import com.hms.dto.booking.request.BookingRoomAssignRequest;
 import com.hms.dto.booking.request.BookingStatusRequest;
 import com.hms.dto.booking.response.BookingResponse;
+import com.hms.dto.checkin.response.AvailableRoomResponseDTO;
 import com.hms.entity.auth.User;
 import com.hms.entity.booking.Booking;
 import com.hms.entity.booking.Invoice;
+import com.hms.entity.booking.RoomGuestAllocation;
 import com.hms.entity.customer.Customer;
 import com.hms.entity.hotel.Room;
 import com.hms.entity.hotel.RoomType;
 import com.hms.repository.auth.UserRepository;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
+import com.hms.repository.customer.CustomerFeedbackRepository;
 import com.hms.repository.customer.CustomerRepository;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.booking.BookingService;
 import com.hms.service.booking.mapper.BookingMapper;
-import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.Map;
+import java.util.EnumSet;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -38,35 +46,42 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
 
+    private static final String CCCD_PATTERN = "\\d{12}";
+
     private static final List<BookingStatus> ROOM_HOLDING_STATUSES = List.of(
-            BookingStatus.PENDING,
-            BookingStatus.CONFIRMED,
+            BookingStatus.PENDING_PAYMENT,
+            BookingStatus.PENDING_CHECK_IN,
             BookingStatus.CHECKED_IN
     );
+
+    @Value("${app.booking.hold-minutes:30}")
+    private long cartHoldMinutes;
 
     private static final Map<BookingStatus, Set<BookingStatus>> VALID_TRANSITIONS =
             new java.util.EnumMap<>(BookingStatus.class);
     static {
-        VALID_TRANSITIONS.put(BookingStatus.PENDING,
-                EnumSet.of(BookingStatus.CONFIRMED, BookingStatus.CANCELLED));
-        VALID_TRANSITIONS.put(BookingStatus.CONFIRMED,
+        VALID_TRANSITIONS.put(BookingStatus.PENDING_PAYMENT,
+                EnumSet.of(BookingStatus.PENDING_CHECK_IN, BookingStatus.CANCELLED));
+        VALID_TRANSITIONS.put(BookingStatus.PENDING_CHECK_IN,
                 EnumSet.of(BookingStatus.CHECKED_IN, BookingStatus.CANCELLED, BookingStatus.NO_SHOW));
         VALID_TRANSITIONS.put(BookingStatus.CHECKED_IN,
                 EnumSet.of(BookingStatus.CHECKED_OUT));
         VALID_TRANSITIONS.put(BookingStatus.CHECKED_OUT, EnumSet.noneOf(BookingStatus.class));
         VALID_TRANSITIONS.put(BookingStatus.CANCELLED,   EnumSet.noneOf(BookingStatus.class));
         VALID_TRANSITIONS.put(BookingStatus.NO_SHOW,     EnumSet.noneOf(BookingStatus.class));
+        VALID_TRANSITIONS.put(BookingStatus.PENDING,
+                EnumSet.of(BookingStatus.CONFIRMED, BookingStatus.CANCELLED));
+        VALID_TRANSITIONS.put(BookingStatus.CONFIRMED,
+                EnumSet.of(BookingStatus.CHECKED_IN, BookingStatus.CANCELLED, BookingStatus.NO_SHOW));
     }
 
     private final BookingRepository bookingRepository;
@@ -78,12 +93,41 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
+    private final CustomerFeedbackRepository customerFeedbackRepository;
+
+    private BookingResponse mapToResponse(Booking booking) {
+        if (booking == null) return null;
+        BookingResponse response = bookingMapper.toResponse(booking);
+        response.setHasFeedback(customerFeedbackRepository.existsByBookingId(booking.getId()));
+        return response;
+    }
+
+    /**
+     * Batch-convert a Page of bookings to Page of responses.
+     * Fetches hasFeedback flags with a single IN query instead of one query per booking (N+1).
+     */
+    private Page<BookingResponse> mapPageToResponse(Page<Booking> bookingPage) {
+        if (bookingPage.isEmpty()) return bookingPage.map(bookingMapper::toResponse);
+        Set<Long> ids = bookingPage.getContent().stream().map(Booking::getId).collect(Collectors.toSet());
+        Set<Long> feedbackedIds = customerFeedbackRepository.findBookingIdsWithFeedback(ids);
+        return bookingPage.map(b -> {
+            BookingResponse r = bookingMapper.toResponse(b);
+            r.setHasFeedback(feedbackedIds.contains(b.getId()));
+            return r;
+        });
+    }
+
+    private boolean isValidTransition(BookingStatus currentStatus, BookingStatus newStatus) {
+        return VALID_TRANSITIONS
+                .getOrDefault(currentStatus, EnumSet.noneOf(BookingStatus.class))
+                .contains(newStatus);
+    }
 
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> getAllBookings(Integer page, Integer size, SortField sortBy, SortDirection direction){
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
-        return bookingRepository.findAll(pageable).map(bookingMapper::toResponse);
+        return mapPageToResponse(bookingRepository.findAll(pageable));
     }
 
     @Override
@@ -92,7 +136,7 @@ public class BookingServiceImpl implements BookingService {
         Locale locale = LocaleContextHolder.getLocale();
         Booking booking = bookingRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(messageSource
                 .getMessage("error.booking.notfound", null, locale)));
-        return bookingMapper.toResponse(booking);
+        return mapToResponse(booking);
     }
 
     @Override
@@ -107,21 +151,36 @@ public class BookingServiceImpl implements BookingService {
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
-        validateRoomAvailability(request, null, locale);
+        List<Room> selectedRooms = selectAndLockRooms(request, roomType, locale);
 
         BigDecimal totalPrice= calculateTotalPrice(roomType, request);
 
         Booking booking = bookingMapper.toEntity(request);
         booking.setCustomer(customer);
         booking.setRoomType(roomType);
-        booking.setBookingStatus(BookingStatus.PENDING);
+        booking.setRoom(selectedRooms.get(0));
+        booking.setRooms(selectedRooms);
+        booking.setBookingStatus(BookingStatus.PENDING_PAYMENT);
+        booking.setHoldExpiresAt(LocalDateTime.now().plusMinutes(cartHoldMinutes));
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
+        booking.setGuestAllocations(buildGuestAllocations(request, roomType, locale));
         applyStayGuestInfo(booking, request, customer, locale);
 
-        Booking saved = bookingRepository.save(booking);
+        selectedRooms.forEach(room -> room.setRoomStatus(RoomStatus.RESERVED));
+        roomRepository.saveAll(selectedRooms);
 
-        return bookingMapper.toResponse(saved);
+        Booking saved = bookingRepository.save(booking);
+        Invoice invoice = Invoice.builder()
+                .booking(saved)
+                .amount(saved.getTotalPrice())
+                .paymentStatus(PaymentStatus.PENDING)
+                .createdAt(LocalDateTime.now())
+                .build();
+        invoiceRepository.save(invoice);
+        saved.setInvoice(invoice);
+
+        return mapToResponse(saved);
     }
 
     @Override
@@ -131,6 +190,11 @@ public class BookingServiceImpl implements BookingService {
 
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.booking.notfound", null, locale)));
+
+        if (booking.getBookingStatus() != BookingStatus.PENDING && booking.getBookingStatus() != BookingStatus.CONFIRMED) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "error.booking.cannot.update", new Object[]{booking.getBookingStatus()}, locale));
+        }
 
         validateBookingDate(request, locale);
 
@@ -149,10 +213,11 @@ public class BookingServiceImpl implements BookingService {
         booking.setRoomType(roomType);
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
+        booking.setGuestAllocations(buildGuestAllocations(request, roomType, locale));
         applyStayGuestInfo(booking, request, customer, locale);
 
         Booking updated = bookingRepository.save(booking);
-        return bookingMapper.toResponse(updated);
+        return mapToResponse(updated);
     }
 
     @Override
@@ -167,7 +232,16 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.cannot.delete.checkedin", null, locale));
         }
+        if (booking.getBookingStatus() == BookingStatus.CHECKED_OUT
+                || booking.getBookingStatus() == BookingStatus.CANCELLED
+                || booking.getBookingStatus() == BookingStatus.NO_SHOW) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "error.booking.cannot.delete.terminal", new Object[]{booking.getBookingStatus()}, locale));
+        }
         booking.setBookingStatus(BookingStatus.CANCELLED);
+        List<Room> rooms = getAssignedRooms(booking);
+        rooms.forEach(room -> room.setRoomStatus(RoomStatus.AVAILABLE));
+        roomRepository.saveAll(rooms);
         bookingRepository.save(booking);
     }
 
@@ -175,7 +249,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size) {
         Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.ASC);
-        return bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable).map(bookingMapper::toResponse);
+        return mapPageToResponse(bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable));
     }
 
     @Override
@@ -188,8 +262,7 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
 
         return customerRepository.findActiveByEmailOrPhone(user.getEmail(), user.getPhone(), AccountStatus.ACTIVE)
-                .map(customer -> bookingRepository.findHistoryByCustomerId(customer.getId(), pageable)
-                        .map(bookingMapper::toResponse))
+                .map(customer -> mapPageToResponse(bookingRepository.findHistoryByCustomerId(customer.getId(), pageable)))
                 .orElseGet(() -> Page.empty(pageable));
     }
 
@@ -197,16 +270,14 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public Page<BookingResponse> getBookingsByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size){
         Pageable pageable = pageableUtils.createPageable(page, size, "checkInDate", SortDirection.ASC);
-        return bookingRepository.findByCheckInDateBetween(start, end, pageable)
-                .map(bookingMapper::toResponse);
+        return mapPageToResponse(bookingRepository.findByCheckInDateBetween(start, end, pageable));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<BookingResponse> getBookingsByCheckOutDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size){
         Pageable pageable = pageableUtils.createPageable(page,size, "checkOutDate", SortDirection.ASC);
-        return bookingRepository.findByCheckOutDateBetween(start, end, pageable)
-                .map(bookingMapper::toResponse);
+        return mapPageToResponse(bookingRepository.findByCheckOutDateBetween(start, end, pageable));
     }
 
     @Override
@@ -222,9 +293,7 @@ public class BookingServiceImpl implements BookingService {
         BookingStatus newStatus = request.getStatus();
 
         // Verify valid status transition
-        Set<BookingStatus> allowed = VALID_TRANSITIONS.getOrDefault(
-                currentStatus, EnumSet.noneOf(BookingStatus.class));
-        if (!allowed.contains(newStatus)) {
+        if (!isValidTransition(currentStatus, newStatus)) {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.invalid.transition",
                     new Object[]{currentStatus, newStatus}, locale));
@@ -233,7 +302,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setBookingStatus(newStatus);
 
         // Create Invoice when CONFIRMED
-        if (newStatus == BookingStatus.CONFIRMED && booking.getInvoice() == null) {
+        if (newStatus == BookingStatus.PENDING_CHECK_IN && booking.getInvoice() == null) {
             Invoice invoice = Invoice.builder()
                     .booking(booking)
                     .amount(booking.getTotalPrice())
@@ -243,24 +312,27 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // [FIX-03] Move room to OCCUPIED when guest actually checks in
-        if (newStatus == BookingStatus.CHECKED_IN && booking.getRoom() != null) {
-            Room checkinRoom = booking.getRoom();
-            checkinRoom.setRoomStatus(RoomStatus.OCCUPIED);
-            roomRepository.save(checkinRoom);
+        if (newStatus == BookingStatus.CHECKED_IN) {
+            List<Room> checkinRooms = getAssignedRooms(booking);
+            checkinRooms.forEach(room -> room.setRoomStatus(RoomStatus.OCCUPIED));
+            roomRepository.saveAll(checkinRooms);
         }
 
         // Release room at the end of stay
-        if (booking.getRoom() != null &&
-                (newStatus == BookingStatus.CHECKED_OUT
-                        || newStatus == BookingStatus.CANCELLED
-                        || newStatus == BookingStatus.NO_SHOW)) {
-            Room room = booking.getRoom();
-            room.setRoomStatus(RoomStatus.DIRTY); // Change to DIRTY for housekeeping
-            roomRepository.save(room);
+        if (newStatus == BookingStatus.CHECKED_OUT || newStatus == BookingStatus.NO_SHOW) {
+            List<Room> rooms = getAssignedRooms(booking);
+            rooms.forEach(room -> room.setRoomStatus(RoomStatus.DIRTY));
+            roomRepository.saveAll(rooms);
+        }
+
+        if (newStatus == BookingStatus.CANCELLED) {
+            List<Room> rooms = getAssignedRooms(booking);
+            rooms.forEach(room -> room.setRoomStatus(RoomStatus.AVAILABLE));
+            roomRepository.saveAll(rooms);
         }
 
         Booking updated = bookingRepository.save(booking);
-        return bookingMapper.toResponse(updated);
+        return mapToResponse(updated);
     }
 
     @Override
@@ -272,8 +344,8 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, locale)));
 
-        // Can only assign room when booking is CONFIRMED
-        if (booking.getBookingStatus() != BookingStatus.CONFIRMED) {
+        // Paid bookings are ready for check-in; no manual confirmation step exists.
+        if (booking.getBookingStatus() != BookingStatus.PENDING_CHECK_IN) {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.assign.room.not.confirmed", null, locale));
         }
@@ -309,11 +381,12 @@ public class BookingServiceImpl implements BookingService {
         // [FIX-03] OCCUPIED -> RESERVED: room is held when CONFIRMED,
         // and only transitions to OCCUPIED when guest actually checks in
         booking.setRoom(room);
+        booking.setRooms(new java.util.ArrayList<>(List.of(room)));
         room.setRoomStatus(RoomStatus.RESERVED);
         roomRepository.save(room);
 
         Booking updated = bookingRepository.save(booking);
-        return bookingMapper.toResponse(updated);
+        return mapToResponse(updated);
     }
 
     private void validateBookingDate(BookingRequest request, Locale locale){
@@ -362,6 +435,7 @@ public class BookingServiceImpl implements BookingService {
     private void applyStayGuestInfo(Booking booking, BookingRequest request, Customer customer, Locale locale) {
         boolean bookingForOther = Boolean.TRUE.equals(request.getBookingForOther());
         booking.setBookingForOther(bookingForOther);
+        validateCccd(customer.getIdType(), customer.getIdNumberCard(), "booking.booker.cccd.invalid", locale);
 
         if (!bookingForOther) {
             booking.setGuestFullName(customer.getFullName());
@@ -376,6 +450,13 @@ public class BookingServiceImpl implements BookingService {
         validateRequiredGuestInfo(request.getGuestFullName(), "booking.guest.fullname.required", locale);
         validateRequiredGuestInfo(request.getGuestPhone(), "booking.guest.phone.required", locale);
         validateRequiredGuestInfo(request.getGuestIdNumberCard(), "booking.guest.id.required", locale);
+        validateCccd(request.getGuestIdType(), request.getGuestIdNumberCard(), "booking.guest.cccd.invalid", locale);
+
+        if (customer.getIdType() == IdType.CCCD
+                && "CCCD".equalsIgnoreCase(trimToNull(request.getGuestIdType()))
+                && customer.getIdNumberCard().trim().equals(request.getGuestIdNumberCard().trim())) {
+            throw new BadRequestException(messageSource.getMessage("booking.cccd.duplicate", null, locale));
+        }
 
         booking.setGuestFullName(trimToNull(request.getGuestFullName()));
         booking.setGuestEmail(trimToNull(request.getGuestEmail()));
@@ -387,6 +468,19 @@ public class BookingServiceImpl implements BookingService {
 
     private void validateRequiredGuestInfo(String value, String messageKey, Locale locale) {
         if (trimToNull(value) == null) {
+            throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
+        }
+    }
+
+    private void validateCccd(IdType idType, String idNumberCard, String messageKey, Locale locale) {
+        if (idType == IdType.CCCD && (trimToNull(idNumberCard) == null || !idNumberCard.trim().matches(CCCD_PATTERN))) {
+            throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
+        }
+    }
+
+    private void validateCccd(String idType, String idNumberCard, String messageKey, Locale locale) {
+        if ("CCCD".equalsIgnoreCase(trimToNull(idType))
+                && (trimToNull(idNumberCard) == null || !idNumberCard.trim().matches(CCCD_PATTERN))) {
             throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
         }
     }
@@ -411,5 +505,86 @@ public class BookingServiceImpl implements BookingService {
                 roomTypeId, checkInDate, checkOutDate, null, ROOM_HOLDING_STATUSES
         );
         return Math.max(0, totalActive - booked);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AvailableRoomResponseDTO> getAvailableRooms(
+            Long roomTypeId, LocalDateTime checkInDate, LocalDateTime checkOutDate) {
+        return roomRepository.findRoomsAvailableForCart(
+                        roomTypeId, checkInDate, checkOutDate, ROOM_HOLDING_STATUSES)
+                .stream()
+                .map(room -> AvailableRoomResponseDTO.builder()
+                        .id(room.getId())
+                        .roomNumber(room.getRoomNumber())
+                        .floorNumber(room.getFloorNumber())
+                        .roomStatus(room.getRoomStatus())
+                        .roomTypeName(room.getRoomType().getTypeName())
+                        .build())
+                .toList();
+    }
+
+    private List<Room> selectAndLockRooms(BookingRequest request, RoomType roomType, Locale locale) {
+        int quantity = request.getQuantity();
+        List<Room> candidates = roomRepository.findRoomsAvailableForCart(
+                roomType.getId(), request.getCheckInDate(), request.getCheckOutDate(), ROOM_HOLDING_STATUSES);
+        if (candidates.size() < quantity) {
+            throw new ConflictException(messageSource.getMessage(
+                    "error.booking.not.enough.rooms", new Object[]{quantity, candidates.size()}, locale));
+        }
+
+        List<Room> selected = new java.util.ArrayList<>();
+        for (Room candidate : candidates) {
+            if (selected.size() == quantity) break;
+            Room room = roomRepository.findByIdWithPessimisticWrite(candidate.getId()).orElse(null);
+            if (room == null || (room.getRoomStatus() != RoomStatus.AVAILABLE
+                    && room.getRoomStatus() != RoomStatus.READY)) {
+                continue;
+            }
+            if (!bookingRepository.existsConflict(room.getId(), request.getCheckOutDate(),
+                    request.getCheckInDate(), null, ROOM_HOLDING_STATUSES)) {
+                selected.add(room);
+            }
+        }
+        if (selected.size() < quantity) {
+            throw new ConflictException(messageSource.getMessage(
+                    "error.booking.not.enough.rooms", new Object[]{quantity, selected.size()}, locale));
+        }
+        return selected;
+    }
+
+    private List<Room> getAssignedRooms(Booking booking) {
+        if (booking.getRooms() != null && !booking.getRooms().isEmpty()) {
+            return booking.getRooms();
+        }
+        return booking.getRoom() == null ? List.of() : List.of(booking.getRoom());
+    }
+
+    private List<RoomGuestAllocation> buildGuestAllocations(
+            BookingRequest request, RoomType roomType, Locale locale) {
+        if (request.getRoomGuests() == null || request.getRoomGuests().isEmpty()) {
+            return new java.util.ArrayList<>(java.util.stream.IntStream.range(0, request.getQuantity())
+                    .mapToObj(index -> RoomGuestAllocation.builder()
+                            .adults(1).children(0).infants(0).build())
+                    .toList());
+        }
+        if (request.getRoomGuests().size() != request.getQuantity()) {
+            throw new BadRequestException(locale.getLanguage().equals("vi")
+                    ? "Thông tin số khách phải có đủ cho từng phòng."
+                    : "Guest information must be provided for every room.");
+        }
+        return new java.util.ArrayList<>(request.getRoomGuests().stream().map(guest -> {
+            int adults = guest.getAdults() == null ? 1 : guest.getAdults();
+            int children = guest.getChildren() == null ? 0 : guest.getChildren();
+            int infants = guest.getInfants() == null ? 0 : guest.getInfants();
+            if (adults < 1 || children < 0 || infants < 0
+                    || adults + children > roomType.getMaxGuests()) {
+                throw new BadRequestException(locale.getLanguage().equals("vi")
+                        ? "Số khách trong một phòng vượt quá sức chứa của hạng phòng."
+                        : "The number of guests exceeds the room capacity.");
+            }
+            return RoomGuestAllocation.builder()
+                    .adults(adults).children(children).infants(infants).build();
+        }).toList());
     }
 }

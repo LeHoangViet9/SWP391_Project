@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout';
@@ -29,6 +29,7 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const fullNameRef = useRef(null);
 
     const update = (field, value) => {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -52,6 +53,14 @@ export default function RegisterPage() {
         e.preventDefault();
         setError('');
         setSuccess('');
+
+        if (!form.fullName.trim()) {
+            fullNameRef.current?.setCustomValidity(
+                locale === 'vi' ? 'Vui lòng điền vào trường này.' : 'Please fill out this field.'
+            );
+            fullNameRef.current?.reportValidity();
+            return;
+        }
 
         const err = validate();
         if (err) {
@@ -115,8 +124,12 @@ export default function RegisterPage() {
                     <input
                         type="text"
                         required
+                        ref={fullNameRef}
                         value={form.fullName}
-                        onChange={(e) => update('fullName', e.target.value)}
+                        onChange={(e) => {
+                            e.target.setCustomValidity('');
+                            update('fullName', e.target.value);
+                        }}
                         className={inputClass}
                     />
                 </div>

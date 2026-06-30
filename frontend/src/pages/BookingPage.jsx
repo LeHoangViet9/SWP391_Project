@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Calendar, Users, Building2, CreditCard, CheckCircle, ArrowLeft,
+  Calendar, Users, Building2, CreditCard, CheckCircle, ArrowLeft, ShoppingCart, Clock, X,
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
@@ -60,11 +60,13 @@ function BookingContent() {
   const [bookingResult, setBookingResult] = useState(null);
   const [failureModalOpen, setFailureModalOpen] = useState(false);
   const [failureMessage, setFailureMessage] = useState('');
+  const [remainingSeconds, setRemainingSeconds] = useState(30 * 60);
+  const [guestCounts, setGuestCounts] = useState([{ adults: 1, children: 0, infants: 0 }]);
 
   const [booking, setBooking] = useState({
     checkIn: params.get('checkIn') || today(),
     checkOut: params.get('checkOut') || tomorrow(),
-    quantity: Number(params.get('quantity')) || 1,
+    quantity: 1,
   });
 
   const [customerForm, setCustomerForm] = useState({
@@ -136,6 +138,24 @@ function BookingContent() {
         setCheckingAvailability(false);
       });
   }, [roomTypeId, booking.checkIn, booking.checkOut, booking.quantity, locale]);
+
+  useEffect(() => {
+    setGuestCounts((current) => Array.from(
+      { length: booking.quantity },
+      (_, index) => current[index] || { adults: 1, children: 0, infants: 0 },
+    ));
+  }, [booking.quantity]);
+
+  useEffect(() => {
+    if (!bookingResult?.holdExpiresAt) return undefined;
+    const updateCountdown = () => setRemainingSeconds(Math.max(
+      0,
+      Math.floor((new Date(bookingResult.holdExpiresAt).getTime() - Date.now()) / 1000),
+    ));
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [bookingResult]);
 
   useEffect(() => {
     if (!user) return;
@@ -231,10 +251,14 @@ function BookingContent() {
     }
 
     const idCardRegex = /^[A-Za-z0-9\-]{6,20}$/;
+    const cccdRegex = /^\d{12}$/;
     if (!customerForm.idNumberCard.trim()) {
       return locale === 'vi' ? 'Số CCCD/Passport không được để trống' : 'ID/Passport number is required';
     }
-    if (!idCardRegex.test(customerForm.idNumberCard)) {
+    if (customerForm.idType === 'CCCD' && !cccdRegex.test(customerForm.idNumberCard.trim())) {
+      return locale === 'vi' ? 'Số CCCD của người đặt phòng phải gồm đúng 12 chữ số' : 'The booker CCCD must contain exactly 12 digits';
+    }
+    if (customerForm.idType !== 'CCCD' && !idCardRegex.test(customerForm.idNumberCard.trim())) {
       return locale === 'vi' ? 'Số CCCD/Passport không hợp lệ (phải từ 6-20 ký tự chữ hoặc số)' : 'Invalid ID/Passport number (must be 6-20 alphanumeric characters)';
     }
 
@@ -249,8 +273,21 @@ function BookingContent() {
       if (!stayGuestForm.phone.trim() || !phoneRegex.test(stayGuestForm.phone)) {
         return locale === 'vi' ? 'Số điện thoại người được đặt hộ phải gồm 10 chữ số và bắt đầu bằng số 0' : 'Stay guest phone must be 10 digits starting with 0';
       }
-      if (!stayGuestForm.idNumberCard.trim() || !idCardRegex.test(stayGuestForm.idNumberCard)) {
+      if (!stayGuestForm.idNumberCard.trim()) {
+        return locale === 'vi' ? 'CCCD/Passport người được đặt hộ không được để trống' : 'Stay guest ID/Passport number is required';
+      }
+      if (stayGuestForm.idType === 'CCCD' && !cccdRegex.test(stayGuestForm.idNumberCard.trim())) {
+        return locale === 'vi' ? 'Số CCCD của người được đặt hộ phải gồm đúng 12 chữ số' : 'The stay guest CCCD must contain exactly 12 digits';
+      }
+      if (stayGuestForm.idType !== 'CCCD' && !idCardRegex.test(stayGuestForm.idNumberCard.trim())) {
         return locale === 'vi' ? 'CCCD/Passport người được đặt hộ không hợp lệ' : 'Stay guest ID/Passport number is invalid';
+      }
+      if (
+        customerForm.idType === 'CCCD'
+        && stayGuestForm.idType === 'CCCD'
+        && customerForm.idNumberCard.trim() === stayGuestForm.idNumberCard.trim()
+      ) {
+        return locale === 'vi' ? 'Số CCCD của người đặt phòng và người được đặt hộ không được trùng nhau' : 'The booker and stay guest CCCD numbers must be different';
       }
     }
 
@@ -304,6 +341,7 @@ function BookingContent() {
         checkInDate: toCheckIn(booking.checkIn),
         checkOutDate: toCheckOut(booking.checkOut),
         quantity: booking.quantity,
+        roomGuests: guestCounts,
         bookingForOther,
         guestFullName: bookingForOther ? stayGuestForm.fullName : customerForm.fullName,
         guestEmail: bookingForOther ? stayGuestForm.email : customerForm.email,
@@ -327,6 +365,23 @@ function BookingContent() {
     }
   };
 
+  const handleCartAction = () => {
+    setError('');
+    if (!booking.quantity || booking.quantity < 1) {
+      setError(locale === 'vi' ? 'Vui lòng chọn ít nhất một phòng.' : 'Please select at least one room.');
+      return;
+    }
+    if (!booking.checkIn || !booking.checkOut || new Date(booking.checkOut) <= new Date(booking.checkIn)) {
+      setError(locale === 'vi' ? 'Vui lòng chọn ngày nhận và trả phòng hợp lệ.' : 'Please select valid stay dates.');
+      return;
+    }
+    if (step === 1) {
+      setStep(2);
+      return;
+    }
+    if (step === 2) handleSubmit();
+  };
+
   if (!roomType) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -338,7 +393,7 @@ function BookingContent() {
   return (
     <div className="min-h-screen flex flex-col bg-stone-50">
       <Header />
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8 md:py-12">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8 md:py-12">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-[#bfa15f] mb-6">
           <ArrowLeft size={16} />
           {t('bookingPage.backHome')}
@@ -347,6 +402,8 @@ function BookingContent() {
         <h1 className="font-display text-3xl font-bold text-slate-800 mb-2">{t('bookingPage.title')}</h1>
         <p className="text-slate-500 mb-8">{t('bookingPage.subtitle')}</p>
 
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
+        <section className="min-w-0">
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-8">
           {[1, 2, 3].map((s) => (
@@ -362,18 +419,29 @@ function BookingContent() {
         </div>
 
         {/* Room summary card */}
-        <div className="bg-white border border-stone-200 shadow-lg mb-6 overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-3">
-            <img src={roomType.imageUrl} alt={roomType.typeName} className="h-48 md:h-full object-cover" />
-            <div className="md:col-span-2 p-6">
-              <h2 className="font-display text-xl font-semibold text-slate-800 mb-2">{roomType.typeName}</h2>
+        <div className="bg-white border border-stone-200 shadow-sm mb-6 overflow-hidden rounded-md">
+          <div className="grid grid-cols-1 md:grid-cols-[360px_1fr]">
+            <img src={roomType.imageUrl} alt={roomType.typeName} className="h-60 w-full object-cover" />
+            <div className="p-6">
+              <h2 className="font-display text-2xl font-bold text-slate-800 mb-3">{roomType.typeName}</h2>
               <p className="text-slate-600 text-sm mb-4 line-clamp-2">{roomType.description}</p>
               <div className="flex flex-wrap gap-4 text-sm text-slate-500">
                 <span className="flex items-center gap-1"><Users size={14} className="text-[#bfa15f]" />{roomType.maxGuests} {t('rooms.guests')}</span>
                 <span className="flex items-center gap-1"><Building2 size={14} className="text-[#bfa15f]" />{booking.quantity} {t('booking.rooms')}</span>
-                <span className="font-semibold text-[#bfa15f]">{formatPrice(pricePerNight, locale)}{t('rooms.perNight')}</span>
+              </div>
+              <div className="mt-8 flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">{locale === 'vi' ? 'Giá chỉ từ' : 'Price from'}</p>
+                  <p className="mt-1 text-2xl font-bold text-[#f2a900]">{formatPrice(pricePerNight, locale)} <span className="text-sm font-normal text-slate-600">/ {locale === 'vi' ? 'đêm' : 'night'}</span></p>
+                </div>
+                <span className="rounded bg-[#f2a900] px-6 py-3 font-bold text-white">{locale === 'vi' ? 'Chọn phòng' : 'Select room'}</span>
               </div>
             </div>
+          </div>
+          <div className="border-t border-dashed border-stone-300 px-6 py-5 text-sm">
+            <p className="font-semibold text-red-500">FREE CANCELLATION DKDT</p>
+            <p className="mt-3 text-slate-600">✓ {locale === 'vi' ? 'Đã bao gồm ăn sáng' : 'Breakfast included'}</p>
+            <p className="mt-2 text-emerald-600">★ {locale === 'vi' ? 'Miễn phí hồ bơi và phòng gym' : 'Free pool and gym access'}</p>
           </div>
         </div>
 
@@ -437,13 +505,38 @@ function BookingContent() {
                 />
               </div>
               <div>
-                <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('booking.rooms')}</label>
-                <input type="number" min={1} max={10} value={booking.quantity} onChange={(e) => setBooking({ ...booking, quantity: Number(e.target.value) })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">
+                  {locale === 'vi' ? 'Số lượng phòng' : 'Number of rooms'}
+                </label>
+                <select value={booking.quantity} onChange={(e) => setBooking({ ...booking, quantity: Number(e.target.value) })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]">
+                  {Array.from({ length: Math.max(1, Math.min(availableRoomsCount ?? 10, 10)) }, (_, index) => index + 1).map((quantity) => (
+                    <option key={quantity} value={quantity}>{quantity} {locale === 'vi' ? 'phòng' : 'rooms'}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="bg-stone-50 p-4 flex justify-between items-center">
               <span className="text-slate-600">{nights} {t('bookingPage.nights')} × {booking.quantity} {t('booking.rooms')}</span>
               <span className="text-xl font-bold text-[#bfa15f]">{formatPrice(totalEstimate, locale)}</span>
+            </div>
+            <div className="space-y-4 border-y border-dashed border-stone-300 py-5">
+              {guestCounts.map((guests, roomIndex) => (
+                <div key={roomIndex} className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_1fr_1fr_1fr] sm:items-end">
+                  <h4 className="font-bold text-slate-800">{locale === 'vi' ? `Số người phòng ${roomIndex + 1}` : `Guests in room ${roomIndex + 1}`}</h4>
+                  {[
+                    ['adults', locale === 'vi' ? 'Người lớn' : 'Adults', 4],
+                    ['children', locale === 'vi' ? 'Trẻ em (6-11 tuổi)' : 'Children (6-11)', 3],
+                    ['infants', locale === 'vi' ? 'Em bé (0-5 tuổi)' : 'Infants (0-5)', 2],
+                  ].map(([key, label, max]) => (
+                    <label key={key} className="text-sm text-slate-600">
+                      <span className="mb-1 block">{label}</span>
+                      <select value={guests[key]} onChange={(e) => setGuestCounts((current) => current.map((item, index) => index === roomIndex ? { ...item, [key]: Number(e.target.value) } : item))} className="w-full rounded border border-stone-300 bg-white px-3 py-2.5 outline-none focus:border-[#f2a900]">
+                        {Array.from({ length: max + 1 }, (_, value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+              ))}
             </div>
             <button
               onClick={() => {
@@ -472,10 +565,10 @@ function BookingContent() {
                   setError(locale === 'vi' ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.');
                   return;
                 }
-                if (!booking.quantity || booking.quantity < 1) {
+    if (!booking.quantity || booking.quantity < 1) {
                   setError(locale === 'vi' ? 'Số lượng phòng phải ít nhất là 1.' : 'Quantity must be at least 1.');
                   return;
-                }
+    }
                 setError('');
                 setStep(2);
               }}
@@ -527,7 +620,16 @@ function BookingContent() {
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idNumber')}</label>
-                <input type="text" required value={customerForm.idNumberCard} onChange={(e) => setCustomerForm({ ...customerForm, idNumberCard: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                <input
+                  type="text"
+                  required
+                  inputMode={customerForm.idType === 'CCCD' ? 'numeric' : 'text'}
+                  maxLength={customerForm.idType === 'CCCD' ? 12 : 20}
+                  pattern={customerForm.idType === 'CCCD' ? '[0-9]{12}' : '[A-Za-z0-9-]{6,20}'}
+                  value={customerForm.idNumberCard}
+                  onChange={(e) => setCustomerForm({ ...customerForm, idNumberCard: e.target.value })}
+                  className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]"
+                />
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.nationality')}</label>
@@ -582,7 +684,16 @@ function BookingContent() {
                   </div>
                   <div>
                     <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idNumber')}</label>
-                    <input type="text" required value={stayGuestForm.idNumberCard} onChange={(e) => setStayGuestForm({ ...stayGuestForm, idNumberCard: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                    <input
+                      type="text"
+                      required
+                      inputMode={stayGuestForm.idType === 'CCCD' ? 'numeric' : 'text'}
+                      maxLength={stayGuestForm.idType === 'CCCD' ? 12 : 20}
+                      pattern={stayGuestForm.idType === 'CCCD' ? '[0-9]{12}' : '[A-Za-z0-9-]{6,20}'}
+                      value={stayGuestForm.idNumberCard}
+                      onChange={(e) => setStayGuestForm({ ...stayGuestForm, idNumberCard: e.target.value })}
+                      className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]"
+                    />
                   </div>
                   <div>
                     <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.nationality')}</label>
@@ -603,8 +714,9 @@ function BookingContent() {
             </div>
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="flex-1 py-3 border border-stone-300 text-slate-600 font-medium hover:border-[#bfa15f] transition-colors">{t('bookingPage.back')}</button>
-              <button onClick={handleSubmit} disabled={loading} className="flex-1 btn-gold py-3 rounded disabled:opacity-60">
-                {loading ? '...' : t('bookingPage.confirm')}
+              <button onClick={handleSubmit} disabled={loading} className="flex-1 btn-gold py-3 rounded disabled:opacity-60 inline-flex items-center justify-center gap-2">
+                <ShoppingCart size={17} />
+                {loading ? '...' : (locale === 'vi' ? 'Thêm phòng vào giỏ' : 'Add room to cart')}
               </button>
             </div>
           </div>
@@ -619,6 +731,7 @@ function BookingContent() {
             <div className="bg-stone-50 p-6 text-left space-y-2 text-sm mb-6">
               <p><span className="text-slate-500">{t('bookingPage.bookingId')}:</span> <strong>#{bookingResult.id}</strong></p>
               <p><span className="text-slate-500">{t('bookingPage.roomType')}:</span> <strong>{bookingResult.roomTypeName}</strong></p>
+              <p><span className="text-slate-500">{locale === 'vi' ? 'Phòng' : 'Room'}:</span> <strong>{bookingResult.roomNumber}</strong></p>
               <p><span className="text-slate-500">{t('booking.checkIn')}:</span> <strong>{bookingResult.checkInDate?.split('T')[0]}</strong></p>
               <p><span className="text-slate-500">{t('booking.checkOut')}:</span> <strong>{bookingResult.checkOutDate?.split('T')[0]}</strong></p>
               {bookingResult.bookingForOther && (
@@ -627,9 +740,71 @@ function BookingContent() {
               <p><span className="text-slate-500">{t('bookingPage.total')}:</span> <strong className="text-[#bfa15f]">{formatPrice(Number(bookingResult.totalPrice), locale)}</strong></p>
               <p><span className="text-slate-500">{t('bookingPage.status')}:</span> <strong>{bookingResult.bookingStatus}</strong></p>
             </div>
-            <Link to="/" className="btn-gold inline-block px-8 py-3 rounded">{t('bookingPage.backHome')}</Link>
+            <div className="mb-5 flex items-center justify-center gap-2 text-amber-700">
+              <Clock size={18} />
+              <strong>{locale === 'vi' ? 'Phòng được giữ trong' : 'Room held for'} {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}</strong>
+            </div>
+            <Link to={`/invoice/${bookingResult.id}`} className="btn-gold inline-block px-8 py-3 rounded">
+              {locale === 'vi' ? 'Thanh toán ngay' : 'Pay now'}
+            </Link>
           </div>
         )}
+        </section>
+
+        {step < 3 && (
+          <aside className="sticky top-5 rounded-md border border-stone-200 bg-white p-6 shadow-lg">
+            <h2 className="text-xl font-bold text-slate-800">{locale === 'vi' ? 'Thông tin đặt phòng' : 'Booking information'}</h2>
+            <div className="my-4 border-t border-stone-200" />
+            <p className="font-bold text-slate-800">HMS Luxury Hotel</p>
+            <p className="mt-3 font-semibold text-slate-700">
+              {booking.checkIn || '--'} - {booking.checkOut || '--'}
+              <span className="ml-1 font-normal">({nights} {locale === 'vi' ? 'đêm' : 'nights'})</span>
+            </p>
+
+            <div className="my-5 border-t border-dashed border-stone-300" />
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-slate-800">{locale === 'vi' ? 'Thông tin phòng' : 'Room information'}</h3>
+              <span className="text-sm text-slate-500">{locale === 'vi' ? 'Thu gọn' : 'Collapse'} ⊖</span>
+            </div>
+
+            <div className="mt-3 max-h-[360px] space-y-2 overflow-y-auto pr-1">
+              {guestCounts.map((guests, roomIndex) => (
+                <div key={roomIndex} className="border-b border-dashed border-stone-300 py-4">
+                  <p><strong>{locale === 'vi' ? `Phòng ${roomIndex + 1}` : `Room ${roomIndex + 1}`}:</strong> {roomType.typeName}</p>
+                  <p className="mt-2 text-red-500">FREE CANCELLATION DKDT</p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {guests.adults} {locale === 'vi' ? 'Người lớn' : 'Adults'} - {guests.children} {locale === 'vi' ? 'Trẻ em' : 'Children'} - {guests.infants} {locale === 'vi' ? 'Em bé' : 'Infants'}
+                  </p>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <strong>{formatPrice(pricePerNight, locale)} / {locale === 'vi' ? 'đêm' : 'night'}</strong>
+                    {booking.quantity > 1 && (
+                      <button type="button" onClick={() => setBooking((current) => ({ ...current, quantity: current.quantity - 1 }))} className="inline-flex items-center gap-1 rounded border border-slate-400 px-3 py-1.5 text-sm hover:border-red-400 hover:text-red-600">
+                        <X size={15} /> {locale === 'vi' ? 'Hủy' : 'Remove'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex items-center justify-between text-lg font-bold">
+              <span>{locale === 'vi' ? 'Tổng cộng' : 'Total'}</span>
+              <span className="text-[#f2a900]">{formatPrice(totalEstimate, locale)}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCartAction}
+              disabled={loading || booking.quantity < 1 || (availableRoomsCount !== null && booking.quantity > availableRoomsCount)}
+              className="mt-4 w-full rounded bg-[#f2a900] py-3 text-lg font-bold text-white transition hover:bg-[#d89500] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? '...' : (step === 1
+                ? (locale === 'vi' ? 'TIẾP TỤC' : 'CONTINUE')
+                : (locale === 'vi' ? 'ĐẶT NGAY' : 'BOOK NOW'))}
+            </button>
+            <p className="mt-3 text-center text-xs text-slate-500">{locale === 'vi' ? 'Phòng sẽ được giữ 30 phút sau khi đặt.' : 'The room will be held for 30 minutes after booking.'}</p>
+          </aside>
+        )}
+        </div>
       </main>
       <Footer />
     </div>
