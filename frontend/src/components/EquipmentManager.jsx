@@ -21,8 +21,16 @@ const STATUS_LABELS = {
 };
 
 function getErrorMessage(error, fallback) {
-  if (error?.status === 403) return 'Bạn không có quyền thực hiện thao tác này.';
-  return error?.message || fallback;
+  if (error?.status === 403) {
+    return 'Bạn không có quyền thực hiện thao tác này.';
+  }
+
+  return (
+      error?.data?.message ||
+      error?.message ||
+      fallback ||
+      'Có lỗi xảy ra.'
+  );
 }
 
 function mapEquipmentToForm(item) {
@@ -169,9 +177,7 @@ export default function EquipmentManager() {
   const buildPayload = () => ({
     equipmentName: form.equipmentName.trim(),
     equipmentCode: form.equipmentCode.trim(),
-    location: form.location.trim(),
     description: form.description.trim() || null,
-    roomId: form.roomId ? Number(form.roomId) : null,
   });
 
   const handleSave = async (event) => {
@@ -236,7 +242,15 @@ export default function EquipmentManager() {
       fetchData(page);
       fetchSuggestions();
     } catch (error) {
-      notify(getErrorMessage(error, t('equipment.toast.loadError')), 'error');
+      console.error(error);
+
+      notify(
+          getErrorMessage(
+              error,
+              'Không thể xóa thiết bị.'
+          ),
+          'error'
+      );
     }
   };
 

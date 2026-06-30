@@ -19,6 +19,7 @@ import com.hms.repository.equipment.EquipmentImageRepository;
 import com.hms.repository.equipment.EquipmentRepository;
 import com.hms.repository.equipment.RoomEquipmentRepository;
 import com.hms.repository.hotel.RoomRepository;
+import com.hms.repository.maintenance.MaintenanceRepository;
 import com.hms.service.equipment.EquipmentService;
 import com.hms.service.equipment.mapper.EquipmentMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -52,6 +54,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     private final EquipmentRepository equipmentRepository;
     private final RoomRepository roomRepository;
     private final RoomEquipmentRepository roomEquipmentRepository;
+    private final MaintenanceRepository maintenanceRepository;
     private final EquipmentImageRepository equipmentImageRepository;
     private final EquipmentMapper equipmentMapper;
     private final MessageSource messageSource;
@@ -136,9 +139,40 @@ public class EquipmentServiceImpl implements EquipmentService {
     public void deleteEquipment(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
+        // Kiểm tra thiết bị có tồn tại và đang ACTIVE
         Equipment equipment = findActiveEquipment(id, locale);
 
+        // ==========================================================
+        // Không cho phép xóa nếu thiết bị vẫn đang được gán cho phòng
+        // ==========================================================
+        if (roomEquipmentRepository.existsByEquipment_Id(id)) {
+            throw new ConflictException(
+                    messageSource.getMessage(
+                            "error.equipment.assigned",
+                            null,
+                            locale
+                    )
+            );
+        }
+
+        // ==========================================================
+        // Không cho phép xóa nếu thiết bị đang có yêu cầu bảo trì
+        // ==========================================================
+        if (maintenanceRepository.existsByEquipmentId(id)) {
+            throw new ConflictException(
+                    messageSource.getMessage(
+                            "error.equipment.in.maintenance",
+                            null,
+                            locale
+                    )
+            );
+        }
+
+        // ==========================================================
+        // Soft Delete: chỉ chuyển trạng thái sang INACTIVE
+        // ==========================================================
         equipment.setStatus(EquipmentStatus.INACTIVE);
+
         equipmentRepository.save(equipment);
     }
 
@@ -189,7 +223,11 @@ public class EquipmentServiceImpl implements EquipmentService {
         RoomEquipment roomEquipment = roomEquipmentRepository
                 .findByRoomIdAndEquipmentId(roomId, equipmentId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Equipment is not assigned to this room"
+                        messageSource.getMessage(
+                                "error.equipment.not.assigned",
+                                null,
+                                locale
+                        )
                 ));
 
         roomEquipmentRepository.delete(roomEquipment);
