@@ -62,7 +62,8 @@ public class CheckInServiceImpl implements CheckInService {
             );
         }
 
-        if (booking.getBookingStatus() != BookingStatus.PENDING_CHECK_IN) {
+        // [CẬP NHẬT] Đổi từ PENDING_CHECK_IN thành CONFIRMED (Khách đã trả 100% tiền online mới được bấm check-in)
+        if (booking.getBookingStatus() != BookingStatus.CONFIRMED) {
             throw new ConflictException(
                     messageSource.getMessage(
                             "error.checkin.booking.status.invalid",
@@ -129,11 +130,11 @@ public class CheckInServiceImpl implements CheckInService {
             );
         }
 
-        // Double check overlap after acquiring lock
+        // [CẬP NHẬT] Đổi List.of kiểm tra đè phòng từ PENDING_CHECK_IN sang CONFIRMED
         boolean isOverlapping = bookingRepository.existsOverlappingBooking(
                 assignedRoom.getId(),
                 booking.getId(),
-                List.of(BookingStatus.PENDING_CHECK_IN, BookingStatus.CHECKED_IN),
+                List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN),
                 booking.getCheckInDate(),
                 booking.getCheckOutDate()
         );

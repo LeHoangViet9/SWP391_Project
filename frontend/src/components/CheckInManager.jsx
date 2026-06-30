@@ -30,7 +30,7 @@ export default function CheckInManager() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [keyword, setKeyword] = useState('');
-  const [statusFilter] = useState('PENDING_CHECK_IN');
+  const [statusFilter] = useState('CONFIRMED');
   const [toast, setToast] = useState({ type: 'success', message: '' });
 
   const [modalOpen, setModalOpen] = useState(false);

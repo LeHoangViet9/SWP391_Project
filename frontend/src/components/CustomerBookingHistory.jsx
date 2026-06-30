@@ -45,6 +45,7 @@ function formatCountdown(totalSeconds) {
 const STATUS_COLORS = {
   PENDING_PAYMENT: 'bg-amber-100 text-amber-700',
   PENDING_CHECK_IN: 'bg-blue-100 text-blue-700',
+  CONFIRMED: 'bg-blue-100 text-blue-700',
   CHECKED_IN: 'bg-emerald-100 text-emerald-700',
   CHECKED_OUT: 'bg-slate-100 text-slate-700',
   CANCELLED: 'bg-red-100 text-red-700',

@@ -11,7 +11,7 @@ import Toast from './shared/Toast';
 
 const STATUS_OPTIONS = [
   { value: 'PENDING_PAYMENT', label: 'Chờ thanh toán', color: 'bg-amber-100 text-amber-700' },
-  { value: 'PENDING_CHECK_IN', label: 'Chờ check-in', color: 'bg-blue-100 text-blue-700' },
+  { value: 'CONFIRMED', label: 'Chờ check-in', color: 'bg-blue-100 text-blue-700' },
   { value: 'CHECKED_IN', label: 'Đã Check-in', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'CHECKED_OUT', label: 'Đã Check-out', color: 'bg-slate-100 text-slate-700' },
   { value: 'CANCELLED', label: 'Đã hủy', color: 'bg-red-100 text-red-700' },
@@ -121,7 +121,7 @@ export default function BookingManager({ readOnly = false }) {
         const res = await getAllBookings({ page: 0, size: 100 });
         const list = res?.data?.content ?? [];
         const todayStr = new Date().toDateString();
-        setTodayCheckIns(list.filter(b => new Date(b.checkInDate).toDateString() === todayStr && getBookingStatus(b) === 'PENDING_CHECK_IN'));
+        setTodayCheckIns(list.filter(b => new Date(b.checkInDate).toDateString() === todayStr && getBookingStatus(b) === 'CONFIRMED'));
         setTodayCheckOuts(list.filter(b => new Date(b.checkOutDate).toDateString() === todayStr && getBookingStatus(b) === 'CHECKED_IN'));
       } catch (err) {
         notify(err.message, 'error');
@@ -331,7 +331,7 @@ export default function BookingManager({ readOnly = false }) {
                   </button>
                 </>
               )}
-              {status === 'PENDING_CHECK_IN' && (
+              {status === 'CONFIRMED' && (
                 <>
                   {!item.roomId ? (
                     <button
