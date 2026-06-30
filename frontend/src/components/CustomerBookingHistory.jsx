@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, RefreshCw, Star, MessageSquare, Trash2, Edit3 } from 'lucide-react';
+import { CalendarDays, RefreshCw, Star, MessageSquare, Trash2, Edit3, Clock, CreditCard } from 'lucide-react';
 import DataTable from './shared/DataTable';
 import { useLocale } from '../context/LocaleContext';
 import { getMyBookingHistory } from '../services/bookingService';
@@ -26,6 +26,22 @@ function formatMoney(value, locale) {
   }).format(Number(value));
 }
 
+function getRemainingSeconds(holdExpiresAt, now) {
+  if (!holdExpiresAt) return null;
+  const expiresAt = new Date(holdExpiresAt).getTime();
+  if (Number.isNaN(expiresAt)) return null;
+  return Math.max(0, Math.ceil((expiresAt - now) / 1000));
+}
+
+function formatCountdown(totalSeconds) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts = [minutes, seconds];
+  if (hours > 0) parts.unshift(hours);
+  return parts.map(value => String(value).padStart(2, '0')).join(':');
+}
+
 const STATUS_COLORS = {
   PENDING_PAYMENT: 'bg-amber-100 text-amber-700',
   PENDING_CHECK_IN: 'bg-blue-100 text-blue-700',
@@ -46,6 +62,7 @@ export default function CustomerBookingHistory() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState('');
+  const [now, setNow] = useState(() => Date.now());
 
   // Feedback states
   const [reviewTarget, setReviewTarget] = useState(null);
@@ -87,6 +104,11 @@ export default function CustomerBookingHistory() {
   useEffect(() => {
     fetchData(page);
   }, [page, fetchData]);
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timerId);
+  }, []);
 
   const handleOpenReviewModal = (booking) => {
     setReviewTarget(booking);
@@ -188,6 +210,11 @@ export default function CustomerBookingHistory() {
 
   const rows = items.map((item) => {
     const status = item.bookingStatus || item.status || 'PENDING_PAYMENT';
+    const isPendingPayment = status === 'PENDING_PAYMENT';
+    const remainingSeconds = isPendingPayment
+      ? getRemainingSeconds(item.holdExpiresAt, now)
+      : null;
+    const isPaymentExpired = isPendingPayment && remainingSeconds === 0;
     const fb = feedbacks.find(f => f.bookingId === item.id);
     const showReviewBtn = status === 'CHECKED_OUT' && !fb;
     const hasFeedback = status === 'CHECKED_OUT' && !!fb;
@@ -199,14 +226,30 @@ export default function CustomerBookingHistory() {
         <td className="px-4 py-3 text-xs text-slate-600">{formatDateTime(item.checkInDate, locale)}</td>
         <td className="px-4 py-3 text-xs text-slate-600">{formatDateTime(item.checkOutDate, locale)}</td>
         <td className="px-4 py-3">
-          <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[status] || 'bg-stone-100 text-stone-600'}`}>
-            {t(`booking.status.${status}`)}
+          <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[status] || 'bg-stone-100 text-stone-600'}`}>
+            {isPendingPayment && remainingSeconds !== null ? (
+              <span className="inline-flex items-center gap-1.5 tabular-nums">
+                <Clock size={13} />
+                {isPaymentExpired
+                  ? (isVi ? 'Đã hết thời gian' : 'Payment expired')
+                  : `${isVi ? 'Còn' : 'Pay within'} ${formatCountdown(remainingSeconds)}`}
+              </span>
+            ) : t(`booking.status.${status}`)}
           </span>
         </td>
         <td className="px-4 py-3 text-xs font-bold text-[#bfa15f]">{formatMoney(item.totalPrice, locale)}</td>
         <td className="px-4 py-3 text-xs text-slate-400">{formatDateTime(item.createdAt, locale)}</td>
         <td className="px-4 py-3">
           <div className="flex flex-col gap-2">
+            {isPendingPayment && !isPaymentExpired && (
+              <Link
+                to={`/invoice/${item.id}`}
+                className="inline-flex w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded bg-[#bfa15f] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#a3854a]"
+              >
+                <CreditCard size={14} />
+                {isVi ? 'Thanh toán' : 'Pay now'}
+              </Link>
+            )}
             {showReviewBtn && (
               <button
                 onClick={() => handleOpenReviewModal(item)}
@@ -245,7 +288,12 @@ export default function CustomerBookingHistory() {
                 </span>
               </button>
             )}
-            {!showReviewBtn && !hasFeedback && <span className="text-slate-400">—</span>}
+            {!isPendingPayment && !showReviewBtn && !hasFeedback && <span className="text-slate-400">—</span>}
+            {isPaymentExpired && (
+              <span className="text-xs font-medium text-red-500">
+                {isVi ? 'Không thể thanh toán' : 'Payment unavailable'}
+              </span>
+            )}
           </div>
         </td>
       </tr>
