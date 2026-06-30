@@ -81,7 +81,13 @@ public class EquipmentServiceImpl implements EquipmentService {
                 .searchEquipment(keyword, status, pageable)
                 .map(equipmentMapper::toResponse);
     }
-
+    /**
+     * Thêm mới thiết bị.
+     *
+     * Kiểm tra:
+     * - Không được trùng mã thiết bị đang ACTIVE.
+     * - Thiết bị mới mặc định có trạng thái ACTIVE.
+     */
     @Override
     public EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -107,6 +113,13 @@ public class EquipmentServiceImpl implements EquipmentService {
         return equipmentMapper.toResponse(savedEquipment);
     }
 
+    /**
+     * Cập nhật thông tin thiết bị.
+     *
+     * Kiểm tra:
+     * - Thiết bị phải tồn tại.
+     * - Không được đổi sang mã thiết bị đã tồn tại.
+     */
     @Override
     public EquipmentResponse updateEquipment(Long id, EquipmentCreateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -134,7 +147,15 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         return equipmentMapper.toResponse(updatedEquipment);
     }
-
+    /**
+     * Xóa thiết bị (Soft Delete).
+     *
+     * Không cho phép xóa nếu:
+     * - Thiết bị đang được gán cho phòng.
+     * - Thiết bị đang có yêu cầu bảo trì.
+     *
+     * Nếu hợp lệ chỉ chuyển trạng thái sang INACTIVE.
+     */
     @Override
     public void deleteEquipment(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -241,7 +262,17 @@ public class EquipmentServiceImpl implements EquipmentService {
                 .map(equipmentMapper::toRoomEquipmentResponse)
                 .collect(Collectors.toList());
     }
-
+    /**
+     * Upload nhiều ảnh cho thiết bị.
+     *
+     * Quy trình:
+     * 1. Kiểm tra thiết bị tồn tại.
+     * 2. Tạo thư mục uploads nếu chưa có.
+     * 3. Sinh tên file ngẫu nhiên bằng UUID.
+     * 4. Lưu file vào server.
+     * 5. Lưu đường dẫn ảnh vào database.
+     * 6. Ảnh đầu tiên được đánh dấu là ảnh đại diện.
+     */
     @Override
     public List<EquipmentImageResponse> uploadImages(
             Long equipmentId,
@@ -310,7 +341,14 @@ public class EquipmentServiceImpl implements EquipmentService {
             throw new ConflictException("Could not save equipment images");
         }
     }
-
+    /**
+     * Hàm dùng nội bộ.
+     *
+     * Tìm thiết bị theo ID và chỉ trả về
+     * khi trạng thái là ACTIVE.
+     *
+     * Nếu không tồn tại sẽ ném ResourceNotFoundException.
+     */
     private Equipment findActiveEquipment(Long id, Locale locale) {
         return equipmentRepository.findById(id)
                 .filter(e -> e.getStatus() == EquipmentStatus.ACTIVE)
