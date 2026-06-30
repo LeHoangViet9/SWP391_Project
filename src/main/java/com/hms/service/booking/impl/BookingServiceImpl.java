@@ -48,7 +48,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
@@ -67,9 +66,6 @@ public class BookingServiceImpl implements BookingService {
 
     @Value("${app.booking.hold-minutes:30}")
     private long cartHoldMinutes;
-
-    @Value("${app.finance.vat-rate:0.08}")
-    private BigDecimal vatRate;
 
     private static final Map<BookingStatus, Set<BookingStatus>> VALID_TRANSITIONS =
             new java.util.EnumMap<>(BookingStatus.class);
@@ -174,7 +170,7 @@ public class BookingServiceImpl implements BookingService {
         Booking saved = bookingRepository.save(booking);
         Invoice invoice = Invoice.builder()
                 .booking(saved)
-                .amount(calculateInvoiceAmount(saved.getTotalPrice()))
+                .amount(saved.getTotalPrice())
                 .paymentStatus(PaymentStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -305,7 +301,7 @@ public class BookingServiceImpl implements BookingService {
         if (newStatus == BookingStatus.CONFIRMED && booking.getInvoice() == null) {
             Invoice invoice = Invoice.builder()
                     .booking(booking)
-                    .amount(calculateInvoiceAmount(booking.getTotalPrice()))
+                    .amount(booking.getTotalPrice())
                     .paymentStatus(PaymentStatus.PENDING)
                     .build();
             invoiceRepository.save(invoice);
@@ -333,11 +329,6 @@ public class BookingServiceImpl implements BookingService {
 
         Booking updated = bookingRepository.save(booking);
         return mapToResponse(updated);
-    }
-
-    private BigDecimal calculateInvoiceAmount(BigDecimal roomTotal) {
-        BigDecimal vat = roomTotal.multiply(vatRate).setScale(0, RoundingMode.HALF_UP);
-        return roomTotal.add(vat);
     }
 
     @Override

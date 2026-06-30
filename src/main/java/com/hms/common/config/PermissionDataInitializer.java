@@ -32,7 +32,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
         // 1. Tạo tất cả permissions
         List<String> allPermissions = Arrays.asList(
                 // User permissions
-                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE",
+                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE", "USER_AUTHORIZE",
 
                 // Room permissions
                 "ROOM_VIEW", "ROOM_CREATE", "ROOM_UPDATE", "ROOM_DELETE",
@@ -91,7 +91,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
     private void assignPermissionsToAdmin() {
         List<String> adminPerms = Arrays.asList(
-                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE",
+                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE", "USER_AUTHORIZE",
                 "ROOM_VIEW", "ROOM_CREATE", "ROOM_UPDATE", "ROOM_DELETE",
                 "ROOM_TYPE_VIEW", "ROOM_TYPE_CREATE", "ROOM_TYPE_UPDATE", "ROOM_TYPE_DELETE",
                 "DASHBOARD_VIEW"
@@ -118,6 +118,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
     private void assignPermissionsToManager() {
         List<String> managerPerms = Arrays.asList(
+                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE",
                 "DASHBOARD_VIEW",
                 "ROOM_VIEW", "ROOM_UPDATE",
                 "ROOM_TYPE_VIEW",

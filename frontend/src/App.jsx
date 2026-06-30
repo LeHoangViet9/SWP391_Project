@@ -40,14 +40,6 @@ export default function App() {
 
             {/* Invoice Route — authenticated users */}
             <Route
-              path="/invoice/batch"
-              element={
-                <ProtectedRoute>
-                  <InvoicePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/invoice/:bookingId"
               element={
                 <ProtectedRoute>

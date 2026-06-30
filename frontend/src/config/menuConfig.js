@@ -84,7 +84,7 @@ export const MENU_CONFIG = [
     labelEn: 'Role Config',
     path: '/dashboard/roles',
     icon: ShieldCheck,
-    permissions: ['USER_UPDATE'],
+    permissions: ['USER_AUTHORIZE'],
     group: 'system',
   },
   {

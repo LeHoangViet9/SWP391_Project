@@ -102,7 +102,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/permissions")
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAuthority('USER_AUTHORIZE')")
     public ResponseEntity<Map<String, Object>> assignPermissionsToUser(
             @PathVariable Long userId,
             @RequestBody Map<String, List<Long>> request
@@ -120,7 +120,7 @@ public class UserController {
 
     // ✅ THÊM MỚI: Xóa quyền riêng khỏi user
     @DeleteMapping("/{userId}/permissions")
-    @PreAuthorize("hasAuthority('USER_UPDATE')")
+    @PreAuthorize("hasAuthority('USER_AUTHORIZE')")
     public ResponseEntity<Map<String, Object>> removePermissionsFromUser(
             @PathVariable Long userId,
             @RequestBody Map<String, List<Long>> request

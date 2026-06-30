@@ -5,7 +5,6 @@ import com.hms.common.enums.PaymentStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.dto.invoice.request.InvoiceRequest;
 import com.hms.dto.invoice.response.InvoiceResponse;
-import com.hms.dto.invoice.response.CombinedInvoiceResponse;
 import com.hms.service.booking.InvoiceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
-import java.util.List;
 
 /**
  * Quản lý hoá đơn và thanh toán theo mô hình TRẢ TRƯỚC 100%.
@@ -93,32 +91,6 @@ public class InvoiceController {
                 result,
                 HttpStatus.OK
         ), HttpStatus.OK);
-    }
-
-    /** Một hóa đơn thanh toán chung cho nhiều booking trong cùng giỏ hàng. */
-    @GetMapping("/batch")
-    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
-    public ResponseEntity<ApiResponse<CombinedInvoiceResponse>> getCombinedInvoice(
-            @RequestParam List<Long> bookingIds) {
-        return ResponseEntity.ok(ApiResponse.<CombinedInvoiceResponse>builder()
-                .success(true)
-                .message("Combined invoice retrieved successfully")
-                .data(invoiceService.getCombinedInvoice(bookingIds))
-                .status(HttpStatus.OK)
-                .build());
-    }
-
-    /** Xác nhận một giao dịch và cập nhật toàn bộ booking thuộc hóa đơn tổng. */
-    @PostMapping("/batch/webhook/payment-success")
-    @PreAuthorize("hasAuthority('INVOICE_UPDATE')")
-    public ResponseEntity<ApiResponse<CombinedInvoiceResponse>> handleCombinedPaymentSuccess(
-            @RequestParam List<Long> bookingIds) {
-        return ResponseEntity.ok(ApiResponse.<CombinedInvoiceResponse>builder()
-                .success(true)
-                .message("Combined invoice payment completed successfully")
-                .data(invoiceService.confirmCombinedPaymentSuccess(bookingIds))
-                .status(HttpStatus.OK)
-                .build());
     }
 
     /** GET /api/v1/invoices/{id} — Lấy chi tiết hoá đơn */

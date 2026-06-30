@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
     Printer, Download, ArrowLeft, Building2, FileText,
     CreditCard, QrCode, CheckCircle2, Crown,
@@ -7,7 +7,7 @@ import {
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useLocale } from '../context/LocaleContext';
-import { getInvoiceByBookingId, getCombinedInvoice } from '../services/invoiceService';
+import { getInvoiceByBookingId } from '../services/invoiceService';
 
 function formatPrice(price, locale) {
     return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
@@ -71,9 +71,6 @@ function QrPlaceholder({ value }) {
 
 export default function InvoicePage() {
     const { bookingId } = useParams();
-    const [searchParams] = useSearchParams();
-    const batchBookingIds = searchParams.getAll('bookingIds').filter(Boolean);
-    const isCombinedInvoice = batchBookingIds.length > 0;
     const { locale } = useLocale();
     const isVi = locale === 'vi';
 
@@ -82,12 +79,9 @@ export default function InvoicePage() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (!bookingId && !isCombinedInvoice) return;
+        if (!bookingId) return;
         setLoading(true);
-        const request = isCombinedInvoice
-            ? getCombinedInvoice(batchBookingIds, locale)
-            : getInvoiceByBookingId(bookingId, locale);
-        request
+        getInvoiceByBookingId(bookingId, locale)
             .then((res) => {
                 if (res?.data) {
                     setInvoice(res.data);
@@ -99,7 +93,7 @@ export default function InvoicePage() {
                 setError(err.message || (isVi ? 'Lỗi tải hóa đơn.' : 'Failed to load invoice.'));
             })
             .finally(() => setLoading(false));
-    }, [bookingId, locale, searchParams.toString()]);
+    }, [bookingId, locale]);
 
     const handlePrint = () => window.print();
 
@@ -109,24 +103,27 @@ export default function InvoicePage() {
     };
 
     // Calculate invoice data
-    const invoiceItems = invoice?.items || (invoice ? [invoice] : []);
-    const subtotal = invoiceItems.reduce((total, item) => total + Number(item.roomPriceSubTotal || 0), 0);
-    const vatAmount = invoiceItems.reduce((total, item) => total + Number(item.vatAmount || 0), 0);
-    const additionalCharges = invoiceItems.reduce((total, item) => total + Number(item.additionalCharges || 0), 0);
-    const grandTotal = Number(invoice?.totalAmount || 0);
+    const subtotal = invoice?.totalAmount || invoice?.totalPrice || 0;
+    const vatRate = 0.10;
+    const serviceRate = 0.05;
+    const vatAmount = subtotal * vatRate;
+    const serviceAmount = subtotal * serviceRate;
+    const grandTotal = subtotal + vatAmount + serviceAmount;
 
-    const invoiceNumber = invoice?.invoiceCode || `INV-${String(bookingId).padStart(6, '0')}`;
+    const invoiceNumber = `INV-${String(bookingId).padStart(6, '0')}`;
     const invoiceDate = invoice?.createdAt ? formatDate(invoice.createdAt) : formatDate(new Date().toISOString());
 
     // Build line items from invoice data
     const lineItems = [];
-    invoiceItems.forEach((item) => lineItems.push({
-        description: item.roomTypeName || `Booking #${item.bookingId}`,
-        date: `${formatDate(item.checkInDate)} - ${formatDate(item.checkOutDate)}`,
-        quantity: item.quantity || 1,
-        unitPrice: item.roomPricePerNight || 0,
-        total: item.totalAmount || 0,
-    }));
+    if (invoice) {
+        lineItems.push({
+            description: invoice.roomTypeName || `Booking #${bookingId}`,
+            date: `${formatDate(invoice.checkInDate)} - ${formatDate(invoice.checkOutDate)}`,
+            quantity: invoice.quantity || 1,
+            unitPrice: invoice.pricePerNight || subtotal,
+            total: subtotal,
+        });
+    }
 
     if (loading) {
         return (
@@ -246,9 +243,7 @@ export default function InvoicePage() {
                             </div>
                             <div>
                                 <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{isVi ? 'Mã đặt phòng' : 'Booking ID'}</p>
-                                <p className="font-bold text-slate-800 font-mono">
-                                    {(invoice?.bookingIds || [bookingId]).map(id => `#${id}`).join(', ')}
-                                </p>
+                                <p className="font-bold text-slate-800 font-mono">#{bookingId}</p>
                             </div>
                             <div>
                                 <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{isVi ? 'Trạng thái' : 'Status'}</p>
@@ -329,15 +324,13 @@ export default function InvoicePage() {
                                         <span className="text-slate-700">{formatPrice(subtotal, locale)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">{isVi ? 'Thuế VAT' : 'VAT'}</span>
+                                        <span className="text-slate-500">{isVi ? 'Thuế VAT' : 'VAT'} (10%)</span>
                                         <span className="text-slate-700">{formatPrice(vatAmount, locale)}</span>
                                     </div>
-                                    {additionalCharges > 0 && (
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-500">{isVi ? 'Phụ phí' : 'Additional charges'}</span>
-                                            <span className="text-slate-700">{formatPrice(additionalCharges, locale)}</span>
-                                        </div>
-                                    )}
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-500">{isVi ? 'Phí dịch vụ' : 'Service Fee'} (5%)</span>
+                                        <span className="text-slate-700">{formatPrice(serviceAmount, locale)}</span>
+                                    </div>
                                     <div className="h-px bg-stone-200 my-2" />
                                     <div className="flex justify-between items-baseline">
                                         <span className="text-base font-bold text-slate-800">{isVi ? 'Tổng cộng' : 'Total Amount Due'}</span>
@@ -359,14 +352,7 @@ export default function InvoicePage() {
                                     <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
                                         {isVi ? 'Quét để thanh toán' : 'Scan to Pay'}
                                     </p>
-                                    {invoice?.qrCodeUrl ? (
-                                        <img src={invoice.qrCodeUrl} alt="VietQR" className="h-40 w-40 rounded-lg border border-stone-200 bg-white object-contain" />
-                                    ) : (
-                                        <QrPlaceholder value={invoiceNumber} />
-                                    )}
-                                    {invoice?.paymentContent && (
-                                        <p className="mt-2 text-xs font-bold text-slate-600">{invoice.paymentContent}</p>
-                                    )}
+                                    <QrPlaceholder value={invoiceNumber} />
                                 </div>
                             </div>
                         </div>

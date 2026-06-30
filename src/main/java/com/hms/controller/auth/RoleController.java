@@ -19,7 +19,7 @@ import java.util.Locale;
 @RestController
 @RequestMapping("/api/v1/roles")
 @RequiredArgsConstructor
-@PreAuthorize("hasAuthority('USER_UPDATE')")
+@PreAuthorize("hasAuthority('USER_AUTHORIZE')")
 public class RoleController {
 
     private final IRoleService roleService;

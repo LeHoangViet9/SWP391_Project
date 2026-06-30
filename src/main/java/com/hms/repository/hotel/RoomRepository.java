@@ -43,7 +43,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     /**
      * Đếm tổng phòng đang hoạt động của một loại phòng.
-     * Loại trừ INACTIVE (đã xóa mềm) và OUT_OF_ORDER (hỏng hóc).
+     * Loại trừ INACTIVE (đã xóa mềm) và MAINTENANCE (bảo trì).
      * Dùng để tính công suất thực sự, độc lập với trạng thái phòng tức thời.
      */
     @Query("""
@@ -85,7 +85,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
                 AND NOT EXISTS (
                     SELECT b FROM Booking b
                     WHERE b.room.id = r.id
-                    AND b.bookingStatus IN (com.hms.common.enums.BookingStatus.PENDING_CHECK_IN, com.hms.common.enums.BookingStatus.CHECKED_IN)
+                    AND b.bookingStatus IN (com.hms.common.enums.BookingStatus.CONFIRMED,com.hms.common.enums.BookingStatus.CHECKED_IN)
                     AND b.checkInDate < :checkOutDate
                     AND b.checkOutDate > :checkInDate
                 )
