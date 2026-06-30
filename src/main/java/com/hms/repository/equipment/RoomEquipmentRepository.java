@@ -16,6 +16,14 @@ public interface RoomEquipmentRepository extends JpaRepository<RoomEquipment, Lo
     // Lấy danh sách phòng đang dùng 1 thiết bị
     List<RoomEquipment> findByEquipmentId(Long equipmentId);
 
+    // ==================== DELETE VALIDATION ====================
+
+    // Kiểm tra thiết bị có đang được gán (assign) cho bất kỳ phòng nào hay không.
+    // RoomEquipment dùng quan hệ @ManyToOne Equipment nên phải dùng equipment_Id.
+    boolean existsByEquipment_Id(Long equipmentId);
+
+    // ===========================================================
+
     // Kiểm tra phòng này đã có thiết bị này chưa
     Optional<RoomEquipment> findByRoomIdAndEquipmentId(Long roomId, Long equipmentId);
 

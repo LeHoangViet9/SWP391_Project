@@ -16,8 +16,13 @@ import java.util.List;
 @Repository
 public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long> {
 
+    // ==================== DELETE VALIDATION ====================
 
+    // Kiểm tra thiết bị có đang xuất hiện trong bất kỳ yêu cầu bảo trì nào hay không.
+    // Nếu tồn tại thì không cho phép xóa thiết bị.
+    boolean existsByEquipmentId(Long equipmentId);
 
+    // ===========================================================
 
     long countByStatus(MaintenanceStatus status);
 
@@ -33,7 +38,7 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
             " OR r.issueTitle ILIKE :keyword " +
             " OR CAST(r.id AS string) ILIKE :keyword " +
             " OR CAST(r.roomId AS string) ILIKE :keyword " +
-            " OR CAST(r.equipmentId AS string) ILIKE :keyword) " + // Tìm kiếm đa năng bằng keyword
+            " OR CAST(r.equipmentId AS string) ILIKE :keyword) " +
             "AND (:severity IS NULL OR r.severity = :severity) " +
             "AND (:status IS NULL OR r.status = :status)")
     Page<RepairRequest> findRequestsAdvanced(
