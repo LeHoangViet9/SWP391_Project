@@ -8,6 +8,9 @@ import com.hms.dto.invoice.request.ReceptionistPaymentRequest;
 import com.hms.dto.invoice.response.InvoiceResponse;
 import com.hms.dto.invoice.response.CombinedInvoiceResponse;
 import com.hms.service.booking.InvoiceService;
+import com.hms.service.booking.PayOSPaymentService;
+import com.hms.dto.invoice.response.PayOSCheckoutResponse;
+import vn.payos.model.webhooks.Webhook;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
@@ -22,6 +25,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Quản lý hoá đơn và thanh toán theo mô hình TRẢ TRƯỚC 100%.
@@ -34,6 +38,33 @@ public class InvoiceController {
 
     private final MessageSource messageSource;
     private final InvoiceService invoiceService;
+    private final PayOSPaymentService payOSPaymentService;
+
+    @PostMapping("/payos/checkout")
+    @PreAuthorize("@invoiceAccessService.canAccessBookings(#bookingIds, authentication)")
+    public ResponseEntity<ApiResponse<PayOSCheckoutResponse>> createPayOSCheckout(
+            @RequestParam List<Long> bookingIds) throws Exception {
+        return ResponseEntity.ok(ApiResponse.<PayOSCheckoutResponse>builder()
+                .success(true).message("Tạo mã thanh toán payOS thành công")
+                .data(payOSPaymentService.createCheckout(bookingIds)).status(HttpStatus.OK).build());
+    }
+
+    @PostMapping("/payos/webhook")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<String> payOSWebhook(@RequestBody Webhook webhook) throws Exception {
+        payOSPaymentService.handleWebhook(webhook);
+        return ResponseEntity.ok("OK");
+    }
+
+    @GetMapping("/payos/{orderCode}/status")
+    @PreAuthorize("@invoiceAccessService.canAccessPayOSPayment(#orderCode, authentication)")
+    public ResponseEntity<ApiResponse<Map<String, String>>> synchronizePayOSStatus(
+            @PathVariable Long orderCode) throws Exception {
+        String status = payOSPaymentService.synchronizeStatus(orderCode);
+        return ResponseEntity.ok(ApiResponse.<Map<String, String>>builder()
+                .success(true).message("Đồng bộ trạng thái payOS thành công")
+                .data(Map.of("status", status)).status(HttpStatus.OK).build());
+    }
 
     /**
      * POST /api/v1/invoices — Tạo hóa đơn ban đầu và trả về kèm mã QR động (Trạng thái PENDING)
@@ -98,7 +129,7 @@ public class InvoiceController {
 
     /** Một hóa đơn thanh toán chung cho nhiều booking trong cùng giỏ hàng. */
     @GetMapping("/batch")
-    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
+    @PreAuthorize("@invoiceAccessService.canAccessBookings(#bookingIds, authentication)")
     public ResponseEntity<ApiResponse<CombinedInvoiceResponse>> getCombinedInvoice(
             @RequestParam List<Long> bookingIds) {
         return ResponseEntity.ok(ApiResponse.<CombinedInvoiceResponse>builder()
@@ -138,7 +169,7 @@ public class InvoiceController {
 
     /** GET /api/v1/invoices/{id} — Lấy chi tiết hoá đơn */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
+    @PreAuthorize("@invoiceAccessService.canAccessInvoice(#id, authentication)")
     public ResponseEntity<ApiResponse<InvoiceResponse>> getInvoiceById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         InvoiceResponse data = invoiceService.getInvoiceById(id);
@@ -152,7 +183,7 @@ public class InvoiceController {
 
     /** GET /api/v1/invoices/booking/{bookingId} — Lấy hoá đơn theo booking */
     @GetMapping("/booking/{bookingId}")
-    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
+    @PreAuthorize("@invoiceAccessService.canAccessBooking(#bookingId, authentication)")
     public ResponseEntity<ApiResponse<InvoiceResponse>> getInvoiceByBookingId(@PathVariable Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
         InvoiceResponse data = invoiceService.getInvoiceByBookingId(bookingId);

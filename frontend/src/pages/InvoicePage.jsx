@@ -8,7 +8,7 @@ import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
-import { getInvoiceByBookingId, getCombinedInvoice, processReceptionistPayment } from '../services/invoiceService';
+import { getInvoiceByBookingId, getCombinedInvoice, processReceptionistPayment, createPayOSCheckout, synchronizePayOSStatus } from '../services/invoiceService';
 
 function formatPrice(price, locale) {
     return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
@@ -89,6 +89,8 @@ export default function InvoicePage() {
     const [paymentConfirmed, setPaymentConfirmed] = useState(false);
     const [paymentError, setPaymentError] = useState('');
     const [paymentLoading, setPaymentLoading] = useState(false);
+    const [payOSCheckout, setPayOSCheckout] = useState(null);
+    const [payOSError, setPayOSError] = useState('');
 
     useEffect(() => {
         if (!bookingId && !isCombinedInvoice) return;
@@ -109,6 +111,28 @@ export default function InvoicePage() {
             })
             .finally(() => setLoading(false));
     }, [bookingId, locale, searchParams.toString()]);
+
+    useEffect(() => {
+        if (!invoice || invoice.paymentStatus === 'PAID' || isReceptionistPayment || payOSCheckout) return;
+        const ids = isCombinedInvoice ? batchBookingIds : [bookingId];
+        createPayOSCheckout(ids, locale)
+            .then((res) => setPayOSCheckout(res?.data || null))
+            .catch((err) => setPayOSError(err.message || (isVi ? 'Không thể tạo mã PayOS.' : 'Could not create PayOS checkout.')));
+    }, [invoice?.paymentStatus, isReceptionistPayment, payOSCheckout, bookingId, locale]);
+
+    useEffect(() => {
+        if (!payOSCheckout || invoice?.paymentStatus === 'PAID') return undefined;
+        const timer = window.setInterval(async () => {
+            try {
+                await synchronizePayOSStatus(payOSCheckout.orderCode, locale);
+                const res = isCombinedInvoice
+                    ? await getCombinedInvoice(batchBookingIds, locale)
+                    : await getInvoiceByBookingId(bookingId, locale);
+                if (res?.data) setInvoice(res.data);
+            } catch (_) { /* Keep polling; the webhook remains the payment authority. */ }
+        }, 3000);
+        return () => window.clearInterval(timer);
+    }, [payOSCheckout, invoice?.paymentStatus, bookingId, locale]);
 
     const handlePrint = () => window.print();
 
@@ -356,6 +380,18 @@ export default function InvoicePage() {
                     </section>
                 )}
 
+                {!isReceptionistPayment && invoice?.paymentStatus === 'PAID' && (
+                    <section className="no-print mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
+                        <CheckCircle2 size={44} className="mx-auto text-emerald-600" />
+                        <h2 className="mt-3 text-xl font-bold text-emerald-800">
+                            {isVi ? 'Thanh toán PayOS thành công' : 'PayOS payment successful'}
+                        </h2>
+                        <p className="mt-1 text-sm text-emerald-700">
+                            {isVi ? 'Thanh toán đã được xác nhận và đơn đặt phòng đang chờ check-in.' : 'Payment is confirmed and the booking is pending check-in.'}
+                        </p>
+                    </section>
+                )}
+
                 {/* Invoice Card */}
                 <div className="bg-white rounded-xl shadow-lg border border-stone-200 overflow-hidden print-container">
                     {/* ─── Invoice Header ─── */}
@@ -539,12 +575,18 @@ export default function InvoicePage() {
                                     <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
                                         {isVi ? 'Quét để thanh toán' : 'Scan to Pay'}
                                     </p>
-                                    {invoice?.qrCodeUrl ? (
-                                        <img src={invoice.qrCodeUrl} alt="VietQR" className="h-40 w-40 rounded-lg border border-stone-200 bg-white object-contain" />
+                                    {payOSCheckout?.qrCode || (isReceptionistPayment && invoice?.qrCodeUrl) ? (
+                                        <img src={payOSCheckout?.qrCode || invoice.qrCodeUrl} alt="PayOS VietQR" className="h-40 w-40 rounded-lg border border-stone-200 bg-white object-contain" />
                                     ) : (
                                         <QrPlaceholder value={invoiceNumber} />
                                     )}
-                                    {invoice?.paymentContent && (
+                                    {payOSCheckout?.checkoutUrl && (
+                                        <a href={payOSCheckout.checkoutUrl} target="_blank" rel="noreferrer" className="mt-3 rounded bg-[#bfa15f] px-4 py-2 text-xs font-bold text-white hover:bg-[#a88d50]">
+                                            {isVi ? 'Mở trang thanh toán PayOS' : 'Open PayOS checkout'}
+                                        </a>
+                                    )}
+                                    {payOSError && <p className="mt-2 max-w-48 text-center text-xs font-semibold text-red-600">{payOSError}</p>}
+                                    {isReceptionistPayment && invoice?.paymentContent && (
                                         <p className="mt-2 text-xs font-bold text-slate-600">{invoice.paymentContent}</p>
                                     )}
                                 </div>

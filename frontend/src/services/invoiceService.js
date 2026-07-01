@@ -32,6 +32,18 @@ export async function confirmCombinedInvoicePayment(bookingIds, locale = 'vi') {
   }, locale);
 }
 
+/** Create a signed payOS checkout and VietQR for one or more bookings. */
+export async function createPayOSCheckout(bookingIds, locale = 'vi') {
+  return apiFetch(`/invoices/payos/checkout?${buildBookingIdsQuery(bookingIds)}`, {
+    method: 'POST',
+  }, locale);
+}
+
+/** Ask payOS for the latest status; useful when localhost cannot receive webhooks. */
+export async function synchronizePayOSStatus(orderCode, locale = 'vi') {
+  return apiFetch(`/invoices/payos/${orderCode}/status`, {}, locale);
+}
+
 /** POST /api/v1/invoices/{id}/pay */
 export async function payInvoice(invoiceId, paymentMethod, locale = 'vi') {
   return apiFetch(`/invoices/${invoiceId}/pay`, {
