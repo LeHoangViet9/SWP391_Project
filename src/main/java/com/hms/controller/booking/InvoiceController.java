@@ -4,6 +4,7 @@ import com.hms.common.dto.ApiResponse;
 import com.hms.common.enums.PaymentStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.dto.invoice.request.InvoiceRequest;
+import com.hms.dto.invoice.request.ReceptionistPaymentRequest;
 import com.hms.dto.invoice.response.InvoiceResponse;
 import com.hms.dto.invoice.response.CombinedInvoiceResponse;
 import com.hms.service.booking.InvoiceService;
@@ -117,6 +118,20 @@ public class InvoiceController {
                 .success(true)
                 .message("Combined invoice payment completed successfully")
                 .data(invoiceService.confirmCombinedPaymentSuccess(bookingIds))
+                .status(HttpStatus.OK)
+                .build());
+    }
+
+    /** Thu tiền tại quầy và chuyển toàn bộ booking đã thanh toán sang chờ check-in. */
+    @PostMapping("/batch/pay-at-desk")
+    @PreAuthorize("hasRole('RECEPTIONIST') and hasAuthority('INVOICE_UPDATE')")
+    public ResponseEntity<ApiResponse<CombinedInvoiceResponse>> payAtReception(
+            @RequestParam List<Long> bookingIds,
+            @Valid @RequestBody ReceptionistPaymentRequest request) {
+        return ResponseEntity.ok(ApiResponse.<CombinedInvoiceResponse>builder()
+                .success(true)
+                .message("Thanh toán thành công. Đơn đặt phòng đã chuyển sang chờ check-in.")
+                .data(invoiceService.processReceptionistPayment(bookingIds, request))
                 .status(HttpStatus.OK)
                 .build());
     }

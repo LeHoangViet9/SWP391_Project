@@ -69,16 +69,21 @@ function validateGuestForms(customer, stayGuest, bookingForOther, locale) {
   const phoneRegex = /^0[0-9]{9}$/;
   const idCardRegex = /^[A-Za-z0-9-]{6,20}$/;
   const cccdRegex = /^\d{12}$/;
+  const nameRegex = /^[\p{L}][\p{L}\s'.-]{1,99}$/u;
+  const nationalityRegex = /^[\p{L}][\p{L}\s-]{1,59}$/u;
 
   if (!customer.fullName.trim()) errors['customer.fullName'] = isVi ? 'Vui lòng nhập họ và tên.' : 'Full name is required.';
+  else if (!nameRegex.test(customer.fullName.trim())) errors['customer.fullName'] = isVi ? 'Họ tên chỉ được chứa chữ cái, khoảng trắng và dấu hợp lệ.' : 'Full name contains invalid characters.';
   if (!customer.email.trim()) errors['customer.email'] = isVi ? 'Vui lòng nhập email.' : 'Email is required.';
   else if (!emailRegex.test(customer.email.trim())) errors['customer.email'] = isVi ? 'Email không đúng định dạng.' : 'Invalid email format.';
   if (!customer.phone.trim()) errors['customer.phone'] = isVi ? 'Vui lòng nhập số điện thoại.' : 'Phone number is required.';
   else if (!phoneRegex.test(customer.phone.trim())) errors['customer.phone'] = isVi ? 'Số điện thoại phải có 10 số và bắt đầu bằng 0.' : 'Phone number must have 10 digits and start with 0.';
+  if (!customer.idType) errors['customer.idType'] = isVi ? 'Vui lòng chọn loại giấy tờ.' : 'ID type is required.';
   if (!customer.idNumberCard.trim()) errors['customer.idNumberCard'] = isVi ? 'Vui lòng nhập số giấy tờ.' : 'ID/Passport number is required.';
   else if (customer.idType === 'CCCD' && !cccdRegex.test(customer.idNumberCard.trim())) errors['customer.idNumberCard'] = isVi ? 'CCCD phải gồm đúng 12 chữ số.' : 'CCCD must contain exactly 12 digits.';
   else if (customer.idType !== 'CCCD' && !idCardRegex.test(customer.idNumberCard.trim())) errors['customer.idNumberCard'] = isVi ? 'Số Passport/giấy tờ phải có 6–20 ký tự chữ, số hoặc dấu gạch ngang.' : 'ID/Passport must contain 6–20 letters, numbers, or hyphens.';
   if (!customer.nationality.trim()) errors['customer.nationality'] = isVi ? 'Vui lòng nhập quốc tịch.' : 'Nationality is required.';
+  else if (!nationalityRegex.test(customer.nationality.trim())) errors['customer.nationality'] = isVi ? 'Quốc tịch chỉ được chứa chữ cái, khoảng trắng hoặc dấu gạch ngang.' : 'Nationality contains invalid characters.';
 
   if (bookingForOther) {
     if (!stayGuest.fullName.trim()) errors['stayGuest.fullName'] = isVi ? 'Vui lòng nhập họ tên người lưu trú.' : 'Stay guest full name is required.';
@@ -137,6 +142,7 @@ function validateRoomSelection(booking, guestCounts, maxGuests, locale) {
 function BookingContent() {
   const { t, locale } = useLocale();
   const { user } = useAuth();
+  const isReceptionist = user?.roleName === 'RECEPTIONIST';
   const [params] = useSearchParams();
 
   const roomTypeId = params.get('roomTypeId') || '1';
@@ -160,12 +166,12 @@ function BookingContent() {
   });
 
   const [customerForm, setCustomerForm] = useState({
-    fullName: user?.fullName || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    idType: 'CCCD',
+    fullName: isReceptionist ? '' : (user?.fullName || ''),
+    email: isReceptionist ? '' : (user?.email || ''),
+    phone: isReceptionist ? '' : (user?.phone || ''),
+    idType: isReceptionist ? '' : 'CCCD',
     idNumberCard: '',
-    nationality: locale === 'vi' ? 'Việt Nam' : 'Vietnam',
+    nationality: isReceptionist ? '' : (locale === 'vi' ? 'Việt Nam' : 'Vietnam'),
   });
 
   const [bookingForOther, setBookingForOther] = useState(false);
@@ -178,6 +184,7 @@ function BookingContent() {
     nationality: locale === 'vi' ? 'Việt Nam' : 'Vietnam',
   });
   const [touchedFields, setTouchedFields] = useState({});
+  const [serverFieldErrors, setServerFieldErrors] = useState({});
   const [touchedSelectionFields, setTouchedSelectionFields] = useState({});
 
 
@@ -265,7 +272,7 @@ function BookingContent() {
   }, [bookingResult]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isReceptionist) return;
     // Dùng /customers/me — endpoint self-service, không cần CUSTOMER_VIEW permission
     apiFetch('/customers/me', {}, locale)
       .then((res) => {
@@ -298,7 +305,7 @@ function BookingContent() {
           phone:    user.phone    || prev.phone,
         }));
       });
-  }, [user, locale]);
+  }, [user, locale, isReceptionist]);
 
   const nights = nightsBetween(booking.checkIn, booking.checkOut);
   const pricePerNight = roomType?.basePrice || 0;
@@ -315,9 +322,20 @@ function BookingContent() {
       * nightsBetween(item.checkIn, item.checkOut)
       * Number(item.quantity || 0)
   ), 0);
-  const formErrors = validateGuestForms(customerForm, stayGuestForm, bookingForOther, locale);
+  const formErrors = {
+    ...validateGuestForms(customerForm, stayGuestForm, bookingForOther, locale),
+    ...serverFieldErrors,
+  };
   const selectionErrors = validateRoomSelection(booking, guestCounts, roomType?.maxGuests, locale);
   const touchField = (field) => setTouchedFields((current) => ({ ...current, [field]: true }));
+  const updateCustomerField = (field, value) => {
+    setCustomerForm((current) => ({ ...current, [field]: value }));
+    setServerFieldErrors((current) => {
+      const next = { ...current };
+      delete next[`customer.${field}`];
+      return next;
+    });
+  };
   const touchSelectionField = (field) => setTouchedSelectionFields((current) => ({ ...current, [field]: true }));
   const fieldClassName = (field, extra = '') => `w-full mt-1 border px-3 py-2.5 outline-none transition-colors ${
     touchedFields[field] && formErrors[field]
@@ -337,6 +355,18 @@ function BookingContent() {
     : null;
 
   const ensureCustomerId = async () => {
+    if (isReceptionist) {
+      const res = await createCustomer({
+        fullName: customerForm.fullName.trim(),
+        email: customerForm.email.trim(),
+        phone: customerForm.phone.trim(),
+        idType: customerForm.idType,
+        idNumberCard: customerForm.idNumberCard.trim(),
+        nationality: customerForm.nationality.trim(),
+      }, locale);
+      if (res?.data?.id) return Number(res.data.id);
+      throw new Error(locale === 'vi' ? 'Không thể tạo hồ sơ khách hàng.' : 'Could not create customer profile.');
+    }
     // ── Bước 1: Nếu user đăng nhập, gọi /customers/me để lấy profile
     // Endpoint này chỉ cần isAuthenticated() — không phụ thuộc vào CUSTOMER_VIEW permission
     if (user) {
@@ -445,7 +475,27 @@ function BookingContent() {
       if (completedKeys.length > 0) {
         setCartItems((current) => current.filter((item) => !completedKeys.includes(item.key)));
       }
+      const backendErrors = err.data?.data;
+      let mappedErrors = {};
+      if (backendErrors && typeof backendErrors === 'object' && !Array.isArray(backendErrors)) {
+        mappedErrors = Object.fromEntries(Object.entries(backendErrors)
+          .map(([field, message]) => [`customer.${field}`, message]));
+      }
       const baseMessage = err.message || t('bookingPage.submitFailed');
+      if (isReceptionist && Object.keys(mappedErrors).length === 0) {
+        const normalizedMessage = baseMessage.toLocaleLowerCase('vi');
+        if (normalizedMessage.includes('email')) mappedErrors['customer.email'] = baseMessage;
+        else if (normalizedMessage.includes('điện thoại') || normalizedMessage.includes('phone')) mappedErrors['customer.phone'] = baseMessage;
+        else if (normalizedMessage.includes('cccd') || normalizedMessage.includes('giấy tờ') || normalizedMessage.includes('id card')) mappedErrors['customer.idNumberCard'] = baseMessage;
+      }
+      if (Object.keys(mappedErrors).length > 0) {
+        setServerFieldErrors(mappedErrors);
+        setTouchedFields((current) => ({
+          ...current,
+          ...Object.fromEntries(Object.keys(mappedErrors).map((field) => [field, true])),
+        }));
+        if (completedKeys.length === 0) return;
+      }
       const msg = completedKeys.length > 0
         ? (locale === 'vi'
           ? `${completedKeys.length} đơn đã tạo thành công. Các phòng còn lại vẫn được giữ trong giỏ. ${baseMessage}`
@@ -722,7 +772,7 @@ function BookingContent() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('auth.fullName')}</label>
-                <input type="text" required value={customerForm.fullName} onChange={(e) => setCustomerForm({ ...customerForm, fullName: e.target.value })} onBlur={() => touchField('customer.fullName')} className={fieldClassName('customer.fullName')} />
+                <input type="text" required value={customerForm.fullName} onChange={(e) => updateCustomerField('fullName', e.target.value)} onBlur={() => touchField('customer.fullName')} className={fieldClassName('customer.fullName')} />
                 {renderFieldError('customer.fullName')}
               </div>
               <div>
@@ -730,26 +780,28 @@ function BookingContent() {
                 <input
                   type="email" required
                   value={customerForm.email}
-                  onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
+                  onChange={(e) => updateCustomerField('email', e.target.value)}
                   onBlur={() => touchField('customer.email')}
-                  readOnly={!!user?.email}
-                  className={fieldClassName('customer.email', user?.email ? 'bg-stone-50 text-slate-500 cursor-not-allowed' : '')}
+                  readOnly={!isReceptionist && !!user?.email}
+                  className={fieldClassName('customer.email', !isReceptionist && user?.email ? 'bg-stone-50 text-slate-500 cursor-not-allowed' : '')}
                 />
-                {user?.email && <p className="text-xs text-slate-400 mt-0.5">{locale === 'vi' ? 'Email tài khoản đăng nhập' : 'Logged-in account email'}</p>}
+                {!isReceptionist && user?.email && <p className="text-xs text-slate-400 mt-0.5">{locale === 'vi' ? 'Email tài khoản đăng nhập' : 'Logged-in account email'}</p>}
                 {renderFieldError('customer.email')}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('auth.phone')}</label>
-                <input type="tel" required value={customerForm.phone} onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })} onBlur={() => touchField('customer.phone')} className={fieldClassName('customer.phone')} />
+                <input type="tel" required inputMode="numeric" maxLength={10} value={customerForm.phone} onChange={(e) => updateCustomerField('phone', e.target.value)} onBlur={() => touchField('customer.phone')} className={fieldClassName('customer.phone')} />
                 {renderFieldError('customer.phone')}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idType')}</label>
-                <select value={customerForm.idType} onChange={(e) => setCustomerForm({ ...customerForm, idType: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]">
+                <select value={customerForm.idType} onChange={(e) => updateCustomerField('idType', e.target.value)} onBlur={() => touchField('customer.idType')} className={fieldClassName('customer.idType')}>
+                  <option value="">{locale === 'vi' ? '-- Chọn loại giấy tờ --' : '-- Select ID type --'}</option>
                   <option value="CCCD">CCCD</option>
                   <option value="PASSPORT">Passport</option>
                   <option value="OTHER">Other</option>
                 </select>
+                {renderFieldError('customer.idType')}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idNumber')}</label>
@@ -760,7 +812,7 @@ function BookingContent() {
                   maxLength={customerForm.idType === 'CCCD' ? 12 : 20}
                   pattern={customerForm.idType === 'CCCD' ? '[0-9]{12}' : '[A-Za-z0-9-]{6,20}'}
                   value={customerForm.idNumberCard}
-                  onChange={(e) => setCustomerForm({ ...customerForm, idNumberCard: e.target.value })}
+                  onChange={(e) => updateCustomerField('idNumberCard', e.target.value)}
                   onBlur={() => touchField('customer.idNumberCard')}
                   className={fieldClassName('customer.idNumberCard')}
                 />
@@ -768,12 +820,12 @@ function BookingContent() {
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.nationality')}</label>
-                <input type="text" required value={customerForm.nationality} onChange={(e) => setCustomerForm({ ...customerForm, nationality: e.target.value })} onBlur={() => touchField('customer.nationality')} className={fieldClassName('customer.nationality')} />
+                <input type="text" required value={customerForm.nationality} onChange={(e) => updateCustomerField('nationality', e.target.value)} onBlur={() => touchField('customer.nationality')} className={fieldClassName('customer.nationality')} />
                 {renderFieldError('customer.nationality')}
               </div>
             </div>
 
-            <label className="flex items-start gap-3 rounded border border-stone-200 bg-stone-50 p-4 text-sm text-slate-700">
+            {!isReceptionist && <label className="flex items-start gap-3 rounded border border-stone-200 bg-stone-50 p-4 text-sm text-slate-700">
               <input
                 type="checkbox"
                 checked={bookingForOther}
@@ -790,7 +842,7 @@ function BookingContent() {
                     : 'The information below is for the actual stay guest and will be verified at check-in.'}
                 </span>
               </span>
-            </label>
+            </label>}
 
             {bookingForOther && (
               <div className="rounded border border-amber-200 bg-amber-50 p-4">
@@ -899,10 +951,12 @@ function BookingContent() {
               <p className="mt-1 text-3xl font-bold text-[#bfa15f]">{formatPrice(combinedInvoiceTotal, locale)}</p>
             </div>
             <Link
-              to={`/invoice/batch?${bookingResults.map((result) => `bookingIds=${result.id}`).join('&')}`}
+              to={`/invoice/batch?${bookingResults.map((result) => `bookingIds=${result.id}`).join('&')}${isReceptionist ? '&receptionistPayment=true' : ''}`}
               className="btn-gold inline-block rounded px-8 py-3"
             >
-              {locale === 'vi' ? 'Thanh toán một hóa đơn' : 'Pay combined invoice'}
+              {isReceptionist
+                ? (locale === 'vi' ? 'Chọn hình thức thanh toán' : 'Choose payment method')
+                : (locale === 'vi' ? 'Thanh toán một hóa đơn' : 'Pay combined invoice')}
             </Link>
           </div>
         )}

@@ -65,3 +65,25 @@ export async function processPayments(id, paymentMethod, locale = 'vi') {
     body: JSON.stringify({ paymentMethod }),
   }, locale);
 }
+
+/**
+ * POST /api/v1/invoices/batch/pay-at-desk?bookingIds=1&bookingIds=2...
+ * Process receptionist payment for one or more bookings.
+ * bookingIds go as @RequestParam query params; the rest go in the JSON body.
+ * @param {number[]} bookingIds
+ * @param {'CASH'|'CARD'|'TRANSFER'} paymentMethod
+ * @param {number|null} cashReceived - required for CASH
+ * @param {boolean} paymentConfirmed - required for CARD/TRANSFER
+ */
+export async function processReceptionistPayment(bookingIds, paymentMethod, cashReceived = null, paymentConfirmed = false, locale = 'vi') {
+  const params = new URLSearchParams();
+  bookingIds.forEach(id => params.append('bookingIds', id));
+  return apiFetch(`/invoices/batch/pay-at-desk?${params.toString()}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      paymentMethod,
+      cashReceived,
+      paymentConfirmed,
+    }),
+  }, locale);
+}

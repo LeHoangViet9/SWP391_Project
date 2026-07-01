@@ -35,6 +35,9 @@ public class InvoiceResponse {
 
     private PaymentStatus paymentStatus;
     private PaymentMethod paymentMethod;
+    private BigDecimal cashReceived;
+    private BigDecimal changeAmount;
+    private Boolean paymentConfirmed;
     private LocalDateTime paidAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

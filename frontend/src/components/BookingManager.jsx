@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, RefreshCw, CheckCircle, LogOut, Filter, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getAllBookings, createBooking, updateBooking, deleteBooking, searchBookings, updateBookingStatus, assignRoom } from '../services/bookingService';
+import { createCustomer } from '../services/customerService';
 import { apiFetch } from '../services/api';
 import { useLocale } from '../context/LocaleContext';
 import { usePermission } from '../hooks/usePermission';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
+import ReceptionistPaymentModal from './ReceptionistPaymentModal';
 
 const STATUS_OPTIONS = [
   { value: 'PENDING_PAYMENT', label: 'Chờ thanh toán', color: 'bg-amber-100 text-amber-700' },
@@ -18,7 +20,18 @@ const STATUS_OPTIONS = [
   { value: 'NO_SHOW', label: 'Không đến', color: 'bg-orange-100 text-orange-700' },
 ];
 
-const EMPTY = { customerId: '', roomTypeId: '', checkInDate: '', checkOutDate: '', quantity: 1 };
+const EMPTY = {
+  fullName: '',
+  email: '',
+  phone: '',
+  idType: '',
+  idNumberCard: '',
+  nationality: '',
+  roomTypeId: '',
+  checkInDate: '',
+  checkOutDate: '',
+  quantity: 1
+};
 
 function toApiDateTime(value) {
   if (!value) return value;
@@ -64,6 +77,12 @@ export default function BookingManager({ readOnly = false }) {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
+  const [formErrors, setFormErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
+
+  // Payment modal state (receptionist)
+  const [paymentModal, setPaymentModal] = useState({ open: false, booking: null });
+
   // States cho tác vụ gán phòng vật lý
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [assignTargetBooking, setAssignTargetBooking] = useState(null);
@@ -78,6 +97,84 @@ export default function BookingManager({ readOnly = false }) {
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
+
+  const validateField = (fieldName, value) => {
+    const isVi = locale === 'vi';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^0[0-9]{9}$/;
+    const idCardRegex = /^[A-Za-z0-9-]{6,20}$/;
+    const cccdRegex = /^\d{12}$/;
+    const nameRegex = /^[\p{L}][\p{L}\s'.-]{1,99}$/u;
+    const nationalityRegex = /^[\p{L}][\p{L}\s-]{1,59}$/u;
+    
+    let errorMsg = '';
+
+    if (fieldName === 'fullName') {
+      if (!value || !value.trim()) errorMsg = isVi ? 'Vui lòng nhập họ và tên.' : 'Full name is required.';
+      else if (!nameRegex.test(value.trim())) errorMsg = isVi ? 'Họ tên chỉ được chứa chữ cái, khoảng trắng và dấu hợp lệ.' : 'Full name contains invalid characters.';
+    } else if (fieldName === 'email') {
+      if (!value || !value.trim()) errorMsg = isVi ? 'Vui lòng nhập email.' : 'Email is required.';
+      else if (!emailRegex.test(value.trim())) errorMsg = isVi ? 'Email không đúng định dạng.' : 'Invalid email format.';
+    } else if (fieldName === 'phone') {
+      if (!value || !value.trim()) errorMsg = isVi ? 'Vui lòng nhập số điện thoại.' : 'Phone number is required.';
+      else if (!phoneRegex.test(value.trim())) errorMsg = isVi ? 'Số điện thoại phải có 10 số và bắt đầu bằng 0.' : 'Phone number must have 10 digits and start with 0.';
+    } else if (fieldName === 'idType') {
+      if (!value) errorMsg = isVi ? 'Vui lòng chọn loại giấy tờ.' : 'ID type is required.';
+    } else if (fieldName === 'idNumberCard') {
+      if (!value || !value.trim()) errorMsg = isVi ? 'Vui lòng nhập số giấy tờ.' : 'ID/Passport number is required.';
+      else if (form.idType === 'CCCD' && !cccdRegex.test(value.trim())) errorMsg = isVi ? 'CCCD phải gồm đúng 12 chữ số.' : 'CCCD must contain exactly 12 digits.';
+      else if (form.idType !== 'CCCD' && !idCardRegex.test(value.trim())) errorMsg = isVi ? 'Số Passport/giấy tờ phải có 6–20 ký tự chữ, số hoặc dấu gạch ngang.' : 'ID/Passport must contain 6–20 letters, numbers, or hyphens.';
+    } else if (fieldName === 'nationality') {
+      if (!value || !value.trim()) errorMsg = isVi ? 'Vui lòng nhập quốc tịch.' : 'Nationality is required.';
+      else if (!nationalityRegex.test(value.trim())) errorMsg = isVi ? 'Quốc tịch chỉ được chứa chữ cái, khoảng trắng hoặc dấu gạch ngang.' : 'Nationality contains invalid characters.';
+    } else if (fieldName === 'roomTypeId') {
+      if (!value) errorMsg = isVi ? 'Vui lòng chọn hạng phòng.' : 'Please select a room type.';
+    } else if (fieldName === 'quantity') {
+      if (!value || Number(value) < 1) errorMsg = isVi ? 'Số lượng phòng phải ít nhất là 1.' : 'Quantity must be at least 1.';
+    } else if (fieldName === 'checkInDate') {
+      if (!value) errorMsg = isVi ? 'Vui lòng chọn ngày nhận phòng.' : 'Please select check-in date.';
+    } else if (fieldName === 'checkOutDate') {
+      if (!value) errorMsg = isVi ? 'Vui lòng chọn ngày trả phòng.' : 'Please select check-out date.';
+    }
+
+    setFormErrors(prev => ({ ...prev, [fieldName]: errorMsg }));
+    return errorMsg;
+  };
+
+  const validateForm = () => {
+    const fieldsToValidate = [
+      'fullName', 'email', 'phone', 'idType', 'idNumberCard', 'nationality',
+      'roomTypeId', 'quantity', 'checkInDate', 'checkOutDate'
+    ];
+    const errors = {};
+    fieldsToValidate.forEach(field => {
+      const err = validateField(field, form[field]);
+      if (err) errors[field] = err;
+    });
+
+    const isVi = locale === 'vi';
+    if (form.checkInDate && form.checkOutDate) {
+      const checkInDate = new Date(form.checkInDate);
+      const checkOutDate = new Date(form.checkOutDate);
+      const todayDate = new Date();
+      checkInDate.setHours(0,0,0,0);
+      checkOutDate.setHours(0,0,0,0);
+      todayDate.setHours(0,0,0,0);
+
+      if (!modal.editing || toInputDateTime(modal.editing.checkInDate) !== form.checkInDate) {
+        if (checkInDate < todayDate) {
+          errors.checkInDate = isVi ? 'Ngày nhận phòng không được ở quá khứ.' : 'Check-in date cannot be in the past.';
+        }
+      }
+      if (checkOutDate <= checkInDate) {
+        errors.checkOutDate = isVi ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.';
+      }
+    }
+
+    setFormErrors(errors);
+    setTouchedFields(Object.fromEntries(fieldsToValidate.map(f => [f, true])));
+    return Object.keys(errors).length === 0;
+  };
 
   const fetchData = useCallback(async (p = page) => {
     setLoading(true);
@@ -145,18 +242,27 @@ export default function BookingManager({ readOnly = false }) {
   const openCreate = () => {
     if (!canCreate) return notify(t('booking.toast.forbiddenCreate'), 'error');
     setForm(EMPTY);
+    setFormErrors({});
+    setTouchedFields({});
     setModal({ open: true, editing: null });
   };
 
   const openEdit = (item) => {
     if (!canUpdate) return notify(t('booking.toast.forbiddenEdit'), 'error');
     setForm({
-      customerId: item.customerId || item.customer?.id || '',
+      fullName: item.customer?.fullName || item.customerName || '',
+      email: item.customer?.email || '',
+      phone: item.customer?.phone || '',
+      idType: item.customer?.idType || '',
+      idNumberCard: item.customer?.idNumberCard || '',
+      nationality: item.customer?.nationality || '',
       roomTypeId: item.roomTypeId || item.roomType?.id || '',
       checkInDate: toInputDateTime(item.checkInDate),
       checkOutDate: toInputDateTime(item.checkOutDate),
       quantity: item.quantity || 1,
     });
+    setFormErrors({});
+    setTouchedFields({});
     setModal({ open: true, editing: item });
   };
 
@@ -165,56 +271,35 @@ export default function BookingManager({ readOnly = false }) {
   const handleSave = async (e) => {
     e.preventDefault();
 
-    if (!form.customerId) {
-      notify(locale === 'vi' ? 'Vui lòng chọn khách hàng.' : 'Please select a customer.', 'error');
-      return;
-    }
-    if (!form.roomTypeId) {
-      notify(locale === 'vi' ? 'Vui lòng chọn hạng phòng.' : 'Please select a room type.', 'error');
-      return;
-    }
-    if (!form.checkInDate) {
-      notify(locale === 'vi' ? 'Vui lòng chọn ngày nhận phòng.' : 'Please select check-in date.', 'error');
-      return;
-    }
-    if (!form.checkOutDate) {
-      notify(locale === 'vi' ? 'Vui lòng chọn ngày trả phòng.' : 'Please select check-out date.', 'error');
-      return;
-    }
-
-    const checkInDate = new Date(form.checkInDate);
-    const checkOutDate = new Date(form.checkOutDate);
-    const todayDate = new Date();
-
-    checkInDate.setHours(0,0,0,0);
-    checkOutDate.setHours(0,0,0,0);
-    todayDate.setHours(0,0,0,0);
-
-    if (!modal.editing || toInputDateTime(modal.editing.checkInDate) !== form.checkInDate) {
-      if (checkInDate < todayDate) {
-        notify(locale === 'vi' ? 'Ngày nhận phòng không được ở quá khứ.' : 'Check-in date cannot be in the past.', 'error');
-        return;
-      }
-    }
-    if (checkOutDate <= checkInDate) {
-      notify(locale === 'vi' ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.', 'error');
-      return;
-    }
-    if (!form.quantity || Number(form.quantity) < 1) {
-      notify(locale === 'vi' ? 'Số lượng phòng phải ít nhất là 1.' : 'Quantity must be at least 1.', 'error');
+    if (!validateForm()) {
+      notify(locale === 'vi' ? 'Vui lòng điền đúng và đầy đủ thông tin.' : 'Please enter correct and complete information.', 'error');
       return;
     }
 
     setSaving(true);
-    const payload = {
-      customerId: Number(form.customerId),
-      roomTypeId: Number(form.roomTypeId),
-      checkInDate: toApiDateTime(form.checkInDate),
-      checkOutDate: toApiDateTime(form.checkOutDate),
-      quantity: Number(form.quantity),
-    };
-
     try {
+      const customerRes = await createCustomer({
+        fullName: form.fullName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        idType: form.idType,
+        idNumberCard: form.idNumberCard.trim(),
+        nationality: form.nationality.trim(),
+      }, locale);
+      
+      const customerId = customerRes?.data?.id;
+      if (!customerId) {
+        throw new Error(locale === 'vi' ? 'Không thể tạo hoặc tải thông tin khách hàng.' : 'Could not create/load customer.');
+      }
+
+      const payload = {
+        customerId: Number(customerId),
+        roomTypeId: Number(form.roomTypeId),
+        checkInDate: toApiDateTime(form.checkInDate),
+        checkOutDate: toApiDateTime(form.checkOutDate),
+        quantity: Number(form.quantity),
+      };
+
       if (modal.editing) {
         await updateBooking(modal.editing.id, payload);
         notify(t('booking.toast.updateSuccess'));
@@ -224,8 +309,23 @@ export default function BookingManager({ readOnly = false }) {
       }
       closeModal();
       if (subTab === 'overview') fetchTodayData(); else fetchData(page);
-    } catch (e) {
-      notify(e.status === 403 ? t('booking.toast.forbidden') : (e.message || t('booking.toast.loadError')), 'error');
+    } catch (err) {
+      const errMsg = err.message || '';
+      const newErrors = {};
+      if (errMsg.toLowerCase().includes('email')) {
+        newErrors.email = errMsg;
+      } else if (errMsg.toLowerCase().includes('phone') || errMsg.toLowerCase().includes('số điện thoại')) {
+        newErrors.phone = errMsg;
+      } else if (errMsg.toLowerCase().includes('idcard') || errMsg.toLowerCase().includes('số cccd') || errMsg.toLowerCase().includes('giấy tờ') || errMsg.toLowerCase().includes('passport')) {
+        newErrors.idNumberCard = errMsg;
+      } else {
+        notify(err.status === 403 ? t('booking.toast.forbidden') : (errMsg || t('booking.toast.loadError')), 'error');
+      }
+      
+      if (Object.keys(newErrors).length > 0) {
+        setFormErrors(prev => ({ ...prev, ...newErrors }));
+        setTouchedFields(prev => ({ ...prev, ...Object.fromEntries(Object.keys(newErrors).map(k => [k, true])) }));
+      }
     } finally {
       setSaving(false);
     }
@@ -323,6 +423,12 @@ export default function BookingManager({ readOnly = false }) {
             <div className="flex flex-wrap items-center gap-1.5">
               {status === 'PENDING_PAYMENT' && (
                 <>
+                  <button
+                    onClick={() => setPaymentModal({ open: true, booking: item })}
+                    className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-bold transition-colors shadow-sm"
+                  >
+                    💳 Thanh toán
+                  </button>
                   <button
                     onClick={() => handleUpdateStatus(item, 'CANCELLED')}
                     className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold transition-colors"
@@ -506,42 +612,293 @@ export default function BookingManager({ readOnly = false }) {
 
       <Modal open={modal.open} title={modal.editing ? t('booking.modal.editTitle') : t('booking.modal.addTitle')} onClose={closeModal} size="lg">
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.customer')}</label>
-              <select required value={form.customerId} onChange={e => setForm(f => ({ ...f, customerId: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
-                <option value="">{t('booking.modal.selectCustomer')}</option>
-                {customers.map(c => <option key={c.id} value={c.id}>{c.fullName} ({c.phone || c.email || 'N/A'})</option>)}
-              </select>
+          {/* Customer Info Section */}
+          <div className="border-b border-stone-200 pb-4 mb-4">
+            <h3 className="text-sm font-bold text-slate-800 mb-3">
+              {locale === 'vi' ? 'Thông tin khách hàng' : 'Customer Information'}
+            </h3>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{locale === 'vi' ? 'Họ và tên khách hàng *' : 'Customer Full Name *'}</label>
+                <input
+                  required
+                  type="text"
+                  value={form.fullName || ''}
+                  onChange={e => {
+                    setForm(f => ({ ...f, fullName: e.target.value }));
+                    if (touchedFields.fullName) validateField('fullName', e.target.value);
+                  }}
+                  onBlur={() => {
+                    setTouchedFields(t => ({ ...t, fullName: true }));
+                    validateField('fullName', form.fullName);
+                  }}
+                  className={`w-full border rounded px-3 py-2 text-sm outline-none ${
+                    touchedFields.fullName && formErrors.fullName
+                      ? 'border-red-400 bg-red-50 focus:border-red-500'
+                      : 'border-stone-300 focus:border-[#bfa15f]'
+                  }`}
+                />
+                {touchedFields.fullName && formErrors.fullName && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{formErrors.fullName}</p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Email *</label>
+                <input
+                  required
+                  type="email"
+                  value={form.email || ''}
+                  onChange={e => {
+                    setForm(f => ({ ...f, email: e.target.value }));
+                    if (touchedFields.email) validateField('email', e.target.value);
+                  }}
+                  onBlur={() => {
+                    setTouchedFields(t => ({ ...t, email: true }));
+                    validateField('email', form.email);
+                  }}
+                  className={`w-full border rounded px-3 py-2 text-sm outline-none ${
+                    touchedFields.email && formErrors.email
+                      ? 'border-red-400 bg-red-50 focus:border-red-500'
+                      : 'border-stone-300 focus:border-[#bfa15f]'
+                  }`}
+                />
+                {touchedFields.email && formErrors.email && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{formErrors.email}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.roomType')}</label>
-              <select required value={form.roomTypeId} onChange={e => setForm(f => ({ ...f, roomTypeId: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
-                <option value="">{t('booking.modal.selectRoomType')}</option>
-                {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.typeName}</option>)}
-              </select>
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{locale === 'vi' ? 'Số điện thoại *' : 'Phone Number *'}</label>
+                <input
+                  required
+                  type="tel"
+                  maxLength={10}
+                  value={form.phone || ''}
+                  onChange={e => {
+                    setForm(f => ({ ...f, phone: e.target.value }));
+                    if (touchedFields.phone) validateField('phone', e.target.value);
+                  }}
+                  onBlur={() => {
+                    setTouchedFields(t => ({ ...t, phone: true }));
+                    validateField('phone', form.phone);
+                  }}
+                  className={`w-full border rounded px-3 py-2 text-sm outline-none ${
+                    touchedFields.phone && formErrors.phone
+                      ? 'border-red-400 bg-red-50 focus:border-red-500'
+                      : 'border-stone-300 focus:border-[#bfa15f]'
+                  }`}
+                />
+                {touchedFields.phone && formErrors.phone && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{formErrors.phone}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{locale === 'vi' ? 'Loại giấy tờ *' : 'ID Type *'}</label>
+                <select
+                  required
+                  value={form.idType || ''}
+                  onChange={e => {
+                    const newIdType = e.target.value;
+                    setForm(f => {
+                      const updated = { ...f, idType: newIdType };
+                      if (f.idNumberCard) {
+                        setTimeout(() => validateField('idNumberCard', f.idNumberCard), 0);
+                      }
+                      return updated;
+                    });
+                    if (touchedFields.idType) validateField('idType', newIdType);
+                  }}
+                  onBlur={() => {
+                    setTouchedFields(t => ({ ...t, idType: true }));
+                    validateField('idType', form.idType);
+                  }}
+                  className={`w-full border rounded px-3 py-2 text-sm outline-none bg-white ${
+                    touchedFields.idType && formErrors.idType
+                      ? 'border-red-400 bg-red-50 focus:border-red-500'
+                      : 'border-stone-300 focus:border-[#bfa15f]'
+                  }`}
+                >
+                  <option value="">{locale === 'vi' ? '-- Chọn loại giấy tờ --' : '-- Select ID type --'}</option>
+                  <option value="CCCD">CCCD</option>
+                  <option value="PASSPORT">Passport</option>
+                  <option value="OTHER">Other</option>
+                </select>
+                {touchedFields.idType && formErrors.idType && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{formErrors.idType}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{locale === 'vi' ? 'Số giấy tờ *' : 'ID/Passport Number *'}</label>
+                <input
+                  required
+                  type="text"
+                  maxLength={form.idType === 'CCCD' ? 12 : 20}
+                  value={form.idNumberCard || ''}
+                  onChange={e => {
+                    setForm(f => ({ ...f, idNumberCard: e.target.value }));
+                    if (touchedFields.idNumberCard) validateField('idNumberCard', e.target.value);
+                  }}
+                  onBlur={() => {
+                    setTouchedFields(t => ({ ...t, idNumberCard: true }));
+                    validateField('idNumberCard', form.idNumberCard);
+                  }}
+                  className={`w-full border rounded px-3 py-2 text-sm outline-none ${
+                    touchedFields.idNumberCard && formErrors.idNumberCard
+                      ? 'border-red-400 bg-red-50 focus:border-red-500'
+                      : 'border-stone-300 focus:border-[#bfa15f]'
+                  }`}
+                />
+                {touchedFields.idNumberCard && formErrors.idNumberCard && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{formErrors.idNumberCard}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{locale === 'vi' ? 'Quốc tịch *' : 'Nationality *'}</label>
+                <input
+                  required
+                  type="text"
+                  value={form.nationality || ''}
+                  onChange={e => {
+                    setForm(f => ({ ...f, nationality: e.target.value }));
+                    if (touchedFields.nationality) validateField('nationality', e.target.value);
+                  }}
+                  onBlur={() => {
+                    setTouchedFields(t => ({ ...t, nationality: true }));
+                    validateField('nationality', form.nationality);
+                  }}
+                  className={`w-full border rounded px-3 py-2 text-sm outline-none ${
+                    touchedFields.nationality && formErrors.nationality
+                      ? 'border-red-400 bg-red-50 focus:border-red-500'
+                      : 'border-stone-300 focus:border-[#bfa15f]'
+                  }`}
+                />
+                {touchedFields.nationality && formErrors.nationality && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{formErrors.nationality}</p>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.checkIn')}</label>
-              <input required type="datetime-local" value={form.checkInDate} onChange={e => setForm(f => ({ ...f, checkInDate: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+          {/* Booking Info Section */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-slate-800 border-b pb-1">
+              {locale === 'vi' ? 'Thông tin đặt phòng' : 'Booking Information'}
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.roomType')} *</label>
+                <select
+                  required
+                  value={form.roomTypeId}
+                  onChange={e => {
+                    setForm(f => ({ ...f, roomTypeId: e.target.value }));
+                    if (touchedFields.roomTypeId) validateField('roomTypeId', e.target.value);
+                  }}
+                  onBlur={() => {
+                    setTouchedFields(t => ({ ...t, roomTypeId: true }));
+                    validateField('roomTypeId', form.roomTypeId);
+                  }}
+                  className={`w-full border rounded px-3 py-2 text-sm outline-none bg-white ${
+                    touchedFields.roomTypeId && formErrors.roomTypeId
+                      ? 'border-red-400 bg-red-50 focus:border-red-500'
+                      : 'border-stone-300 focus:border-[#bfa15f]'
+                  }`}
+                >
+                  <option value="">{t('booking.modal.selectRoomType')}</option>
+                  {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.typeName}</option>)}
+                </select>
+                {touchedFields.roomTypeId && formErrors.roomTypeId && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{formErrors.roomTypeId}</p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.quantity')} *</label>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  value={form.quantity}
+                  onChange={e => {
+                    setForm(f => ({ ...f, quantity: e.target.value }));
+                    if (touchedFields.quantity) validateField('quantity', e.target.value);
+                  }}
+                  onBlur={() => {
+                    setTouchedFields(t => ({ ...t, quantity: true }));
+                    validateField('quantity', form.quantity);
+                  }}
+                  className={`w-full border rounded px-3 py-2 text-sm outline-none ${
+                    touchedFields.quantity && formErrors.quantity
+                      ? 'border-red-400 bg-red-50 focus:border-red-500'
+                      : 'border-stone-300 focus:border-[#bfa15f]'
+                  }`}
+                />
+                {touchedFields.quantity && formErrors.quantity && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{formErrors.quantity}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.checkOut')}</label>
-              <input required type="datetime-local" value={form.checkOutDate} onChange={e => setForm(f => ({ ...f, checkOutDate: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.quantity')}</label>
-            <input required type="number" min="1" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
-              className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.checkIn')} *</label>
+                <input
+                  required
+                  type="datetime-local"
+                  value={form.checkInDate}
+                  onChange={e => {
+                    setForm(f => ({ ...f, checkInDate: e.target.value }));
+                    if (touchedFields.checkInDate) validateField('checkInDate', e.target.value);
+                  }}
+                  onBlur={() => {
+                    setTouchedFields(t => ({ ...t, checkInDate: true }));
+                    validateField('checkInDate', form.checkInDate);
+                  }}
+                  className={`w-full border rounded px-3 py-2 text-sm outline-none ${
+                    touchedFields.checkInDate && formErrors.checkInDate
+                      ? 'border-red-400 bg-red-50 focus:border-red-500'
+                      : 'border-stone-300 focus:border-[#bfa15f]'
+                  }`}
+                />
+                {touchedFields.checkInDate && formErrors.checkInDate && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{formErrors.checkInDate}</p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.modal.checkOut')} *</label>
+                <input
+                  required
+                  type="datetime-local"
+                  value={form.checkOutDate}
+                  onChange={e => {
+                    setForm(f => ({ ...f, checkOutDate: e.target.value }));
+                    if (touchedFields.checkOutDate) validateField('checkOutDate', e.target.value);
+                  }}
+                  onBlur={() => {
+                    setTouchedFields(t => ({ ...t, checkOutDate: true }));
+                    validateField('checkOutDate', form.checkOutDate);
+                  }}
+                  className={`w-full border rounded px-3 py-2 text-sm outline-none ${
+                    touchedFields.checkOutDate && formErrors.checkOutDate
+                      ? 'border-red-400 bg-red-50 focus:border-red-500'
+                      : 'border-stone-300 focus:border-[#bfa15f]'
+                  }`}
+                />
+                {touchedFields.checkOutDate && formErrors.checkOutDate && (
+                  <p className="text-xs text-red-500 mt-1 font-medium">{formErrors.checkOutDate}</p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
@@ -618,6 +975,17 @@ export default function BookingManager({ readOnly = false }) {
           </div>
         </form>
       </Modal>
+
+      {/* Receptionist Payment Modal */}
+      <ReceptionistPaymentModal
+        open={paymentModal.open}
+        booking={paymentModal.booking}
+        onClose={() => setPaymentModal({ open: false, booking: null })}
+        onSuccess={() => {
+          notify(locale === 'vi' ? 'Thanh toán thành công! Đơn đã chuyển sang chờ check-in.' : 'Payment successful! Booking moved to pending check-in.');
+          if (subTab === 'overview') fetchTodayData(); else fetchData(page);
+        }}
+      />
     </div>
   );
 }

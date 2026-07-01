@@ -6,6 +6,7 @@ import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.invoice.request.InvoiceRequest;
+import com.hms.dto.invoice.request.ReceptionistPaymentRequest;
 import com.hms.dto.invoice.response.InvoiceResponse;
 import com.hms.dto.invoice.response.CombinedInvoiceResponse;
 import com.hms.entity.booking.Booking;
@@ -143,6 +144,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         }
 
         invoice.setPaymentStatus(PaymentStatus.PAID);
+        if (invoice.getPaymentMethod() == null) invoice.setPaymentMethod(PaymentMethod.TRANSFER);
+        invoice.setPaymentConfirmed(true);
         invoice.setPaidAt(LocalDateTime.now());
         invoiceRepository.save(invoice);
 
@@ -193,10 +196,81 @@ public class InvoiceServiceImpl implements InvoiceService {
         bookings.forEach(booking -> {
             Invoice invoice = booking.getInvoice();
             invoice.setPaymentStatus(PaymentStatus.PAID);
+            if (invoice.getPaymentMethod() == null) invoice.setPaymentMethod(PaymentMethod.TRANSFER);
+            invoice.setPaymentConfirmed(true);
             invoice.setPaidAt(now);
             booking.setBookingStatus(BookingStatus.PENDING_CHECK_IN);
             booking.setHoldExpiresAt(null);
         });
+        invoiceRepository.saveAll(bookings.stream().map(Booking::getInvoice).toList());
+        bookingRepository.saveAll(bookings);
+        return buildCombinedInvoiceResponse(bookings);
+    }
+
+    @Override
+    @Transactional
+    public CombinedInvoiceResponse processReceptionistPayment(
+            List<Long> bookingIds, ReceptionistPaymentRequest request) {
+        List<Long> normalizedIds = normalizeBookingIds(bookingIds);
+        List<Booking> bookings = normalizedIds.stream()
+                .map(id -> bookingRepository.findByIdWithPessimisticWrite(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng #" + id)))
+                .toList();
+        validateCombinedBookings(bookings);
+
+        PaymentMethod method = request.getPaymentMethod();
+        if (method != PaymentMethod.CASH && method != PaymentMethod.TRANSFER && method != PaymentMethod.CARD) {
+            throw new BadRequestException("Lễ tân chỉ có thể chọn tiền mặt, chuyển khoản hoặc thẻ.");
+        }
+
+        boolean allPaid = bookings.stream().allMatch(booking ->
+                booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID
+                        && booking.getBookingStatus() == BookingStatus.PENDING_CHECK_IN);
+        if (allPaid) return buildCombinedInvoiceResponse(bookings);
+
+        LocalDateTime now = LocalDateTime.now();
+        boolean invalid = bookings.stream().anyMatch(booking ->
+                booking.getBookingStatus() != BookingStatus.PENDING_PAYMENT
+                        || booking.getHoldExpiresAt() == null
+                        || !booking.getHoldExpiresAt().isAfter(now)
+                        || booking.getInvoice().getPaymentStatus() != PaymentStatus.PENDING);
+        if (invalid) {
+            throw new ConflictException("Một hoặc nhiều phòng đã hết thời gian giữ hoặc không còn chờ thanh toán.");
+        }
+
+        BigDecimal total = bookings.stream()
+                .map(booking -> booking.getInvoice().getAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal cashReceived = null;
+        BigDecimal changeAmount = null;
+        if (method == PaymentMethod.CASH) {
+            cashReceived = request.getCashReceived();
+            if (cashReceived == null) {
+                throw new BadRequestException("Vui lòng nhập số tiền nhận từ khách.");
+            }
+            if (cashReceived.compareTo(total) < 0) {
+                throw new BadRequestException("Số tiền nhận từ khách phải lớn hơn hoặc bằng tổng tiền hóa đơn.");
+            }
+            changeAmount = cashReceived.subtract(total);
+        } else if (!Boolean.TRUE.equals(request.getPaymentConfirmed())) {
+            throw new BadRequestException(method == PaymentMethod.CARD
+                    ? "Vui lòng xác nhận đã nhận tiền thanh toán thẻ từ khách."
+                    : "Vui lòng xác nhận đã nhận được tiền chuyển khoản.");
+        }
+
+        for (int index = 0; index < bookings.size(); index++) {
+            Booking booking = bookings.get(index);
+            Invoice invoice = booking.getInvoice();
+            invoice.setPaymentStatus(PaymentStatus.PAID);
+            invoice.setPaymentMethod(method);
+            invoice.setPaymentConfirmed(true);
+            invoice.setPaidAt(now);
+            // Hóa đơn đầu tiên giữ số liệu của giao dịch tổng để không bị cộng trùng.
+            invoice.setCashReceived(index == 0 ? cashReceived : null);
+            invoice.setChangeAmount(index == 0 ? changeAmount : null);
+            booking.setBookingStatus(BookingStatus.PENDING_CHECK_IN);
+            booking.setHoldExpiresAt(null);
+        }
         invoiceRepository.saveAll(bookings.stream().map(Booking::getInvoice).toList());
         bookingRepository.saveAll(bookings);
         return buildCombinedInvoiceResponse(bookings);
@@ -290,6 +364,13 @@ public class InvoiceServiceImpl implements InvoiceService {
         String paymentContent = "HMSB" + hash;
         boolean allPaid = bookings.stream()
                 .allMatch(booking -> booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID);
+        PaymentMethod paymentMethod = allPaid ? bookings.get(0).getInvoice().getPaymentMethod() : null;
+        BigDecimal cashReceived = bookings.stream().map(Booking::getInvoice)
+                .map(Invoice::getCashReceived).filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal changeAmount = bookings.stream().map(Booking::getInvoice)
+                .map(Invoice::getChangeAmount).filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         CombinedInvoiceResponse response = CombinedInvoiceResponse.builder()
                 .invoiceCode("INV-GROUP-" + hash)
@@ -298,6 +379,10 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .customerName(bookings.get(0).getCustomer().getFullName())
                 .totalAmount(totalAmount)
                 .paymentStatus(allPaid ? PaymentStatus.PAID : PaymentStatus.PENDING)
+                .paymentMethod(paymentMethod)
+                .cashReceived(cashReceived.signum() == 0 ? null : cashReceived)
+                .changeAmount(changeAmount)
+                .paymentConfirmed(allPaid)
                 .createdAt(bookings.stream().map(Booking::getCreatedAt).filter(Objects::nonNull).min(LocalDateTime::compareTo).orElse(null))
                 .holdExpiresAt(bookings.stream().map(Booking::getHoldExpiresAt).filter(Objects::nonNull).min(LocalDateTime::compareTo).orElse(null))
                 .build();

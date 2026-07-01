@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import {
     Printer, Download, ArrowLeft, Building2, FileText,
-    CreditCard, QrCode, CheckCircle2, Crown,
+    CreditCard, QrCode, CheckCircle2, Crown, Banknote, Landmark,
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useLocale } from '../context/LocaleContext';
-import { getInvoiceByBookingId, getCombinedInvoice } from '../services/invoiceService';
+import { useAuth } from '../context/AuthContext';
+import { getInvoiceByBookingId, getCombinedInvoice, processReceptionistPayment } from '../services/invoiceService';
 
 function formatPrice(price, locale) {
     return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
@@ -75,11 +76,19 @@ export default function InvoicePage() {
     const batchBookingIds = searchParams.getAll('bookingIds').filter(Boolean);
     const isCombinedInvoice = batchBookingIds.length > 0;
     const { locale } = useLocale();
+    const { user } = useAuth();
     const isVi = locale === 'vi';
+    const isReceptionistPayment = searchParams.get('receptionistPayment') === 'true'
+        && user?.roleName === 'RECEPTIONIST';
 
     const [invoice, setInvoice] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('');
+    const [cashReceived, setCashReceived] = useState('');
+    const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+    const [paymentError, setPaymentError] = useState('');
+    const [paymentLoading, setPaymentLoading] = useState(false);
 
     useEffect(() => {
         if (!bookingId && !isCombinedInvoice) return;
@@ -114,6 +123,42 @@ export default function InvoicePage() {
     const vatAmount = invoiceItems.reduce((total, item) => total + Number(item.vatAmount || 0), 0);
     const additionalCharges = invoiceItems.reduce((total, item) => total + Number(item.additionalCharges || 0), 0);
     const grandTotal = Number(invoice?.totalAmount || 0);
+    const parsedCashReceived = Number(cashReceived || 0);
+    const changeAmount = Math.max(0, parsedCashReceived - grandTotal);
+    const cashIsInsufficient = paymentMethod === 'CASH' && cashReceived !== '' && parsedCashReceived < grandTotal;
+
+    const handleReceptionistPayment = async () => {
+        setPaymentError('');
+        if (!paymentMethod) {
+            setPaymentError(isVi ? 'Vui lòng chọn hình thức thanh toán.' : 'Please choose a payment method.');
+            return;
+        }
+        if (paymentMethod === 'CASH' && (!cashReceived || parsedCashReceived < grandTotal)) {
+            setPaymentError(isVi ? 'Số tiền nhận từ khách phải đủ để thanh toán hóa đơn.' : 'Cash received must cover the invoice total.');
+            return;
+        }
+        if (paymentMethod !== 'CASH' && !paymentConfirmed) {
+            setPaymentError(isVi ? 'Vui lòng xác nhận đã nhận được tiền từ khách.' : 'Please confirm that payment was received.');
+            return;
+        }
+
+        setPaymentLoading(true);
+        try {
+            const ids = isCombinedInvoice ? batchBookingIds : [bookingId];
+            const res = await processReceptionistPayment(
+                ids,
+                paymentMethod,
+                paymentMethod === 'CASH' ? parsedCashReceived : null,
+                paymentMethod === 'CASH' ? true : paymentConfirmed,
+                locale,
+            );
+            if (res?.data) setInvoice(res.data);
+        } catch (err) {
+            setPaymentError(err.message || (isVi ? 'Thanh toán thất bại.' : 'Payment failed.'));
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
 
     const invoiceNumber = invoice?.invoiceCode || `INV-${String(bookingId).padStart(6, '0')}`;
     const invoiceDate = invoice?.createdAt ? formatDate(invoice.createdAt) : formatDate(new Date().toISOString());
@@ -192,6 +237,124 @@ export default function InvoicePage() {
                         </button>
                     </div>
                 </div>
+
+                {isReceptionistPayment && invoice?.paymentStatus !== 'PAID' && (
+                    <section className="no-print mb-6 rounded-xl border border-stone-200 bg-white p-6 shadow-lg">
+                        <h2 className="text-xl font-bold text-slate-800">
+                            {isVi ? 'Thanh toán tại quầy' : 'Payment at reception'}
+                        </h2>
+                        <p className="mt-1 text-sm text-slate-500">
+                            {isVi ? 'Chọn một trong ba hình thức và xác nhận tiền đã nhận.' : 'Choose one payment method and confirm receipt.'}
+                        </p>
+
+                        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                            {[
+                                { value: 'CASH', label: isVi ? 'Tiền mặt' : 'Cash', Icon: Banknote },
+                                { value: 'TRANSFER', label: isVi ? 'Chuyển khoản' : 'Bank transfer', Icon: Landmark },
+                                { value: 'CARD', label: isVi ? 'Thẻ' : 'Card', Icon: CreditCard },
+                            ].map(({ value, label, Icon }) => (
+                                <button
+                                    type="button"
+                                    key={value}
+                                    onClick={() => {
+                                        setPaymentMethod(value);
+                                        setPaymentConfirmed(false);
+                                        setPaymentError('');
+                                    }}
+                                    className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 font-bold transition-colors ${
+                                        paymentMethod === value
+                                            ? 'border-[#bfa15f] bg-[#bfa15f]/10 text-[#9b7d3f]'
+                                            : 'border-stone-200 text-slate-600 hover:border-[#bfa15f]'
+                                    }`}
+                                >
+                                    <Icon size={20} /> {label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {paymentMethod === 'CASH' && (
+                            <div className="mt-5 rounded-lg border border-emerald-100 bg-emerald-50 p-5">
+                                <label className="block text-sm font-bold text-slate-700">
+                                    {isVi ? 'Số tiền nhận từ khách' : 'Cash received'}
+                                    <input
+                                        type="number"
+                                        min={grandTotal}
+                                        step="1000"
+                                        value={cashReceived}
+                                        onChange={(event) => {
+                                            setCashReceived(event.target.value);
+                                            setPaymentError('');
+                                        }}
+                                        className={`mt-2 w-full rounded border px-3 py-2.5 text-lg outline-none ${cashIsInsufficient ? 'border-red-400 bg-red-50' : 'border-stone-300 bg-white focus:border-[#bfa15f]'}`}
+                                        placeholder={String(grandTotal)}
+                                    />
+                                </label>
+                                {cashIsInsufficient && (
+                                    <p className="mt-1 text-xs font-semibold text-red-600">
+                                        {isVi ? 'Số tiền nhận chưa đủ tổng tiền hóa đơn.' : 'Cash received is below the invoice total.'}
+                                    </p>
+                                )}
+                                <div className="mt-4 grid grid-cols-2 gap-4 border-t border-emerald-200 pt-4">
+                                    <div>
+                                        <p className="text-xs font-bold uppercase text-slate-500">{isVi ? 'Tổng phải thu' : 'Amount due'}</p>
+                                        <p className="mt-1 font-bold text-slate-800">{formatPrice(grandTotal, locale)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-bold uppercase text-slate-500">{isVi ? 'Tiền trả lại khách' : 'Change due'}</p>
+                                        <p className="mt-1 text-xl font-bold text-emerald-700">{formatPrice(changeAmount, locale)}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {paymentMethod === 'TRANSFER' && (
+                            <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 p-5">
+                                <p className="font-bold text-slate-800">{isVi ? 'Quét mã QR trên hóa đơn bên dưới để chuyển khoản.' : 'Scan the QR code below to transfer.'}</p>
+                                <p className="mt-1 text-sm text-slate-500">{isVi ? 'Đối chiếu đúng số tiền và nội dung trước khi xác nhận.' : 'Verify the amount and reference before confirming.'}</p>
+                            </div>
+                        )}
+
+                        {(paymentMethod === 'TRANSFER' || paymentMethod === 'CARD') && (
+                            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-lg border border-stone-200 p-4">
+                                <input
+                                    type="checkbox"
+                                    checked={paymentConfirmed}
+                                    onChange={(event) => {
+                                        setPaymentConfirmed(event.target.checked);
+                                        setPaymentError('');
+                                    }}
+                                    className="mt-1 h-4 w-4 accent-[#bfa15f]"
+                                />
+                                <span className="text-sm font-semibold text-slate-700">
+                                    {paymentMethod === 'CARD'
+                                        ? (isVi ? 'Tôi xác nhận đã nhận đủ tiền thanh toán thẻ từ khách.' : 'I confirm the card payment was received.')
+                                        : (isVi ? 'Tôi xác nhận tiền chuyển khoản đã vào tài khoản.' : 'I confirm the transfer was received.')}
+                                </span>
+                            </label>
+                        )}
+
+                        {paymentError && <p className="mt-3 text-sm font-semibold text-red-600">{paymentError}</p>}
+                        <button
+                            type="button"
+                            onClick={handleReceptionistPayment}
+                            disabled={paymentLoading || !paymentMethod || cashIsInsufficient}
+                            className="btn-gold mt-5 w-full rounded py-3 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {paymentLoading ? (isVi ? 'Đang lưu thanh toán...' : 'Saving payment...') : (isVi ? 'Xác nhận thanh toán và chuyển sang check-in' : 'Confirm payment and send to check-in')}
+                        </button>
+                    </section>
+                )}
+
+                {isReceptionistPayment && invoice?.paymentStatus === 'PAID' && (
+                    <section className="no-print mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
+                        <CheckCircle2 size={44} className="mx-auto text-emerald-600" />
+                        <h2 className="mt-3 text-xl font-bold text-emerald-800">{isVi ? 'Thanh toán thành công' : 'Payment completed'}</h2>
+                        <p className="mt-1 text-sm text-emerald-700">{isVi ? 'Các đơn đã được chuyển sang danh sách chờ check-in.' : 'Bookings were moved to the check-in queue.'}</p>
+                        <Link to="/dashboard/check-in" className="mt-4 inline-block rounded bg-emerald-700 px-6 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">
+                            {isVi ? 'Mở danh sách check-in' : 'Open check-in list'}
+                        </Link>
+                    </section>
+                )}
 
                 {/* Invoice Card */}
                 <div className="bg-white rounded-xl shadow-lg border border-stone-200 overflow-hidden print-container">
@@ -338,6 +501,18 @@ export default function InvoicePage() {
                                             <span className="text-slate-700">{formatPrice(additionalCharges, locale)}</span>
                                         </div>
                                     )}
+                                    {invoice?.paymentMethod === 'CASH' && invoice?.cashReceived != null && (
+                                        <>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-slate-500">{isVi ? 'Tiền khách đưa' : 'Cash received'}</span>
+                                                <span className="font-semibold text-slate-700">{formatPrice(invoice.cashReceived, locale)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-slate-500">{isVi ? 'Tiền trả lại' : 'Change given'}</span>
+                                                <span className="font-semibold text-emerald-700">{formatPrice(invoice.changeAmount || 0, locale)}</span>
+                                            </div>
+                                        </>
+                                    )}
                                     <div className="h-px bg-stone-200 my-2" />
                                     <div className="flex justify-between items-baseline">
                                         <span className="text-base font-bold text-slate-800">{isVi ? 'Tổng cộng' : 'Total Amount Due'}</span>
@@ -349,7 +524,12 @@ export default function InvoicePage() {
                                         <CreditCard size={14} />
                                         <span>{isVi ? 'Phương thức:' : 'Payment:'} </span>
                                         <span className="font-semibold text-slate-600">
-                      {invoice?.paymentMethod || (isVi ? 'Tiền mặt / Chuyển khoản' : 'Cash / Bank Transfer')}
+                      {{
+                          CASH: isVi ? 'Tiền mặt' : 'Cash',
+                          TRANSFER: isVi ? 'Chuyển khoản' : 'Bank transfer',
+                          CARD: isVi ? 'Thẻ' : 'Card',
+                          VNPAY: 'VNPay',
+                      }[invoice?.paymentMethod] || (isVi ? 'Chưa chọn' : 'Not selected')}
                     </span>
                                     </div>
                                 </div>

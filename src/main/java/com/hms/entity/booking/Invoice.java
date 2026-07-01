@@ -43,6 +43,16 @@ public class Invoice {
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
 
+    @Column(name = "cash_received", precision = 14, scale = 2)
+    private BigDecimal cashReceived;
+
+    @Column(name = "change_amount", precision = 14, scale = 2)
+    private BigDecimal changeAmount;
+
+    @Column(name = "payment_confirmed")
+    @Builder.Default
+    private Boolean paymentConfirmed = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

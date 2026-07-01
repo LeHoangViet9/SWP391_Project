@@ -26,5 +26,8 @@ public interface InvoiceMapper {
     @Mapping(target = "amount", ignore = true)
     @Mapping(target = "paymentStatus", ignore = true)
     @Mapping(target = "paidAt", ignore = true)// Map đúng chữ sai chính tả sang DB
+    @Mapping(target = "cashReceived", ignore = true)
+    @Mapping(target = "changeAmount", ignore = true)
+    @Mapping(target = "paymentConfirmed", ignore = true)
     Invoice toEntity(InvoiceRequest request);
 }
