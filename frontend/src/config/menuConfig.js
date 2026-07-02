@@ -40,6 +40,7 @@ import {
   Tag,
   CalendarCheck,
   ClipboardCheck,
+  LogOut,
   CalendarDays,
   Users,
   Wrench,
@@ -134,6 +135,15 @@ export const MENU_CONFIG = [
     path: '/dashboard/check-in',
     icon: ClipboardCheck,
     permissions: ['CHECKIN_VIEW', 'CHECKIN_PROCESS'],
+    group: 'operations',
+  },
+  {
+    key: 'check-out',
+    label: 'Check-out',
+    labelEn: 'Check-out',
+    path: '/dashboard/check-out',
+    icon: LogOut,
+    permissions: ['CHECKOUT_VIEW', 'CHECKOUT_PROCESS'],
     group: 'operations',
   },
   {

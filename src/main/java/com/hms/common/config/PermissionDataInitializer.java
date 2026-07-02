@@ -49,6 +49,9 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 // Check-in permissions
                 "CHECKIN_VIEW", "CHECKIN_PROCESS",
 
+                // Check-out permissions
+                "CHECKOUT_VIEW", "CHECKOUT_PROCESS",
+
                 // Housekeeping permissions
                 "HOUSEKEEPING_VIEW", "HOUSEKEEPING_CREATE", "HOUSEKEEPING_UPDATE", "HOUSEKEEPING_DELETE",
 
@@ -125,6 +128,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE", "CUSTOMER_DELETE",
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE", "BOOKING_DELETE",
                 "CHECKIN_VIEW", "CHECKIN_PROCESS",
+                "CHECKOUT_VIEW", "CHECKOUT_PROCESS",
                 "HOUSEKEEPING_VIEW", "HOUSEKEEPING_CREATE", "HOUSEKEEPING_UPDATE", "HOUSEKEEPING_DELETE",
                 "EQUIPMENT_VIEW", "EQUIPMENT_CREATE", "EQUIPMENT_UPDATE", "EQUIPMENT_DELETE",
                 "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE", "MAINTENANCE_DELETE",
@@ -142,6 +146,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE",
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE",
                 "CHECKIN_VIEW", "CHECKIN_PROCESS",
+                "CHECKOUT_VIEW", "CHECKOUT_PROCESS",
                 "HOUSEKEEPING_VIEW",
                 "FEEDBACK_VIEW", "FEEDBACK_UPDATE",
                 "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE"

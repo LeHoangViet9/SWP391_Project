@@ -87,6 +87,9 @@ public class Booking {
     @Column(name = "actual_check_in_time")
     private LocalDateTime actualCheckInTime;
 
+    @Column(name = "actual_check_out_time")
+    private LocalDateTime actualCheckOutTime;
+
     @Column(name = "booking_for_other")
     @Builder.Default
     private Boolean bookingForOther = false;
