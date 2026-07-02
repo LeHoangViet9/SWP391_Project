@@ -14,6 +14,36 @@ export async function getInvoiceByBookingId(bookingId, locale = 'vi') {
   return apiFetch(`/invoices/booking/${bookingId}`, {}, locale);
 }
 
+function buildBookingIdsQuery(bookingIds) {
+  const params = new URLSearchParams();
+  bookingIds.forEach(id => params.append('bookingIds', id));
+  return params.toString();
+}
+
+/** GET one combined payment invoice for multiple bookings. */
+export async function getCombinedInvoice(bookingIds, locale = 'vi') {
+  return apiFetch(`/invoices/batch?${buildBookingIdsQuery(bookingIds)}`, {}, locale);
+}
+
+/** Confirm one payment for every booking in a combined invoice. */
+export async function confirmCombinedInvoicePayment(bookingIds, locale = 'vi') {
+  return apiFetch(`/invoices/batch/webhook/payment-success?${buildBookingIdsQuery(bookingIds)}`, {
+    method: 'POST',
+  }, locale);
+}
+
+/** Create a signed payOS checkout and VietQR for one or more bookings. */
+export async function createPayOSCheckout(bookingIds, locale = 'vi') {
+  return apiFetch(`/invoices/payos/checkout?${buildBookingIdsQuery(bookingIds)}`, {
+    method: 'POST',
+  }, locale);
+}
+
+/** Ask payOS for the latest status; useful when localhost cannot receive webhooks. */
+export async function synchronizePayOSStatus(orderCode, locale = 'vi') {
+  return apiFetch(`/invoices/payos/${orderCode}/status`, {}, locale);
+}
+
 /** POST /api/v1/invoices/{id}/pay */
 export async function payInvoice(invoiceId, paymentMethod, locale = 'vi') {
   return apiFetch(`/invoices/${invoiceId}/pay`, {
@@ -45,5 +75,27 @@ export async function processPayments(id, paymentMethod, locale = 'vi') {
   return apiFetch(`/invoices/${id}/process-payments`, {
     method: 'POST',
     body: JSON.stringify({ paymentMethod }),
+  }, locale);
+}
+
+/**
+ * POST /api/v1/invoices/batch/pay-at-desk?bookingIds=1&bookingIds=2...
+ * Process receptionist payment for one or more bookings.
+ * bookingIds go as @RequestParam query params; the rest go in the JSON body.
+ * @param {number[]} bookingIds
+ * @param {'CASH'|'CARD'|'TRANSFER'} paymentMethod
+ * @param {number|null} cashReceived - required for CASH
+ * @param {boolean} paymentConfirmed - required for CARD/TRANSFER
+ */
+export async function processReceptionistPayment(bookingIds, paymentMethod, cashReceived = null, paymentConfirmed = false, locale = 'vi') {
+  const params = new URLSearchParams();
+  bookingIds.forEach(id => params.append('bookingIds', id));
+  return apiFetch(`/invoices/batch/pay-at-desk?${params.toString()}`, {
+    method: 'POST',
+    body: JSON.stringify({
+      paymentMethod,
+      cashReceived,
+      paymentConfirmed,
+    }),
   }, locale);
 }

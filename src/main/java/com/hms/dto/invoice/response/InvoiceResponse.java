@@ -20,6 +20,10 @@ public class InvoiceResponse {
     private Long bookingId;
     private String customerName;
     private String roomNumber;
+    private String roomTypeName;
+    private Integer quantity;
+    private LocalDateTime checkInDate;
+    private LocalDateTime checkOutDate;
     private Long numberOfNights;
 
     private BigDecimal roomPricePerNight;
@@ -31,6 +35,9 @@ public class InvoiceResponse {
 
     private PaymentStatus paymentStatus;
     private PaymentMethod paymentMethod;
+    private BigDecimal cashReceived;
+    private BigDecimal changeAmount;
+    private Boolean paymentConfirmed;
     private LocalDateTime paidAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
