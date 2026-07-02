@@ -2,13 +2,19 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import {
     Printer, Download, ArrowLeft, Building2, FileText,
-    CreditCard, QrCode, CheckCircle2, Crown, Banknote, Landmark,
+    CreditCard, CheckCircle2, Crown, Banknote, Landmark, Copy, Check,
 } from 'lucide-react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
-import { getInvoiceByBookingId, getCombinedInvoice, processReceptionistPayment, createPayOSCheckout, synchronizePayOSStatus } from '../services/invoiceService';
+import { getInvoiceByBookingId, getCombinedInvoice, processReceptionistPayment, simulateCombinedInvoicePayment } from '../services/invoiceService';
+
+const DEMO_BANK = {
+    name: 'Vietcombank',
+    accountNumber: '123456789',
+    accountName: 'KHACH SAN HMS',
+};
 
 function formatPrice(price, locale) {
     return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
@@ -24,13 +30,20 @@ function formatDate(dateStr) {
     return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function formatCountdown(totalSeconds) {
+    const safeSeconds = Math.max(0, totalSeconds);
+    const minutes = Math.floor(safeSeconds / 60);
+    const seconds = safeSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
 // Generate a simple QR-like pattern placeholder using SVG
 function QrPlaceholder({ value }) {
     return (
         <div className="inline-flex flex-col items-center gap-2">
-            <div className="w-28 h-28 bg-white border-2 border-stone-200 rounded-lg flex items-center justify-center relative overflow-hidden">
+            <div className="w-44 h-44 bg-white border-2 border-stone-200 rounded-lg flex items-center justify-center relative overflow-hidden">
                 {/* SVG QR Pattern placeholder */}
-                <svg viewBox="0 0 100 100" className="w-24 h-24">
+                <svg viewBox="0 0 100 100" className="w-40 h-40">
                     {/* Corner squares */}
                     <rect x="5" y="5" width="25" height="25" fill="#1a2332" rx="3" />
                     <rect x="8" y="8" width="19" height="19" fill="white" rx="2" />
@@ -89,8 +102,12 @@ export default function InvoicePage() {
     const [paymentConfirmed, setPaymentConfirmed] = useState(false);
     const [paymentError, setPaymentError] = useState('');
     const [paymentLoading, setPaymentLoading] = useState(false);
-    const [payOSCheckout, setPayOSCheckout] = useState(null);
-    const [payOSError, setPayOSError] = useState('');
+    const [copiedField, setCopiedField] = useState('');
+    const [simulationLoading, setSimulationLoading] = useState(false);
+    const [simulationError, setSimulationError] = useState('');
+    const [simulationSucceeded, setSimulationSucceeded] = useState(false);
+    const [now, setNow] = useState(() => Date.now());
+    const [fallbackPaymentExpiry] = useState(() => Date.now() + (30 * 60 * 1000));
 
     useEffect(() => {
         if (!bookingId && !isCombinedInvoice) return;
@@ -113,26 +130,9 @@ export default function InvoicePage() {
     }, [bookingId, locale, searchParams.toString()]);
 
     useEffect(() => {
-        if (!invoice || invoice.paymentStatus === 'PAID' || isReceptionistPayment || payOSCheckout) return;
-        const ids = isCombinedInvoice ? batchBookingIds : [bookingId];
-        createPayOSCheckout(ids, locale)
-            .then((res) => setPayOSCheckout(res?.data || null))
-            .catch((err) => setPayOSError(err.message || (isVi ? 'Không thể tạo mã PayOS.' : 'Could not create PayOS checkout.')));
-    }, [invoice?.paymentStatus, isReceptionistPayment, payOSCheckout, bookingId, locale]);
-
-    useEffect(() => {
-        if (!payOSCheckout || invoice?.paymentStatus === 'PAID') return undefined;
-        const timer = window.setInterval(async () => {
-            try {
-                await synchronizePayOSStatus(payOSCheckout.orderCode, locale);
-                const res = isCombinedInvoice
-                    ? await getCombinedInvoice(batchBookingIds, locale)
-                    : await getInvoiceByBookingId(bookingId, locale);
-                if (res?.data) setInvoice(res.data);
-            } catch (_) { /* Keep polling; the webhook remains the payment authority. */ }
-        }, 3000);
+        const timer = window.setInterval(() => setNow(Date.now()), 1000);
         return () => window.clearInterval(timer);
-    }, [payOSCheckout, invoice?.paymentStatus, bookingId, locale]);
+    }, []);
 
     const handlePrint = () => window.print();
 
@@ -150,6 +150,37 @@ export default function InvoicePage() {
     const parsedCashReceived = Number(cashReceived || 0);
     const changeAmount = Math.max(0, parsedCashReceived - grandTotal);
     const cashIsInsufficient = paymentMethod === 'CASH' && cashReceived !== '' && parsedCashReceived < grandTotal;
+    const transferContent = invoice?.paymentContent || `HMS ${batchBookingIds.join('-') || bookingId}`;
+    const fallbackExpiry = invoice?.createdAt
+        ? new Date(invoice.createdAt).getTime() + (30 * 60 * 1000)
+        : fallbackPaymentExpiry;
+    const paymentExpiry = invoice?.holdExpiresAt ? new Date(invoice.holdExpiresAt).getTime() : fallbackExpiry;
+    const paymentSecondsLeft = Math.max(0, Math.ceil((paymentExpiry - now) / 1000));
+
+    const copyValue = async (field, value) => {
+        try {
+            await navigator.clipboard.writeText(String(value));
+            setCopiedField(field);
+            window.setTimeout(() => setCopiedField(''), 1800);
+        } catch (_) {
+            setSimulationError(isVi ? 'Không thể sao chép tự động. Vui lòng sao chép thủ công.' : 'Could not copy automatically. Please copy manually.');
+        }
+    };
+
+    const handleSimulatePayment = async () => {
+        setSimulationLoading(true);
+        setSimulationError('');
+        try {
+            const ids = isCombinedInvoice ? batchBookingIds : [bookingId];
+            const response = await simulateCombinedInvoicePayment(ids, locale);
+            if (response?.data) setInvoice(response.data);
+            setSimulationSucceeded(true);
+        } catch (err) {
+            setSimulationError(err.message || (isVi ? 'Không thể giả lập thanh toán.' : 'Could not simulate payment.'));
+        } finally {
+            setSimulationLoading(false);
+        }
+    };
 
     const handleReceptionistPayment = async () => {
         setPaymentError('');
@@ -244,7 +275,7 @@ export default function InvoicePage() {
                         <ArrowLeft size={16} />
                         {isVi ? 'Quay lại' : 'Go back'}
                     </Link>
-                    <div className="flex items-center gap-3">
+                    {invoice?.paymentStatus === 'PAID' && <div className="hidden">
                         <button
                             onClick={handlePrint}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm font-semibold text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-all shadow-sm"
@@ -259,8 +290,64 @@ export default function InvoicePage() {
                             <Download size={16} />
                             {isVi ? 'Tải PDF' : 'Download PDF'}
                         </button>
-                    </div>
+                    </div>}
                 </div>
+
+                {!isReceptionistPayment && invoice?.paymentStatus !== 'PAID' && (
+                    <section className="no-print mb-6 overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-lg">
+                        <div className="bg-gradient-to-r from-blue-700 to-cyan-600 px-6 py-5 text-white">
+                            <h2 className="text-xl font-bold">{isVi ? 'Thanh toán chuyển khoản' : 'Bank transfer payment'}</h2>
+                            <p className="mt-1 text-sm text-blue-50">
+                                {isVi ? 'Quét mã QR giả hoặc sao chép thông tin bên dưới để thử luồng thanh toán.' : 'Scan the demo QR or copy the details below to test the payment flow.'}
+                            </p>
+                        </div>
+                        <div className="grid gap-6 p-6 md:grid-cols-[210px_1fr]">
+                            <div className="flex flex-col items-center justify-center rounded-xl bg-stone-50 p-4">
+                                <QrPlaceholder value={transferContent} />
+                                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700 tabular-nums">
+                                    {paymentSecondsLeft > 0
+                                        ? `${isVi ? 'Đang chờ thanh toán' : 'Awaiting payment'} · ${formatCountdown(paymentSecondsLeft)}`
+                                        : (isVi ? 'Đã hết thời gian thanh toán' : 'Payment time expired')}
+                                </span>
+                            </div>
+                            <div className="space-y-3">
+                                {[
+                                    ['bank', isVi ? 'Ngân hàng' : 'Bank', DEMO_BANK.name],
+                                    ['account', isVi ? 'Số tài khoản' : 'Account number', DEMO_BANK.accountNumber],
+                                    ['holder', isVi ? 'Chủ tài khoản' : 'Account holder', DEMO_BANK.accountName],
+                                    ['amount', isVi ? 'Số tiền' : 'Amount', formatPrice(grandTotal, locale)],
+                                    ['content', isVi ? 'Nội dung chuyển khoản' : 'Transfer reference', transferContent],
+                                ].map(([field, label, value]) => (
+                                    <div key={field} className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 px-4 py-3">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+                                            <p className="truncate font-bold text-slate-800">{value}</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => copyValue(field, field === 'amount' ? grandTotal : value)}
+                                            className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
+                                            title={isVi ? 'Sao chép' : 'Copy'}
+                                        >
+                                            {copiedField === field ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
+                                        </button>
+                                    </div>
+                                ))}
+                                {simulationError && <p className="text-sm font-semibold text-red-600">{simulationError}</p>}
+                                <button
+                                    type="button"
+                                    onClick={handleSimulatePayment}
+                                    disabled={simulationLoading}
+                                    className="mt-2 w-full rounded-lg bg-blue-700 px-5 py-3.5 font-bold text-white shadow hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {simulationLoading
+                                        ? (isVi ? 'Đang xử lý...' : 'Processing...')
+                                        : (isVi ? 'Giả lập thanh toán thành công' : 'Simulate successful payment')}
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 {isReceptionistPayment && invoice?.paymentStatus !== 'PAID' && (
                     <section className="no-print mb-6 rounded-xl border border-stone-200 bg-white p-6 shadow-lg">
@@ -332,13 +419,55 @@ export default function InvoicePage() {
                         )}
 
                         {paymentMethod === 'TRANSFER' && (
-                            <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 p-5">
-                                <p className="font-bold text-slate-800">{isVi ? 'Quét mã QR trên hóa đơn bên dưới để chuyển khoản.' : 'Scan the QR code below to transfer.'}</p>
-                                <p className="mt-1 text-sm text-slate-500">{isVi ? 'Đối chiếu đúng số tiền và nội dung trước khi xác nhận.' : 'Verify the amount and reference before confirming.'}</p>
+                            <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 p-5">
+                                <div className="grid gap-5 md:grid-cols-[190px_1fr]">
+                                    <div className="flex flex-col items-center justify-center rounded-xl bg-white p-3">
+                                        <QrPlaceholder value={transferContent} />
+                                        <span className="mt-2 text-xs font-bold text-blue-700">
+                                            {isVi ? 'Quét để chuyển khoản' : 'Scan to transfer'}
+                                        </span>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {[
+                                            ['staff-bank', isVi ? 'Ngân hàng' : 'Bank', DEMO_BANK.name],
+                                            ['staff-account', isVi ? 'Số tài khoản' : 'Account number', DEMO_BANK.accountNumber],
+                                            ['staff-holder', isVi ? 'Chủ tài khoản' : 'Account holder', DEMO_BANK.accountName],
+                                            ['staff-amount', isVi ? 'Số tiền' : 'Amount', formatPrice(grandTotal, locale)],
+                                            ['staff-content', isVi ? 'Nội dung chuyển khoản' : 'Transfer reference', transferContent],
+                                        ].map(([field, label, value]) => (
+                                            <div key={field} className="flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-white px-3 py-2.5">
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] font-bold uppercase text-slate-400">{label}</p>
+                                                    <p className="truncate text-sm font-bold text-slate-800">{value}</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => copyValue(field, field === 'staff-amount' ? grandTotal : value)}
+                                                    className="shrink-0 rounded p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
+                                                    title={isVi ? 'Sao chép' : 'Copy'}
+                                                >
+                                                    {copiedField === field ? <Check size={17} className="text-emerald-600" /> : <Copy size={17} />}
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPaymentConfirmed(true);
+                                                setPaymentError('');
+                                            }}
+                                            className="mt-2 w-full rounded-lg bg-blue-700 px-4 py-3 font-bold text-white hover:bg-blue-800"
+                                        >
+                                            {paymentConfirmed
+                                                ? (isVi ? '✓ Đã giả lập thanh toán' : '✓ Payment simulated')
+                                                : (isVi ? 'Giả lập thanh toán' : 'Simulate payment')}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
-                        {(paymentMethod === 'TRANSFER' || paymentMethod === 'CARD') && (
+                        {paymentMethod === 'CARD' && (
                             <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-lg border border-stone-200 p-4">
                                 <input
                                     type="checkbox"
@@ -361,7 +490,8 @@ export default function InvoicePage() {
                         <button
                             type="button"
                             onClick={handleReceptionistPayment}
-                            disabled={paymentLoading || !paymentMethod || cashIsInsufficient}
+                            disabled={paymentLoading || !paymentMethod || cashIsInsufficient
+                                || ((paymentMethod === 'TRANSFER' || paymentMethod === 'CARD') && !paymentConfirmed)}
                             className="btn-gold mt-5 w-full rounded py-3 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {paymentLoading ? (isVi ? 'Đang lưu thanh toán...' : 'Saving payment...') : (isVi ? 'Xác nhận thanh toán và chuyển sang check-in' : 'Confirm payment and send to check-in')}
@@ -370,30 +500,69 @@ export default function InvoicePage() {
                 )}
 
                 {isReceptionistPayment && invoice?.paymentStatus === 'PAID' && (
-                    <section className="no-print mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
-                        <CheckCircle2 size={44} className="mx-auto text-emerald-600" />
-                        <h2 className="mt-3 text-xl font-bold text-emerald-800">{isVi ? 'Thanh toán thành công' : 'Payment completed'}</h2>
-                        <p className="mt-1 text-sm text-emerald-700">{isVi ? 'Các đơn đã được chuyển sang danh sách chờ check-in.' : 'Bookings were moved to the check-in queue.'}</p>
-                        <Link to="/dashboard/check-in" className="mt-4 inline-block rounded bg-emerald-700 px-6 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">
-                            {isVi ? 'Mở danh sách check-in' : 'Open check-in list'}
+                    <section className="no-print mx-auto mb-6 max-w-xl rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-xl">
+                        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
+                            <CheckCircle2 size={48} className="text-emerald-600" />
+                        </div>
+                        <h2 className="mt-5 text-2xl font-bold text-emerald-800">{isVi ? 'Đặt phòng và thanh toán thành công' : 'Booking and payment completed'}</h2>
+                        <p className="mt-2 text-sm text-emerald-700">{isVi ? 'Đơn đã được chuyển sang danh sách chờ check-in.' : 'The booking was moved to the check-in queue.'}</p>
+                        <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                            <button
+                                type="button"
+                                onClick={handlePrint}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-5 py-3 font-bold text-emerald-700 hover:bg-emerald-50"
+                            >
+                                <Printer size={18} /> {isVi ? 'In hóa đơn' : 'Print invoice'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDownloadPDF}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700"
+                            >
+                                <Download size={18} /> {isVi ? 'Xuất PDF' : 'Export PDF'}
+                            </button>
+                        </div>
+                        <Link to="/" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-emerald-700">
+                            <ArrowLeft size={18} /> {isVi ? 'Quay về trang chủ' : 'Back to home'}
                         </Link>
                     </section>
                 )}
 
                 {!isReceptionistPayment && invoice?.paymentStatus === 'PAID' && (
-                    <section className="no-print mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center shadow-sm">
-                        <CheckCircle2 size={44} className="mx-auto text-emerald-600" />
-                        <h2 className="mt-3 text-xl font-bold text-emerald-800">
-                            {isVi ? 'Thanh toán PayOS thành công' : 'PayOS payment successful'}
+                    <section className="no-print mx-auto mb-6 max-w-xl rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-xl">
+                        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
+                            <CheckCircle2 size={48} className="text-emerald-600" />
+                        </div>
+                        <h2 className="mt-5 text-2xl font-bold text-emerald-800">
+                            {isVi ? 'Thanh toán thành công' : 'Payment successful'}
                         </h2>
                         <p className="mt-1 text-sm text-emerald-700">
                             {isVi ? 'Thanh toán đã được xác nhận và đơn đặt phòng đang chờ check-in.' : 'Payment is confirmed and the booking is pending check-in.'}
                         </p>
+                        <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                            <button
+                                type="button"
+                                onClick={handlePrint}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-5 py-3 font-bold text-emerald-700 hover:bg-emerald-50"
+                            >
+                                <Printer size={18} /> {isVi ? 'In hóa đơn' : 'Print invoice'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleDownloadPDF}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700"
+                            >
+                                <Download size={18} /> {isVi ? 'Xuất PDF' : 'Export PDF'}
+                            </button>
+                        </div>
+                        <Link to="/" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-emerald-700">
+                            <ArrowLeft size={18} /> {isVi ? 'Quay về trang chủ' : 'Back to home'}
+                        </Link>
                     </section>
                 )}
 
                 {/* Invoice Card */}
-                <div className="bg-white rounded-xl shadow-lg border border-stone-200 overflow-hidden print-container">
+                <div className="hidden bg-white rounded-xl shadow-lg border border-stone-200 overflow-hidden print-container print:block">
                     {/* ─── Invoice Header ─── */}
                     <div className="bg-gradient-to-r from-[#0c192c] to-[#1a2332] px-8 py-8">
                         <div className="flex items-start justify-between">
@@ -565,31 +734,25 @@ export default function InvoicePage() {
                           TRANSFER: isVi ? 'Chuyển khoản' : 'Bank transfer',
                           CARD: isVi ? 'Thẻ' : 'Card',
                           VNPAY: 'VNPay',
-                      }[invoice?.paymentMethod] || (isVi ? 'Chưa chọn' : 'Not selected')}
+                      }[invoice?.paymentMethod || (!isReceptionistPayment ? 'TRANSFER' : '')] || (isVi ? 'Chưa chọn' : 'Not selected')}
                     </span>
                                     </div>
                                 </div>
 
-                                {/* QR Code */}
-                                <div className="flex flex-col items-center justify-center sm:border-l sm:border-stone-200 sm:pl-6">
+                                {/* Receptionist transfer QR; customers use the demo payment panel above. */}
+                                {isReceptionistPayment && <div className="flex flex-col items-center justify-center sm:border-l sm:border-stone-200 sm:pl-6">
                                     <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
                                         {isVi ? 'Quét để thanh toán' : 'Scan to Pay'}
                                     </p>
-                                    {payOSCheckout?.qrCode || (isReceptionistPayment && invoice?.qrCodeUrl) ? (
-                                        <img src={payOSCheckout?.qrCode || invoice.qrCodeUrl} alt="PayOS VietQR" className="h-40 w-40 rounded-lg border border-stone-200 bg-white object-contain" />
+                                    {isReceptionistPayment && invoice?.qrCodeUrl ? (
+                                        <img src={invoice.qrCodeUrl} alt="Mã QR chuyển khoản" className="h-40 w-40 rounded-lg border border-stone-200 bg-white object-contain" />
                                     ) : (
                                         <QrPlaceholder value={invoiceNumber} />
                                     )}
-                                    {payOSCheckout?.checkoutUrl && (
-                                        <a href={payOSCheckout.checkoutUrl} target="_blank" rel="noreferrer" className="mt-3 rounded bg-[#bfa15f] px-4 py-2 text-xs font-bold text-white hover:bg-[#a88d50]">
-                                            {isVi ? 'Mở trang thanh toán PayOS' : 'Open PayOS checkout'}
-                                        </a>
-                                    )}
-                                    {payOSError && <p className="mt-2 max-w-48 text-center text-xs font-semibold text-red-600">{payOSError}</p>}
                                     {isReceptionistPayment && invoice?.paymentContent && (
                                         <p className="mt-2 text-xs font-bold text-slate-600">{invoice.paymentContent}</p>
                                     )}
-                                </div>
+                                </div>}
                             </div>
                         </div>
                     </div>

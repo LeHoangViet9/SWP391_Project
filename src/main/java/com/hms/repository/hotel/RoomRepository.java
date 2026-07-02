@@ -85,7 +85,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
                 AND NOT EXISTS (
                     SELECT b FROM Booking b
                     WHERE b.room.id = r.id
-                    AND b.bookingStatus IN (com.hms.common.enums.BookingStatus.CONFIRMED,com.hms.common.enums.BookingStatus.CHECKED_IN)
+                    AND b.bookingStatus IN (com.hms.common.enums.BookingStatus.PENDING_CHECK_IN,com.hms.common.enums.BookingStatus.CHECKED_IN)
                     AND b.checkInDate < :checkOutDate
                     AND b.checkOutDate > :checkInDate
                 )

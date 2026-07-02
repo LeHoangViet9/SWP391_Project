@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Calendar, Users, Building2, CreditCard, CheckCircle, ArrowLeft, ShoppingCart, Clock, X,
 } from 'lucide-react';
@@ -143,6 +143,7 @@ function BookingContent() {
   const { t, locale } = useLocale();
   const { user } = useAuth();
   const isReceptionist = user?.roleName === 'RECEPTIONIST';
+  const navigate = useNavigate();
   const [params] = useSearchParams();
 
   const roomTypeId = params.get('roomTypeId') || '1';
@@ -470,6 +471,11 @@ function BookingContent() {
       setBookingResults(createdBookings);
       setBookingResult(createdBookings[0]);
       setCartItems([]);
+      if (isReceptionist) {
+        const bookingQuery = createdBookingIds.map((id) => `bookingIds=${encodeURIComponent(id)}`).join('&');
+        navigate(`/invoice/batch?${bookingQuery}&receptionistPayment=true`);
+        return;
+      }
       setStep(3);
     } catch (err) {
       if (completedKeys.length > 0) {
@@ -690,7 +696,9 @@ function BookingContent() {
                   value={availableRoomsCount === 0 ? '' : booking.quantity}
                   disabled={checkingAvailability || availableRoomsCount === null || availableRoomsCount === 0}
                   onChange={(e) => { touchSelectionField('quantity'); setBooking({ ...booking, quantity: Number(e.target.value) }); }}
-                  className={`${selectionFieldClassName('quantity')} disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-slate-400`}
+                  className={`${selectionFieldClassName('quantity')} ${availableRoomsCount === 0
+                    ? 'border-red-500 bg-red-50 font-semibold text-red-700 disabled:border-red-500 disabled:bg-red-50 disabled:text-red-700'
+                    : 'disabled:bg-stone-100 disabled:text-slate-400'} disabled:cursor-not-allowed`}
                 >
                   {availableRoomsCount === 0 ? (
                     <option value="">{locale === 'vi' ? 'Đã hết phòng' : 'Sold out'}</option>
@@ -701,7 +709,9 @@ function BookingContent() {
                 <p className={`mt-1 text-xs font-medium ${availableRoomsCount === 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                   {checkingAvailability || availableRoomsCount === null
                     ? (locale === 'vi' ? 'Đang kiểm tra phòng trống...' : 'Checking available rooms...')
-                    : (locale === 'vi' ? `Còn ${availableRoomsCount} phòng trống` : `${availableRoomsCount} rooms available`)}
+                    : availableRoomsCount === 0
+                      ? (locale === 'vi' ? 'Đã hết phòng trong thời gian đã chọn' : 'Sold out for the selected dates')
+                      : (locale === 'vi' ? `Còn ${availableRoomsCount} phòng trống` : `${availableRoomsCount} rooms available`)}
                 </p>
                 {renderSelectionError('quantity')}
               </div>
@@ -956,7 +966,7 @@ function BookingContent() {
             >
               {isReceptionist
                 ? (locale === 'vi' ? 'Chọn hình thức thanh toán' : 'Choose payment method')
-                : (locale === 'vi' ? 'Thanh toán một hóa đơn' : 'Pay combined invoice')}
+                : (locale === 'vi' ? 'Tiếp tục thanh toán' : 'Continue to payment')}
             </Link>
           </div>
         )}

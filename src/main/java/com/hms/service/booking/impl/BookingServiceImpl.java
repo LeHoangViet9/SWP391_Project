@@ -47,6 +47,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -60,6 +61,7 @@ public class BookingServiceImpl implements BookingService {
     // [CẬP NHẬT] Thêm CONFIRMED vào đây để hệ thống giữ phòng, không cho người khác đặt đè lên khi khách đã thanh toán xong online
     private static final List<BookingStatus> ROOM_HOLDING_STATUSES = List.of(
             BookingStatus.PENDING_PAYMENT,
+            BookingStatus.PENDING_CHECK_IN,
             BookingStatus.CONFIRMED,
             BookingStatus.CHECKED_IN
     );
@@ -148,24 +150,35 @@ public class BookingServiceImpl implements BookingService {
         RoomType roomType = roomTypeRepository.findById(request.getRoomTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
-        List<Room> selectedRooms = selectAndLockRooms(request, roomType, locale);
+        boolean receptionistBooking = isReceptionistRequest();
+        List<Room> selectedRooms;
+        if (receptionistBooking) {
+            validateRoomAvailability(request, null, locale);
+            selectedRooms = List.of();
+        } else {
+            selectedRooms = selectAndLockRooms(request, roomType, locale);
+        }
 
         BigDecimal totalPrice= calculateTotalPrice(roomType, request);
 
         Booking booking = bookingMapper.toEntity(request);
         booking.setCustomer(customer);
         booking.setRoomType(roomType);
-        booking.setRoom(selectedRooms.get(0));
-        booking.setRooms(selectedRooms);
+        booking.setRoom(receptionistBooking ? null : selectedRooms.get(0));
+        booking.setRooms(receptionistBooking ? new java.util.ArrayList<>() : selectedRooms);
         booking.setBookingStatus(BookingStatus.PENDING_PAYMENT);
-        booking.setHoldExpiresAt(LocalDateTime.now().plusMinutes(cartHoldMinutes));
+        booking.setHoldExpiresAt(receptionistBooking
+                ? null
+                : LocalDateTime.now().plusMinutes(cartHoldMinutes));
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
         booking.setGuestAllocations(buildGuestAllocations(request, roomType, locale));
         applyStayGuestInfo(booking, request, customer, locale);
 
-        selectedRooms.forEach(room -> room.setRoomStatus(RoomStatus.RESERVED));
-        roomRepository.saveAll(selectedRooms);
+        if (!receptionistBooking) {
+            selectedRooms.forEach(room -> room.setRoomStatus(RoomStatus.RESERVED));
+            roomRepository.saveAll(selectedRooms);
+        }
 
         Booking saved = bookingRepository.save(booking);
         Invoice invoice = Invoice.builder()
@@ -236,6 +249,11 @@ public class BookingServiceImpl implements BookingService {
                     "error.booking.cannot.delete.terminal", new Object[]{booking.getBookingStatus()}, locale));
         }
         booking.setBookingStatus(BookingStatus.CANCELLED);
+        booking.setHoldExpiresAt(null);
+        if (booking.getInvoice() != null) {
+            booking.getInvoice().setPaymentStatus(PaymentStatus.CANCELLED);
+            invoiceRepository.save(booking.getInvoice());
+        }
         List<Room> rooms = getAssignedRooms(booking);
         rooms.forEach(room -> room.setRoomStatus(RoomStatus.AVAILABLE));
         roomRepository.saveAll(rooms);
@@ -486,14 +504,20 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public long checkAvailability(Long roomTypeId, LocalDateTime checkInDate, LocalDateTime checkOutDate) {
-        long totalActive = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
-                roomTypeId,
-                List.of(RoomStatus.INACTIVE, RoomStatus.MAINTENANCE)
-        );
-        long booked = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
-                roomTypeId, checkInDate, checkOutDate, null, ROOM_HOLDING_STATUSES
-        );
-        return Math.max(0, totalActive - booked);
+        long assignableRoomCount = roomRepository.findRoomsAvailableForCart(
+                roomTypeId, checkInDate, checkOutDate, ROOM_HOLDING_STATUSES).size();
+        long totalActiveRoomCount = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
+                roomTypeId, List.of(RoomStatus.INACTIVE, RoomStatus.MAINTENANCE));
+        long bookedQuantity = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
+                roomTypeId, checkInDate, checkOutDate, null, ROOM_HOLDING_STATUSES);
+        long capacityRemaining = Math.max(0, totalActiveRoomCount - bookedQuantity);
+        return Math.min(assignableRoomCount, capacityRemaining);
+    }
+
+    private boolean isReceptionistRequest() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_RECEPTIONIST".equals(authority.getAuthority()));
     }
 
     @Override

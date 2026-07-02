@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, RefreshCw, Star, MessageSquare, Trash2, Edit3, Clock, CreditCard } from 'lucide-react';
 import DataTable from './shared/DataTable';
 import { useLocale } from '../context/LocaleContext';
-import { getMyBookingHistory } from '../services/bookingService';
+import { deleteBooking, getMyBookingHistory } from '../services/bookingService';
 import { createFeedback, getMyFeedbacks, updateMyFeedback, deleteMyFeedback } from '../services/feedbackService';
 import Toast from './shared/Toast';
 
@@ -184,6 +184,26 @@ export default function CustomerBookingHistory() {
     }
   };
 
+  const handleCancelBooking = async (booking) => {
+    const confirmed = window.confirm(
+      isVi
+        ? `Bạn có chắc muốn hủy đơn #${booking.id}? Phòng sẽ được trả lại để khách khác có thể đặt.`
+        : `Cancel booking #${booking.id}? Its rooms will become available to other guests.`
+    );
+    if (!confirmed) return;
+
+    setLoading(true);
+    try {
+      await deleteBooking(booking.id, locale);
+      notify(isVi ? 'Hủy đơn đặt phòng thành công.' : 'Booking cancelled successfully.');
+      await fetchData(page);
+    } catch (err) {
+      notify(err.message || (isVi ? 'Không thể hủy đơn đặt phòng.' : 'Could not cancel booking.'), 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEditFromView = (fb) => {
     const booking = items.find(item => item.id === fb.bookingId);
     if (booking) {
@@ -219,6 +239,7 @@ export default function CustomerBookingHistory() {
     const fb = feedbacks.find(f => f.bookingId === item.id);
     const showReviewBtn = status === 'CHECKED_OUT' && !fb;
     const hasFeedback = status === 'CHECKED_OUT' && !!fb;
+    const canCancel = status === 'PENDING_PAYMENT' || status === 'PENDING_CHECK_IN' || status === 'CONFIRMED';
     return (
       <tr key={item.id} className="hover:bg-stone-50">
         <td className="px-4 py-3 font-mono text-xs font-bold">#{item.id}</td>
@@ -244,12 +265,23 @@ export default function CustomerBookingHistory() {
           <div className="flex flex-col gap-2">
             {isPendingPayment && !isPaymentExpired && (
               <Link
-                to={`/invoice/${item.id}`}
+                to={`/invoice/batch?bookingIds=${encodeURIComponent(item.id)}`}
                 className="inline-flex w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded bg-[#bfa15f] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#a3854a]"
               >
                 <CreditCard size={14} />
                 {isVi ? 'Thanh toán' : 'Pay now'}
               </Link>
+            )}
+            {canCancel && (
+              <button
+                type="button"
+                onClick={() => handleCancelBooking(item)}
+                disabled={loading}
+                className="inline-flex w-fit items-center justify-center gap-1.5 whitespace-nowrap rounded border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+              >
+                <Trash2 size={14} />
+                {isVi ? 'Hủy đơn' : 'Cancel'}
+              </button>
             )}
             {showReviewBtn && (
               <button

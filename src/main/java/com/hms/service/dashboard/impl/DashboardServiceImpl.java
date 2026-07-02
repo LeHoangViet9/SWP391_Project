@@ -98,9 +98,8 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime startOfToday = today.atStartOfDay();
         LocalDateTime startOfTomorrow = today.plusDays(1).atStartOfDay();
 
-        // Đổi từ PENDING_CHECK_IN sang CONFIRMED phù hợp với luồng thanh toán trước online 100%
         long expectedCheckIns = bookingRepository.countByBookingStatusAndCheckInDateBetween(
-                BookingStatus.CONFIRMED,
+                BookingStatus.PENDING_CHECK_IN,
                 startOfToday,
                 startOfTomorrow
         );

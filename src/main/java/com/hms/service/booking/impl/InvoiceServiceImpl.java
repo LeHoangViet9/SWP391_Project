@@ -231,11 +231,9 @@ public class InvoiceServiceImpl implements InvoiceService {
         LocalDateTime now = LocalDateTime.now();
         boolean invalid = bookings.stream().anyMatch(booking ->
                 booking.getBookingStatus() != BookingStatus.PENDING_PAYMENT
-                        || booking.getHoldExpiresAt() == null
-                        || !booking.getHoldExpiresAt().isAfter(now)
                         || booking.getInvoice().getPaymentStatus() != PaymentStatus.PENDING);
         if (invalid) {
-            throw new ConflictException("Một hoặc nhiều phòng đã hết thời gian giữ hoặc không còn chờ thanh toán.");
+            throw new ConflictException("Một hoặc nhiều đơn không còn chờ thanh toán.");
         }
 
         BigDecimal total = bookings.stream()

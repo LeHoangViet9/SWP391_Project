@@ -2,7 +2,6 @@ package com.hms.service.booking;
 
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
-import com.hms.repository.booking.PayOSPaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -15,7 +14,6 @@ import java.util.List;
 public class InvoiceAccessService {
     private final BookingRepository bookingRepository;
     private final InvoiceRepository invoiceRepository;
-    private final PayOSPaymentRepository payOSPaymentRepository;
 
     @Transactional(readOnly = true)
     public boolean canAccessBookings(List<Long> bookingIds, Authentication authentication) {
@@ -42,15 +40,6 @@ public class InvoiceAccessService {
                 .map(invoice -> invoice.getBooking() != null
                         && invoice.getBooking().getCustomer() != null
                         && invoice.getBooking().getCustomer().getEmail().equalsIgnoreCase(authentication.getName()))
-                .orElse(false);
-    }
-
-    @Transactional(readOnly = true)
-    public boolean canAccessPayOSPayment(Long orderCode, Authentication authentication) {
-        if (!isAuthenticated(authentication) || orderCode == null) return false;
-        return payOSPaymentRepository.findById(orderCode)
-                .map(payment -> canAccessBookings(java.util.Arrays.stream(payment.getBookingIds().split(","))
-                        .map(Long::valueOf).toList(), authentication))
                 .orElse(false);
     }
 
