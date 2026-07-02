@@ -29,10 +29,17 @@ import java.util.Locale;
 @RequestMapping("/api/v1/equipments")
 @RequiredArgsConstructor
 public class EquipmentController {
-
+    // Service xử lý nghiệp vụ thiết bị
     private final EquipmentService equipmentService;
+    // Hỗ trợ đa ngôn ngữ (i18n)
     private final MessageSource messageSource;
-
+    /**
+     * Lấy danh sách thiết bị có hỗ trợ:
+     * - Tìm kiếm theo từ khóa
+     * - Lọc theo trạng thái
+     * - Phân trang
+     * - Sắp xếp
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
     public ResponseEntity<ApiResponse<Page<EquipmentResponse>>> getAllEquipments(
@@ -65,7 +72,9 @@ public class EquipmentController {
 
         return ResponseEntity.ok(response);
     }
-
+    /**
+     * Lấy thông tin chi tiết thiết bị theo ID.
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> findById(@PathVariable Long id) {
@@ -83,7 +92,9 @@ public class EquipmentController {
 
         return ResponseEntity.ok(response);
     }
-
+    /**
+     * Thêm mới thiết bị.
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('EQUIPMENT_CREATE')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> createEquipment(
@@ -104,7 +115,9 @@ public class EquipmentController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-
+    /**
+     * Cập nhật thông tin thiết bị.
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
     public ResponseEntity<ApiResponse<EquipmentResponse>> updateEquipment(
@@ -126,7 +139,9 @@ public class EquipmentController {
 
         return ResponseEntity.ok(response);
     }
-
+    /**
+     * Xóa thiết bị theo ID.
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('EQUIPMENT_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteEquipment(@PathVariable Long id) {
@@ -143,7 +158,9 @@ public class EquipmentController {
 
         return ResponseEntity.ok(response);
     }
-
+    /**
+     * Gán thiết bị vào một phòng.
+     */
     @PostMapping("/{id}/assign-room")
     @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
     public ResponseEntity<ApiResponse<RoomEquipmentResponse>> assignToRoom(
@@ -162,6 +179,9 @@ public class EquipmentController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Gỡ thiết bị khỏi phòng.
+     */
     @DeleteMapping("/{id}/rooms/{roomId}")
     @PreAuthorize("hasAuthority('EQUIPMENT_DELETE')")
     public ResponseEntity<ApiResponse<Void>> removeFromRoom(
@@ -178,7 +198,9 @@ public class EquipmentController {
 
         return ResponseEntity.ok(response);
     }
-
+    /**
+     * Lấy danh sách thiết bị đang được gán cho một phòng.
+     */
     @GetMapping("/rooms/{roomId}")
     @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
     public ResponseEntity<ApiResponse<List<RoomEquipmentResponse>>> getEquipmentsByRoom(
@@ -196,7 +218,10 @@ public class EquipmentController {
         return ResponseEntity.ok(response);
     }
 
-    // Upload nhiều ảnh local cho 1 thiết bị
+    /**
+     * Upload nhiều ảnh cho một thiết bị.
+     * Các ảnh sẽ được lưu trên server và liên kết với thiết bị tương ứng.
+     */
     @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
     public ResponseEntity<ApiResponse<List<EquipmentImageResponse>>> uploadImages(
