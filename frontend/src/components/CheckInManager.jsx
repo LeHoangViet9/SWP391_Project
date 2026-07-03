@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BedDouble, ClipboardCheck, RefreshCw, Search } from 'lucide-react';
+import { BedDouble, ClipboardCheck, RefreshCw, Search, CheckCircle2 } from 'lucide-react';
 import { usePermission } from '../hooks/usePermission';
 import { searchBookings } from '../services/bookingService';
 import { getAvailableRoomsForCheckIn, processCheckIn } from '../services/checkInService';
@@ -23,14 +23,14 @@ function normalizeText(value) {
 
 export default function CheckInManager() {
   const { hasPermission } = usePermission();
-  const canProcessCheckIn = hasPermission('CHECKIN_PROCESS');
+  const canProcessCheckIn = hasPermission('CHECKIN_VIEW');
   const [bookings, setBookings] = useState([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [keyword, setKeyword] = useState('');
-  const [statusFilter] = useState('PENDING_CHECK_IN');
+  const [statusFilter] = useState('CONFIRMED');
   const [toast, setToast] = useState({ type: 'success', message: '' });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -150,7 +150,7 @@ export default function CheckInManager() {
       setPage(0);
     } catch (err) {
       const message = err.status === 403
-        ? 'Bạn chưa có quyền CHECKIN_PROCESS. Vui lòng phân quyền lại và đăng nhập lại.'
+        ? 'Bạn chưa có quyền CHECKIN_VIEW. Vui lòng phân quyền lại và đăng nhập lại.'
         : err.status === 409
           ? (err.message || 'Booking/phòng chưa đủ điều kiện check-in.')
           : err.status === 500
@@ -194,7 +194,7 @@ export default function CheckInManager() {
         <button
           onClick={() => openCheckInModal(booking)}
           disabled={!canProcessCheckIn}
-          title={!canProcessCheckIn ? 'Cần quyền CHECKIN_PROCESS để check-in' : undefined}
+          title={!canProcessCheckIn ? 'Cần quyền CHECKIN_VIEW để check-in' : undefined}
           className="inline-flex items-center gap-1.5 rounded bg-[#bfa15f] px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-[#a3854a]"
         >
           <ClipboardCheck size={14} />
@@ -422,7 +422,7 @@ export default function CheckInManager() {
               <button
                 type="submit"
                 disabled={saving || loadingRooms || !canProcessCheckIn || (selectedBooking?.bookingForOther && !guestInfoConfirmed)}
-                title={!canProcessCheckIn ? 'Cần quyền CHECKIN_PROCESS để check-in' : undefined}
+                title={!canProcessCheckIn ? 'Cần quyền CHECKIN_VIEW để check-in' : undefined}
                 className="inline-flex items-center gap-2 rounded bg-[#bfa15f] px-5 py-2 text-sm font-bold text-white shadow hover:bg-[#a3854a] disabled:opacity-60"
               >
                 <BedDouble size={16} />

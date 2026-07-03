@@ -25,9 +25,14 @@ public class Invoice {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
+
+    @Column(name = "invoice_type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private com.hms.common.enums.InvoiceType invoiceType = com.hms.common.enums.InvoiceType.ROOM;
 
     @Column(name = "amount", nullable = false)
     private BigDecimal amount;

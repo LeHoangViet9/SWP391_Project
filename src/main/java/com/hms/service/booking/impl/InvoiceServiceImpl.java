@@ -61,25 +61,20 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Value("${app.vietqr.api-url}")
     private String vietQrApiUrl;
 
-    private static final String MSG_BOOKING_EXIST = "error.bookingId.exist";
-    private static final String MSG_BOOKING_NOT_FOUND = "error.bookingId.notfound";
-    private static final String MSG_INVOICE_NOT_FOUND = "error.invoice.notfound";
-
     @Override
     @Transactional
     public InvoiceResponse createInvoice(InvoiceRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        if (invoiceRepository.existsByBookingId(request.getBookingId())) {
-            throw new ConflictException(messageSource.getMessage(MSG_BOOKING_EXIST,
+        if (invoiceRepository.existsByBookingIdAndInvoiceType(request.getBookingId(), com.hms.common.enums.InvoiceType.ROOM)) {
+            throw new ConflictException(messageSource.getMessage("error.bookingId.exist",
                     new Object[]{request.getBookingId()}, locale));
         }
 
         Booking booking = bookingRepository.findById(request.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(MSG_BOOKING_NOT_FOUND, null, locale)));
+                        messageSource.getMessage("error.bookingId.notfound", null, locale)));
 
-        // 1. Tính số đêm lưu trú
         long numberOfNights = ChronoUnit.DAYS.between(
                 booking.getCheckInDate().toLocalDate(),
                 booking.getCheckOutDate().toLocalDate()
@@ -88,22 +83,18 @@ public class InvoiceServiceImpl implements InvoiceService {
             numberOfNights = 1;
         }
 
-        // 2. Tính toán dòng tiền
         BigDecimal roomPricePerNight = booking.getPricePerNight();
         BigDecimal roomPriceSubTotal = roomPricePerNight
                 .multiply(BigDecimal.valueOf(numberOfNights))
                 .multiply(BigDecimal.valueOf(booking.getQuantity()));
 
-        // Sửa lỗi chính tả từ request cũ (chages -> charges nếu DTO của bạn sửa đổi, hoặc giữ nguyên theo DTO)
         BigDecimal additionalCharges = request.getAdditionalChages() != null ? request.getAdditionalChages() : BigDecimal.ZERO;
 
         BigDecimal subTotalBeforeTax = roomPriceSubTotal.add(additionalCharges);
         BigDecimal vatAmount = subTotalBeforeTax.multiply(vatRate).setScale(0, RoundingMode.HALF_UP);
 
-        // Tổng tiền đúng chuẩn khi tạo mới (Đã cộng VAT)
         BigDecimal total = subTotalBeforeTax.add(vatAmount);
 
-        // 3. Khởi tạo & Lưu thực thể Hóa đơn
         Invoice invoice = invoiceMapper.toEntity(request);
         invoice.setBooking(booking);
         invoice.setAmount(total);
@@ -123,16 +114,16 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         Booking booking = bookingRepository.findByIdWithPessimisticWrite(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(MSG_BOOKING_NOT_FOUND, null, locale)));
+                        messageSource.getMessage("error.bookingId.notfound", null, locale)));
 
         Invoice invoice = booking.getInvoice();
         if (invoice == null) {
             throw new ResourceNotFoundException(
-                    messageSource.getMessage(MSG_INVOICE_NOT_FOUND, null, locale));
+                    messageSource.getMessage("error.invoice.notfound", null, locale));
         }
 
         if (invoice.getPaymentStatus() == PaymentStatus.PAID
-                && booking.getBookingStatus() == BookingStatus.PENDING_CHECK_IN) {
+                && booking.getBookingStatus() == BookingStatus.CONFIRMED) {
             return calculateAndBuildResponse(invoice, booking);
         }
 
@@ -140,7 +131,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                 || booking.getBookingStatus() != BookingStatus.PENDING_PAYMENT
                 || booking.getHoldExpiresAt() == null
                 || !booking.getHoldExpiresAt().isAfter(LocalDateTime.now())) {
-            throw new ConflictException("Giỏ hàng đã hết hạn hoặc đơn đặt phòng đã bị hủy.");
+            throw new ConflictException(messageSource.getMessage("error.booking.expired.cancelled", null, locale));
         }
 
         invoice.setPaymentStatus(PaymentStatus.PAID);
@@ -149,7 +140,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         invoice.setPaidAt(LocalDateTime.now());
         invoiceRepository.save(invoice);
 
-        booking.setBookingStatus(BookingStatus.PENDING_CHECK_IN);
+        booking.setBookingStatus(BookingStatus.CONFIRMED);
         booking.setHoldExpiresAt(null);
         bookingRepository.save(booking);
 
@@ -159,10 +150,12 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     @Transactional(readOnly = true)
     public CombinedInvoiceResponse getCombinedInvoice(List<Long> bookingIds) {
+        Locale locale = LocaleContextHolder.getLocale();
         List<Long> normalizedIds = normalizeBookingIds(bookingIds);
         List<Booking> bookings = normalizedIds.stream()
                 .map(id -> bookingRepository.findById(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng #" + id)))
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                messageSource.getMessage("error.booking.notfound.param", new Object[]{id}, locale))))
                 .toList();
         validateCombinedBookings(bookings);
         return buildCombinedInvoiceResponse(bookings);
@@ -171,16 +164,18 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     @Transactional
     public CombinedInvoiceResponse confirmCombinedPaymentSuccess(List<Long> bookingIds) {
+        Locale locale = LocaleContextHolder.getLocale();
         List<Long> normalizedIds = normalizeBookingIds(bookingIds);
         List<Booking> bookings = normalizedIds.stream()
                 .map(id -> bookingRepository.findByIdWithPessimisticWrite(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng #" + id)))
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                messageSource.getMessage("error.booking.notfound.param", new Object[]{id}, locale))))
                 .toList();
         validateCombinedBookings(bookings);
 
         boolean allPaid = bookings.stream().allMatch(booking ->
                 booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID
-                        && booking.getBookingStatus() == BookingStatus.PENDING_CHECK_IN);
+                        && booking.getBookingStatus() == BookingStatus.CONFIRMED);
         if (allPaid) return buildCombinedInvoiceResponse(bookings);
 
         LocalDateTime now = LocalDateTime.now();
@@ -190,7 +185,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                         || !booking.getHoldExpiresAt().isAfter(now)
                         || booking.getInvoice().getPaymentStatus() != PaymentStatus.PENDING);
         if (invalid) {
-            throw new ConflictException("Một hoặc nhiều phòng trong hóa đơn đã hết hạn hoặc không còn chờ thanh toán.");
+            throw new ConflictException(messageSource.getMessage("error.combined.expired.or.not.pending", null, locale));
         }
 
         bookings.forEach(booking -> {
@@ -199,7 +194,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             if (invoice.getPaymentMethod() == null) invoice.setPaymentMethod(PaymentMethod.TRANSFER);
             invoice.setPaymentConfirmed(true);
             invoice.setPaidAt(now);
-            booking.setBookingStatus(BookingStatus.PENDING_CHECK_IN);
+            booking.setBookingStatus(BookingStatus.CONFIRMED);
             booking.setHoldExpiresAt(null);
         });
         invoiceRepository.saveAll(bookings.stream().map(Booking::getInvoice).toList());
@@ -211,21 +206,23 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Transactional
     public CombinedInvoiceResponse processReceptionistPayment(
             List<Long> bookingIds, ReceptionistPaymentRequest request) {
+        Locale locale = LocaleContextHolder.getLocale();
         List<Long> normalizedIds = normalizeBookingIds(bookingIds);
         List<Booking> bookings = normalizedIds.stream()
                 .map(id -> bookingRepository.findByIdWithPessimisticWrite(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng #" + id)))
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                messageSource.getMessage("error.booking.notfound.param", new Object[]{id}, locale))))
                 .toList();
         validateCombinedBookings(bookings);
 
         PaymentMethod method = request.getPaymentMethod();
         if (method != PaymentMethod.CASH && method != PaymentMethod.TRANSFER && method != PaymentMethod.CARD) {
-            throw new BadRequestException("Lễ tân chỉ có thể chọn tiền mặt, chuyển khoản hoặc thẻ.");
+            throw new BadRequestException(messageSource.getMessage("error.receptionist.invalid.method", null, locale));
         }
 
         boolean allPaid = bookings.stream().allMatch(booking ->
                 booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID
-                        && booking.getBookingStatus() == BookingStatus.PENDING_CHECK_IN);
+                        && booking.getBookingStatus() == BookingStatus.CONFIRMED);
         if (allPaid) return buildCombinedInvoiceResponse(bookings);
 
         LocalDateTime now = LocalDateTime.now();
@@ -233,7 +230,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                 booking.getBookingStatus() != BookingStatus.PENDING_PAYMENT
                         || booking.getInvoice().getPaymentStatus() != PaymentStatus.PENDING);
         if (invalid) {
-            throw new ConflictException("Một hoặc nhiều đơn không còn chờ thanh toán.");
+            throw new ConflictException(messageSource.getMessage("error.receptionist.not.pending", null, locale));
         }
 
         BigDecimal total = bookings.stream()
@@ -244,16 +241,16 @@ public class InvoiceServiceImpl implements InvoiceService {
         if (method == PaymentMethod.CASH) {
             cashReceived = request.getCashReceived();
             if (cashReceived == null) {
-                throw new BadRequestException("Vui lòng nhập số tiền nhận từ khách.");
+                throw new BadRequestException(messageSource.getMessage("error.receptionist.cash.missing", null, locale));
             }
             if (cashReceived.compareTo(total) < 0) {
-                throw new BadRequestException("Số tiền nhận từ khách phải lớn hơn hoặc bằng tổng tiền hóa đơn.");
+                throw new BadRequestException(messageSource.getMessage("error.receptionist.cash.insufficient", null, locale));
             }
             changeAmount = cashReceived.subtract(total);
         } else if (!Boolean.TRUE.equals(request.getPaymentConfirmed())) {
             throw new BadRequestException(method == PaymentMethod.CARD
-                    ? "Vui lòng xác nhận đã nhận tiền thanh toán thẻ từ khách."
-                    : "Vui lòng xác nhận đã nhận được tiền chuyển khoản.");
+                    ? messageSource.getMessage("error.receptionist.card.unconfirmed", null, locale)
+                    : messageSource.getMessage("error.receptionist.transfer.unconfirmed", null, locale));
         }
 
         for (int index = 0; index < bookings.size(); index++) {
@@ -263,10 +260,9 @@ public class InvoiceServiceImpl implements InvoiceService {
             invoice.setPaymentMethod(method);
             invoice.setPaymentConfirmed(true);
             invoice.setPaidAt(now);
-            // Hóa đơn đầu tiên giữ số liệu của giao dịch tổng để không bị cộng trùng.
             invoice.setCashReceived(index == 0 ? cashReceived : null);
             invoice.setChangeAmount(index == 0 ? changeAmount : null);
-            booking.setBookingStatus(BookingStatus.PENDING_CHECK_IN);
+            booking.setBookingStatus(BookingStatus.CONFIRMED);
             booking.setHoldExpiresAt(null);
         }
         invoiceRepository.saveAll(bookings.stream().map(Booking::getInvoice).toList());
@@ -280,12 +276,12 @@ public class InvoiceServiceImpl implements InvoiceService {
         Locale locale = LocaleContextHolder.getLocale();
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(MSG_BOOKING_NOT_FOUND, null, locale)));
+                        messageSource.getMessage("error.bookingId.notfound", null, locale)));
 
         Invoice invoice = booking.getInvoice();
         if (invoice == null) {
             throw new ResourceNotFoundException(
-                    messageSource.getMessage(MSG_INVOICE_NOT_FOUND, null, locale));
+                    messageSource.getMessage("error.invoice.notfound", null, locale));
         }
         return calculateAndBuildResponse(invoice, booking);
     }
@@ -296,7 +292,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         Locale locale = LocaleContextHolder.getLocale();
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(MSG_INVOICE_NOT_FOUND, null, locale)));
+                        messageSource.getMessage("error.invoice.notfound", null, locale)));
         return calculateAndBuildResponse(invoice, invoice.getBooking());
     }
 
@@ -312,7 +308,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             String sortBy,
             SortDirection direction) {
 
-        String sortField = (sortBy != null && !sortBy.isEmpty()) ? sortBy : "createdAt";
+        String sortField = (sortBy != null && !sortBy.isEmpty()) ? sortBy : "id";
         Pageable pageable = pageableUtils.createPageable(page, size, sortField, direction);
 
         String processedKeyword = null;
@@ -325,8 +321,9 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     private List<Long> normalizeBookingIds(List<Long> bookingIds) {
+        Locale locale = LocaleContextHolder.getLocale();
         if (bookingIds == null || bookingIds.isEmpty()) {
-            throw new BadRequestException("Hóa đơn tổng phải có ít nhất một đơn đặt phòng.");
+            throw new BadRequestException(messageSource.getMessage("error.combined.invoice.empty", null, locale));
         }
         return bookingIds.stream()
                 .filter(Objects::nonNull)
@@ -336,17 +333,18 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     private void validateCombinedBookings(List<Booking> bookings) {
+        Locale locale = LocaleContextHolder.getLocale();
         if (bookings.isEmpty()) {
-            throw new BadRequestException("Hóa đơn tổng phải có ít nhất một đơn đặt phòng.");
+            throw new BadRequestException(messageSource.getMessage("error.combined.invoice.empty", null, locale));
         }
         Long customerId = bookings.get(0).getCustomer().getId();
         boolean invalidCustomer = bookings.stream()
                 .anyMatch(booking -> !Objects.equals(customerId, booking.getCustomer().getId()));
         if (invalidCustomer) {
-            throw new BadRequestException("Các đơn trong hóa đơn tổng phải thuộc cùng một khách hàng.");
+            throw new BadRequestException(messageSource.getMessage("error.combined.customer.mismatch", null, locale));
         }
         if (bookings.stream().anyMatch(booking -> booking.getInvoice() == null)) {
-            throw new ResourceNotFoundException("Một hoặc nhiều đơn đặt phòng chưa có hóa đơn.");
+            throw new ResourceNotFoundException(messageSource.getMessage("error.combined.invoice.missing", null, locale));
         }
     }
 
@@ -404,10 +402,21 @@ public class InvoiceServiceImpl implements InvoiceService {
         }
     }
 
-    /**
-     * Tái tính toán dòng tiền khi truy vấn dữ liệu cũ để tránh lỗi không đồng bộ cấu hình VAT
-     */
     private InvoiceResponse calculateAndBuildResponse(Invoice invoice, Booking booking) {
+        Locale locale = LocaleContextHolder.getLocale();
+        if (invoice.getInvoiceType() == com.hms.common.enums.InvoiceType.SURCHARGE) {
+            BigDecimal additionalCharges = invoice.getAmount() == null ? BigDecimal.ZERO : invoice.getAmount();
+            BigDecimal roomPricePerNight = BigDecimal.ZERO;
+            BigDecimal roomPriceSubTotal = BigDecimal.ZERO;
+            long numberOfNights = 0;
+            BigDecimal vatAmount = BigDecimal.ZERO;
+            BigDecimal correctTotalAmount = additionalCharges;
+
+            InvoiceResponse response = buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges, vatAmount, correctTotalAmount);
+            response.setRoomTypeName(messageSource.getMessage("text.invoice.surcharge", null, locale));
+            return response;
+        }
+
         long numberOfNights = Math.max(1, ChronoUnit.DAYS.between(
                 booking.getCheckInDate().toLocalDate(),
                 booking.getCheckOutDate().toLocalDate()
@@ -417,28 +426,23 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .multiply(BigDecimal.valueOf(numberOfNights))
                 .multiply(BigDecimal.valueOf(booking.getQuantity()));
 
-        // Tạm thời gán bằng ZERO vì bạn không dùng trường này trong Entity Invoice nữa
         BigDecimal additionalCharges = BigDecimal.ZERO;
 
-        // Tổng tiền trước thuế = Tiền phòng + Phụ phí
         BigDecimal subTotalBeforeTax = roomPriceSubTotal.add(additionalCharges);
         BigDecimal vatAmount = subTotalBeforeTax.multiply(vatRate).setScale(0, RoundingMode.HALF_UP);
 
         BigDecimal correctTotalAmount = subTotalBeforeTax.add(vatAmount);
 
-        // Đảm bảo truyền đúng tham số khớp hoàn toàn với hàm buildInvoiceResponse phía dưới
         return buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges, vatAmount, correctTotalAmount);
     }
 
-    /**
-     * Map DTO và tạo chuỗi kết nối VietQR đồng bộ theo biến calculatedTotal
-     */
     private InvoiceResponse buildInvoiceResponse(Invoice invoice, Booking booking, long numberOfNights, BigDecimal roomPricePerNight,
                                                  BigDecimal roomPriceSubTotal, BigDecimal additionalCharges, BigDecimal vatAmount, BigDecimal calculatedTotal) {
         InvoiceResponse response = invoiceMapper.toResponse(invoice);
 
         response.setInvoiceId(invoice.getId());
         response.setBookingId(booking.getId());
+        response.setInvoiceType(invoice.getInvoiceType());
 
         response.setCustomerName(booking.getCustomer() != null ? booking.getCustomer().getFullName() : "N/A");
         response.setRoomNumber(booking.getRoom() != null ? booking.getRoom().getRoomNumber() : "N/A");
@@ -450,11 +454,10 @@ public class InvoiceServiceImpl implements InvoiceService {
         response.setNumberOfNights(numberOfNights);
         response.setRoomPricePerNight(roomPricePerNight);
         response.setRoomPriceSubTotal(roomPriceSubTotal);
-        response.setServiceSubTotal(BigDecimal.ZERO); // Không dùng bảng dịch vụ nữa, đặt bằng 0
+        response.setServiceSubTotal(BigDecimal.ZERO);
         response.setVatAmount(vatAmount);
         response.setAdditionalCharges(additionalCharges);
 
-        // Đồng bộ hiển thị tổng tiền chuẩn
         response.setTotalAmount(calculatedTotal);
 
         if (invoice.getPaymentStatus() == PaymentStatus.PENDING) {

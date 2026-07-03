@@ -134,7 +134,7 @@ export const MENU_CONFIG = [
     labelEn: 'Check-in',
     path: '/dashboard/check-in',
     icon: ClipboardCheck,
-    permissions: ['CHECKIN_VIEW', 'CHECKIN_PROCESS'],
+    permissions: ['CHECKIN_VIEW'],
     group: 'operations',
   },
   {
@@ -143,7 +143,7 @@ export const MENU_CONFIG = [
     labelEn: 'Check-out',
     path: '/dashboard/check-out',
     icon: LogOut,
-    permissions: ['CHECKOUT_VIEW', 'CHECKOUT_PROCESS'],
+    permissions: ['CHECKOUT_VIEW'],
     group: 'operations',
   },
   {

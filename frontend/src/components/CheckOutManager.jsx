@@ -13,7 +13,7 @@ const emptyForm = { additionalCharges: 0, chargeNote: '', paymentMethod: 'CASH',
 
 export default function CheckOutManager() {
   const { hasPermission } = usePermission();
-  const canProcess = hasPermission('CHECKOUT_PROCESS');
+  const canProcess = hasPermission('CHECKOUT_VIEW');
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

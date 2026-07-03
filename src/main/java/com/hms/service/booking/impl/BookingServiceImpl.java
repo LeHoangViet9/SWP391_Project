@@ -58,10 +58,8 @@ public class BookingServiceImpl implements BookingService {
 
     private static final String CCCD_PATTERN = "\\d{12}";
 
-    // [CẬP NHẬT] Thêm CONFIRMED vào đây để hệ thống giữ phòng, không cho người khác đặt đè lên khi khách đã thanh toán xong online
     private static final List<BookingStatus> ROOM_HOLDING_STATUSES = List.of(
             BookingStatus.PENDING_PAYMENT,
-            BookingStatus.PENDING_CHECK_IN,
             BookingStatus.CONFIRMED,
             BookingStatus.CHECKED_IN
     );

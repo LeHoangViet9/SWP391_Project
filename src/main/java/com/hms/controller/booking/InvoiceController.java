@@ -38,7 +38,7 @@ public class InvoiceController {
      * POST /api/v1/invoices — Tạo hóa đơn ban đầu và trả về kèm mã QR động (Trạng thái PENDING)
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('INVOICE_CREATE')")
+    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> create(@Valid @RequestBody InvoiceRequest request){
         Locale locale = LocaleContextHolder.getLocale();
         return new ResponseEntity<>(new ApiResponse<>(
@@ -55,7 +55,7 @@ public class InvoiceController {
      * hoặc do Frontend bắn một Request sau khi kiểm tra trạng thái chuyển khoản thành công.
      */
     @PostMapping("/webhook/payment-success/{bookingId}")
-    @PreAuthorize("hasAuthority('INVOICE_UPDATE')")
+    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
     public ResponseEntity<ApiResponse<InvoiceResponse>> handlePaymentSuccess(@PathVariable Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -79,7 +79,7 @@ public class InvoiceController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "DESC") SortDirection direction) {
 
         Locale locale = LocaleContextHolder.getLocale();
@@ -110,7 +110,7 @@ public class InvoiceController {
 
     /** Xác nhận một giao dịch và cập nhật toàn bộ booking thuộc hóa đơn tổng. */
     @PostMapping("/batch/webhook/payment-success")
-    @PreAuthorize("hasAuthority('INVOICE_UPDATE')")
+    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
     public ResponseEntity<ApiResponse<CombinedInvoiceResponse>> handleCombinedPaymentSuccess(
             @RequestParam List<Long> bookingIds) {
         return ResponseEntity.ok(ApiResponse.<CombinedInvoiceResponse>builder()
@@ -136,7 +136,7 @@ public class InvoiceController {
 
     /** Thu tiền tại quầy và chuyển toàn bộ booking đã thanh toán sang chờ check-in. */
     @PostMapping("/batch/pay-at-desk")
-    @PreAuthorize("hasRole('RECEPTIONIST') and hasAuthority('INVOICE_UPDATE')")
+    @PreAuthorize("hasAuthority('INVOICE_VIEW')")
     public ResponseEntity<ApiResponse<CombinedInvoiceResponse>> payAtReception(
             @RequestParam List<Long> bookingIds,
             @Valid @RequestBody ReceptionistPaymentRequest request) {

@@ -24,4 +24,5 @@ public interface CustomerService {
     CustomerResponse findById(Long id);
     void restoreCustomer(Long id);
     void forceDeleteCustomer(Long id);
+    CustomerResponse getCustomerByEmail(String email);
 }

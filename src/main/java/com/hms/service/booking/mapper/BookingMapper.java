@@ -26,7 +26,7 @@ public interface BookingMapper {
     @Mapping(target = "totalPrice", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "holdExpiresAt", ignore = true)
-    @Mapping(target = "invoice", ignore = true)
+    @Mapping(target = "invoices", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     Booking toEntity(BookingRequest request);
 
@@ -53,9 +53,10 @@ public interface BookingMapper {
     @Mapping(target = "totalPrice", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "holdExpiresAt", ignore = true)
-    @Mapping(target = "invoice", ignore = true)
+    @Mapping(target = "invoices", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     void updateBookingFromRequest(BookingRequest request, @MappingTarget Booking booking);
+
 
     default RoomGuestRequest toRoomGuestRequest(RoomGuestAllocation allocation) {
         return RoomGuestRequest.builder()

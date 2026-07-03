@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Locale;
@@ -25,6 +26,19 @@ import java.util.Locale;
 public class CustomerController {
     private final MessageSource messageSource;
     private final CustomerService customerService;
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<CustomerResponse>> getMyProfile(@AuthenticationPrincipal String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+        CustomerResponse customerResponse = customerService.getCustomerByEmail(email);
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                messageSource.getMessage("customer.getbyid.success", null, locale),
+                customerResponse,
+                HttpStatus.OK
+        ));
+    }
 
     // 1. Lấy danh sách khách hàng -> Quyền xem (CUSTOMER_VIEW)
     @GetMapping

@@ -99,7 +99,7 @@ public class DashboardServiceImpl implements DashboardService {
         LocalDateTime startOfTomorrow = today.plusDays(1).atStartOfDay();
 
         long expectedCheckIns = bookingRepository.countByBookingStatusAndCheckInDateBetween(
-                BookingStatus.PENDING_CHECK_IN,
+                BookingStatus.CONFIRMED,
                 startOfToday,
                 startOfTomorrow
         );

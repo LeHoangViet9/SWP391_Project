@@ -15,6 +15,7 @@ import {
   getStoredCustomerId,
   saveCustomerId,
   createCustomer,
+  updateCustomer,
 } from '../services/customerService';
 import BookingFailureModal from '../components/BookingFailureModal';
 
@@ -374,8 +375,25 @@ function BookingContent() {
       try {
         const meRes = await apiFetch('/customers/me', {}, locale);
         if (meRes?.data?.id) {
-          saveCustomerId(meRes.data.id);
-          return Number(meRes.data.id);
+          const profile = meRes.data;
+          if (
+            (customerForm.fullName && customerForm.fullName.trim() !== (profile.fullName || '').trim()) ||
+            (customerForm.phone && customerForm.phone.trim() !== (profile.phone || '').trim()) ||
+            (customerForm.idType && customerForm.idType !== profile.idType) ||
+            (customerForm.idNumberCard && customerForm.idNumberCard.trim() !== (profile.idNumberCard || '').trim()) ||
+            (customerForm.nationality && customerForm.nationality.trim() !== (profile.nationality || '').trim())
+          ) {
+            await updateCustomer(profile.id, {
+              fullName: customerForm.fullName.trim(),
+              email: customerForm.email.trim(),
+              phone: customerForm.phone.trim(),
+              idType: customerForm.idType,
+              idNumberCard: customerForm.idNumberCard.trim(),
+              nationality: customerForm.nationality.trim(),
+            }, locale);
+          }
+          saveCustomerId(profile.id);
+          return Number(profile.id);
         }
       } catch (_) {
         // chưa có profile — tiếp tục tạo mới

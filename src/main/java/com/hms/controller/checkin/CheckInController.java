@@ -25,7 +25,7 @@ public class CheckInController {
     private final UserRepository userRepository;
 
     @PostMapping
-    @PreAuthorize("hasAuthority('CHECKIN_PROCESS') or hasAuthority('BOOKING_UPDATE')")
+    @PreAuthorize("hasAuthority('CHECKIN_VIEW') or hasAuthority('BOOKING_UPDATE')")
     public ResponseEntity<ApiResponse<CheckInResponseDTO>> processCheckIn(
             @Valid @RequestBody CheckInRequestDTO request,
             @AuthenticationPrincipal String email) {
@@ -46,7 +46,7 @@ public class CheckInController {
     }
 
     @GetMapping("/available-rooms/{bookingId}")
-    @PreAuthorize("hasAuthority('CHECKIN_VIEW') or hasAuthority('CHECKIN_PROCESS') or hasAuthority('BOOKING_VIEW') or hasAuthority('BOOKING_UPDATE')")
+    @PreAuthorize("hasAuthority('CHECKIN_VIEW') or hasAuthority('BOOKING_VIEW') or hasAuthority('BOOKING_UPDATE')")
     public ResponseEntity<ApiResponse<List<AvailableRoomResponseDTO>>> getAvailableRooms(@PathVariable Long bookingId) {
         List<AvailableRoomResponseDTO> availableRooms = checkInService.getAvailableRoomsForBooking(bookingId);
 

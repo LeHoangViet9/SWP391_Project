@@ -47,5 +47,5 @@ public class InvoiceResponse {
     private String qrCodeUrl;
     private String paymentContent;
 
-
+    private com.hms.common.enums.InvoiceType invoiceType;
 }
