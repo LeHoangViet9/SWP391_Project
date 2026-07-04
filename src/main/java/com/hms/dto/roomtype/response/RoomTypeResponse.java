@@ -17,4 +17,6 @@ public class RoomTypeResponse {
     private Integer maxGuests;
     private String status;
     private Long totalRooms;
+    private Double averageRating;
+    private Long reviewCount;
 }

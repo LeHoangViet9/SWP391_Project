@@ -4,6 +4,7 @@ import Footer from '../components/layout/Footer';
 import HeroSection from '../components/home/HeroSection';
 import RoomTypesSection from '../components/home/RoomTypesSection';
 import HotelServices from '../components/home/HotelServices';
+import FeedbackSection from '../components/home/FeedbackSection';
 
 export default function HomePage() {
   const [searchParams, setSearchParams] = useState({
@@ -23,6 +24,7 @@ export default function HomePage() {
           checkOut={searchParams.checkOut}
         />
         <HotelServices />
+        <FeedbackSection />
       </main>
       <Footer />
     </div>

@@ -240,5 +240,61 @@ public class EmailServiceImpl implements EmailService {
         mailSender.send(message);
     }
 
+    @Override
+    public void sendTaskAssignmentNotification(String toEmail, String housekeeperName,
+                                                String roomNumber, String notes) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("🧹 New Housekeeping Task Assigned - Room " + roomNumber);
+
+            String htmlContent = buildTaskAssignmentHtml(housekeeperName, roomNumber, notes);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(mimeMessage);
+            log.info("[Email] Sent task assignment notification to: {} for room: {}", toEmail, roomNumber);
+        } catch (MessagingException e) {
+            log.error("[Email] FAILED to send task assignment notification to: {} — {}",
+                    toEmail, e.getMessage(), e);
+        }
+    }
+
+    private String buildTaskAssignmentHtml(String housekeeperName, String roomNumber, String notes) {
+        String safeNotes = (notes != null && !notes.isBlank()) ? notes : "No additional notes";
+        return """
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8"></head>
+                <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+                  <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+                      🧹 New Housekeeping Task Assigned
+                    </h2>
+                    <p style="color: #555;">Hello <strong>%s</strong>,</p>
+                    <p style="color: #555;">You have been assigned a new cleaning task:</p>
+                    <table style="width: 100%%; border-collapse: collapse; margin: 15px 0;">
+                      <tr>
+                        <td style="padding: 10px; background: #ecf0f1; font-weight: bold; width: 30%%;">Room</td>
+                        <td style="padding: 10px; background: #ecf0f1;">%s</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 10px; font-weight: bold;">Status</td>
+                        <td style="padding: 10px;">PENDING</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 10px; background: #ecf0f1; font-weight: bold;">Notes</td>
+                        <td style="padding: 10px; background: #ecf0f1;">%s</td>
+                      </tr>
+                    </table>
+                    <p style="color: #555;">Please start the cleaning task as soon as possible.</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                    <p style="color: #999; font-size: 12px;">This is an automated notification from HMS.</p>
+                  </div>
+                </body>
+                </html>
+                """.formatted(housekeeperName, roomNumber, safeNotes);
+    }
 
 }

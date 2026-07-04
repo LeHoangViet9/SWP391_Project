@@ -17,7 +17,7 @@ public class AuditLogRequest {
     private String resourceType;
     private String resourceId;
     private String resourceName;
-    private Map<String, Object> changes;
+    private Map<String, Object> message;
     private String status;
     private String errorMessage;
 }

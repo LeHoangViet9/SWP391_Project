@@ -74,11 +74,11 @@ public class ApiAuditLoggingFilter extends OncePerRequestFilter {
         after.put("contentType", request.getContentType());
         after.put("acceptLanguage", request.getHeader("Accept-Language"));
 
-        Map<String, Object> changes = auditLogService.changes(null, after);
+        Map<String, Object> message = auditLogService.message(null, after);
         String resourceName = resourceId == null ? path : resourceType + " #" + resourceId;
 
         if (success) {
-            auditLogService.logSuccess(action, module, resourceType, resourceId, resourceName, changes);
+            auditLogService.logSuccess(action, module, resourceType, resourceId, resourceName, message);
             return;
         }
 
@@ -88,7 +88,7 @@ public class ApiAuditLoggingFilter extends OncePerRequestFilter {
                 resourceType,
                 resourceId,
                 resourceName,
-                changes,
+                message,
                 failure == null ? new RuntimeException("HTTP " + statusCode) : failure
         );
     }

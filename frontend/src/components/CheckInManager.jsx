@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BedDouble, CheckCircle2, ClipboardCheck, RefreshCw, Search } from 'lucide-react';
+import { BedDouble, ClipboardCheck, RefreshCw, Search } from 'lucide-react';
 import { usePermission } from '../hooks/usePermission';
-import { searchBookings, updateBookingStatus } from '../services/bookingService';
+import { searchBookings } from '../services/bookingService';
 import { getAvailableRoomsForCheckIn, processCheckIn } from '../services/checkInService';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
@@ -24,14 +24,13 @@ function normalizeText(value) {
 export default function CheckInManager() {
   const { hasPermission } = usePermission();
   const canProcessCheckIn = hasPermission('CHECKIN_PROCESS');
-  const canUpdateBooking = hasPermission('BOOKING_UPDATE');
   const [bookings, setBookings] = useState([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [keyword, setKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState('CONFIRMED');
+  const [statusFilter] = useState('PENDING_CHECK_IN');
   const [toast, setToast] = useState({ type: 'success', message: '' });
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -163,24 +162,6 @@ export default function CheckInManager() {
     }
   };
 
-  const handleConfirmBooking = async (booking) => {
-    if (!booking?.id) return;
-    if (!window.confirm(`Xác nhận đơn đặt phòng #${booking.id}?`)) return;
-
-    setSaving(true);
-    try {
-      await updateBookingStatus(booking.id, { status: 'CONFIRMED' });
-      notify('Xác nhận booking thành công. Đơn đã sẵn sàng check-in.');
-      setStatusFilter('CONFIRMED');
-      await fetchBookings(0, 'CONFIRMED');
-      setPage(0);
-    } catch (err) {
-      notify(err.message || 'Không thể xác nhận booking.', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const rows = filteredBookings.map((booking) => (
     <tr key={booking.id} className="hover:bg-stone-50">
       <td className="px-4 py-3 font-mono text-xs font-bold">#{booking.id}</td>
@@ -202,35 +183,23 @@ export default function CheckInManager() {
       <td className="px-4 py-3 text-sm font-bold text-[#bfa15f]">{formatCurrency(booking.totalPrice)}</td>
       <td className="px-4 py-3">
         <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${
-          booking.bookingStatus === 'PENDING'
+          booking.bookingStatus === 'PENDING_PAYMENT'
             ? 'bg-amber-50 text-amber-700'
             : 'bg-blue-50 text-blue-700'
         }`}>
-          {booking.bookingStatus === 'PENDING' ? 'Chờ xác nhận' : 'Đã xác nhận'}
+          {booking.bookingStatus === 'PENDING_PAYMENT' ? 'Chờ thanh toán' : 'Chờ check-in'}
         </span>
       </td>
       <td className="px-4 py-3">
-        {booking.bookingStatus === 'PENDING' ? (
-          <button
-            onClick={() => handleConfirmBooking(booking)}
-            disabled={saving || !canUpdateBooking}
-            title={!canUpdateBooking ? 'Cần quyền BOOKING_UPDATE để xác nhận booking' : undefined}
-            className="inline-flex items-center gap-1.5 rounded border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
-          >
-            <CheckCircle2 size={14} />
-            Xác nhận
-          </button>
-        ) : (
-          <button
-            onClick={() => openCheckInModal(booking)}
-            disabled={!canProcessCheckIn}
-            title={!canProcessCheckIn ? 'Cần quyền CHECKIN_PROCESS để check-in' : undefined}
-            className="inline-flex items-center gap-1.5 rounded bg-[#bfa15f] px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-[#a3854a]"
-          >
-            <ClipboardCheck size={14} />
-            Check-in
-          </button>
-        )}
+        <button
+          onClick={() => openCheckInModal(booking)}
+          disabled={!canProcessCheckIn}
+          title={!canProcessCheckIn ? 'Cần quyền CHECKIN_PROCESS để check-in' : undefined}
+          className="inline-flex items-center gap-1.5 rounded bg-[#bfa15f] px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-[#a3854a]"
+        >
+          <ClipboardCheck size={14} />
+          Check-in
+        </button>
       </td>
     </tr>
   ));
@@ -243,7 +212,7 @@ export default function CheckInManager() {
         <div>
           <h2 className="text-lg font-bold text-slate-800">Tiếp nhận khách nhận phòng</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Xử lý các đơn đã xác nhận, chọn phòng trống và cập nhật trạng thái phòng.
+            Xử lý các đơn đã thanh toán và đang chờ check-in; không còn bước xác nhận thủ công.
           </p>
         </div>
         <button
@@ -252,29 +221,6 @@ export default function CheckInManager() {
         >
           <RefreshCw size={15} />
           Làm mới
-        </button>
-      </div>
-
-      <div className="flex flex-wrap gap-2 border-b border-stone-200">
-        <button
-          onClick={() => setStatusFilter('PENDING')}
-          className={`pb-3 text-sm font-bold transition-colors ${
-            statusFilter === 'PENDING'
-              ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Chờ xác nhận
-        </button>
-        <button
-          onClick={() => setStatusFilter('CONFIRMED')}
-          className={`pb-3 text-sm font-bold transition-colors ${
-            statusFilter === 'CONFIRMED'
-              ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]'
-              : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Sẵn sàng check-in
         </button>
       </div>
 
@@ -293,7 +239,7 @@ export default function CheckInManager() {
         </label>
         <div className="rounded border border-emerald-100 bg-emerald-50 px-4 py-2">
           <p className="text-xs font-bold uppercase text-emerald-700">
-            {statusFilter === 'PENDING' ? 'Chờ xác nhận' : 'Sẵn sàng check-in'}
+            {statusFilter === 'PENDING_PAYMENT' ? 'Chờ thanh toán' : 'Chờ check-in'}
           </p>
           <p className="text-lg font-bold text-emerald-800">{filteredBookings.length}</p>
         </div>
@@ -306,9 +252,9 @@ export default function CheckInManager() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
-        emptyText={statusFilter === 'PENDING'
-          ? 'Không có đơn đặt phòng chờ xác nhận.'
-          : 'Không có đơn đặt phòng đã xác nhận.'}
+        emptyText={statusFilter === 'PENDING_PAYMENT'
+          ? 'Không có đơn đặt phòng chờ thanh toán.'
+          : 'Không có đơn đặt phòng chờ check-in.'}
       />
 
       <Modal

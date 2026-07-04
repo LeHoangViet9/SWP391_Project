@@ -8,7 +8,6 @@ import {
   Eye,
   FileJson,
   Filter,
-  Globe2,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -22,11 +21,9 @@ import Toast from './shared/Toast';
 
 const STATUS_OPTIONS = ['', 'SUCCESS', 'FAILED'];
 const MODULE_OPTIONS = ['', 'AUTH', 'USER', 'ROOM', 'BOOKING', 'CUSTOMER', 'BILLING', 'HOUSEKEEPING', 'MAINTENANCE', 'EQUIPMENT', 'REPORT', 'API'];
-const RESOURCE_OPTIONS = ['', 'AUTH_REQUEST', 'USER', 'ROOM', 'BOOKING', 'CUSTOMER', 'PAYMENT', 'INVOICE', 'HOUSEKEEPING_TASK', 'MAINTENANCE_TASK', 'EQUIPMENT', 'REPORT'];
 const DEFAULT_FILTERS = {
   action: '',
   module: '',
-  resourceType: '',
   actorUserId: '',
   status: '',
   fromTime: '',
@@ -51,7 +48,6 @@ export default function AuditLogManager() {
   const apiFilters = useMemo(() => ({
     action: appliedFilters.action.trim(),
     module: appliedFilters.module,
-    resourceType: appliedFilters.resourceType,
     actorUserId: appliedFilters.actorUserId,
     status: appliedFilters.status,
     fromTime: appliedFilters.fromTime ? new Date(appliedFilters.fromTime).toISOString() : '',
@@ -127,7 +123,7 @@ export default function AuditLogManager() {
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
-  const formatChangeValue = (value) => {
+  const formatMessageValue = (value) => {
     if (value === null || value === undefined || value === '') return '-';
     if (typeof value === 'boolean') return value ? (isVi ? 'Co' : 'Yes') : 'No';
     if (Array.isArray(value)) return value.length === 0 ? '[]' : value.join(', ');
@@ -141,10 +137,10 @@ export default function AuditLogManager() {
     JSON.stringify(beforeValue) !== JSON.stringify(afterValue)
   );
 
-  const getChangedFields = (changes) => {
-    if (!changes) return [];
-    const before = changes.before;
-    const after = changes.after;
+  const getMessageFields = (message) => {
+    if (!message) return [];
+    const before = message.before;
+    const after = message.after;
 
     if (isPlainObject(before) && isPlainObject(after)) {
       return Array.from(new Set([...Object.keys(before), ...Object.keys(after)]))
@@ -152,31 +148,31 @@ export default function AuditLogManager() {
         .map((field) => ({ field, before: before[field], after: after[field] }));
     }
 
-    const source = isPlainObject(after) ? after : isPlainObject(changes) ? changes : {};
+    const source = isPlainObject(after) ? after : isPlainObject(message) ? message : {};
     return Object.entries(source).map(([field, value]) => ({ field, before: undefined, after: value }));
   };
 
-  const renderChangeSummary = (log) => {
-    const changedFields = getChangedFields(log.changes);
-    if (changedFields.length === 0) {
+  const renderMessageSummary = (log) => {
+    const messageFields = getMessageFields(log.message);
+    if (messageFields.length === 0) {
       return <span className="text-xs text-slate-400">{isVi ? 'Khong co du lieu' : 'No details'}</span>;
     }
 
     return (
       <div className="flex max-w-[360px] flex-wrap items-center gap-1.5">
-        {changedFields.slice(0, 3).map(({ field, before, after }) => (
+        {messageFields.slice(0, 3).map(({ field, before, after }) => (
           <span
             key={field}
             className="inline-flex max-w-full items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600"
-            title={`${formatFieldName(field)}: ${formatChangeValue(before)} -> ${formatChangeValue(after)}`}
+            title={`${formatFieldName(field)}: ${formatMessageValue(before)} -> ${formatMessageValue(after)}`}
           >
             <span className="font-semibold text-slate-500">{formatFieldName(field)}</span>
-            <span className="truncate text-slate-800">{formatChangeValue(after)}</span>
+            <span className="truncate text-slate-800">{formatMessageValue(after)}</span>
           </span>
         ))}
-        {changedFields.length > 3 && (
+        {messageFields.length > 3 && (
           <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">
-            +{changedFields.length - 3}
+            +{messageFields.length - 3}
           </span>
         )}
         <button
@@ -222,8 +218,8 @@ export default function AuditLogManager() {
   );
 
   const renderDetailModal = () => {
-    const changedFields = selectedLog ? getChangedFields(selectedLog.changes) : [];
-    const rawJson = selectedLog ? JSON.stringify(selectedLog.changes, null, 2) : '';
+    const messageFields = selectedLog ? getMessageFields(selectedLog.message) : [];
+    const rawJson = selectedLog ? JSON.stringify(selectedLog.message, null, 2) : '';
 
     return (
       <Modal
@@ -241,26 +237,20 @@ export default function AuditLogManager() {
               <InfoTile icon={Clock} label="Time" value={formatTime(selectedLog.createdAt)} />
             </div>
 
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <InfoTile icon={Database} label="Resource" value={`${selectedLog.resourceType || '-'} ${selectedLog.resourceId ? `#${selectedLog.resourceId}` : ''}`} />
-              <InfoTile icon={Globe2} label="IP" value={selectedLog.ipAddress || '-'} />
-              <InfoTile icon={Braces} label="Request ID" value={selectedLog.requestId || '-'} />
-            </div>
-
             <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
               <div className="flex flex-col gap-2 border-b border-stone-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
                   <FileJson size={16} className="text-[#bfa15f]" />
-                  {isVi ? 'Chi tiet thay doi' : 'Change details'}
+                  {isVi ? 'Chi tiet message' : 'Message details'}
                 </div>
                 <div className="text-xs font-semibold text-slate-400">
-                  {changedFields.length} {isVi ? 'truong du lieu' : 'fields'}
+                  {messageFields.length} {isVi ? 'truong du lieu' : 'fields'}
                 </div>
               </div>
               <div className="max-h-[46vh] overflow-auto">
-                {changedFields.length === 0 ? (
+                {messageFields.length === 0 ? (
                   <div className="px-4 py-8 text-center text-sm text-slate-400">
-                    {isVi ? 'Khong co chi tiet thay doi.' : 'No change details.'}
+                    {isVi ? 'Khong co chi tiet message.' : 'No message details.'}
                   </div>
                 ) : (
                   <table className="w-full min-w-[760px] text-sm">
@@ -272,17 +262,17 @@ export default function AuditLogManager() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">
-                      {changedFields.map(({ field, before, after }) => (
+                      {messageFields.map(({ field, before, after }) => (
                         <tr key={field} className="align-top hover:bg-slate-50/70">
                           <td className="px-4 py-3 font-bold text-slate-700">{formatFieldName(field)}</td>
                           <td className="px-4 py-3">
                             <div className="min-h-10 rounded-lg border border-stone-200 bg-slate-50 px-3 py-2 text-slate-600 break-words">
-                              {formatChangeValue(before)}
+                              {formatMessageValue(before)}
                             </div>
                           </td>
                           <td className="px-4 py-3">
                             <div className="min-h-10 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 font-semibold text-slate-900 break-words">
-                              {formatChangeValue(after)}
+                              {formatMessageValue(after)}
                             </div>
                           </td>
                         </tr>
@@ -327,7 +317,7 @@ export default function AuditLogManager() {
               )}
             </div>
             <p className="mt-1 text-sm text-slate-500">
-              {isVi ? 'Theo doi thao tac, tai nguyen va dau vet request trong he thong.' : 'Track actions, resources and request traces in the system.'}
+              {isVi ? 'Theo doi thao tac va message trong he thong.' : 'Track actions and messages in the system.'}
             </p>
           </div>
         </div>
@@ -355,7 +345,7 @@ export default function AuditLogManager() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-7">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
           <label className="min-w-0 space-y-1 xl:col-span-2">
             <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Action</span>
             <input
@@ -367,7 +357,6 @@ export default function AuditLogManager() {
           </label>
 
           {renderFilterSelect('Module', filters.module, 'module', MODULE_OPTIONS)}
-          {renderFilterSelect('Resource', filters.resourceType, 'resourceType', RESOURCE_OPTIONS)}
 
           <label className="min-w-0 space-y-1">
             <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Actor ID</span>
@@ -392,7 +381,9 @@ export default function AuditLogManager() {
               className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#bfa15f] focus:ring-2 focus:ring-[#bfa15f]/15"
             />
           </label>
+        </div>
 
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
           <label className="min-w-0 space-y-1">
             <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isVi ? 'Den ngay' : 'To'}</span>
             <input
@@ -425,7 +416,7 @@ export default function AuditLogManager() {
 
       <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
         <div className="overflow-x-auto">
-          <table className="min-w-[1120px] w-full text-sm">
+          <table className="min-w-[900px] w-full text-sm">
             <thead className="border-b border-stone-200 bg-white text-[11px] uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="px-4 py-3 text-left font-bold">ID</th>
@@ -433,22 +424,20 @@ export default function AuditLogManager() {
                 <th className="px-4 py-3 text-left font-bold">Action</th>
                 <th className="px-4 py-3 text-left font-bold">Status</th>
                 <th className="px-4 py-3 text-left font-bold">Actor</th>
-                <th className="px-4 py-3 text-left font-bold">Resource</th>
-                <th className="px-4 py-3 text-left font-bold">Changes</th>
-                <th className="px-4 py-3 text-left font-bold">Trace</th>
+                <th className="px-4 py-3 text-left font-bold">Message</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-14 text-center text-slate-400">
+                  <td colSpan={6} className="px-4 py-14 text-center text-slate-400">
                     <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-[#bfa15f] border-t-transparent" />
                     {isVi ? 'Dang tai audit log...' : 'Loading audit logs...'}
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-14 text-center text-slate-400">
+                  <td colSpan={6} className="px-4 py-14 text-center text-slate-400">
                     {isVi ? 'Chua co audit log phu hop.' : 'No matching audit logs.'}
                   </td>
                 </tr>
@@ -465,17 +454,7 @@ export default function AuditLogManager() {
                     <div className="font-semibold text-slate-800">{log.actorUsername || '-'}</div>
                     <div className="mt-1 text-xs text-slate-400">{log.actorRole || log.actorEmail || '-'}</div>
                   </td>
-                  <td className="px-4 py-4">
-                    <div className="font-semibold text-slate-800">{log.resourceType || '-'}</div>
-                    <div className="mt-1 text-xs text-slate-400">{log.resourceName || log.resourceId || '-'}</div>
-                  </td>
-                  <td className="px-4 py-4">{renderChangeSummary(log)}</td>
-                  <td className="px-4 py-4 text-xs text-slate-500">
-                    <div className="font-medium">{log.ipAddress || '-'}</div>
-                    <div className="mt-1 max-w-[180px] truncate font-mono text-[10px] text-slate-400" title={log.requestId}>
-                      {log.requestId || '-'}
-                    </div>
-                  </td>
+                  <td className="px-4 py-4">{renderMessageSummary(log)}</td>
                 </tr>
               ))}
             </tbody>

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -49,4 +50,40 @@ public interface UserRepository extends JpaRepository<User,Long> {
             @Param("roleName") String roleName,
             @Param("status") AccountStatus status,
             Pageable pageable);
+
+    /**
+     * Tìm kiếm nhân viên (loại trừ CUSTOMER khỏi danh sách).
+     * Dùng cho trang quản lý nhân viên — Khách hàng được quản lý riêng ở phân hệ Customer.
+     */
+    @Query("SELECT u FROM User u WHERE " +
+            "UPPER(u.role.roleName) <> 'CUSTOMER' AND " +
+            "(:id IS NULL OR u.id = :id) AND " +
+            "(:fullName IS NULL OR :fullName = '' OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :fullName, '%'))) AND " +
+            "(:email IS NULL OR :email = '' OR LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%'))) AND " +
+            "(:phone IS NULL OR :phone = '' OR LOWER(u.phone) LIKE LOWER(CONCAT('%', :phone, '%'))) AND " +
+            "(:roleName IS NULL OR :roleName = '' OR LOWER(u.role.roleName) LIKE LOWER(CONCAT('%', :roleName, '%'))) AND " +
+            "(:status IS NULL OR u.accountStatus = :status)")
+    Page<User> searchEmployees(
+            @Param("id") Long id,
+            @Param("fullName") String fullName,
+            @Param("email") String email,
+            @Param("phone") String phone,
+            @Param("roleName") String roleName,
+            @Param("status") AccountStatus status,
+            Pageable pageable);
+
+    /**
+     * Tìm housekeeper ACTIVE có ít task PENDING/IN_PROGRESS nhất (round-robin by workload).
+     * Dùng cho auto-assign task khi checkout.
+     */
+    @Query("""
+            SELECT u FROM User u
+            LEFT JOIN HouseKeepingTask t ON t.assignedTo.id = u.id
+                AND t.taskStatus IN ('PENDING', 'IN_PROGRESS')
+            WHERE UPPER(u.role.roleName) = 'HOUSEKEEPER'
+                AND u.accountStatus = 'ACTIVE'
+            GROUP BY u
+            ORDER BY COUNT(t) ASC
+            """)
+    List<User> findHousekeepersOrderByTaskCountAsc();
 }

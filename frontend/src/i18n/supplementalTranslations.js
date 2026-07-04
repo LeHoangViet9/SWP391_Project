@@ -275,6 +275,8 @@ export const supplementalTranslations = {
         actions: 'Thao tác',
       },
       status: {
+        PENDING_PAYMENT: 'Chờ thanh toán',
+        PENDING_CHECK_IN: 'Chờ check-in',
         PENDING: 'Chờ xử lý',
         CONFIRMED: 'Đã xác nhận',
         CHECKED_IN: 'Đã check-in',
@@ -327,6 +329,8 @@ export const supplementalTranslations = {
         forbiddenEdit: 'Bạn không có quyền sửa đặt phòng.',
         forbiddenDelete: 'Bạn không có quyền xóa đặt phòng.',
         deleteConfirm: 'Xóa đặt phòng #{id}?',
+        statusConfirm: 'Xác nhận chuyển trạng thái đặt phòng sang "{status}"?',
+        statusSuccess: 'Cập nhật trạng thái thành công!',
       },
     },
 
@@ -421,6 +425,13 @@ export const supplementalTranslations = {
         passwordRequired: 'Vui lòng nhập mật khẩu cho tài khoản mới.',
         passwordMismatch: 'Mật khẩu xác nhận không khớp.',
       },
+    },
+    homeFeedback: {
+      title: 'Đánh Giá Từ Khách Hàng',
+      subtitle: 'Trải Nghiệm Thực Tế',
+      noFeedback: 'Chưa có đánh giá nào được công bố.',
+      categoryLabel: 'Danh mục',
+      replyFromHotel: 'Phản hồi từ khách sạn',
     },
   },
 
@@ -700,6 +711,8 @@ export const supplementalTranslations = {
         actions: 'Actions',
       },
       status: {
+        PENDING_PAYMENT: 'Pending payment',
+        PENDING_CHECK_IN: 'Pending check-in',
         PENDING: 'Pending',
         CONFIRMED: 'Confirmed',
         CHECKED_IN: 'Checked in',
@@ -752,6 +765,8 @@ export const supplementalTranslations = {
         forbiddenEdit: 'You do not have permission to edit bookings.',
         forbiddenDelete: 'You do not have permission to delete bookings.',
         deleteConfirm: 'Delete booking #{id}?',
+        statusConfirm: 'Confirm changing booking status to "{status}"?',
+        statusSuccess: 'Booking status updated successfully!',
       },
     },
 
@@ -846,6 +861,13 @@ export const supplementalTranslations = {
         passwordRequired: 'Please enter a password for the new account.',
         passwordMismatch: 'Confirm password does not match.',
       },
+    },
+    homeFeedback: {
+      title: 'Guest Reviews & Feedback',
+      subtitle: 'Real Experiences',
+      noFeedback: 'No public reviews available yet.',
+      categoryLabel: 'Category',
+      replyFromHotel: 'Response from Hotel',
     },
   },
 };

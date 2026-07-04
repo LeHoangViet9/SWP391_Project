@@ -12,9 +12,10 @@ import PermissionLayout from '../components/shared/PermissionLayout';
 import { filterMenuByPermissions } from '../config/menuConfig';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
+import ReportManager from '../components/ReportManager';
 
 // ── Lazy-loaded content components ──────────────────────────────────────────
-import ReportManager from '../components/ReportManager';
+import DashboardOverview from '../components/DashboardOverview';
 import StaffManager from '../components/StaffManager';
 import RoomTypeManager from '../components/RoomTypeManager';
 import RoomManager from '../components/RoomManager';

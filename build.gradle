@@ -1,3 +1,12 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.postgresql:postgresql:42.7.2'
+    }
+}
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.2'
@@ -68,3 +77,61 @@ tasks.named('test') {
 tasks.withType(JavaCompile) {
     options.compilerArgs << "-parameters"
 }
+
+task seedHousekeepingData {
+    doLast {
+        def url = "jdbc:postgresql://localhost:5432/hms_db"
+        def user = "postgres"
+        def pass = "1"
+        
+        println "=== Seeding Housekeeping Test Data ==="
+        
+        def driver = new org.postgresql.Driver()
+        def props = new java.util.Properties()
+        props.setProperty("user", user)
+        props.setProperty("password", pass)
+        def conn = driver.connect(url, props)
+        try {
+            def sqlFile = file("TEST_HOUSEKEEPING_CHECKOUT_DATA.sql")
+            if (!sqlFile.exists()) {
+                throw new GradleException("TEST_HOUSEKEEPING_CHECKOUT_DATA.sql not found!")
+            }
+            
+            def sqlContent = sqlFile.text
+            java.sql.Statement stmt = conn.createStatement()
+            
+            println "Executing SQL script..."
+            stmt.execute(sqlContent)
+            println "SQL script executed successfully!"
+            
+            // Check & Print newly seeded rooms and status
+            def rs = stmt.executeQuery("SELECT room_number, room_status FROM room WHERE room_number LIKE 'HK-%' ORDER BY room_number")
+            println "--- Seeded Rooms Status ---"
+            while (rs.next()) {
+                println "Room: ${rs.getString('room_number')} | Status: ${rs.getString('room_status')}"
+            }
+            rs.close()
+            
+            // Check & Print newly seeded tasks and status
+            def rsTasks = stmt.executeQuery("""
+                SELECT t.id, r.room_number, t.task_status, u.email 
+                FROM housekeeping_task t 
+                JOIN room r ON t.room_id = r.id 
+                JOIN users u ON t.assigned_to = u.id 
+                WHERE r.room_number LIKE 'HK-%' 
+                ORDER BY r.room_number
+            """)
+            println "--- Seeded Housekeeping Tasks ---"
+            while (rsTasks.next()) {
+                println "Task ID: ${rsTasks.getLong('id')} | Room: ${rsTasks.getString('room_number')} | Status: ${rsTasks.getString('task_status')} | Assigned to: ${rsTasks.getString('email')}"
+            }
+            rsTasks.close()
+            
+        } finally {
+            conn.close()
+        }
+    }
+}
+
+apply from: 'dbfix.gradle'
+

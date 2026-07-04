@@ -2,9 +2,18 @@ package com.hms.controller.hotel;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hms.common.enums.AccountStatus; // 🛠️ Import enum trạng thái hệ thống của bạn
+import jakarta.servlet.http.Cookie;
 import com.hms.dto.roomtype.request.RoomTypeRequest;
 import com.hms.entity.hotel.RoomType;
 import com.hms.repository.hotel.RoomTypeRepository;
+import com.hms.repository.booking.InvoiceRepository;
+import com.hms.repository.booking.BookingRepository;
+import com.hms.repository.hotel.RoomRepository;
+import com.hms.repository.customer.CustomerFeedbackRepository;
+import com.hms.repository.maintenance.MaintenanceRepository;
+import com.hms.repository.housekeeping.RoomStateHistoryRepository;
+import jakarta.persistence.EntityManager;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@org.springframework.security.test.context.support.WithMockUser(roles = "ADMIN")
+@WithMockUser(authorities = {"ROOM_TYPE_VIEW", "ROOM_TYPE_CREATE", "ROOM_TYPE_UPDATE", "ROOM_TYPE_DELETE"})
 public class RoomTypeControllerIntegrationTest {
 
     @Autowired
@@ -34,13 +43,25 @@ public class RoomTypeControllerIntegrationTest {
     private RoomTypeRepository roomTypeRepository;
 
     @Autowired
-    private com.hms.repository.booking.InvoiceRepository invoiceRepository;
+    private InvoiceRepository invoiceRepository;
 
     @Autowired
-    private com.hms.repository.booking.BookingRepository bookingRepository;
+    private BookingRepository bookingRepository;
 
     @Autowired
-    private com.hms.repository.hotel.RoomRepository roomRepository;
+    private RoomRepository roomRepository;
+
+    @Autowired
+    private CustomerFeedbackRepository customerFeedbackRepository;
+
+    @Autowired
+    private MaintenanceRepository maintenanceRepository;
+
+    @Autowired
+    private RoomStateHistoryRepository roomStateHistoryRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -50,10 +71,7 @@ public class RoomTypeControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        invoiceRepository.deleteAll();
-        bookingRepository.deleteAll();
-        roomRepository.deleteAll();
-        roomTypeRepository.deleteAll();
+        entityManager.createNativeQuery("TRUNCATE TABLE room_state_history, room_img, equipment_images, equipment_checks, repair_requests, equipments, invoices, bookings, customer_feedback, room, room_type RESTART IDENTITY CASCADE").executeUpdate();
 
         // 🛠️ Cập nhật: Thêm trạng thái ACTIVE để phù hợp với hàm findByIdAndStatus và các bộ lọc tìm kiếm
         testRoomType1 = RoomType.builder()
@@ -82,7 +100,7 @@ public class RoomTypeControllerIntegrationTest {
                         .locale(Locale.ENGLISH))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
-                .andExpect(jsonPath("$.data", hasSize(2)));
+                .andExpect(jsonPath("$.data.content", hasSize(2)));
     }
 
     @Test
@@ -113,8 +131,7 @@ public class RoomTypeControllerIntegrationTest {
     @Test
     void getRoomTypeById_NotFound_Vietnamese() throws Exception {
         mockMvc.perform(get("/api/v1/room-types/99999")
-                        .header("Accept-Language", "vi")
-                        .locale(Locale.forLanguageTag("vi")))
+                        .cookie(new Cookie("hms_lang", "vi")))
                 .andExpect(status().isNotFound()) // 🛠️ SỬA LỖI: Trả về 404 thay vì 400
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", is("Không tìm thấy Loại phòng!"))); // Khớp 100% file properties
@@ -148,8 +165,7 @@ public class RoomTypeControllerIntegrationTest {
         mockMvc.perform(post("/api/v1/room-types")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
-                        .header("Accept-Language", "vi")
-                        .locale(Locale.forLanguageTag("vi")))
+                        .cookie(new Cookie("hms_lang", "vi")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", is("Dữ liệu nhập vào không hợp lệ! Vui lòng kiểm tra lại."))) // Khớp error.validation.failed
@@ -167,8 +183,7 @@ public class RoomTypeControllerIntegrationTest {
         mockMvc.perform(post("/api/v1/room-types")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
-                        .header("Accept-Language", "vi") // Dùng tiếng Việt kiểm tra lỗi trùng
-                        .locale(Locale.forLanguageTag("vi")))
+                        .cookie(new Cookie("hms_lang", "vi")))
                 .andExpect(status().isConflict()) // 🛠️ SỬA LỖI: Lỗi Conflict trùng lặp phải trả về HTTP 409
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", is("Tên Loại phòng đã tồn tại!"))); // Khớp error.roomtype.exists
@@ -202,8 +217,7 @@ public class RoomTypeControllerIntegrationTest {
         mockMvc.perform(put("/api/v1/room-types/" + testRoomType1.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
-                        .header("Accept-Language", "vi")
-                        .locale(Locale.forLanguageTag("vi")))
+                        .cookie(new Cookie("hms_lang", "vi")))
                 .andExpect(status().isConflict()) // 🛠️ SỬA LỖI: Trả về lỗi 409 Conflict trùng lặp dữ liệu
                 .andExpect(jsonPath("$.success", is(false)))
                 .andExpect(jsonPath("$.message", is("Tên Loại phòng đã tồn tại!")));

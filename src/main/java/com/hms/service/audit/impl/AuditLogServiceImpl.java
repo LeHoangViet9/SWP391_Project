@@ -53,14 +53,14 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logSuccess(String action, String module, String resourceType, Object resourceId,
-                           String resourceName, Map<String, Object> changes) {
+                           String resourceName, Map<String, Object> message) {
         log(AuditLogRequest.builder()
                 .action(action)
                 .module(module)
                 .resourceType(resourceType)
                 .resourceId(toStringOrNull(resourceId))
                 .resourceName(resourceName)
-                .changes(changes)
+                .message(message)
                 .status("SUCCESS")
                 .build());
     }
@@ -68,14 +68,14 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logFailure(String action, String module, String resourceType, Object resourceId,
-                           String resourceName, Map<String, Object> changes, Exception exception) {
+                           String resourceName, Map<String, Object> message, Exception exception) {
         log(AuditLogRequest.builder()
                 .action(action)
                 .module(module)
                 .resourceType(resourceType)
                 .resourceId(toStringOrNull(resourceId))
                 .resourceName(resourceName)
-                .changes(changes)
+                .message(message)
                 .status("FAILED")
                 .errorMessage(exception == null ? null : truncate(exception.getMessage(), 1000))
                 .build());
@@ -102,7 +102,7 @@ public class AuditLogServiceImpl implements AuditLogService {
                     .resourceType(request.getResourceType())
                     .resourceId(request.getResourceId())
                     .resourceName(request.getResourceName())
-                    .changes(maskChanges(request.getChanges()))
+                    .message(maskMessage(request.getMessage()))
                     .ipAddress(resolveIpAddress(servletRequest))
                     .userAgent(truncate(servletRequest == null ? null : servletRequest.getHeader("User-Agent"), 512))
                     .status(request.getStatus() == null ? "SUCCESS" : request.getStatus())
@@ -120,11 +120,11 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public Map<String, Object> changes(Object before, Object after) {
-        Map<String, Object> changes = new LinkedHashMap<>();
-        changes.put("before", toMap(before));
-        changes.put("after", toMap(after));
-        return changes;
+    public Map<String, Object> message(Object before, Object after) {
+        Map<String, Object> message = new LinkedHashMap<>();
+        message.put("before", toMap(before));
+        message.put("after", toMap(after));
+        return message;
     }
 
     @Override
@@ -198,16 +198,16 @@ public class AuditLogServiceImpl implements AuditLogService {
         return truncate(request.getHeader(RequestIdFilter.REQUEST_ID_HEADER), 100);
     }
 
-    private Map<String, Object> maskChanges(Map<String, Object> changes) {
-        if (changes == null) {
+    private Map<String, Object> maskMessage(Map<String, Object> message) {
+        if (message == null) {
             return null;
         }
         try {
-            Map<String, Object> converted = objectMapper.convertValue(changes, MAP_TYPE);
+            Map<String, Object> converted = objectMapper.convertValue(message, MAP_TYPE);
             return sensitiveDataMasker.maskMap(converted);
         } catch (Exception e) {
-            log.warn("Failed to convert changes for masking: {}", e.getMessage());
-            return sensitiveDataMasker.maskMap(changes);
+            log.warn("Failed to convert message for masking: {}", e.getMessage());
+            return sensitiveDataMasker.maskMap(message);
         }
     }
 
@@ -237,7 +237,7 @@ public class AuditLogServiceImpl implements AuditLogService {
         hashPayload.put("resourceType", auditLog.getResourceType());
         hashPayload.put("resourceId", auditLog.getResourceId());
         hashPayload.put("resourceName", auditLog.getResourceName());
-        hashPayload.put("changes", auditLog.getChanges());
+        hashPayload.put("message", auditLog.getMessage());
         hashPayload.put("ipAddress", auditLog.getIpAddress());
         hashPayload.put("userAgent", auditLog.getUserAgent());
         hashPayload.put("status", auditLog.getStatus());
@@ -270,17 +270,9 @@ public class AuditLogServiceImpl implements AuditLogService {
                 .actorEmail(auditLog.getActorEmail())
                 .action(auditLog.getAction())
                 .module(auditLog.getModule())
-                .resourceType(auditLog.getResourceType())
-                .resourceId(auditLog.getResourceId())
-                .resourceName(auditLog.getResourceName())
-                .changes(auditLog.getChanges())
-                .ipAddress(auditLog.getIpAddress())
-                .userAgent(auditLog.getUserAgent())
+                .message(auditLog.getMessage())
                 .status(auditLog.getStatus())
                 .errorMessage(auditLog.getErrorMessage())
-                .requestId(auditLog.getRequestId())
-                .previousHash(auditLog.getPreviousHash())
-                .rowHash(auditLog.getRowHash())
                 .createdAt(auditLog.getCreatedAt())
                 .build();
     }

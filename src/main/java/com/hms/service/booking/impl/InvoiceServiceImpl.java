@@ -114,7 +114,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     public InvoiceResponse confirmPaymentSuccess(Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithPessimisticWrite(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(MSG_BOOKING_NOT_FOUND, null, locale)));
 
@@ -124,11 +124,24 @@ public class InvoiceServiceImpl implements InvoiceService {
                     messageSource.getMessage(MSG_INVOICE_NOT_FOUND, null, locale));
         }
 
+        if (invoice.getPaymentStatus() == PaymentStatus.PAID
+                && booking.getBookingStatus() == BookingStatus.PENDING_CHECK_IN) {
+            return calculateAndBuildResponse(invoice, booking);
+        }
+
+        if (booking.getBookingStatus() == BookingStatus.CANCELLED
+                || booking.getBookingStatus() != BookingStatus.PENDING_PAYMENT
+                || booking.getHoldExpiresAt() == null
+                || !booking.getHoldExpiresAt().isAfter(LocalDateTime.now())) {
+            throw new ConflictException("Giỏ hàng đã hết hạn hoặc đơn đặt phòng đã bị hủy.");
+        }
+
         invoice.setPaymentStatus(PaymentStatus.PAID);
         invoice.setPaidAt(LocalDateTime.now());
         invoiceRepository.save(invoice);
 
-        booking.setBookingStatus(BookingStatus.CONFIRMED);
+        booking.setBookingStatus(BookingStatus.PENDING_CHECK_IN);
+        booking.setHoldExpiresAt(null);
         bookingRepository.save(booking);
 
         return calculateAndBuildResponse(invoice, booking);

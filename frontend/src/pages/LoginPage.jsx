@@ -104,13 +104,13 @@ export default function LoginPage() {
             {(error.toLowerCase().includes('pending') ||
               error.includes('xác thực') ||
               error.includes('verification')) && (
-              <Link
-                to={`/verify-otp?email=${encodeURIComponent(form.email)}`}
-                className="text-red-600 underline font-semibold text-xs mt-1 inline-block"
-              >
-                {locale === 'vi' ? '→ Đến trang xác thực OTP ngay' : '→ Go to OTP verification'}
-              </Link>
-            )}
+                <Link
+                  to={`/verify-otp?email=${encodeURIComponent(form.email)}`}
+                  className="text-red-600 underline font-semibold text-xs mt-1 inline-block"
+                >
+                  {locale === 'vi' ? '→ Đến trang xác thực OTP ngay' : '→ Go to OTP verification'}
+                </Link>
+              )}
           </div>
         )}
 
@@ -125,11 +125,10 @@ export default function LoginPage() {
             value={form.email}
             readOnly={Boolean(emailFromUrl)}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className={`w-full border px-4 py-3 text-slate-800 outline-none focus:border-[#bfa15f] transition-colors ${
-              emailFromUrl
+            className={`w-full border px-4 py-3 text-slate-800 outline-none focus:border-[#bfa15f] transition-colors ${emailFromUrl
                 ? 'border-stone-200 bg-stone-50 text-slate-500 cursor-default'
                 : 'border-stone-300'
-            }`}
+              }`}
             placeholder={t('auth.emailPlaceholder')}
           />
           {emailFromUrl && (

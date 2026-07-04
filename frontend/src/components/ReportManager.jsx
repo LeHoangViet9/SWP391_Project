@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
 import {
   TrendingUp, DollarSign, CalendarCheck, BarChart2,
-  CreditCard, RefreshCw, AlertCircle, Users, BedDouble, Tag, UserCheck
+  CreditCard, RefreshCw, Users, BedDouble, Tag, UserCheck
 } from 'lucide-react';
-import { apiFetch } from '../services/api';
 import { useLocale } from '../context/LocaleContext';
 
 const COLORS = ['#bfa15f', '#0c192c', '#4f8ef7', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -107,50 +105,8 @@ function EmptyChart({ locale = 'vi' }) {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-export default function ReportManager() {
+export default function ReportManager({ data, refetch }) {
   const { locale, t } = useLocale();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const fetchData = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await apiFetch('/dashboards/admin', {}, locale);
-      setData(res.data);
-    } catch (err) {
-      setError(err.message || t('report.loadError'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchData(); }, [locale]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-60 gap-3 text-slate-400">
-        <RefreshCw size={20} className="animate-spin text-[#bfa15f]" />
-        <span className="text-sm">{t('report.loading')}</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-60 gap-3">
-        <AlertCircle size={32} className="text-red-400" />
-        <p className="text-sm text-red-500">{error}</p>
-        <button
-          onClick={fetchData}
-          className="text-xs px-4 py-2 bg-[#bfa15f] text-white rounded hover:bg-[#a88a50] transition-colors"
-        >
-          {t('report.retry')}
-        </button>
-      </div>
-    );
-  }
 
   const roomTypeEntries = Object.entries(data?.bookingsCountByRoomType || {});
   const paymentEntries = Object.entries(data?.revenueByPaymentMethod || {});
@@ -166,7 +122,7 @@ export default function ReportManager() {
           <p className="text-xs text-slate-400 mt-0.5">{t('report.subtitle')}</p>
         </div>
         <button
-          onClick={fetchData}
+          onClick={refetch}
           className="flex items-center gap-1.5 text-xs px-3 py-2 border border-stone-200 rounded-lg hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors text-slate-500"
         >
           <RefreshCw size={13} />

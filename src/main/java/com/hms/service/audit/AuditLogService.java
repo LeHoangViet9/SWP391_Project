@@ -10,14 +10,14 @@ import java.util.Map;
 public interface AuditLogService {
 
     void logSuccess(String action, String module, String resourceType, Object resourceId,
-                    String resourceName, Map<String, Object> changes);
+                    String resourceName, Map<String, Object> message);
 
     void logFailure(String action, String module, String resourceType, Object resourceId,
-                    String resourceName, Map<String, Object> changes, Exception exception);
+                    String resourceName, Map<String, Object> message, Exception exception);
 
     void log(AuditLogRequest request);
 
-    Map<String, Object> changes(Object before, Object after);
+    Map<String, Object> message(Object before, Object after);
 
     Page<AuditLogResponse> search(String keyword, String action, String module, String resourceType,
                                   Long actorUserId, String status, Instant fromTime, Instant toTime,

@@ -7,12 +7,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
+import java.util.Optional;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
+
+        @Lock(LockModeType.PESSIMISTIC_WRITE)
+        @Query("SELECT b FROM Booking b WHERE b.id = :id")
+        Optional<Booking> findByIdWithPessimisticWrite(@Param("id") Long id);
 
         @Query("""
                             SELECT b
@@ -112,6 +119,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         boolean existsByRoomTypeId(Long roomTypeId);
 
         List<Booking> findByBookingStatusAndCreatedAtBefore(
+                        BookingStatus bookingStatus,
+                        LocalDateTime dateTime);
+
+        List<Booking> findByBookingStatusAndHoldExpiresAtBefore(
                         BookingStatus bookingStatus,
                         LocalDateTime dateTime);
 

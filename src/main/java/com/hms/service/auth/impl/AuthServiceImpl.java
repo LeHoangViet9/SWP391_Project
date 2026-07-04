@@ -7,8 +7,11 @@ import com.hms.dto.auth.request.*;
 import com.hms.dto.auth.response.UserResponse;
 import com.hms.entity.auth.Role;
 import com.hms.entity.auth.User;
+import com.hms.entity.customer.Customer;
+import com.hms.common.enums.IdType;
 import com.hms.repository.auth.RoleRepository;
 import com.hms.repository.auth.UserRepository;
+import com.hms.repository.customer.CustomerRepository;
 import com.hms.service.auth.AuthService;
 import com.hms.service.auth.mapper.UserMapper;
 import com.hms.service.email.EmailService;
@@ -34,6 +37,7 @@ import java.util.UUID;
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final CustomerRepository customerRepository;
     private final MessageSource messageSource;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
@@ -69,6 +73,21 @@ public class AuthServiceImpl implements AuthService {
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
 
         User savedUser = userRepository.save(user);
+
+        // Tạo bản ghi Customer tương ứng — tách biệt dữ liệu Khách hàng khỏi Nhân viên
+        if (!customerRepository.existsByEmail(savedUser.getEmail())) {
+            Customer customer = Customer.builder()
+                    .fullName(savedUser.getFullName())
+                    .email(savedUser.getEmail())
+                    .phone(savedUser.getPhone())
+                    .idType(IdType.CCCD)
+                    .idNumberCard("PENDING_" + savedUser.getId())
+                    .nationality("Vietnam")
+                    .status(AccountStatus.ACTIVE)
+                    .build();
+            customerRepository.save(customer);
+            log.info("[REGISTER] Created Customer record for email={}", savedUser.getEmail());
+        }
 
         // Gửi email SAU KHI save thành công
         // Nếu email lỗi → user đã được tạo → có thể dùng resend-otp
@@ -110,7 +129,7 @@ public class AuthServiceImpl implements AuthService {
                     "USER",
                     updatedUser.getId(),
                     updatedUser.getEmail(),
-                    auditLogService.changes(null, userAuditSnapshot(updatedUser))
+                    auditLogService.message(null, userAuditSnapshot(updatedUser))
             );
 
             return userMapper.toResponse(updatedUser,accessToken);
@@ -159,7 +178,7 @@ public class AuthServiceImpl implements AuthService {
                 "USER",
                 updated.getId(),
                 updated.getEmail(),
-                auditLogService.changes(null, Map.of("passwordChanged", true))
+                auditLogService.message(null, Map.of("passwordChanged", true))
         );
     }
     @Transactional
@@ -199,7 +218,7 @@ public class AuthServiceImpl implements AuthService {
                 "USER",
                 updated.getId(),
                 updated.getEmail(),
-                auditLogService.changes(null, Map.of("passwordReset", true))
+                auditLogService.message(null, Map.of("passwordReset", true))
         );
     }
 
@@ -275,6 +294,6 @@ public class AuthServiceImpl implements AuthService {
     private java.util.Map<String, Object> loginAttemptChanges(String email) {
         java.util.Map<String, Object> changes = new LinkedHashMap<>();
         changes.put("email", email);
-        return auditLogService.changes(null, changes);
+        return auditLogService.message(null, changes);
     }
 }

@@ -12,6 +12,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "bookings")
@@ -33,6 +35,21 @@ public class Booking {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id")
     private Room room;
+
+    @Builder.Default
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "booking_rooms",
+            joinColumns = @JoinColumn(name = "booking_id"),
+            inverseJoinColumns = @JoinColumn(name = "room_id")
+    )
+    private List<Room> rooms = new ArrayList<>();
+
+    @Builder.Default
+    @ElementCollection
+    @CollectionTable(name = "booking_room_guests", joinColumns = @JoinColumn(name = "booking_id"))
+    @OrderColumn(name = "room_index")
+    private List<RoomGuestAllocation> guestAllocations = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "type_id", nullable = false)
@@ -63,6 +80,9 @@ public class Booking {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "hold_expires_at")
+    private LocalDateTime holdExpiresAt;
 
     @Column(name = "actual_check_in_time")
     private LocalDateTime actualCheckInTime;

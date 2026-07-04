@@ -37,7 +37,7 @@ public class AuditAspect {
                         auditable.resourceType(),
                         null,
                         method.getName(),
-                        auditLogService.changes(before, after)
+                        auditLogService.message(before, after)
                 );
             }
             return result;

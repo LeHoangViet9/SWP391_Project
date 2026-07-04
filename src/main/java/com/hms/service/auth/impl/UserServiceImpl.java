@@ -30,6 +30,9 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +47,10 @@ public class UserServiceImpl implements IUserService {
     private static final String ERROR_EMAIL_EXISTS = "error.email.exists";
     private static final String ERROR_PHONE_EXISTS = "error.phone.exists";
     private static final String ERROR_USER_INVALID = "error.user.invalid";
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String ROLE_MANAGER = "MANAGER";
+    private static final String ROLE_CUSTOMER = "CUSTOMER";
+    private static final String ROLE_AUTHORITY_PREFIX = "ROLE_";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -59,7 +66,8 @@ public class UserServiceImpl implements IUserService {
             Long id, String fullName, String email, String phone, String roleName, AccountStatus status,
             Integer page, Integer size, SortField sortBy, SortDirection direction) {
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
-        Page<User> userPage = userRepository.searchUsers(id, fullName, email, phone, roleName, status, pageable);
+        // Loại trừ CUSTOMER khỏi danh sách quản lý nhân viên
+        Page<User> userPage = userRepository.searchEmployees(id, fullName, email, phone, roleName, status, pageable);
         return userPage.map(user -> userMapper.toResponse(user, null));
     }
 
@@ -70,9 +78,8 @@ public class UserServiceImpl implements IUserService {
         Locale locale = LocaleContextHolder.getLocale();
         validatePasswordForManagement(request, true, locale);
 
-        if ("CUSTOMER".equalsIgnoreCase(request.getRoleName())) {
-            throw new ForbiddenException(messageSource.getMessage("error.user.create.customer.disabled", null, locale));
-        }
+        // Validate role assignment based on the actor role.
+        validateCreatableRole(request.getRoleName(), locale);
 
         if (userRepository.existsUserByEmail(request.getEmail())) {
             throw new ConflictException(messageSource.getMessage(ERROR_EMAIL_EXISTS, null, locale));
@@ -98,7 +105,7 @@ public class UserServiceImpl implements IUserService {
                 "USER",
                 saved.getId(),
                 saved.getEmail(),
-                auditLogService.changes(null, userAuditSnapshot(saved))
+                auditLogService.message(null, userAuditSnapshot(saved))
         );
         return userMapper.toResponse(saved, null);
     }
@@ -117,6 +124,9 @@ public class UserServiceImpl implements IUserService {
         String previousRole = user.getRole() == null ? null : user.getRole().getRoleName();
 
         validatePasswordForManagement(request, false, locale);
+
+        // Validate role assignment based on the actor role.
+        validateAssignableRole(request.getRoleName(), locale);
 
         if (!user.getEmail().equals(request.getEmail())
                 && userRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
@@ -147,7 +157,7 @@ public class UserServiceImpl implements IUserService {
                 "USER",
                 updated.getId(),
                 updated.getEmail(),
-                auditLogService.changes(before, userAuditSnapshot(updated))
+                auditLogService.message(before, userAuditSnapshot(updated))
         );
         return userMapper.toResponse(updated, null);
     }
@@ -171,7 +181,7 @@ public class UserServiceImpl implements IUserService {
                 "USER",
                 deleted.getId(),
                 deleted.getEmail(),
-                auditLogService.changes(before, userAuditSnapshot(deleted))
+                auditLogService.message(before, userAuditSnapshot(deleted))
         );
     }
 
@@ -204,7 +214,7 @@ public class UserServiceImpl implements IUserService {
                 "USER",
                 updated.getId(),
                 updated.getEmail(),
-                auditLogService.changes(before, userAuditSnapshot(updated))
+                auditLogService.message(before, userAuditSnapshot(updated))
         );
         return userMapper.toResponse(updated, null);
     }
@@ -232,7 +242,7 @@ public class UserServiceImpl implements IUserService {
                 "USER",
                 updated.getId(),
                 updated.getEmail(),
-                auditLogService.changes(before, userAuditSnapshot(updated))
+                auditLogService.message(before, userAuditSnapshot(updated))
         );
         return userMapper.toResponse(updated, null);
     }
@@ -254,6 +264,76 @@ public class UserServiceImpl implements IUserService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.role.invalid", new Object[]{roleName}, locale)
                 ));
+    }
+
+    private void validateCreatableRole(String requestedRoleName, Locale locale) {
+        String requestedRole = normalizeRole(requestedRoleName);
+        if (ROLE_CUSTOMER.equals(requestedRole)) {
+            throw new ForbiddenException(messageSource.getMessage("error.user.create.customer.disabled", null, locale));
+        }
+
+        String actorRole = getCurrentActorRole();
+        if (ROLE_ADMIN.equals(actorRole)) {
+            if (ROLE_ADMIN.equals(requestedRole)) {
+                throw new ForbiddenException(messageSource.getMessage("error.user.create.admin.disabled", null, locale));
+            }
+            return;
+        }
+
+        if (ROLE_MANAGER.equals(actorRole)) {
+            if (ROLE_ADMIN.equals(requestedRole) || ROLE_MANAGER.equals(requestedRole)) {
+                throw new ForbiddenException(messageSource.getMessage("error.user.create.manager.disabled", null, locale));
+            }
+            return;
+        }
+
+        throw new ForbiddenException(messageSource.getMessage("error.user.create.role.denied", null, locale));
+    }
+
+    private void validateAssignableRole(String requestedRoleName, Locale locale) {
+        String requestedRole = normalizeRole(requestedRoleName);
+        if (ROLE_CUSTOMER.equals(requestedRole)) {
+            throw new ForbiddenException(messageSource.getMessage("error.user.update.customer.disabled", null, locale));
+        }
+
+        String actorRole = getCurrentActorRole();
+        if (ROLE_ADMIN.equals(actorRole)) {
+            if (ROLE_ADMIN.equals(requestedRole)) {
+                throw new ForbiddenException(messageSource.getMessage("error.user.update.admin.disabled", null, locale));
+            }
+            return;
+        }
+
+        if (ROLE_MANAGER.equals(actorRole)) {
+            if (ROLE_ADMIN.equals(requestedRole)) {
+                throw new ForbiddenException(messageSource.getMessage("error.user.update.admin.disabled", null, locale));
+            }
+            if (ROLE_MANAGER.equals(requestedRole)) {
+                throw new ForbiddenException(messageSource.getMessage("error.user.update.manager.disabled", null, locale));
+            }
+            return;
+        }
+
+        throw new ForbiddenException(messageSource.getMessage("error.user.update.role.denied", null, locale));
+    }
+
+    private String getCurrentActorRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(authority -> authority != null && authority.toUpperCase(Locale.ROOT).startsWith(ROLE_AUTHORITY_PREFIX))
+                .map(authority -> authority.substring(ROLE_AUTHORITY_PREFIX.length()).toUpperCase(Locale.ROOT))
+                .filter(role -> ROLE_ADMIN.equals(role) || ROLE_MANAGER.equals(role))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String normalizeRole(String roleName) {
+        return roleName == null ? "" : roleName.trim().toUpperCase(Locale.ROOT);
     }
 
     private void validatePasswordForManagement(UserManagementRequest request, boolean required, Locale locale) {

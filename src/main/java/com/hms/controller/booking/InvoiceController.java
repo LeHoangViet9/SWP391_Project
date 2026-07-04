@@ -6,7 +6,6 @@ import com.hms.common.enums.SortDirection;
 import com.hms.dto.invoice.request.InvoiceRequest;
 import com.hms.dto.invoice.response.InvoiceResponse;
 import com.hms.service.booking.InvoiceService;
-import com.hms.service.booking.impl.InvoiceServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
@@ -23,7 +22,7 @@ import java.util.Locale;
 
 /**
  * Quản lý hoá đơn và thanh toán theo mô hình TRẢ TRƯỚC 100%.
- * Khởi tạo hóa đơn (PENDING) -> Sinh QR -> Khách quét tiền -> Xác nhận thành công (PAID) -> Xác nhận Booking (CONFIRMED).
+ * Khởi tạo hóa đơn (PENDING) -> Sinh QR -> Khách thanh toán (PAID) -> Booking chờ check-in.
  */
 @RestController
 @RequestMapping("/api/v1/invoices")
@@ -58,9 +57,7 @@ public class InvoiceController {
     public ResponseEntity<ApiResponse<InvoiceResponse>> handlePaymentSuccess(@PathVariable Long bookingId) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        // Vì interface InvoiceService ép kiểu qua ép kiểu lại, bạn cần ép kiểu hoặc bổ sung hàm confirmPaymentSuccess vào interface gốc
-        InvoiceServiceImpl service = (InvoiceServiceImpl) invoiceService;
-        InvoiceResponse updatedInvoice = service.confirmPaymentSuccess(bookingId);
+        InvoiceResponse updatedInvoice = invoiceService.confirmPaymentSuccess(bookingId);
 
         return ResponseEntity.ok(ApiResponse.<InvoiceResponse>builder()
                 .success(true)

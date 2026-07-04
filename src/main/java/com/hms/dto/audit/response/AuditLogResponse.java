@@ -20,16 +20,8 @@ public class AuditLogResponse {
     private String actorEmail;
     private String action;
     private String module;
-    private String resourceType;
-    private String resourceId;
-    private String resourceName;
-    private Map<String, Object> changes;
-    private String ipAddress;
-    private String userAgent;
+    private Map<String, Object> message;
     private String status;
     private String errorMessage;
-    private String requestId;
-    private String previousHash;
-    private String rowHash;
     private Instant createdAt;
 }

@@ -1,6 +1,7 @@
 package com.hms.service.hotel.impl;
 
 import java.util.Locale;
+import java.util.List;
 
 import com.hms.common.enums.AccountStatus; // 🛠️ Đảm bảo import enum trạng thái của dự án bạn
 import com.hms.common.enums.SortDirection;
@@ -20,6 +21,7 @@ import org.springframework.util.StringUtils;
 import com.hms.common.enums.RoomStatus;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.booking.BookingRepository;
+import com.hms.repository.customer.CustomerFeedbackRepository;
 
 import com.hms.dto.roomtype.response.RoomTypeResponse;
 import com.hms.dto.roomtype.request.RoomTypeRequest;
@@ -39,6 +41,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     private final PageableUtils pageableUtils;
     private final RoomRepository roomRepository;
     private final BookingRepository bookingRepository;
+    private final CustomerFeedbackRepository customerFeedbackRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -58,7 +61,8 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
         return roomTypeRepository
                 .searchRoomTypes(keyword, pageable)
-                .map(roomTypeMapper::toResponse);
+                .map(roomTypeMapper::toResponse)
+                .map(this::populateRatingStats);
     }
 
 
@@ -71,7 +75,8 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
         RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.roomtype.notfound", null, locale)));
-        return roomTypeMapper.toResponse(roomType);
+        RoomTypeResponse response = roomTypeMapper.toResponse(roomType);
+        return populateRatingStats(response);
     }
 
     @Override
@@ -87,7 +92,8 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
         roomType.setStatus(AccountStatus.ACTIVE);
 
         RoomType saved = roomTypeRepository.save(roomType);
-        return roomTypeMapper.toResponse(saved);
+        RoomTypeResponse response = roomTypeMapper.toResponse(saved);
+        return populateRatingStats(response);
     }
 
     @Override
@@ -107,7 +113,8 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
         roomTypeMapper.updateRoomTypeFromRequest(request, roomType);
         RoomType updated = roomTypeRepository.save(roomType);
-        return roomTypeMapper.toResponse(updated);
+        RoomTypeResponse response = roomTypeMapper.toResponse(updated);
+        return populateRatingStats(response);
     }
 
     @Override
@@ -129,5 +136,24 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
         roomType.setStatus(AccountStatus.INACTIVE);
         roomTypeRepository.save(roomType);
+    }
+
+    private RoomTypeResponse populateRatingStats(RoomTypeResponse response) {
+        if (response == null) return null;
+        List<Object[]> stats = customerFeedbackRepository.getRatingStatsByRoomTypeId(response.getId());
+        if (stats != null && !stats.isEmpty() && stats.get(0) != null) {
+            Object[] row = stats.get(0);
+            Double avg = (Double) row[0];
+            Long count = (Long) row[1];
+            if (avg != null) {
+                avg = Math.round(avg * 10.0) / 10.0;
+            }
+            response.setAverageRating(avg != null ? avg : 0.0);
+            response.setReviewCount(count != null ? count : 0L);
+        } else {
+            response.setAverageRating(0.0);
+            response.setReviewCount(0L);
+        }
+        return response;
     }
 }

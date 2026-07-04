@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
+import { useAuth } from '../context/AuthContext';
 import { usePermission } from '../hooks/usePermission';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/userService';
 
-const ROLES = ['ADMIN', 'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE']; // Loại bỏ CUSTOMER khỏi danh sách thêm mới
+const ADMIN_ASSIGNABLE_ROLES = ['MANAGER', 'RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE'];
+const MANAGER_ASSIGNABLE_ROLES = ['RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE'];
+
+function getAssignableRoles(actorRole) {
+  if (actorRole === 'ADMIN') return ADMIN_ASSIGNABLE_ROLES;
+  if (actorRole === 'MANAGER') return MANAGER_ASSIGNABLE_ROLES;
+  return [];
+}
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -28,11 +36,14 @@ const EMPTY_FORM = {
 
 export default function StaffManager() {
   const { t } = useLocale();
+  const { user } = useAuth();
   const { hasPermission } = usePermission();
 
   const canCreate = hasPermission('USER_CREATE');
   const canEdit = hasPermission('USER_UPDATE');
   const canDelete = hasPermission('USER_DELETE');
+  const actorRole = String(user?.roleName || '').toUpperCase();
+  const assignableRoles = getAssignableRoles(actorRole);
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -92,7 +103,7 @@ export default function StaffManager() {
 
   const openCreate = () => {
     if (!canCreate) return notify(t('staff.toast.forbidden') || 'Không có quyền thực hiện', 'error');
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, roleName: assignableRoles[0] || EMPTY_FORM.roleName });
     setModal({ open: true, editing: null });
   };
 
@@ -212,6 +223,10 @@ export default function StaffManager() {
     ...(canEdit || canDelete ? [t('staff.columns.actions')] : [])
   ];
 
+  const roleOptions = form.roleName && !assignableRoles.includes(form.roleName)
+    ? [form.roleName, ...assignableRoles]
+    : assignableRoles;
+
   return (
     <div>
       <Toast type={toast.type} message={toast.message} onClose={closeToast} />
@@ -313,7 +328,11 @@ export default function StaffManager() {
               <select required value={form.roleName} onChange={e => setForm(f => ({ ...f, roleName: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
                 {form.roleName === 'CUSTOMER' && <option value="CUSTOMER" disabled>CUSTOMER</option>}
-                {ROLES.map(role => <option key={role} value={role}>{role}</option>)}
+                {roleOptions.map(role => (
+                  <option key={role} value={role} disabled={!assignableRoles.includes(role)}>
+                    {role}
+                  </option>
+                ))}
               </select>
             </div>
             <div>

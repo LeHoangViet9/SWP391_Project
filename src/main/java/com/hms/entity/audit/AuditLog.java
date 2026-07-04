@@ -58,7 +58,7 @@ public class AuditLog {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "changes", columnDefinition = "jsonb", updatable = false)
-    private Map<String, Object> changes;
+    private Map<String, Object> message;
 
     @Column(name = "ip_address", length = 64, updatable = false)
     private String ipAddress;

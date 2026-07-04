@@ -9,7 +9,4 @@ public class BookingStatusRequest {
 
     @NotNull(message = "{booking.status.notnull}")
     private BookingStatus status;
-
-    /** Ghi chú tùy chọn (ví dụ: lý do hủy) */
-    private String note;
 }

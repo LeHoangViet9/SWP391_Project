@@ -128,7 +128,7 @@ public class RoomServiceImpl implements IRoomService {
                 "ROOM",
                 saved.getId(),
                 saved.getRoomNumber(),
-                auditLogService.changes(null, roomAuditSnapshot(saved))
+                auditLogService.message(null, roomAuditSnapshot(saved))
         );
         return roomMapper.toResponse(saved);
     }
@@ -179,7 +179,7 @@ public class RoomServiceImpl implements IRoomService {
                 "ROOM",
                 updated.getId(),
                 updated.getRoomNumber(),
-                auditLogService.changes(before, roomAuditSnapshot(updated))
+                auditLogService.message(before, roomAuditSnapshot(updated))
         );
         return roomMapper.toResponse(updated);
     }
@@ -204,7 +204,7 @@ public class RoomServiceImpl implements IRoomService {
                 "ROOM",
                 deleted.getId(),
                 deleted.getRoomNumber(),
-                auditLogService.changes(before, roomAuditSnapshot(deleted))
+                auditLogService.message(before, roomAuditSnapshot(deleted))
         );
     }
 
@@ -253,7 +253,7 @@ public class RoomServiceImpl implements IRoomService {
                 "ROOM",
                 updated.getId(),
                 updated.getRoomNumber(),
-                auditLogService.changes(before, roomAuditSnapshot(updated))
+                auditLogService.message(before, roomAuditSnapshot(updated))
         );
     }
 

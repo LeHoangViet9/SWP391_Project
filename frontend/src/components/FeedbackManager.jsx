@@ -1,56 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Star, MessageSquare, Search, Reply, Send, ShieldAlert, Check } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Star, MessageSquare, Search, Reply, Send, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
 import Toast from './shared/Toast';
-
-const MOCK_FEEDBACK = [
-  {
-    id: 1,
-    customerName: 'Nguyễn Văn A',
-    roomType: 'Deluxe Suite',
-    rating: 5,
-    comment: 'Phòng cực kỳ sạch sẽ, view hướng biển siêu đẹp. Nhân viên phục vụ rất nhiệt tình chu đáo. Sẽ quay lại lần sau!',
-    createdAt: '2026-06-20T10:30:00Z',
-    reply: 'Cảm ơn ông Nguyễn Văn A đã dành thời gian đánh giá dịch vụ của HMS Luxury. Rất hân hạnh được phục vụ ông trong tương lai!'
-  },
-  {
-    id: 2,
-    customerName: 'Trần Thị B',
-    roomType: 'Executive Room',
-    rating: 4,
-    comment: 'Không gian sang trọng, dịch vụ tốt. Tuy nhiên đồ ăn sáng buffet cần phong phú thêm một chút.',
-    createdAt: '2026-06-18T14:15:00Z',
-    reply: null
-  },
-  {
-    id: 3,
-    customerName: 'John Doe',
-    roomType: 'Presidential Suite',
-    rating: 5,
-    comment: 'Exceptional service! The Presidential Suite exceeded our expectations. Truly a 5-star luxury experience.',
-    createdAt: '2026-06-15T08:00:00Z',
-    reply: 'Thank you Mr. John Doe! We are thrilled to hear you had an exceptional stay. Hope to welcome you back soon.'
-  },
-  {
-    id: 4,
-    customerName: 'Phạm Minh C',
-    roomType: 'Superior Twin',
-    rating: 3,
-    comment: 'Phòng ốc tạm ổn, nhưng máy lạnh ở phòng hơi ồn về đêm. Hy vọng khách sạn bảo trì lại thiết bị sớm.',
-    createdAt: '2026-06-12T16:45:00Z',
-    reply: null
-  },
-  {
-    id: 5,
-    customerName: 'Lê Hoàng D',
-    roomType: 'Standard Room',
-    rating: 2,
-    comment: 'Thủ tục check-in hơi lâu mặc dù tôi đã đặt trước. Phòng cũng hơi nhỏ so với ảnh chụp trên web.',
-    createdAt: '2026-06-10T11:20:00Z',
-    reply: null
-  }
-];
+import { searchFeedbacks, replyFeedback, deleteFeedback, getFeedbackStats } from '../services/feedbackService';
 
 export default function FeedbackManager() {
   const { hasAnyPermission } = useAuth();
@@ -60,67 +13,104 @@ export default function FeedbackManager() {
   const canReply = hasAnyPermission(['FEEDBACK_UPDATE']);
   const canDelete = hasAnyPermission(['FEEDBACK_DELETE']);
 
-  const [feedbacks, setFeedbacks] = useState(() => {
-    const saved = localStorage.getItem('hms_feedbacks');
-    return saved ? JSON.parse(saved) : MOCK_FEEDBACK;
-  });
-
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [filterRating, setFilterRating] = useState(0);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [replyTarget, setReplyTarget] = useState(null);
   const [replyText, setReplyText] = useState('');
-
-  useEffect(() => {
-    localStorage.setItem('hms_feedbacks', JSON.stringify(feedbacks));
-  }, [feedbacks]);
+  const [stats, setStats] = useState({
+    averageRating: 0.0,
+    totalReviews: 0,
+    ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+  });
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
+
+  const fetchFeedbacks = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [listRes, statsRes] = await Promise.all([
+        searchFeedbacks({
+          keyword: search.trim() || undefined,
+          rating: filterRating > 0 ? filterRating : undefined,
+          status: filterStatus || undefined,
+          category: filterCategory || undefined,
+          page,
+          size: 10
+        }, locale),
+        getFeedbackStats({
+          keyword: search.trim() || undefined,
+          status: filterStatus || undefined,
+          category: filterCategory || undefined
+        }, locale).catch(err => {
+          console.error('Failed to fetch stats:', err);
+          return null;
+        })
+      ]);
+      setFeedbacks(listRes?.data?.content || []);
+      setTotalPages(listRes?.data?.totalPages || 1);
+      if (statsRes?.data) {
+        setStats(statsRes.data);
+      }
+    } catch (err) {
+      notify(err.message || (isVi ? 'Không thể tải danh sách đánh giá' : 'Failed to load feedbacks'), 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [search, filterRating, filterStatus, filterCategory, page, locale, isVi]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [search, filterRating, filterStatus, filterCategory]);
+
+  useEffect(() => {
+    fetchFeedbacks();
+  }, [fetchFeedbacks]);
 
   const handleOpenReply = (item) => {
     setReplyTarget(item);
     setReplyText(item.reply || '');
   };
 
-  const handleSaveReply = (e) => {
+  const handleSaveReply = async (e) => {
     e.preventDefault();
     if (!replyText.trim()) return;
 
-    setFeedbacks(prev => prev.map(f => {
-      if (f.id === replyTarget.id) {
-        return { ...f, reply: replyText.trim() };
-      }
-      return f;
-    }));
-
-    notify(isVi ? 'Đã phản hồi đánh giá thành công!' : 'Feedback replied successfully!');
-    setReplyTarget(null);
-    setReplyText('');
+    try {
+      await replyFeedback(replyTarget.id, { reply: replyText.trim() }, locale);
+      notify(isVi ? 'Đã phản hồi đánh giá thành công!' : 'Feedback replied successfully!');
+      setReplyTarget(null);
+      setReplyText('');
+      fetchFeedbacks();
+    } catch (err) {
+      notify(err.message || (isVi ? 'Không thể gửi phản hồi' : 'Failed to send reply'), 'error');
+    }
   };
 
-  const handleDeleteFeedback = (id) => {
+  const handleDeleteFeedback = async (id) => {
     if (!window.confirm(isVi ? 'Bạn có chắc chắn muốn xóa phản hồi này?' : 'Are you sure you want to delete this feedback?')) return;
-    setFeedbacks(prev => prev.filter(f => f.id !== id));
-    notify(isVi ? 'Đã xóa đánh giá!' : 'Feedback deleted!');
+    try {
+      await deleteFeedback(id, locale);
+      notify(isVi ? 'Đã xóa đánh giá!' : 'Feedback deleted!');
+      fetchFeedbacks();
+    } catch (err) {
+      notify(err.message || (isVi ? 'Không thể xóa đánh giá' : 'Failed to delete feedback'), 'error');
+    }
   };
 
-  // Metrics
-  const avgRating = feedbacks.length > 0 ? (feedbacks.reduce((acc, curr) => acc + curr.rating, 0) / feedbacks.length).toFixed(1) : '0.0';
+  // Metrics (computed dynamically from backend across whole dataset matching active filters)
+  const avgRating = (stats.averageRating || 0.0).toFixed(1);
   const ratingCounts = [5, 4, 3, 2, 1].map(stars => ({
     stars,
-    count: feedbacks.filter(f => f.rating === stars).length
+    count: stats.ratingDistribution?.[stars] || 0
   }));
-
-  // Filtering logic
-  const filteredFeedbacks = feedbacks.filter(f => {
-    const matchRating = filterRating === 0 || f.rating === filterRating;
-    const matchSearch = !search.trim() || 
-      f.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      f.comment.toLowerCase().includes(search.toLowerCase()) ||
-      (f.roomType && f.roomType.toLowerCase().includes(search.toLowerCase()));
-    return matchRating && matchSearch;
-  });
 
   return (
     <div className="space-y-6">
@@ -153,11 +143,14 @@ export default function FeedbackManager() {
                 size={18}
                 fill={star <= Math.round(parseFloat(avgRating)) ? '#bfa15f' : 'none'}
                 strokeWidth={2}
+                className={star <= Math.round(parseFloat(avgRating)) ? 'text-[#bfa15f]' : 'text-white/20'}
               />
             ))}
           </div>
           <span className="text-xs text-white/40 mt-3">
-            {isVi ? `Dựa trên ${feedbacks.length} lượt đánh giá` : `Based on ${feedbacks.length} reviews`}
+            {isVi
+              ? `Dựa trên ${stats.totalReviews} lượt đánh giá`
+              : `Based on ${stats.totalReviews} reviews`}
           </span>
         </div>
 
@@ -167,7 +160,7 @@ export default function FeedbackManager() {
             {isVi ? 'Phân Phối Điểm Đánh Giá' : 'Rating Distribution'}
           </span>
           {ratingCounts.map(({ stars, count }) => {
-            const pct = feedbacks.length > 0 ? (count / feedbacks.length) * 100 : 0;
+            const pct = stats.totalReviews > 0 ? (count / stats.totalReviews) * 100 : 0;
             return (
               <div key={stars} className="flex items-center gap-3 text-sm text-white/70">
                 <span className="w-8 font-semibold flex items-center justify-end gap-1">
@@ -187,19 +180,35 @@ export default function FeedbackManager() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between gap-3 bg-[#112240] p-4 rounded-2xl border border-white/[0.08]">
-        <div className="relative flex-1 max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={isVi ? 'Tìm theo tên khách, phòng, nội dung...' : 'Search by guest name, room, comment...'}
-            className="w-full pl-8 pr-3 py-2 text-sm bg-white/5 border border-white/10 rounded-xl focus:border-[#bfa15f] outline-none text-white placeholder-white/30 transition-all"
-          />
+      <div className="flex flex-col lg:flex-row justify-between gap-4 bg-[#112240] p-4 rounded-2xl border border-white/[0.08]">
+        <div className="flex flex-col sm:flex-row gap-3 flex-1">
+          <div className="relative flex-1 max-w-xs">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={isVi ? 'Tìm theo tên khách, phòng, nội dung...' : 'Search by guest name, room, comment...'}
+              className="w-full pl-8 pr-3 py-2 text-sm bg-white/5 border border-white/10 rounded-xl focus:border-[#bfa15f] outline-none text-white placeholder-white/30 transition-all"
+            />
+          </div>
+
+
+
+          <select
+            value={filterCategory}
+            onChange={e => setFilterCategory(e.target.value)}
+            className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-white focus:border-[#bfa15f] outline-none transition-all cursor-pointer"
+          >
+            <option value="" className="bg-[#112240] text-white">{isVi ? 'Tất cả danh mục' : 'All Categories'}</option>
+            <option value="Room" className="bg-[#112240] text-white">{isVi ? 'Phòng nghỉ' : 'Room'}</option>
+            <option value="Service" className="bg-[#112240] text-white">{isVi ? 'Dịch vụ' : 'Service'}</option>
+            <option value="Cleanliness" className="bg-[#112240] text-white">{isVi ? 'Sạch sẽ' : 'Cleanliness'}</option>
+            <option value="Staff" className="bg-[#112240] text-white">{isVi ? 'Nhân viên' : 'Staff'}</option>
+          </select>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           <button
             onClick={() => setFilterRating(0)}
             className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
@@ -208,7 +217,7 @@ export default function FeedbackManager() {
                 : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
             }`}
           >
-            {isVi ? 'Tất cả' : 'All'}
+            {isVi ? 'Tất cả sao' : 'All Stars'}
           </button>
           {[5, 4, 3, 2, 1].map(stars => (
             <button
@@ -220,7 +229,7 @@ export default function FeedbackManager() {
                   : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20'
               }`}
             >
-              {stars} <Star size={11} fill={filterRating === stars ? '#bfa15f' : 'none'} />
+              {stars} <Star size={11} fill={filterRating === stars ? '#bfa15f' : 'none'} className={filterRating === stars ? 'text-[#bfa15f]' : 'text-white/40'} />
             </button>
           ))}
         </div>
@@ -228,7 +237,11 @@ export default function FeedbackManager() {
 
       {/* Feedback List */}
       <div className="space-y-4">
-        {filteredFeedbacks.length === 0 ? (
+        {loading ? (
+          <div className="bg-[#112240] border border-white/[0.08] p-12 text-center rounded-2xl">
+            <span className="text-sm text-white/40">{isVi ? 'Đang tải đánh giá...' : 'Loading feedbacks...'}</span>
+          </div>
+        ) : feedbacks.length === 0 ? (
           <div className="bg-[#112240] border border-white/[0.08] p-12 text-center rounded-2xl">
             <MessageSquare className="mx-auto text-white/20 mb-3" size={36} />
             <p className="text-sm text-white/40">
@@ -236,25 +249,48 @@ export default function FeedbackManager() {
             </p>
           </div>
         ) : (
-          filteredFeedbacks.map((item) => (
+          feedbacks.map((item) => (
             <div key={item.id} className="bg-[#112240] border border-white/[0.08] p-5 rounded-2xl space-y-4 shadow-lg hover:border-white/15 transition-all">
               {/* Header Info */}
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-white/[0.05] pb-3">
-                <div>
-                  <h4 className="text-sm font-bold text-white">{item.customerName}</h4>
-                  <p className="text-[11px] text-white/40 mt-0.5">
-                    {item.roomType} &bull; {new Date(item.createdAt).toLocaleDateString(isVi ? 'vi-VN' : 'en-US')}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-sm font-bold text-white">{item.customerName}</h4>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/10">
+                      {isVi ? {
+                        'Room': 'Phòng nghỉ',
+                        'Service': 'Dịch vụ',
+                        'Cleanliness': 'Sạch sẽ',
+                        'Staff': 'Nhân viên'
+                      }[item.category] || item.category : item.category}
+                    </span>
+
+                  </div>
+                  <p className="text-[11px] text-white/40 mt-1">
+                    {item.roomTypeName} &bull; {new Date(item.createdAt).toLocaleDateString(isVi ? 'vi-VN' : 'en-US')}
                   </p>
                 </div>
-                <div className="flex gap-0.5 text-[#bfa15f]">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Star
-                      key={star}
-                      size={14}
-                      fill={star <= item.rating ? '#bfa15f' : 'none'}
-                      strokeWidth={2}
-                    />
-                  ))}
+                <div className="flex items-center gap-4">
+                  <div className="flex gap-0.5 text-[#bfa15f]">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <Star
+                        key={star}
+                        size={14}
+                        fill={star <= item.rating ? '#bfa15f' : 'none'}
+                        strokeWidth={2}
+                        className={star <= item.rating ? 'text-[#bfa15f]' : 'text-white/20'}
+                      />
+                    ))}
+                  </div>
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDeleteFeedback(item.id)}
+                      className="p-1.5 rounded-lg border border-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-all"
+                      title={isVi ? 'Xóa đánh giá' : 'Delete Feedback'}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -298,6 +334,31 @@ export default function FeedbackManager() {
         )}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-[#112240] p-4 rounded-2xl border border-white/[0.08] mt-4">
+          <span className="text-xs text-white/40">
+            {isVi ? `Trang ${page + 1} / ${totalPages}` : `Page ${page + 1} of ${totalPages}`}
+          </span>
+          <div className="flex gap-2">
+            <button
+              disabled={page === 0}
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isVi ? 'Trước' : 'Previous'}
+            </button>
+            <button
+              disabled={page === totalPages - 1}
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isVi ? 'Sau' : 'Next'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Reply Modal */}
       {replyTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -314,12 +375,18 @@ export default function FeedbackManager() {
 
             <form onSubmit={handleSaveReply} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                  {isVi ? 'Nội dung phản hồi' : 'Response Message'}
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider">
+                    {isVi ? 'Nội dung phản hồi' : 'Response Message'}
+                  </label>
+                  <span className={`text-[10px] ${replyText.length > 1000 ? 'text-red-500 font-bold' : 'text-white/40'}`}>
+                    {replyText.length}/1000
+                  </span>
+                </div>
                 <textarea
                   required
                   rows={4}
+                  maxLength={1000}
                   value={replyText}
                   onChange={e => setReplyText(e.target.value)}
                   placeholder={isVi ? 'Nhập lời cảm ơn hoặc giải đáp thắc mắc...' : 'Type your reply message...'}
@@ -337,7 +404,8 @@ export default function FeedbackManager() {
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center gap-1.5 px-5 py-2 text-sm btn-gold rounded-xl font-semibold shadow"
+                  disabled={replyText.length > 1000}
+                  className="flex items-center gap-1.5 px-5 py-2 text-sm btn-gold rounded-xl font-semibold shadow disabled:opacity-50"
                 >
                   <Send size={14} />
                   {isVi ? 'Gửi phản hồi' : 'Send'}

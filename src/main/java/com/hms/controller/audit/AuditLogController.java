@@ -30,7 +30,6 @@ public class AuditLogController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String action,
             @RequestParam(required = false) String module,
-            @RequestParam(required = false) String resourceType,
             @RequestParam(required = false) Long actorUserId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant fromTime,
@@ -41,7 +40,7 @@ public class AuditLogController {
         ApiResponse<Page<AuditLogResponse>> response = ApiResponse.<Page<AuditLogResponse>>builder()
                 .success(true)
                 .message("Get audit logs successfully")
-                .data(auditLogService.search(keyword, action, module, resourceType, actorUserId, status, fromTime, toTime, page, size))
+                .data(auditLogService.search(keyword, action, module, null, actorUserId, status, fromTime, toTime, page, size))
                 .status(HttpStatus.OK)
                 .build();
 

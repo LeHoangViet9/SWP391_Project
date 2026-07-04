@@ -18,6 +18,7 @@ import com.hms.repository.housekeeping.HouseKeepingTaskRepository;
 import com.hms.repository.housekeeping.RoomStateHistoryRepository;
 import com.hms.service.housekeeping.IHouseKeepingTaskService;
 import com.hms.service.housekeeping.mapper.HouseKeepingTaskMapper;
+import com.hms.service.email.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -44,6 +45,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     private final HouseKeepingTaskMapper taskMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
+    private final EmailService emailService;
 
     @Override
     @Transactional(readOnly = true)
@@ -106,6 +108,9 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                     ProcessTrigger.TASK_CLEANING
             );
         }
+
+        // Gửi email thông báo cho housekeeper được gán task
+        sendTaskNotification(assignedTo, room.getRoomNumber(), request.getNotes());
 
         return taskMapper.toResponse(saved);
     }
@@ -328,6 +333,72 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
         // Đổi trạng thái phòng thành MAINTENANCE và ghi nhận lịch sử với reason
         changeRoomStatus(room, RoomStatus.MAINTENANCE, reportedBy, null, request.getReason(),ProcessTrigger.TASK_MAINTENANCE);
+    }
+
+    @Override
+    @Transactional
+    public void autoCreateCleaningTaskOnCheckout(Long roomId, Long triggeredByUserId) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.room.notfound", null, locale)));
+
+        // Tìm housekeeper có ít task nhất (round-robin by workload)
+        List<User> housekeepers = userRepository.findHousekeepersOrderByTaskCountAsc();
+
+        if (housekeepers.isEmpty()) {
+            log.warn("[AUTO-ASSIGN] No available housekeeper found for room {}. " +
+                     "Task will NOT be auto-created. Please assign manually.", room.getRoomNumber());
+            return;
+        }
+
+        User assignedHousekeeper = housekeepers.get(0);
+
+        // Xác định user thực hiện checkout (assignedBy)
+        User assignedBy = null;
+        if (triggeredByUserId != null) {
+            assignedBy = userRepository.findById(triggeredByUserId).orElse(null);
+        }
+        if (assignedBy == null) {
+            assignedBy = assignedHousekeeper; // fallback: self-assigned
+        }
+
+        String notes = "Auto-created on checkout — Room " + room.getRoomNumber();
+
+        HouseKeepingTask task = HouseKeepingTask.builder()
+                .room(room)
+                .assignedTo(assignedHousekeeper)
+                .assignedBy(assignedBy)
+                .taskStatus(TaskStatus.PENDING)
+                .notes(notes)
+                .build();
+
+        HouseKeepingTask saved = taskRepository.save(task);
+
+        log.info("[AUTO-ASSIGN] Created cleaning task #{} for room {} -> assigned to {} (ID: {})",
+                saved.getId(), room.getRoomNumber(),
+                assignedHousekeeper.getFullName(), assignedHousekeeper.getId());
+
+        // Gửi email thông báo cho housekeeper
+        sendTaskNotification(assignedHousekeeper, room.getRoomNumber(), notes);
+    }
+
+    /**
+     * Gửi email thông báo gán task cho housekeeper (async-safe, không throw exception).
+     */
+    private void sendTaskNotification(User housekeeper, String roomNumber, String notes) {
+        try {
+            emailService.sendTaskAssignmentNotification(
+                    housekeeper.getEmail(),
+                    housekeeper.getFullName(),
+                    roomNumber,
+                    notes
+            );
+        } catch (Exception e) {
+            log.warn("[NOTIFICATION] Failed to send task assignment email to {} : {}",
+                    housekeeper.getEmail(), e.getMessage());
+        }
     }
 
 }

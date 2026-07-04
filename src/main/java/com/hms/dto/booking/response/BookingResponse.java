@@ -5,6 +5,8 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import com.hms.dto.booking.request.RoomGuestRequest;
 
 @Data
 public class BookingResponse {
@@ -22,6 +24,12 @@ public class BookingResponse {
 
     private String roomNumber;
 
+    private List<Long> roomIds;
+
+    private List<String> roomNumbers;
+
+    private List<RoomGuestRequest> roomGuests;
+
     private BigDecimal pricePerNight;
 
     private Integer quantity;
@@ -35,6 +43,10 @@ public class BookingResponse {
     private BookingStatus bookingStatus;
 
     private LocalDateTime createdAt;
+
+    private Boolean hasFeedback;
+
+    private LocalDateTime holdExpiresAt;
 
     private Boolean bookingForOther;
 
@@ -50,3 +62,4 @@ public class BookingResponse {
 
     private String guestNationality;
 }
+

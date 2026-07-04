@@ -35,4 +35,14 @@ public interface IHouseKeepingTaskService {
     Page<RoomStateHistoryResponse> getRoomStateHistory(Long roomId,Integer page, Integer size,SortField sortBy,SortDirection sortDirection);
 
     void reportRoomIssue(Long roomId, com.hms.dto.housekeeping.request.ReportRoomIssueRequest request);
+
+    /**
+     * Tự động tạo task dọn phòng khi checkout.
+     * Gán cho housekeeper có ít task nhất (round-robin by workload).
+     * Gửi email thông báo cho housekeeper được gán.
+     *
+     * @param roomId ID phòng cần dọn
+     * @param triggeredByUserId ID user thực hiện checkout (có thể null)
+     */
+    void autoCreateCleaningTaskOnCheckout(Long roomId, Long triggeredByUserId);
 }
