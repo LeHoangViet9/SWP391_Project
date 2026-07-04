@@ -21,6 +21,7 @@ import RoomTypeManager from '../components/RoomTypeManager';
 import RoomManager from '../components/RoomManager';
 import BookingManager from '../components/BookingManager';
 import CheckInManager from '../components/CheckInManager';
+import CheckOutManager from '../components/CheckOutManager';
 import CustomerManager from '../components/CustomerManager';
 import EquipmentManager from '../components/EquipmentManager';
 import AssignEquipmentToRoom from '../components/AssignEquipmentToRoom';
@@ -58,8 +59,9 @@ const ROUTE_COMPONENTS = {
   'feedback':         { Component: FeedbackManager,        title: 'Đánh Giá',              titleEn: 'Feedback' },
   'invoices':         { Component: InvoiceManager,         title: 'Hóa Đơn',               titleEn: 'Invoices' },
   'account':          { Component: AccountInfo,            title: 'Thông Tin Tài Khoản',   titleEn: 'Account Info' },
-  'password':         { Component: ChangePassword,         title: 'Đổi Mật Khẩu',          titleEn: 'Change Password' },
-};
+  'password':         { Component: ChangePassword,         title: 'Đổi Mật Khẩu',          titleEn: 'Change Password' }
+}; // <-- Đã thêm dấu đóng ngoặc ở đây
+
 
 /**
  * ContentPage — Renders a single dashboard content area with title.
@@ -82,9 +84,9 @@ function ContentPage({ routeKey }) {
   const title = locale === 'vi' ? route.title : route.titleEn;
 
   return (
-    <PermissionLayout title={title}>
-      <Component />
-    </PermissionLayout>
+      <PermissionLayout title={title}>
+        <Component />
+      </PermissionLayout>
   );
 }
 
@@ -95,8 +97,8 @@ export default function DashboardRouter() {
   const { user } = useAuth();
 
   const visibleMenu = useMemo(
-    () => filterMenuByPermissions(user?.permissions ?? [], user?.roleName),
-    [user?.permissions, user?.roleName]
+      () => filterMenuByPermissions(user?.permissions ?? [], user?.roleName),
+      [user?.permissions, user?.roleName]
   );
 
   const allowedRouteKeys = useMemo(() => {
@@ -117,21 +119,21 @@ export default function DashboardRouter() {
   };
 
   return (
-    <Routes>
-      {/* Index — redirect to first allowed page */}
-      <Route index element={<Navigate to={firstAllowedPath} replace />} />
+      <Routes>
+        {/* Index — redirect to first allowed page */}
+        <Route index element={<Navigate to={firstAllowedPath} replace />} />
 
-      {/* Dynamic content routes */}
-      {Object.keys(ROUTE_COMPONENTS).map((key) => (
-        <Route
-          key={key}
-          path={key}
-          element={renderRoute(key)}
-        />
-      ))}
+        {/* Dynamic content routes */}
+        {Object.keys(ROUTE_COMPONENTS).map((key) => (
+            <Route
+                key={key}
+                path={key}
+                element={renderRoute(key)}
+            />
+        ))}
 
-      {/* Catch-all — redirect to first allowed page */}
-      <Route path="*" element={<Navigate to={firstAllowedPath} replace />} />
-    </Routes>
+        {/* Catch-all — redirect to first allowed page */}
+        <Route path="*" element={<Navigate to={firstAllowedPath} replace />} />
+      </Routes>
   );
 }

@@ -1,8 +1,9 @@
 import {
-  TrendingUp, DollarSign, CalendarCheck, BarChart2,
-  CreditCard, RefreshCw, Users, BedDouble, Tag, UserCheck
+  TrendingUp, BarChart2, CreditCard, RefreshCw
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
+import DashboardCard from './DashboardCard';
+import { adminDashboardCards } from '../data/dashboardData';
 
 const COLORS = ['#bfa15f', '#0c192c', '#4f8ef7', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -23,25 +24,6 @@ function formatDate(label) {
   if (!label) return '';
   const d = new Date(label);
   return isNaN(d) ? label : `${d.getDate()}/${d.getMonth() + 1}`;
-}
-
-// ─── KPI Card ───────────────────────────────────────────────────────────────
-function KpiCard({ icon: Icon, label, value, sub, color = '#bfa15f' }) {
-  return (
-    <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm flex items-start gap-4">
-      <div
-        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: `${color}18` }}
-      >
-        <Icon size={22} style={{ color }} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-slate-800 leading-tight truncate">{value}</p>
-        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
-      </div>
-    </div>
-  );
 }
 
 // ─── Bar Chart (pure CSS) ────────────────────────────────────────────────────
@@ -132,66 +114,32 @@ export default function ReportManager({ data, refetch }) {
 
       {/* KPI Cards — Doanh thu */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiCard
-          icon={DollarSign}
-          label={t('report.kpi.totalRevenue')}
-          value={`${formatVND(data?.totalRevenueAllTime, locale)} ₫`}
-          sub={t('report.kpi.allTime')}
-          color="#bfa15f"
-        />
-        <KpiCard
-          icon={TrendingUp}
-          label={t('report.kpi.revenueToday')}
-          value={`${formatVND(data?.todayRevenue, locale)} ₫`}
-          sub={locale === 'vi' ? new Date().toLocaleDateString('vi-VN') : new Date().toLocaleDateString('en-US')}
-          color="#22c55e"
-        />
-        <KpiCard
-          icon={BarChart2}
-          label={t('report.kpi.revenueThisMonth')}
-          value={`${formatVND(data?.thisMonthRevenue, locale)} ₫`}
-          sub={locale === 'vi' ? `Tháng ${new Date().getMonth() + 1}/${new Date().getFullYear()}` : `Month ${new Date().getMonth() + 1}/${new Date().getFullYear()}`}
-          color="#4f8ef7"
-        />
-        <KpiCard
-          icon={CalendarCheck}
-          label={t('report.kpi.successfulBookings')}
-          value={data?.totalSuccessfulBookings ?? '—'}
-          sub={t('report.kpi.bookingsCount')}
-          color="#8b5cf6"
-        />
+        {adminDashboardCards.slice(0, 4).map((card) => (
+          <DashboardCard
+            key={card.key}
+            title={t(card.titleKey)}
+            value={card.getValue(data, formatVND, locale)}
+            icon={card.icon}
+            linkPath={card.linkPath}
+            color={card.color}
+            sub={card.getSub ? card.getSub(data, locale) : (card.subKey ? t(card.subKey) : undefined)}
+          />
+        ))}
       </div>
 
       {/* KPI Cards — Tổng quan hệ thống */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiCard
-          icon={Users}
-          label={t('report.kpi.customers')}
-          value={data?.totalCustomers ?? '—'}
-          sub={t('report.kpi.totalCustomers')}
-          color="#06b6d4"
-        />
-        <KpiCard
-          icon={Tag}
-          label={t('report.kpi.roomTypes')}
-          value={data?.totalRoomTypes ?? '—'}
-          sub={t('report.kpi.totalRoomTypes')}
-          color="#f59e0b"
-        />
-        <KpiCard
-          icon={BedDouble}
-          label={t('report.kpi.rooms')}
-          value={data?.totalRooms ?? '—'}
-          sub={t('report.kpi.totalRooms')}
-          color="#10b981"
-        />
-        <KpiCard
-          icon={UserCheck}
-          label={t('report.kpi.staff')}
-          value={data?.totalStaff ?? '—'}
-          sub={t('report.kpi.totalStaff')}
-          color="#f43f5e"
-        />
+        {adminDashboardCards.slice(4, 8).map((card) => (
+          <DashboardCard
+            key={card.key}
+            title={t(card.titleKey)}
+            value={card.getValue(data, formatVND, locale)}
+            icon={card.icon}
+            linkPath={card.linkPath}
+            color={card.color}
+            sub={card.getSub ? card.getSub(data, locale) : (card.subKey ? t(card.subKey) : undefined)}
+          />
+        ))}
       </div>
 
       {/* Charts Row */}

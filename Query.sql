@@ -82,7 +82,7 @@ INSERT INTO roles (role_name) VALUES
     ('ADMIN'), ('MANAGER'), ('CUSTOMER'), ('RECEPTIONIST'), ('MAINTENANCE'), ('HOUSEKEEPER');
 
 INSERT INTO permission (name) VALUES
-    ('USER_VIEW'), ('USER_CREATE'), ('USER_UPDATE'), ('USER_DELETE'),
+    ('USER_VIEW'), ('USER_CREATE'), ('USER_UPDATE'), ('USER_DELETE'), ('USER_AUTHORIZE'),
     ('ROOM_VIEW'), ('ROOM_CREATE'), ('ROOM_UPDATE'), ('ROOM_DELETE'),
     ('ROOM_TYPE_VIEW'), ('ROOM_TYPE_CREATE'), ('ROOM_TYPE_UPDATE'), ('ROOM_TYPE_DELETE'),
     ('CUSTOMER_VIEW'), ('CUSTOMER_CREATE'), ('CUSTOMER_UPDATE'), ('CUSTOMER_DELETE'),
@@ -101,7 +101,7 @@ SELECT r.id, p.id FROM roles r, permission p WHERE r.role_name = 'ADMIN';
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permission p
-WHERE r.role_name = 'MANAGER' AND p.name NOT IN ('BOOKING_VIEW_OWN');
+WHERE r.role_name = 'MANAGER' AND p.name NOT IN ('BOOKING_VIEW_OWN', 'USER_AUTHORIZE');
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permission p

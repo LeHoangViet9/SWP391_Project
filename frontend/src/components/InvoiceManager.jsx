@@ -1,24 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Printer, CreditCard, RefreshCw, CheckCircle, Clock } from 'lucide-react';
+import { Search, Printer, RefreshCw, CheckCircle, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
-import { searchInvoices, markAsPaid } from '../services/invoiceService';
+import { searchInvoices } from '../services/invoiceService';
 import DataTable from './shared/DataTable';
-import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
-const PAYMENT_METHODS = [
-  { value: 'CASH', label: { vi: 'Tiền mặt', en: 'Cash' } },
-  { value: 'CARD', label: { vi: 'Thẻ ngân hàng', en: 'Credit/Debit Card' } },
-  { value: 'BANK_TRANSFER', label: { vi: 'Chuyển khoản', en: 'Bank Transfer' } },
-];
 
 export default function InvoiceManager() {
   const { hasAnyPermission } = useAuth();
   const { locale, t } = useLocale();
   const isVi = locale === 'vi';
 
-  const canUpdate = hasAnyPermission(['INVOICE_UPDATE']);
+  const canUpdate = hasAnyPermission(['INVOICE_VIEW']);
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -27,9 +21,6 @@ export default function InvoiceManager() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [toast, setToast] = useState({ type: 'success', message: '' });
-  const [payModal, setPayModal] = useState({ open: false, invoice: null });
-  const [paymentMethod, setPaymentMethod] = useState('CASH');
-  const [saving, setSaving] = useState(false);
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -40,7 +31,7 @@ export default function InvoiceManager() {
       const params = {
         page: p,
         size: 10,
-        sortBy: 'createdAt',
+        sortBy: 'id',
         direction: 'DESC'
       };
       if (search.trim()) params.keyword = search.trim();
@@ -67,26 +58,6 @@ export default function InvoiceManager() {
     }
   };
 
-  const handleOpenPay = (invoice) => {
-    setPayModal({ open: true, invoice });
-    setPaymentMethod('CASH');
-  };
-
-  const handleConfirmPayment = async (e) => {
-    e.preventDefault();
-    if (!payModal.invoice) return;
-    setSaving(true);
-    try {
-      await markAsPaid(payModal.invoice.id, paymentMethod, locale);
-      notify(isVi ? 'Thanh toán hóa đơn thành công!' : 'Invoice paid successfully!');
-      setPayModal({ open: false, invoice: null });
-      fetchData(page);
-    } catch (e) {
-      notify(e.message || (isVi ? 'Lỗi thanh toán' : 'Failed to process payment'), 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const getStatusBadge = (status) => {
     const isPaid = status === 'PAID';
@@ -113,6 +84,7 @@ export default function InvoiceManager() {
     isVi ? 'Mã đặt phòng' : 'Booking ID',
     isVi ? 'Khách hàng' : 'Customer',
     isVi ? 'Tổng tiền' : 'Total Amount',
+    isVi ? 'Loại' : 'Type',
     isVi ? 'Trạng thái' : 'Status',
     isVi ? 'Ngày tạo' : 'Created Date',
     isVi ? 'Hành động' : 'Actions'
@@ -124,6 +96,13 @@ export default function InvoiceManager() {
       <td className="px-4 py-3 font-mono text-xs text-slate-700">#{item.bookingId}</td>
       <td className="px-4 py-3 text-slate-800 font-medium">{item.customerName || '-'}</td>
       <td className="px-4 py-3 font-semibold text-[#bfa15f]">{formatPrice(item.totalAmount || item.totalPrice || 0)}</td>
+      <td className="px-4 py-3 text-sm">
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+          item.invoiceType === 'SURCHARGE' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+        }`}>
+          {item.invoiceType === 'SURCHARGE' ? (isVi ? 'Phụ thu' : 'Surcharge') : (isVi ? 'Tiền phòng' : 'Room')}
+        </span>
+      </td>
       <td className="px-4 py-3">{getStatusBadge(item.paymentStatus)}</td>
       <td className="px-4 py-3 text-xs text-slate-500">
         {item.createdAt ? new Date(item.createdAt).toLocaleString(isVi ? 'vi-VN' : 'en-US') : '—'}
@@ -140,18 +119,6 @@ export default function InvoiceManager() {
           >
             <Printer size={15} />
           </a>
-
-          {/* Pay Button */}
-          {canUpdate && item.paymentStatus !== 'PAID' && (
-            <button
-              onClick={() => handleOpenPay(item)}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-[#bfa15f] hover:bg-[#a3854a] text-white transition-all shadow-md shadow-[#bfa15f]/10"
-              title={isVi ? 'Thanh toán' : 'Pay'}
-            >
-              <CreditCard size={13} />
-              <span>{isVi ? 'Thanh toán' : 'Pay'}</span>
-            </button>
-          )}
         </div>
       </td>
     </tr>
@@ -179,7 +146,7 @@ export default function InvoiceManager() {
             <input
               type="text"
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); setPage(0); }}
               onKeyDown={handleSearchKeyPress}
               placeholder={isVi ? 'Nhập tên khách hoặc mã đặt phòng...' : 'Enter customer or booking ID...'}
               className="w-full pl-8 pr-3 py-2 text-sm bg-white/5 border border-white/10 rounded-xl focus:border-[#bfa15f] outline-none text-white placeholder-white/30 transition-all"
@@ -193,7 +160,7 @@ export default function InvoiceManager() {
           >
             <option value="">{isVi ? 'Tất cả trạng thái' : 'All Statuses'}</option>
             <option value="PAID">{isVi ? 'Đã thanh toán' : 'Paid'}</option>
-            <option value="UNPAID">{isVi ? 'Chờ thanh toán' : 'Pending'}</option>
+            <option value="PENDING">{isVi ? 'Chờ thanh toán' : 'Pending'}</option>
           </select>
 
           <button onClick={() => fetchData(page)} className="p-2 border border-white/10 rounded-xl hover:bg-white/5 text-white/70">
@@ -203,74 +170,6 @@ export default function InvoiceManager() {
       </div>
 
       <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
-
-      <Modal open={payModal.open} title={isVi ? 'Xác nhận thanh toán hóa đơn' : 'Process Invoice Payment'} onClose={() => setPayModal({ open: false, invoice: null })}>
-        <form onSubmit={handleConfirmPayment} className="space-y-5">
-          {payModal.invoice && (
-            <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-2 text-sm text-slate-700">
-              <div className="flex justify-between">
-                <span className="text-slate-500">{isVi ? 'Hóa đơn số' : 'Invoice ID'}:</span>
-                <span className="font-mono font-bold">#{payModal.invoice.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">{isVi ? 'Mã đặt phòng' : 'Booking ID'}:</span>
-                <span className="font-mono">#{payModal.invoice.bookingId}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">{isVi ? 'Khách hàng' : 'Customer'}:</span>
-                <span className="font-semibold">{payModal.invoice.customerName}</span>
-              </div>
-              <div className="h-px bg-stone-200 my-2" />
-              <div className="flex justify-between items-baseline">
-                <span className="text-slate-500 font-bold">{isVi ? 'Tổng tiền thanh toán' : 'Total Amount'}:</span>
-                <span className="text-xl font-bold text-[#bfa15f]">{formatPrice(payModal.invoice.totalAmount || payModal.invoice.totalPrice || 0)}</span>
-              </div>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-2 uppercase tracking-wider">
-              {isVi ? 'Phương thức thanh toán' : 'Payment Method'}
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              {PAYMENT_METHODS.map(method => {
-                const isSelected = paymentMethod === method.value;
-                return (
-                  <button
-                    key={method.value}
-                    type="button"
-                    onClick={() => setPaymentMethod(method.value)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
-                      isSelected
-                        ? 'bg-[#bfa15f]/10 border-[#bfa15f] text-[#bfa15f] font-bold shadow-lg shadow-[#bfa15f]/10'
-                        : 'bg-stone-50 border-stone-200 text-slate-600 hover:border-stone-300 hover:bg-stone-100'
-                    }`}
-                  >
-                    <span className="text-xs font-semibold">{isVi ? method.label.vi : method.label.en}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-3">
-            <button
-              type="button"
-              onClick={() => setPayModal({ open: false, invoice: null })}
-              className="px-4 py-2 text-sm border border-stone-300 rounded-xl text-slate-600 hover:bg-stone-100 hover:text-slate-800"
-            >
-              {isVi ? 'Hủy' : 'Cancel'}
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-5 py-2 text-sm btn-gold rounded-xl font-semibold shadow disabled:opacity-60"
-            >
-              {saving ? (isVi ? 'Đang thanh toán...' : 'Processing...') : (isVi ? 'Xác nhận thanh toán' : 'Confirm Payment')}
-            </button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }

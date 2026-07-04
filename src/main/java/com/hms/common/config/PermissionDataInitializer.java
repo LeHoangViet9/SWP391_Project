@@ -29,10 +29,11 @@ public class PermissionDataInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+
         // 1. Tạo tất cả permissions
         List<String> allPermissions = Arrays.asList(
                 // User permissions
-                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE",
+                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE", "USER_AUTHORIZE",
 
                 // Room permissions
                 "ROOM_VIEW", "ROOM_CREATE", "ROOM_UPDATE", "ROOM_DELETE",
@@ -47,7 +48,10 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE", "BOOKING_DELETE", "BOOKING_VIEW_OWN",
 
                 // Check-in permissions
-                "CHECKIN_VIEW", "CHECKIN_PROCESS",
+                "CHECKIN_VIEW",
+
+                // Check-out permissions
+                "CHECKOUT_VIEW",
 
                 // Housekeeping permissions
                 "HOUSEKEEPING_VIEW", "HOUSEKEEPING_CREATE", "HOUSEKEEPING_UPDATE", "HOUSEKEEPING_DELETE",
@@ -63,13 +67,10 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "FEEDBACK_VIEW_OWN", "FEEDBACK_UPDATE_OWN", "FEEDBACK_DELETE_OWN",
 
                 // Invoice permissions
-                "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE",
+                "INVOICE_VIEW",
 
                 // System/UI permissions
-                "DASHBOARD_VIEW",
-
-                // Audit log permissions
-                "AUDIT_LOG_VIEW"
+                "DASHBOARD_VIEW"
         );
 
         for (String permName : allPermissions) {
@@ -82,7 +83,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
         }
 
         // 2. Gán permissions cho từng role
-        assignPermissionsToAdmin(allPermissions);
+        assignPermissionsToAdmin();
         assignPermissionsToManager();
         assignPermissionsToReceptionist();
         assignPermissionsToHousekeeper();
@@ -92,8 +93,14 @@ public class PermissionDataInitializer implements ApplicationRunner {
         log.info("All permissions have been assigned to roles.");
     }
 
-    private void assignPermissionsToAdmin(List<String> allPermissions) {
-        syncRolePermissions("ADMIN", allPermissions);
+    private void assignPermissionsToAdmin() {
+        List<String> adminPerms = Arrays.asList(
+                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE", "USER_AUTHORIZE",
+                "ROOM_VIEW", "ROOM_CREATE", "ROOM_UPDATE", "ROOM_DELETE",
+                "ROOM_TYPE_VIEW", "ROOM_TYPE_CREATE", "ROOM_TYPE_UPDATE", "ROOM_TYPE_DELETE",
+                "DASHBOARD_VIEW"
+        );
+        syncRolePermissions("ADMIN", adminPerms);
     }
 
     private void syncRolePermissions(String roleName, List<String> requiredPermNames) {
@@ -115,18 +122,19 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
     private void assignPermissionsToManager() {
         List<String> managerPerms = Arrays.asList(
+                "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE",
                 "DASHBOARD_VIEW",
                 "ROOM_VIEW", "ROOM_UPDATE",
                 "ROOM_TYPE_VIEW",
                 "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE", "CUSTOMER_DELETE",
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE", "BOOKING_DELETE",
-                "CHECKIN_VIEW", "CHECKIN_PROCESS",
+                "CHECKIN_VIEW",
+                "CHECKOUT_VIEW",
                 "HOUSEKEEPING_VIEW", "HOUSEKEEPING_CREATE", "HOUSEKEEPING_UPDATE", "HOUSEKEEPING_DELETE",
                 "EQUIPMENT_VIEW", "EQUIPMENT_CREATE", "EQUIPMENT_UPDATE", "EQUIPMENT_DELETE",
                 "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE", "MAINTENANCE_DELETE",
                 "FEEDBACK_VIEW", "FEEDBACK_UPDATE", "FEEDBACK_DELETE",
-                "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE",
-                "AUDIT_LOG_VIEW"
+                "INVOICE_VIEW"
         );
         syncRolePermissions("MANAGER", managerPerms);
     }
@@ -138,10 +146,11 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "ROOM_TYPE_VIEW",
                 "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE",
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE",
-                "CHECKIN_VIEW", "CHECKIN_PROCESS",
+                "CHECKIN_VIEW",
+                "CHECKOUT_VIEW",
                 "HOUSEKEEPING_VIEW",
                 "FEEDBACK_VIEW", "FEEDBACK_UPDATE",
-                "INVOICE_VIEW", "INVOICE_CREATE", "INVOICE_UPDATE"
+                "INVOICE_VIEW"
         );
         syncRolePermissions("RECEPTIONIST", receptionistPerms);
     }

@@ -38,14 +38,51 @@ public class CustomerServiceImpl implements CustomerService {
     public CustomerResponse createCustomer(CustomerCreateDTO customerDTO) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        // Nếu email đã tồn tại → trả về customer hiện tại (self-service booking flow)
+        // Nếu email đã tồn tại → cập nhật thông tin nếu có thay đổi và trả về customer hiện tại (self-service booking flow)
         if (customerRepository.existsByEmail(customerDTO.getEmail())) {
-            return customerRepository.findByEmailAndStatus(customerDTO.getEmail(), AccountStatus.ACTIVE)
-                    .map(customerMapper::toResponse)
+            Customer customer = customerRepository.findByEmailAndStatus(customerDTO.getEmail(), AccountStatus.ACTIVE)
                     .orElseThrow(() ->
                             new ConflictException(messageSource.getMessage("error.email.existed",
                                     new Object[]{customerDTO.getEmail()}, locale))
                     );
+
+            boolean updated = false;
+
+            if (customerDTO.getFullName() != null && !customerDTO.getFullName().trim().equals(customer.getFullName())) {
+                customer.setFullName(customerDTO.getFullName().trim());
+                updated = true;
+            }
+
+            if (customerDTO.getPhone() != null && !customerDTO.getPhone().trim().equals(customer.getPhone())) {
+                if (customerRepository.existsByPhone(customerDTO.getPhone().trim())) {
+                    throw new ConflictException(messageSource.getMessage("error.phone.existed", new Object[]{customerDTO.getPhone()}, locale));
+                }
+                customer.setPhone(customerDTO.getPhone().trim());
+                updated = true;
+            }
+
+            if (customerDTO.getIdNumberCard() != null && !customerDTO.getIdNumberCard().trim().equals(customer.getIdNumberCard())) {
+                if (customerRepository.existsByIdNumberCard(customerDTO.getIdNumberCard().trim())) {
+                    throw new ConflictException(messageSource.getMessage("error.idCard.existed", new Object[]{customerDTO.getIdNumberCard()}, locale));
+                }
+                customer.setIdType(customerDTO.getIdType());
+                customer.setIdNumberCard(customerDTO.getIdNumberCard().trim());
+                updated = true;
+            } else if (customerDTO.getIdType() != null && customerDTO.getIdType() != customer.getIdType()) {
+                customer.setIdType(customerDTO.getIdType());
+                updated = true;
+            }
+
+            if (customerDTO.getNationality() != null && !customerDTO.getNationality().trim().equals(customer.getNationality())) {
+                customer.setNationality(customerDTO.getNationality().trim());
+                updated = true;
+            }
+
+            if (updated) {
+                customer = customerRepository.save(customer);
+            }
+
+            return customerMapper.toResponse(customer);
         }
 
         if(customerRepository.existsByPhone(customerDTO.getPhone())){
@@ -172,5 +209,12 @@ public class CustomerServiceImpl implements CustomerService {
                     messageSource.getMessage("error.customer.cannot_delete_has_history", null, locale)
             );
         }
+    }
+
+    @Override
+    public CustomerResponse getCustomerByEmail(String email) {
+        return customerRepository.findByEmailAndStatus(email, AccountStatus.ACTIVE)
+                .map(customerMapper::toResponse)
+                .orElse(null);
     }
 }

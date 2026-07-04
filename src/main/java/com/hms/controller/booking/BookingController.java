@@ -217,7 +217,7 @@ public class BookingController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('BOOKING_DELETE')")
+    @PreAuthorize("hasAuthority('BOOKING_DELETE') or @invoiceAccessService.canAccessBooking(#id, authentication)")
     public ResponseEntity<ApiResponse<Void>> deleteBooking(
             @PathVariable Long id) {
 

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
@@ -34,6 +35,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
     Optional<User> findUserWithPermissionsByEmail(@Param("email") String email);
 
     Optional<User> findByResetPasswordToken(String resetPasswordToken);
+
+    List<User> findByRole_RoleNameIgnoreCaseAndAccountStatus(String roleName, AccountStatus accountStatus);
 
     @Query("SELECT u FROM User u WHERE " +
             "(:id IS NULL OR u.id = :id) AND " +

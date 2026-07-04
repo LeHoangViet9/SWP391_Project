@@ -62,7 +62,7 @@ public class CheckInServiceImpl implements CheckInService {
             );
         }
 
-        if (booking.getBookingStatus() != BookingStatus.PENDING_CHECK_IN) {
+        if (booking.getBookingStatus() != BookingStatus.CONFIRMED) {
             throw new ConflictException(
                     messageSource.getMessage(
                             "error.checkin.booking.status.invalid",
@@ -129,11 +129,10 @@ public class CheckInServiceImpl implements CheckInService {
             );
         }
 
-        // Double check overlap after acquiring lock
         boolean isOverlapping = bookingRepository.existsOverlappingBooking(
                 assignedRoom.getId(),
                 booking.getId(),
-                List.of(BookingStatus.PENDING_CHECK_IN, BookingStatus.CHECKED_IN),
+                List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN),
                 booking.getCheckInDate(),
                 booking.getCheckOutDate()
         );
@@ -148,19 +147,33 @@ public class CheckInServiceImpl implements CheckInService {
             );
         }
 
-        // 5. Update Status
-        List<Room> assignedRooms = booking.getRooms() != null && !booking.getRooms().isEmpty()
+        // 5. Update Status (Xử lý gán phòng thực tế tại quầy)
+        booking.setBookingStatus(BookingStatus.CHECKED_IN);
+        booking.setActualCheckInTime(now);
+
+        // Gán phòng đơn (Single Room) cho trường hợp booking lưu ở thực thể Room
+        booking.setRoom(assignedRoom);
+
+        // Nếu hệ thống quản lý danh sách phòng (Multi-room), ta bổ sung phòng được gán vào list
+        if (booking.getRooms() != null && !booking.getRooms().contains(assignedRoom)) {
+            booking.getRooms().add(assignedRoom);
+        }
+
+        // Xác định danh sách phòng cần chuyển trạng thái sang OCCUPIED
+        List<Room> roomsToProcess = booking.getRooms() != null && !booking.getRooms().isEmpty()
                 ? booking.getRooms()
                 : List.of(assignedRoom);
 
-        booking.setBookingStatus(BookingStatus.CHECKED_IN);
-        booking.setRoom(assignedRoom);
-        booking.setActualCheckInTime(now);
+        // Lưu lại trạng thái cũ ĐỘNG của từng phòng trước khi ghi đè
+        List<RoomStatus> previousStatuses = roomsToProcess.stream()
+                .map(Room::getRoomStatus)
+                .toList();
 
-        assignedRooms.forEach(room -> room.setRoomStatus(RoomStatus.OCCUPIED));
+        // Chuyển toàn bộ phòng được gán sang trạng thái OCCUPIED (Đang có khách ở)
+        roomsToProcess.forEach(room -> room.setRoomStatus(RoomStatus.OCCUPIED));
 
         bookingRepository.save(booking);
-        roomRepository.saveAll(assignedRooms);
+        roomRepository.saveAll(roomsToProcess);
 
         // 6. Audit Log (RoomStateHistory)
         User triggerUser = null;
@@ -169,13 +182,20 @@ public class CheckInServiceImpl implements CheckInService {
         }
 
         final User historyUser = triggerUser;
-        assignedRooms.forEach(room -> roomStateHistoryRepository.save(RoomStateHistory.builder()
-                .room(room)
-                .previousState(RoomStatus.RESERVED)
-                .currentState(RoomStatus.OCCUPIED)
-                .triggeredByProcess(ProcessTrigger.CHECKIN)
-                .triggeredByUser(historyUser)
-                .build()));
+
+        // Ghi lại lịch sử chính xác theo trạng thái thực tế trước đó của phòng
+        for (int i = 0; i < roomsToProcess.size(); i++) {
+            Room room = roomsToProcess.get(i);
+            RoomStatus oldStatus = previousStatuses.get(i);
+
+            roomStateHistoryRepository.save(RoomStateHistory.builder()
+                    .room(room)
+                    .previousState(oldStatus) // Đã sửa: Lấy trạng thái thực tế (READY/AVAILABLE) thay vì gán chết RESERVED
+                    .currentState(RoomStatus.OCCUPIED)
+                    .triggeredByProcess(ProcessTrigger.CHECKIN)
+                    .triggeredByUser(historyUser)
+                    .build());
+        }
 
         // 7. Return Response
         return CheckInResponseDTO.builder()

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Calendar, Users, Building2, CreditCard, CheckCircle, ArrowLeft, ShoppingCart, Clock, X,
 } from 'lucide-react';
@@ -10,14 +10,30 @@ import { useAuth } from '../context/AuthContext';
 import { roomTypes as mockRoomTypes } from '../data/mockData';
 import { apiFetch } from '../services/api';
 import { createBooking } from '../services/bookingService';
+import { getCombinedInvoice } from '../services/invoiceService';
 import {
   getStoredCustomerId,
   saveCustomerId,
   createCustomer,
+  updateCustomer,
 } from '../services/customerService';
 import BookingFailureModal from '../components/BookingFailureModal';
 
 const today = () => new Date().toISOString().split('T')[0];
+const CART_STORAGE_KEY = 'hms_booking_cart';
+
+function loadBookingCart() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
+    return Array.isArray(stored) ? stored : [];
+  } catch {
+    return [];
+  }
+}
+
+function createCartKey(roomTypeId, checkIn, checkOut) {
+  return `${roomTypeId}-${checkIn}-${checkOut}`;
+}
 const tomorrow = () => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -47,9 +63,88 @@ function nightsBetween(checkIn, checkOut) {
   return diff > 0 ? diff : 1;
 }
 
+function validateGuestForms(customer, stayGuest, bookingForOther, locale) {
+  const isVi = locale === 'vi';
+  const errors = {};
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^0[0-9]{9}$/;
+  const idCardRegex = /^[A-Za-z0-9-]{6,20}$/;
+  const cccdRegex = /^\d{12}$/;
+  const nameRegex = /^[\p{L}][\p{L}\s'.-]{1,99}$/u;
+  const nationalityRegex = /^[\p{L}][\p{L}\s-]{1,59}$/u;
+
+  if (!customer.fullName.trim()) errors['customer.fullName'] = isVi ? 'Vui lòng nhập họ và tên.' : 'Full name is required.';
+  else if (!nameRegex.test(customer.fullName.trim())) errors['customer.fullName'] = isVi ? 'Họ tên chỉ được chứa chữ cái, khoảng trắng và dấu hợp lệ.' : 'Full name contains invalid characters.';
+  if (!customer.email.trim()) errors['customer.email'] = isVi ? 'Vui lòng nhập email.' : 'Email is required.';
+  else if (!emailRegex.test(customer.email.trim())) errors['customer.email'] = isVi ? 'Email không đúng định dạng.' : 'Invalid email format.';
+  if (!customer.phone.trim()) errors['customer.phone'] = isVi ? 'Vui lòng nhập số điện thoại.' : 'Phone number is required.';
+  else if (!phoneRegex.test(customer.phone.trim())) errors['customer.phone'] = isVi ? 'Số điện thoại phải có 10 số và bắt đầu bằng 0.' : 'Phone number must have 10 digits and start with 0.';
+  if (!customer.idType) errors['customer.idType'] = isVi ? 'Vui lòng chọn loại giấy tờ.' : 'ID type is required.';
+  if (!customer.idNumberCard.trim()) errors['customer.idNumberCard'] = isVi ? 'Vui lòng nhập số giấy tờ.' : 'ID/Passport number is required.';
+  else if (customer.idType === 'CCCD' && !cccdRegex.test(customer.idNumberCard.trim())) errors['customer.idNumberCard'] = isVi ? 'CCCD phải gồm đúng 12 chữ số.' : 'CCCD must contain exactly 12 digits.';
+  else if (customer.idType !== 'CCCD' && !idCardRegex.test(customer.idNumberCard.trim())) errors['customer.idNumberCard'] = isVi ? 'Số Passport/giấy tờ phải có 6–20 ký tự chữ, số hoặc dấu gạch ngang.' : 'ID/Passport must contain 6–20 letters, numbers, or hyphens.';
+  if (!customer.nationality.trim()) errors['customer.nationality'] = isVi ? 'Vui lòng nhập quốc tịch.' : 'Nationality is required.';
+  else if (!nationalityRegex.test(customer.nationality.trim())) errors['customer.nationality'] = isVi ? 'Quốc tịch chỉ được chứa chữ cái, khoảng trắng hoặc dấu gạch ngang.' : 'Nationality contains invalid characters.';
+
+  if (bookingForOther) {
+    if (!stayGuest.fullName.trim()) errors['stayGuest.fullName'] = isVi ? 'Vui lòng nhập họ tên người lưu trú.' : 'Stay guest full name is required.';
+    if (stayGuest.email.trim() && !emailRegex.test(stayGuest.email.trim())) errors['stayGuest.email'] = isVi ? 'Email không đúng định dạng.' : 'Invalid email format.';
+    if (!stayGuest.phone.trim()) errors['stayGuest.phone'] = isVi ? 'Vui lòng nhập số điện thoại người lưu trú.' : 'Stay guest phone number is required.';
+    else if (!phoneRegex.test(stayGuest.phone.trim())) errors['stayGuest.phone'] = isVi ? 'Số điện thoại phải có 10 số và bắt đầu bằng 0.' : 'Phone number must have 10 digits and start with 0.';
+    if (!stayGuest.idNumberCard.trim()) errors['stayGuest.idNumberCard'] = isVi ? 'Vui lòng nhập số giấy tờ người lưu trú.' : 'Stay guest ID/Passport is required.';
+    else if (stayGuest.idType === 'CCCD' && !cccdRegex.test(stayGuest.idNumberCard.trim())) errors['stayGuest.idNumberCard'] = isVi ? 'CCCD phải gồm đúng 12 chữ số.' : 'CCCD must contain exactly 12 digits.';
+    else if (stayGuest.idType !== 'CCCD' && !idCardRegex.test(stayGuest.idNumberCard.trim())) errors['stayGuest.idNumberCard'] = isVi ? 'Số Passport/giấy tờ phải có 6–20 ký tự hợp lệ.' : 'ID/Passport must contain 6–20 valid characters.';
+    else if (customer.idType === 'CCCD' && stayGuest.idType === 'CCCD' && customer.idNumberCard.trim() === stayGuest.idNumberCard.trim()) errors['stayGuest.idNumberCard'] = isVi ? 'CCCD người lưu trú không được trùng với người đặt.' : 'Stay guest CCCD must differ from the booker CCCD.';
+    if (!stayGuest.nationality.trim()) errors['stayGuest.nationality'] = isVi ? 'Vui lòng nhập quốc tịch người lưu trú.' : 'Stay guest nationality is required.';
+  }
+
+  return errors;
+}
+
+function validateRoomSelection(booking, guestCounts, maxGuests, locale) {
+  const isVi = locale === 'vi';
+  const errors = {};
+  const todayDate = new Date(today());
+  todayDate.setHours(0, 0, 0, 0);
+
+  if (!booking.checkIn) {
+    errors.checkIn = isVi ? 'Vui lòng chọn ngày nhận phòng.' : 'Please select a check-in date.';
+  } else {
+    const checkInDate = new Date(booking.checkIn);
+    checkInDate.setHours(0, 0, 0, 0);
+    if (checkInDate < todayDate) errors.checkIn = isVi ? 'Ngày nhận phòng không được ở quá khứ.' : 'Check-in date cannot be in the past.';
+  }
+
+  if (!booking.checkOut) {
+    errors.checkOut = isVi ? 'Vui lòng chọn ngày trả phòng.' : 'Please select a check-out date.';
+  } else if (booking.checkIn) {
+    const checkInDate = new Date(booking.checkIn);
+    const checkOutDate = new Date(booking.checkOut);
+    if (checkOutDate <= checkInDate) errors.checkOut = isVi ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.';
+  }
+
+  if (!booking.quantity || booking.quantity < 1) errors.quantity = isVi ? 'Phải chọn ít nhất một phòng.' : 'Select at least one room.';
+
+  guestCounts.forEach((guests, index) => {
+    const adults = Number(guests.adults || 0);
+    const totalGuests = adults + Number(guests.children || 0) + Number(guests.infants || 0);
+    if (adults < 1) {
+      errors[`guests.${index}`] = isVi ? `Phòng ${index + 1} phải có ít nhất 1 người lớn.` : `Room ${index + 1} must have at least 1 adult.`;
+    } else if (Number(maxGuests) > 0 && totalGuests > Number(maxGuests)) {
+      errors[`guests.${index}`] = isVi
+        ? `Phòng ${index + 1} tối đa ${maxGuests} người, hiện đang chọn ${totalGuests} người.`
+        : `Room ${index + 1} allows up to ${maxGuests} guests; ${totalGuests} are selected.`;
+    }
+  });
+
+  return errors;
+}
+
 function BookingContent() {
   const { t, locale } = useLocale();
   const { user } = useAuth();
+  const isReceptionist = user?.roleName === 'RECEPTIONIST';
+  const navigate = useNavigate();
   const [params] = useSearchParams();
 
   const roomTypeId = params.get('roomTypeId') || '1';
@@ -62,6 +157,9 @@ function BookingContent() {
   const [failureMessage, setFailureMessage] = useState('');
   const [remainingSeconds, setRemainingSeconds] = useState(30 * 60);
   const [guestCounts, setGuestCounts] = useState([{ adults: 1, children: 0, infants: 0 }]);
+  const [cartItems, setCartItems] = useState(loadBookingCart);
+  const [bookingResults, setBookingResults] = useState([]);
+  const [combinedInvoiceTotal, setCombinedInvoiceTotal] = useState(0);
 
   const [booking, setBooking] = useState({
     checkIn: params.get('checkIn') || today(),
@@ -70,12 +168,12 @@ function BookingContent() {
   });
 
   const [customerForm, setCustomerForm] = useState({
-    fullName: user?.fullName || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    idType: 'CCCD',
+    fullName: isReceptionist ? '' : (user?.fullName || ''),
+    email: isReceptionist ? '' : (user?.email || ''),
+    phone: isReceptionist ? '' : (user?.phone || ''),
+    idType: isReceptionist ? '' : 'CCCD',
     idNumberCard: '',
-    nationality: locale === 'vi' ? 'Việt Nam' : 'Vietnam',
+    nationality: isReceptionist ? '' : (locale === 'vi' ? 'Việt Nam' : 'Vietnam'),
   });
 
   const [bookingForOther, setBookingForOther] = useState(false);
@@ -87,6 +185,9 @@ function BookingContent() {
     idNumberCard: '',
     nationality: locale === 'vi' ? 'Việt Nam' : 'Vietnam',
   });
+  const [touchedFields, setTouchedFields] = useState({});
+  const [serverFieldErrors, setServerFieldErrors] = useState({});
+  const [touchedSelectionFields, setTouchedSelectionFields] = useState({});
 
 
   useEffect(() => {
@@ -115,6 +216,7 @@ function BookingContent() {
     if (!booking.checkIn || !booking.checkOut || !roomTypeId) return;
 
     setCheckingAvailability(true);
+    setAvailableRoomsCount(null);
     setError('');
 
     const checkInDateTime = toCheckIn(booking.checkIn);
@@ -123,11 +225,21 @@ function BookingContent() {
     apiFetch(`/bookings/check-availability?roomTypeId=${roomTypeId}&checkInDate=${encodeURIComponent(checkInDateTime)}&checkOutDate=${encodeURIComponent(checkOutDateTime)}`, {}, locale)
       .then((res) => {
         if (res && res.data !== undefined) {
-          setAvailableRoomsCount(res.data);
-          if (res.data < booking.quantity) {
+          const parsedCount = Number(res.data);
+          const availableCount = Number.isFinite(parsedCount) ? Math.max(0, Math.floor(parsedCount)) : 0;
+          setAvailableRoomsCount(availableCount);
+          setBooking((current) => {
+            const nextQuantity = availableCount === 0
+              ? 0
+              : Math.min(Math.max(current.quantity || 1, 1), availableCount);
+            return nextQuantity === current.quantity
+              ? current
+              : { ...current, quantity: nextQuantity };
+          });
+          if (availableCount === 0) {
             setError(locale === 'vi'
-              ? `Hết phòng! Chỉ còn lại ${res.data} phòng trống của hạng phòng này trong khoảng thời gian đã chọn.`
-              : `Sold out! Only ${res.data} rooms left for this room type during the selected dates.`);
+              ? 'Loại phòng này đã hết phòng trong khoảng thời gian đã chọn.'
+              : 'This room type is sold out for the selected dates.');
           }
         }
       })
@@ -137,7 +249,7 @@ function BookingContent() {
       .finally(() => {
         setCheckingAvailability(false);
       });
-  }, [roomTypeId, booking.checkIn, booking.checkOut, booking.quantity, locale]);
+  }, [roomTypeId, booking.checkIn, booking.checkOut, locale]);
 
   useEffect(() => {
     setGuestCounts((current) => Array.from(
@@ -145,6 +257,10 @@ function BookingContent() {
       (_, index) => current[index] || { adults: 1, children: 0, infants: 0 },
     ));
   }, [booking.quantity]);
+
+  useEffect(() => {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+  }, [cartItems]);
 
   useEffect(() => {
     if (!bookingResult?.holdExpiresAt) return undefined;
@@ -158,7 +274,7 @@ function BookingContent() {
   }, [bookingResult]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isReceptionist) return;
     // Dùng /customers/me — endpoint self-service, không cần CUSTOMER_VIEW permission
     apiFetch('/customers/me', {}, locale)
       .then((res) => {
@@ -191,21 +307,93 @@ function BookingContent() {
           phone:    user.phone    || prev.phone,
         }));
       });
-  }, [user, locale]);
+  }, [user, locale, isReceptionist]);
 
   const nights = nightsBetween(booking.checkIn, booking.checkOut);
   const pricePerNight = roomType?.basePrice || 0;
   const totalEstimate = pricePerNight * nights * booking.quantity;
+  const currentCartKey = createCartKey(roomTypeId, booking.checkIn, booking.checkOut);
+  const currentCartItem = cartItems.find((item) => item.key === currentCartKey);
+  const currentSelectionInCart = Boolean(
+    currentCartItem
+    && currentCartItem.quantity === booking.quantity
+    && JSON.stringify(currentCartItem.guestCounts) === JSON.stringify(guestCounts),
+  );
+  const cartTotal = cartItems.reduce((total, item) => (
+    total + Number(item.pricePerNight || 0)
+      * nightsBetween(item.checkIn, item.checkOut)
+      * Number(item.quantity || 0)
+  ), 0);
+  const formErrors = {
+    ...validateGuestForms(customerForm, stayGuestForm, bookingForOther, locale),
+    ...serverFieldErrors,
+  };
+  const selectionErrors = validateRoomSelection(booking, guestCounts, roomType?.maxGuests, locale);
+  const touchField = (field) => setTouchedFields((current) => ({ ...current, [field]: true }));
+  const updateCustomerField = (field, value) => {
+    setCustomerForm((current) => ({ ...current, [field]: value }));
+    setServerFieldErrors((current) => {
+      const next = { ...current };
+      delete next[`customer.${field}`];
+      return next;
+    });
+  };
+  const touchSelectionField = (field) => setTouchedSelectionFields((current) => ({ ...current, [field]: true }));
+  const fieldClassName = (field, extra = '') => `w-full mt-1 border px-3 py-2.5 outline-none transition-colors ${
+    touchedFields[field] && formErrors[field]
+      ? 'border-red-400 bg-red-50 focus:border-red-500'
+      : 'border-stone-300 focus:border-[#bfa15f]'
+  } ${extra}`;
+  const renderFieldError = (field) => touchedFields[field] && formErrors[field]
+    ? <p className="mt-1 text-xs font-medium text-red-600">{formErrors[field]}</p>
+    : null;
+  const selectionFieldClassName = (field) => `w-full mt-1 border px-3 py-2.5 outline-none transition-colors ${
+    touchedSelectionFields[field] && selectionErrors[field]
+      ? 'border-red-400 bg-red-50 focus:border-red-500'
+      : 'border-stone-300 focus:border-[#bfa15f]'
+  }`;
+  const renderSelectionError = (field) => touchedSelectionFields[field] && selectionErrors[field]
+    ? <p className="mt-1 text-xs font-medium text-red-600">{selectionErrors[field]}</p>
+    : null;
 
   const ensureCustomerId = async () => {
+    if (isReceptionist) {
+      const res = await createCustomer({
+        fullName: customerForm.fullName.trim(),
+        email: customerForm.email.trim(),
+        phone: customerForm.phone.trim(),
+        idType: customerForm.idType,
+        idNumberCard: customerForm.idNumberCard.trim(),
+        nationality: customerForm.nationality.trim(),
+      }, locale);
+      if (res?.data?.id) return Number(res.data.id);
+      throw new Error(locale === 'vi' ? 'Không thể tạo hồ sơ khách hàng.' : 'Could not create customer profile.');
+    }
     // ── Bước 1: Nếu user đăng nhập, gọi /customers/me để lấy profile
     // Endpoint này chỉ cần isAuthenticated() — không phụ thuộc vào CUSTOMER_VIEW permission
     if (user) {
       try {
         const meRes = await apiFetch('/customers/me', {}, locale);
         if (meRes?.data?.id) {
-          saveCustomerId(meRes.data.id);
-          return Number(meRes.data.id);
+          const profile = meRes.data;
+          if (
+            (customerForm.fullName && customerForm.fullName.trim() !== (profile.fullName || '').trim()) ||
+            (customerForm.phone && customerForm.phone.trim() !== (profile.phone || '').trim()) ||
+            (customerForm.idType && customerForm.idType !== profile.idType) ||
+            (customerForm.idNumberCard && customerForm.idNumberCard.trim() !== (profile.idNumberCard || '').trim()) ||
+            (customerForm.nationality && customerForm.nationality.trim() !== (profile.nationality || '').trim())
+          ) {
+            await updateCustomer(profile.id, {
+              fullName: customerForm.fullName.trim(),
+              email: customerForm.email.trim(),
+              phone: customerForm.phone.trim(),
+              idType: customerForm.idType,
+              idNumberCard: customerForm.idNumberCard.trim(),
+              nationality: customerForm.nationality.trim(),
+            }, locale);
+          }
+          saveCustomerId(profile.id);
+          return Number(profile.id);
         }
       } catch (_) {
         // chưa có profile — tiếp tục tạo mới
@@ -235,128 +423,108 @@ function BookingContent() {
     throw new Error(locale === 'vi' ? 'Không thể xác định thông tin khách hàng' : 'Could not resolve customer profile');
   };
 
-  const validateForm = () => {
-    if (!customerForm.fullName.trim()) {
-      return locale === 'vi' ? 'Họ và tên không được để trống' : 'Full name is required';
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!customerForm.email.trim() || !emailRegex.test(customerForm.email)) {
-      return locale === 'vi' ? 'Email không hợp lệ' : 'Invalid email address';
-    }
-
-    const phoneRegex = /^0[0-9]{9}$/;
-    if (!customerForm.phone.trim() || !phoneRegex.test(customerForm.phone)) {
-      return locale === 'vi' ? 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0' : 'Phone number must be 10 digits starting with 0';
-    }
-
-    const idCardRegex = /^[A-Za-z0-9\-]{6,20}$/;
-    const cccdRegex = /^\d{12}$/;
-    if (!customerForm.idNumberCard.trim()) {
-      return locale === 'vi' ? 'Số CCCD/Passport không được để trống' : 'ID/Passport number is required';
-    }
-    if (customerForm.idType === 'CCCD' && !cccdRegex.test(customerForm.idNumberCard.trim())) {
-      return locale === 'vi' ? 'Số CCCD của người đặt phòng phải gồm đúng 12 chữ số' : 'The booker CCCD must contain exactly 12 digits';
-    }
-    if (customerForm.idType !== 'CCCD' && !idCardRegex.test(customerForm.idNumberCard.trim())) {
-      return locale === 'vi' ? 'Số CCCD/Passport không hợp lệ (phải từ 6-20 ký tự chữ hoặc số)' : 'Invalid ID/Passport number (must be 6-20 alphanumeric characters)';
-    }
-
-    if (!customerForm.nationality.trim()) {
-      return locale === 'vi' ? 'Quốc tịch không được để trống' : 'Nationality is required';
-    }
-
-    if (bookingForOther) {
-      if (!stayGuestForm.fullName.trim()) {
-        return locale === 'vi' ? 'Vui lòng nhập họ tên người được đặt hộ' : 'Stay guest full name is required';
-      }
-      if (!stayGuestForm.phone.trim() || !phoneRegex.test(stayGuestForm.phone)) {
-        return locale === 'vi' ? 'Số điện thoại người được đặt hộ phải gồm 10 chữ số và bắt đầu bằng số 0' : 'Stay guest phone must be 10 digits starting with 0';
-      }
-      if (!stayGuestForm.idNumberCard.trim()) {
-        return locale === 'vi' ? 'CCCD/Passport người được đặt hộ không được để trống' : 'Stay guest ID/Passport number is required';
-      }
-      if (stayGuestForm.idType === 'CCCD' && !cccdRegex.test(stayGuestForm.idNumberCard.trim())) {
-        return locale === 'vi' ? 'Số CCCD của người được đặt hộ phải gồm đúng 12 chữ số' : 'The stay guest CCCD must contain exactly 12 digits';
-      }
-      if (stayGuestForm.idType !== 'CCCD' && !idCardRegex.test(stayGuestForm.idNumberCard.trim())) {
-        return locale === 'vi' ? 'CCCD/Passport người được đặt hộ không hợp lệ' : 'Stay guest ID/Passport number is invalid';
-      }
-      if (
-        customerForm.idType === 'CCCD'
-        && stayGuestForm.idType === 'CCCD'
-        && customerForm.idNumberCard.trim() === stayGuestForm.idNumberCard.trim()
-      ) {
-        return locale === 'vi' ? 'Số CCCD của người đặt phòng và người được đặt hộ không được trùng nhau' : 'The booker and stay guest CCCD numbers must be different';
-      }
-    }
-
-    return null;
-  };
-
   const handleSubmit = async () => {
     setError('');
-    
-    if (!booking.checkIn) {
-      setError(locale === 'vi' ? 'Vui lòng chọn ngày nhận phòng.' : 'Please select check-in date.');
+    if (cartItems.length === 0) {
+      setError(locale === 'vi' ? 'Giỏ hàng chưa có phòng.' : 'Your cart is empty.');
       return;
     }
-    if (!booking.checkOut) {
-      setError(locale === 'vi' ? 'Vui lòng chọn ngày trả phòng.' : 'Please select check-out date.');
-      return;
-    }
-    const checkInDate = new Date(booking.checkIn);
-    const checkOutDate = new Date(booking.checkOut);
-    const todayStr = today();
-    const todayDate = new Date(todayStr);
-
-    checkInDate.setHours(0,0,0,0);
-    checkOutDate.setHours(0,0,0,0);
-    todayDate.setHours(0,0,0,0);
-
-    if (checkInDate < todayDate) {
-      setError(locale === 'vi' ? 'Ngày nhận phòng không được ở quá khứ.' : 'Check-in date cannot be in the past.');
-      return;
-    }
-    if (checkOutDate <= checkInDate) {
-      setError(locale === 'vi' ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.');
-      return;
-    }
-    if (!booking.quantity || booking.quantity < 1) {
-      setError(locale === 'vi' ? 'Số lượng phòng phải ít nhất là 1.' : 'Quantity must be at least 1.');
+    const todayDate = new Date(today());
+    todayDate.setHours(0, 0, 0, 0);
+    const invalidCartItem = cartItems.find((item) => {
+      const checkInDate = new Date(item.checkIn);
+      const checkOutDate = new Date(item.checkOut);
+      checkInDate.setHours(0, 0, 0, 0);
+      checkOutDate.setHours(0, 0, 0, 0);
+      return checkInDate < todayDate || checkOutDate <= checkInDate || !item.quantity;
+    });
+    if (invalidCartItem) {
+      setError(locale === 'vi'
+        ? `Thời gian lưu trú của ${invalidCartItem.roomTypeName} không còn hợp lệ. Vui lòng xóa phòng này và chọn lại.`
+        : `The stay dates for ${invalidCartItem.roomTypeName} are no longer valid. Please remove it and select again.`);
       return;
     }
 
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
+    const invalidFields = Object.keys(formErrors);
+    if (invalidFields.length > 0) {
+      setTouchedFields((current) => ({
+        ...current,
+        ...Object.fromEntries(invalidFields.map((field) => [field, true])),
+      }));
       return;
     }
     setLoading(true);
+    const completedKeys = [];
     try {
       const customerId = await ensureCustomerId();
-      const payload = {
-        customerId,
-        roomTypeId: Number(roomTypeId),
-        checkInDate: toCheckIn(booking.checkIn),
-        checkOutDate: toCheckOut(booking.checkOut),
-        quantity: booking.quantity,
-        roomGuests: guestCounts,
-        bookingForOther,
-        guestFullName: bookingForOther ? stayGuestForm.fullName : customerForm.fullName,
-        guestEmail: bookingForOther ? stayGuestForm.email : customerForm.email,
-        guestPhone: bookingForOther ? stayGuestForm.phone : customerForm.phone,
-        guestIdType: bookingForOther ? stayGuestForm.idType : customerForm.idType,
-        guestIdNumberCard: bookingForOther ? stayGuestForm.idNumberCard : customerForm.idNumberCard,
-        guestNationality: bookingForOther ? stayGuestForm.nationality : customerForm.nationality,
-      };
-
-      console.log('[Booking] POST /api/v1/bookings', payload);
-      const res = await createBooking(payload, locale);
-      setBookingResult(res.data);
+      const createdBookings = [];
+      for (const item of cartItems) {
+        const payload = {
+          customerId,
+          roomTypeId: Number(item.roomTypeId),
+          checkInDate: toCheckIn(item.checkIn),
+          checkOutDate: toCheckOut(item.checkOut),
+          quantity: item.quantity,
+          roomGuests: item.guestCounts,
+          bookingForOther,
+          guestFullName: bookingForOther ? stayGuestForm.fullName : customerForm.fullName,
+          guestEmail: bookingForOther ? stayGuestForm.email : customerForm.email,
+          guestPhone: bookingForOther ? stayGuestForm.phone : customerForm.phone,
+          guestIdType: bookingForOther ? stayGuestForm.idType : customerForm.idType,
+          guestIdNumberCard: bookingForOther ? stayGuestForm.idNumberCard : customerForm.idNumberCard,
+          guestNationality: bookingForOther ? stayGuestForm.nationality : customerForm.nationality,
+        };
+        const res = await createBooking(payload, locale);
+        createdBookings.push(res.data);
+        completedKeys.push(item.key);
+      }
+      const createdBookingIds = createdBookings.map((created) => created.id);
+      const fallbackTotal = createdBookings.reduce((total, created) => total + Number(created.totalPrice || 0), 0);
+      try {
+        const combinedInvoiceRes = await getCombinedInvoice(createdBookingIds, locale);
+        setCombinedInvoiceTotal(Number(combinedInvoiceRes?.data?.totalAmount ?? fallbackTotal));
+      } catch {
+        setCombinedInvoiceTotal(fallbackTotal);
+      }
+      setBookingResults(createdBookings);
+      setBookingResult(createdBookings[0]);
+      setCartItems([]);
+      if (isReceptionist) {
+        const bookingQuery = createdBookingIds.map((id) => `bookingIds=${encodeURIComponent(id)}`).join('&');
+        navigate(`/invoice/batch?${bookingQuery}&receptionistPayment=true`);
+        return;
+      }
       setStep(3);
     } catch (err) {
-      const msg = err.message || t('bookingPage.submitFailed');
+      if (completedKeys.length > 0) {
+        setCartItems((current) => current.filter((item) => !completedKeys.includes(item.key)));
+      }
+      const backendErrors = err.data?.data;
+      let mappedErrors = {};
+      if (backendErrors && typeof backendErrors === 'object' && !Array.isArray(backendErrors)) {
+        mappedErrors = Object.fromEntries(Object.entries(backendErrors)
+          .map(([field, message]) => [`customer.${field}`, message]));
+      }
+      const baseMessage = err.message || t('bookingPage.submitFailed');
+      if (isReceptionist && Object.keys(mappedErrors).length === 0) {
+        const normalizedMessage = baseMessage.toLocaleLowerCase('vi');
+        if (normalizedMessage.includes('email')) mappedErrors['customer.email'] = baseMessage;
+        else if (normalizedMessage.includes('điện thoại') || normalizedMessage.includes('phone')) mappedErrors['customer.phone'] = baseMessage;
+        else if (normalizedMessage.includes('cccd') || normalizedMessage.includes('giấy tờ') || normalizedMessage.includes('id card')) mappedErrors['customer.idNumberCard'] = baseMessage;
+      }
+      if (Object.keys(mappedErrors).length > 0) {
+        setServerFieldErrors(mappedErrors);
+        setTouchedFields((current) => ({
+          ...current,
+          ...Object.fromEntries(Object.keys(mappedErrors).map((field) => [field, true])),
+        }));
+        if (completedKeys.length === 0) return;
+      }
+      const msg = completedKeys.length > 0
+        ? (locale === 'vi'
+          ? `${completedKeys.length} đơn đã tạo thành công. Các phòng còn lại vẫn được giữ trong giỏ. ${baseMessage}`
+          : `${completedKeys.length} booking(s) were created. Remaining rooms are still in your cart. ${baseMessage}`)
+        : baseMessage;
       setFailureMessage(msg);
       setFailureModalOpen(true);
       setError(msg);
@@ -365,17 +533,43 @@ function BookingContent() {
     }
   };
 
+  const handleSelectRoom = () => {
+    setError('');
+    const invalidSelectionFields = Object.keys(selectionErrors);
+    if (invalidSelectionFields.length > 0) {
+      setTouchedSelectionFields((current) => ({
+        ...current,
+        ...Object.fromEntries(invalidSelectionFields.map((field) => [field, true])),
+      }));
+      return;
+    }
+    if (availableRoomsCount !== null && booking.quantity > availableRoomsCount) {
+      setError(locale === 'vi' ? 'Số phòng chọn vượt quá số phòng đang trống.' : 'Selected quantity exceeds available rooms.');
+      return;
+    }
+    const nextItem = {
+      key: currentCartKey,
+      roomTypeId: Number(roomTypeId),
+      roomTypeName: roomType.typeName,
+      pricePerNight,
+      checkIn: booking.checkIn,
+      checkOut: booking.checkOut,
+      quantity: booking.quantity,
+      guestCounts: guestCounts.map((guests) => ({ ...guests })),
+    };
+    setCartItems((current) => [
+      ...current.filter((item) => item.key !== currentCartKey),
+      nextItem,
+    ]);
+  };
+
   const handleCartAction = () => {
     setError('');
-    if (!booking.quantity || booking.quantity < 1) {
-      setError(locale === 'vi' ? 'Vui lòng chọn ít nhất một phòng.' : 'Please select at least one room.');
-      return;
-    }
-    if (!booking.checkIn || !booking.checkOut || new Date(booking.checkOut) <= new Date(booking.checkIn)) {
-      setError(locale === 'vi' ? 'Vui lòng chọn ngày nhận và trả phòng hợp lệ.' : 'Please select valid stay dates.');
-      return;
-    }
     if (step === 1) {
+      if (cartItems.length === 0) {
+        setError(locale === 'vi' ? 'Vui lòng chọn phòng và thêm vào giỏ trước.' : 'Please select a room and add it to the cart first.');
+        return;
+      }
       setStep(2);
       return;
     }
@@ -429,12 +623,11 @@ function BookingContent() {
                 <span className="flex items-center gap-1"><Users size={14} className="text-[#bfa15f]" />{roomType.maxGuests} {t('rooms.guests')}</span>
                 <span className="flex items-center gap-1"><Building2 size={14} className="text-[#bfa15f]" />{booking.quantity} {t('booking.rooms')}</span>
               </div>
-              <div className="mt-8 flex items-end justify-between gap-4">
+              <div className="mt-8">
                 <div>
                   <p className="text-sm text-slate-500">{locale === 'vi' ? 'Giá chỉ từ' : 'Price from'}</p>
                   <p className="mt-1 text-2xl font-bold text-[#f2a900]">{formatPrice(pricePerNight, locale)} <span className="text-sm font-normal text-slate-600">/ {locale === 'vi' ? 'đêm' : 'night'}</span></p>
                 </div>
-                <span className="rounded bg-[#f2a900] px-6 py-3 font-bold text-white">{locale === 'vi' ? 'Chọn phòng' : 'Select room'}</span>
               </div>
             </div>
           </div>
@@ -476,6 +669,8 @@ function BookingContent() {
                   min={today()}
                   onChange={(e) => {
                     const newCheckIn = e.target.value;
+                    touchSelectionField('checkIn');
+                    touchSelectionField('checkOut');
                     setBooking((prev) => {
                       const updated = { ...prev, checkIn: newCheckIn };
                       if (!prev.checkOut || prev.checkOut <= newCheckIn) {
@@ -486,8 +681,10 @@ function BookingContent() {
                       return updated;
                     });
                   }}
-                  className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]"
+                  onBlur={() => touchSelectionField('checkIn')}
+                  className={selectionFieldClassName('checkIn')}
                 />
+                {renderSelectionError('checkIn')}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('booking.checkOut')}</label>
@@ -500,29 +697,56 @@ function BookingContent() {
                     dt.setDate(dt.getDate() + 1);
                     return dt.toISOString().split('T')[0];
                   })()}
-                  onChange={(e) => setBooking({ ...booking, checkOut: e.target.value })}
-                  className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]"
+                  onChange={(e) => {
+                    touchSelectionField('checkOut');
+                    setBooking({ ...booking, checkOut: e.target.value });
+                  }}
+                  onBlur={() => touchSelectionField('checkOut')}
+                  className={selectionFieldClassName('checkOut')}
                 />
+                {renderSelectionError('checkOut')}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">
                   {locale === 'vi' ? 'Số lượng phòng' : 'Number of rooms'}
                 </label>
-                <select value={booking.quantity} onChange={(e) => setBooking({ ...booking, quantity: Number(e.target.value) })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]">
-                  {Array.from({ length: Math.max(1, Math.min(availableRoomsCount ?? 10, 10)) }, (_, index) => index + 1).map((quantity) => (
+                <select
+                  value={availableRoomsCount === 0 ? '' : booking.quantity}
+                  disabled={checkingAvailability || availableRoomsCount === null || availableRoomsCount === 0}
+                  onChange={(e) => { touchSelectionField('quantity'); setBooking({ ...booking, quantity: Number(e.target.value) }); }}
+                  className={`${selectionFieldClassName('quantity')} ${availableRoomsCount === 0
+                    ? 'border-red-500 bg-red-50 font-semibold text-red-700 disabled:border-red-500 disabled:bg-red-50 disabled:text-red-700'
+                    : 'disabled:bg-stone-100 disabled:text-slate-400'} disabled:cursor-not-allowed`}
+                >
+                  {availableRoomsCount === 0 ? (
+                    <option value="">{locale === 'vi' ? 'Đã hết phòng' : 'Sold out'}</option>
+                  ) : Array.from({ length: availableRoomsCount ?? 0 }, (_, index) => index + 1).map((quantity) => (
                     <option key={quantity} value={quantity}>{quantity} {locale === 'vi' ? 'phòng' : 'rooms'}</option>
                   ))}
                 </select>
+                <p className={`mt-1 text-xs font-medium ${availableRoomsCount === 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {checkingAvailability || availableRoomsCount === null
+                    ? (locale === 'vi' ? 'Đang kiểm tra phòng trống...' : 'Checking available rooms...')
+                    : availableRoomsCount === 0
+                      ? (locale === 'vi' ? 'Đã hết phòng trong thời gian đã chọn' : 'Sold out for the selected dates')
+                      : (locale === 'vi' ? `Còn ${availableRoomsCount} phòng trống` : `${availableRoomsCount} rooms available`)}
+                </p>
+                {renderSelectionError('quantity')}
               </div>
             </div>
             <div className="bg-stone-50 p-4 flex justify-between items-center">
-              <span className="text-slate-600">{nights} {t('bookingPage.nights')} × {booking.quantity} {t('booking.rooms')}</span>
+              <span className="text-slate-600">{nights} {t('bookingPage.nights')} × {booking.quantity || 0} {t('booking.rooms')}</span>
               <span className="text-xl font-bold text-[#bfa15f]">{formatPrice(totalEstimate, locale)}</span>
             </div>
             <div className="space-y-4 border-y border-dashed border-stone-300 py-5">
               {guestCounts.map((guests, roomIndex) => (
                 <div key={roomIndex} className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_1fr_1fr_1fr] sm:items-end">
-                  <h4 className="font-bold text-slate-800">{locale === 'vi' ? `Số người phòng ${roomIndex + 1}` : `Guests in room ${roomIndex + 1}`}</h4>
+                  <h4 className="font-bold text-slate-800">
+                    {locale === 'vi' ? `Số người phòng ${roomIndex + 1}` : `Guests in room ${roomIndex + 1}`}
+                    <span className="mt-1 block text-xs font-normal text-slate-500">
+                      {locale === 'vi' ? `Tối đa ${roomType.maxGuests} người` : `Up to ${roomType.maxGuests} guests`}
+                    </span>
+                  </h4>
                   {[
                     ['adults', locale === 'vi' ? 'Người lớn' : 'Adults', 4],
                     ['children', locale === 'vi' ? 'Trẻ em (6-11 tuổi)' : 'Children (6-11)', 3],
@@ -530,54 +754,37 @@ function BookingContent() {
                   ].map(([key, label, max]) => (
                     <label key={key} className="text-sm text-slate-600">
                       <span className="mb-1 block">{label}</span>
-                      <select value={guests[key]} onChange={(e) => setGuestCounts((current) => current.map((item, index) => index === roomIndex ? { ...item, [key]: Number(e.target.value) } : item))} className="w-full rounded border border-stone-300 bg-white px-3 py-2.5 outline-none focus:border-[#f2a900]">
+                      <select
+                        value={guests[key]}
+                        onChange={(e) => {
+                          touchSelectionField(`guests.${roomIndex}`);
+                          setGuestCounts((current) => current.map((item, index) => index === roomIndex ? { ...item, [key]: Number(e.target.value) } : item));
+                        }}
+                        className={`w-full rounded border bg-white px-3 py-2.5 outline-none ${touchedSelectionFields[`guests.${roomIndex}`] && selectionErrors[`guests.${roomIndex}`] ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-stone-300 focus:border-[#f2a900]'}`}
+                      >
                         {Array.from({ length: max + 1 }, (_, value) => <option key={value} value={value}>{value}</option>)}
                       </select>
                     </label>
                   ))}
+                  {touchedSelectionFields[`guests.${roomIndex}`] && selectionErrors[`guests.${roomIndex}`] && (
+                    <p className="text-xs font-medium text-red-600 sm:col-start-2 sm:col-span-3">{selectionErrors[`guests.${roomIndex}`]}</p>
+                  )}
                 </div>
               ))}
             </div>
             <button
-              onClick={() => {
-                if (!booking.checkIn) {
-                  setError(locale === 'vi' ? 'Vui lòng chọn ngày nhận phòng.' : 'Please select a check-in date.');
-                  return;
-                }
-                if (!booking.checkOut) {
-                  setError(locale === 'vi' ? 'Vui lòng chọn ngày trả phòng.' : 'Please select a check-out date.');
-                  return;
-                }
-                const checkInDate = new Date(booking.checkIn);
-                const checkOutDate = new Date(booking.checkOut);
-                const todayStr = today();
-                const todayDate = new Date(todayStr);
-
-                checkInDate.setHours(0,0,0,0);
-                checkOutDate.setHours(0,0,0,0);
-                todayDate.setHours(0,0,0,0);
-
-                if (checkInDate < todayDate) {
-                  setError(locale === 'vi' ? 'Ngày nhận phòng không được ở quá khứ.' : 'Check-in date cannot be in the past.');
-                  return;
-                }
-                if (checkOutDate <= checkInDate) {
-                  setError(locale === 'vi' ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.');
-                  return;
-                }
-    if (!booking.quantity || booking.quantity < 1) {
-                  setError(locale === 'vi' ? 'Số lượng phòng phải ít nhất là 1.' : 'Quantity must be at least 1.');
-                  return;
-    }
-                setError('');
-                setStep(2);
-              }}
-              disabled={checkingAvailability || (availableRoomsCount !== null && availableRoomsCount < booking.quantity)}
+              type="button"
+              onClick={handleSelectRoom}
+              disabled={currentSelectionInCart || checkingAvailability || availableRoomsCount === null || availableRoomsCount === 0 || booking.quantity > availableRoomsCount}
               className="w-full btn-gold py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {checkingAvailability
                 ? (locale === 'vi' ? 'Đang kiểm tra phòng trống...' : 'Checking availability...')
-                : t('bookingPage.continue')}
+                : currentSelectionInCart
+                  ? (locale === 'vi' ? 'Đã thêm vào giỏ' : 'Added to cart')
+                  : currentCartItem
+                    ? (locale === 'vi' ? 'Cập nhật giỏ hàng' : 'Update cart')
+                    : (locale === 'vi' ? 'Chọn phòng' : 'Select room')}
             </button>
           </div>
         )}
@@ -593,30 +800,36 @@ function BookingContent() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('auth.fullName')}</label>
-                <input type="text" required value={customerForm.fullName} onChange={(e) => setCustomerForm({ ...customerForm, fullName: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                <input type="text" required value={customerForm.fullName} onChange={(e) => updateCustomerField('fullName', e.target.value)} onBlur={() => touchField('customer.fullName')} className={fieldClassName('customer.fullName')} />
+                {renderFieldError('customer.fullName')}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">Email</label>
                 <input
                   type="email" required
                   value={customerForm.email}
-                  onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
-                  readOnly={!!user?.email}
-                  className={`w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f] ${user?.email ? 'bg-stone-50 text-slate-500 cursor-not-allowed' : ''}`}
+                  onChange={(e) => updateCustomerField('email', e.target.value)}
+                  onBlur={() => touchField('customer.email')}
+                  readOnly={!isReceptionist && !!user?.email}
+                  className={fieldClassName('customer.email', !isReceptionist && user?.email ? 'bg-stone-50 text-slate-500 cursor-not-allowed' : '')}
                 />
-                {user?.email && <p className="text-xs text-slate-400 mt-0.5">{locale === 'vi' ? 'Email tài khoản đăng nhập' : 'Logged-in account email'}</p>}
+                {!isReceptionist && user?.email && <p className="text-xs text-slate-400 mt-0.5">{locale === 'vi' ? 'Email tài khoản đăng nhập' : 'Logged-in account email'}</p>}
+                {renderFieldError('customer.email')}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('auth.phone')}</label>
-                <input type="tel" required value={customerForm.phone} onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                <input type="tel" required inputMode="numeric" maxLength={10} value={customerForm.phone} onChange={(e) => updateCustomerField('phone', e.target.value)} onBlur={() => touchField('customer.phone')} className={fieldClassName('customer.phone')} />
+                {renderFieldError('customer.phone')}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idType')}</label>
-                <select value={customerForm.idType} onChange={(e) => setCustomerForm({ ...customerForm, idType: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]">
+                <select value={customerForm.idType} onChange={(e) => updateCustomerField('idType', e.target.value)} onBlur={() => touchField('customer.idType')} className={fieldClassName('customer.idType')}>
+                  <option value="">{locale === 'vi' ? '-- Chọn loại giấy tờ --' : '-- Select ID type --'}</option>
                   <option value="CCCD">CCCD</option>
                   <option value="PASSPORT">Passport</option>
                   <option value="OTHER">Other</option>
                 </select>
+                {renderFieldError('customer.idType')}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idNumber')}</label>
@@ -627,17 +840,20 @@ function BookingContent() {
                   maxLength={customerForm.idType === 'CCCD' ? 12 : 20}
                   pattern={customerForm.idType === 'CCCD' ? '[0-9]{12}' : '[A-Za-z0-9-]{6,20}'}
                   value={customerForm.idNumberCard}
-                  onChange={(e) => setCustomerForm({ ...customerForm, idNumberCard: e.target.value })}
-                  className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]"
+                  onChange={(e) => updateCustomerField('idNumberCard', e.target.value)}
+                  onBlur={() => touchField('customer.idNumberCard')}
+                  className={fieldClassName('customer.idNumberCard')}
                 />
+                {renderFieldError('customer.idNumberCard')}
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.nationality')}</label>
-                <input type="text" required value={customerForm.nationality} onChange={(e) => setCustomerForm({ ...customerForm, nationality: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                <input type="text" required value={customerForm.nationality} onChange={(e) => updateCustomerField('nationality', e.target.value)} onBlur={() => touchField('customer.nationality')} className={fieldClassName('customer.nationality')} />
+                {renderFieldError('customer.nationality')}
               </div>
             </div>
 
-            <label className="flex items-start gap-3 rounded border border-stone-200 bg-stone-50 p-4 text-sm text-slate-700">
+            {!isReceptionist && <label className="flex items-start gap-3 rounded border border-stone-200 bg-stone-50 p-4 text-sm text-slate-700">
               <input
                 type="checkbox"
                 checked={bookingForOther}
@@ -654,7 +870,7 @@ function BookingContent() {
                     : 'The information below is for the actual stay guest and will be verified at check-in.'}
                 </span>
               </span>
-            </label>
+            </label>}
 
             {bookingForOther && (
               <div className="rounded border border-amber-200 bg-amber-50 p-4">
@@ -664,15 +880,18 @@ function BookingContent() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('auth.fullName')}</label>
-                    <input type="text" required value={stayGuestForm.fullName} onChange={(e) => setStayGuestForm({ ...stayGuestForm, fullName: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                    <input type="text" required value={stayGuestForm.fullName} onChange={(e) => setStayGuestForm({ ...stayGuestForm, fullName: e.target.value })} onBlur={() => touchField('stayGuest.fullName')} className={fieldClassName('stayGuest.fullName')} />
+                    {renderFieldError('stayGuest.fullName')}
                   </div>
                   <div>
                     <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">Email</label>
-                    <input type="email" value={stayGuestForm.email} onChange={(e) => setStayGuestForm({ ...stayGuestForm, email: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                    <input type="email" value={stayGuestForm.email} onChange={(e) => setStayGuestForm({ ...stayGuestForm, email: e.target.value })} onBlur={() => touchField('stayGuest.email')} className={fieldClassName('stayGuest.email')} />
+                    {renderFieldError('stayGuest.email')}
                   </div>
                   <div>
                     <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('auth.phone')}</label>
-                    <input type="tel" required value={stayGuestForm.phone} onChange={(e) => setStayGuestForm({ ...stayGuestForm, phone: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                    <input type="tel" required value={stayGuestForm.phone} onChange={(e) => setStayGuestForm({ ...stayGuestForm, phone: e.target.value })} onBlur={() => touchField('stayGuest.phone')} className={fieldClassName('stayGuest.phone')} />
+                    {renderFieldError('stayGuest.phone')}
                   </div>
                   <div>
                     <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idType')}</label>
@@ -692,31 +911,36 @@ function BookingContent() {
                       pattern={stayGuestForm.idType === 'CCCD' ? '[0-9]{12}' : '[A-Za-z0-9-]{6,20}'}
                       value={stayGuestForm.idNumberCard}
                       onChange={(e) => setStayGuestForm({ ...stayGuestForm, idNumberCard: e.target.value })}
-                      className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]"
+                      onBlur={() => touchField('stayGuest.idNumberCard')}
+                      className={fieldClassName('stayGuest.idNumberCard')}
                     />
+                    {renderFieldError('stayGuest.idNumberCard')}
                   </div>
                   <div>
                     <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.nationality')}</label>
-                    <input type="text" value={stayGuestForm.nationality} onChange={(e) => setStayGuestForm({ ...stayGuestForm, nationality: e.target.value })} className="w-full mt-1 border border-stone-300 px-3 py-2.5 outline-none focus:border-[#bfa15f]" />
+                    <input type="text" required value={stayGuestForm.nationality} onChange={(e) => setStayGuestForm({ ...stayGuestForm, nationality: e.target.value })} onBlur={() => touchField('stayGuest.nationality')} className={fieldClassName('stayGuest.nationality')} />
+                    {renderFieldError('stayGuest.nationality')}
                   </div>
                 </div>
               </div>
             )}
             <div className="bg-stone-50 p-4">
-              <div className="flex justify-between text-sm text-slate-600 mb-1">
-                <span>{roomType.typeName} × {booking.quantity}</span>
-                <span>{formatPrice(totalEstimate, locale)}</span>
-              </div>
+              {cartItems.map((item) => (
+                <div key={item.key} className="mb-2 flex justify-between gap-3 text-sm text-slate-600">
+                  <span>{item.roomTypeName} × {item.quantity}</span>
+                  <span>{formatPrice(Number(item.pricePerNight) * nightsBetween(item.checkIn, item.checkOut) * item.quantity, locale)}</span>
+                </div>
+              ))}
               <div className="flex justify-between font-bold text-slate-800">
                 <span>{t('bookingPage.total')}</span>
-                <span className="text-[#bfa15f]">{formatPrice(totalEstimate, locale)}</span>
+                <span className="text-[#bfa15f]">{formatPrice(cartTotal, locale)}</span>
               </div>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="flex-1 py-3 border border-stone-300 text-slate-600 font-medium hover:border-[#bfa15f] transition-colors">{t('bookingPage.back')}</button>
               <button onClick={handleSubmit} disabled={loading} className="flex-1 btn-gold py-3 rounded disabled:opacity-60 inline-flex items-center justify-center gap-2">
                 <ShoppingCart size={17} />
-                {loading ? '...' : (locale === 'vi' ? 'Thêm phòng vào giỏ' : 'Add room to cart')}
+                {loading ? '...' : t('bookingPage.confirm')}
               </button>
             </div>
           </div>
@@ -727,25 +951,40 @@ function BookingContent() {
           <div className="bg-white border border-stone-200 shadow-lg p-8 text-center">
             <CheckCircle size={56} className="text-green-500 mx-auto mb-4" />
             <h3 className="font-display text-2xl font-bold text-slate-800 mb-2">{t('bookingPage.successTitle')}</h3>
-            <p className="text-slate-500 mb-6">{t('bookingPage.successDesc')}</p>
-            <div className="bg-stone-50 p-6 text-left space-y-2 text-sm mb-6">
-              <p><span className="text-slate-500">{t('bookingPage.bookingId')}:</span> <strong>#{bookingResult.id}</strong></p>
-              <p><span className="text-slate-500">{t('bookingPage.roomType')}:</span> <strong>{bookingResult.roomTypeName}</strong></p>
-              <p><span className="text-slate-500">{locale === 'vi' ? 'Phòng' : 'Room'}:</span> <strong>{bookingResult.roomNumber}</strong></p>
-              <p><span className="text-slate-500">{t('booking.checkIn')}:</span> <strong>{bookingResult.checkInDate?.split('T')[0]}</strong></p>
-              <p><span className="text-slate-500">{t('booking.checkOut')}:</span> <strong>{bookingResult.checkOutDate?.split('T')[0]}</strong></p>
-              {bookingResult.bookingForOther && (
-                <p><span className="text-slate-500">{locale === 'vi' ? 'Người lưu trú' : 'Stay guest'}:</span> <strong>{bookingResult.guestFullName}</strong></p>
-              )}
-              <p><span className="text-slate-500">{t('bookingPage.total')}:</span> <strong className="text-[#bfa15f]">{formatPrice(Number(bookingResult.totalPrice), locale)}</strong></p>
-              <p><span className="text-slate-500">{t('bookingPage.status')}:</span> <strong>{bookingResult.bookingStatus}</strong></p>
+            <p className="text-slate-500 mb-6">
+              {locale === 'vi'
+                ? `${bookingResults.length} đơn đặt phòng đã được tạo và gộp vào một hóa đơn.`
+                : `${bookingResults.length} bookings were created and combined into one invoice.`}
+            </p>
+            <div className="mb-6 space-y-3 text-left">
+              {bookingResults.map((result) => (
+                <div key={result.id} className="rounded border border-stone-200 bg-stone-50 p-4 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <p><span className="text-slate-500">{t('bookingPage.bookingId')}:</span> <strong>#{result.id}</strong></p>
+                      <p><strong>{result.roomTypeName}</strong> × {result.quantity}</p>
+                      <p className="text-slate-500">{result.checkInDate?.split('T')[0]} - {result.checkOutDate?.split('T')[0]}</p>
+                      <p className="font-bold text-[#bfa15f]">{formatPrice(Number(result.totalPrice), locale)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="mb-5 flex items-center justify-center gap-2 text-amber-700">
               <Clock size={18} />
               <strong>{locale === 'vi' ? 'Phòng được giữ trong' : 'Room held for'} {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}</strong>
             </div>
-            <Link to={`/invoice/${bookingResult.id}`} className="btn-gold inline-block px-8 py-3 rounded">
-              {locale === 'vi' ? 'Thanh toán ngay' : 'Pay now'}
+            <div className="mb-5 rounded-xl border border-[#bfa15f]/30 bg-[#bfa15f]/10 p-5">
+              <p className="text-sm font-semibold text-slate-600">{locale === 'vi' ? 'Tổng tiền cần thanh toán' : 'Total amount due'}</p>
+              <p className="mt-1 text-3xl font-bold text-[#bfa15f]">{formatPrice(combinedInvoiceTotal, locale)}</p>
+            </div>
+            <Link
+              to={`/invoice/batch?${bookingResults.map((result) => `bookingIds=${result.id}`).join('&')}${isReceptionist ? '&receptionistPayment=true' : ''}`}
+              className="btn-gold inline-block rounded px-8 py-3"
+            >
+              {isReceptionist
+                ? (locale === 'vi' ? 'Chọn hình thức thanh toán' : 'Choose payment method')
+                : (locale === 'vi' ? 'Tiếp tục thanh toán' : 'Continue to payment')}
             </Link>
           </div>
         )}
@@ -756,51 +995,64 @@ function BookingContent() {
             <h2 className="text-xl font-bold text-slate-800">{locale === 'vi' ? 'Thông tin đặt phòng' : 'Booking information'}</h2>
             <div className="my-4 border-t border-stone-200" />
             <p className="font-bold text-slate-800">HMS Luxury Hotel</p>
-            <p className="mt-3 font-semibold text-slate-700">
-              {booking.checkIn || '--'} - {booking.checkOut || '--'}
-              <span className="ml-1 font-normal">({nights} {locale === 'vi' ? 'đêm' : 'nights'})</span>
-            </p>
 
             <div className="my-5 border-t border-dashed border-stone-300" />
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-800">{locale === 'vi' ? 'Thông tin phòng' : 'Room information'}</h3>
-              <span className="text-sm text-slate-500">{locale === 'vi' ? 'Thu gọn' : 'Collapse'} ⊖</span>
+              <h3 className="font-bold text-slate-800">{locale === 'vi' ? `Giỏ phòng (${cartItems.length})` : `Room cart (${cartItems.length})`}</h3>
             </div>
 
             <div className="mt-3 max-h-[360px] space-y-2 overflow-y-auto pr-1">
-              {guestCounts.map((guests, roomIndex) => (
-                <div key={roomIndex} className="border-b border-dashed border-stone-300 py-4">
-                  <p><strong>{locale === 'vi' ? `Phòng ${roomIndex + 1}` : `Room ${roomIndex + 1}`}:</strong> {roomType.typeName}</p>
-                  <p className="mt-2 text-red-500">FREE CANCELLATION DKDT</p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    {guests.adults} {locale === 'vi' ? 'Người lớn' : 'Adults'} - {guests.children} {locale === 'vi' ? 'Trẻ em' : 'Children'} - {guests.infants} {locale === 'vi' ? 'Em bé' : 'Infants'}
-                  </p>
-                  <div className="mt-4 flex items-center justify-between gap-3">
-                    <strong>{formatPrice(pricePerNight, locale)} / {locale === 'vi' ? 'đêm' : 'night'}</strong>
-                    {booking.quantity > 1 && (
-                      <button type="button" onClick={() => setBooking((current) => ({ ...current, quantity: current.quantity - 1 }))} className="inline-flex items-center gap-1 rounded border border-slate-400 px-3 py-1.5 text-sm hover:border-red-400 hover:text-red-600">
-                        <X size={15} /> {locale === 'vi' ? 'Hủy' : 'Remove'}
+              {cartItems.length > 0 ? cartItems.map((item) => (
+                <div key={item.key} className="rounded border border-stone-200 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-slate-800">{item.roomTypeName} × {item.quantity}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {item.checkIn} - {item.checkOut} ({nightsBetween(item.checkIn, item.checkOut)} {locale === 'vi' ? 'đêm' : 'nights'})
+                      </p>
+                      <p className="mt-2 text-sm font-bold text-[#bfa15f]">
+                        {formatPrice(Number(item.pricePerNight) * nightsBetween(item.checkIn, item.checkOut) * item.quantity, locale)}
+                      </p>
+                    </div>
+                    {step === 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setCartItems((current) => current.filter((cartItem) => cartItem.key !== item.key))}
+                        className="text-slate-400 transition-colors hover:text-red-500"
+                        title={locale === 'vi' ? 'Xóa khỏi giỏ' : 'Remove from cart'}
+                      >
+                        <X size={18} />
                       </button>
                     )}
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="rounded border border-dashed border-stone-300 bg-stone-50 px-4 py-8 text-center text-sm text-slate-500">
+                  <ShoppingCart size={24} className="mx-auto mb-2 text-stone-400" />
+                  {locale === 'vi' ? 'Giỏ hàng chưa có phòng' : 'Your cart is empty'}
+                </div>
+              )}
             </div>
 
             <div className="mt-6 flex items-center justify-between text-lg font-bold">
               <span>{locale === 'vi' ? 'Tổng cộng' : 'Total'}</span>
-              <span className="text-[#f2a900]">{formatPrice(totalEstimate, locale)}</span>
+              <span className="text-[#f2a900]">{formatPrice(cartTotal, locale)}</span>
             </div>
             <button
               type="button"
               onClick={handleCartAction}
-              disabled={loading || booking.quantity < 1 || (availableRoomsCount !== null && booking.quantity > availableRoomsCount)}
+              disabled={loading || cartItems.length === 0}
               className="mt-4 w-full rounded bg-[#f2a900] py-3 text-lg font-bold text-white transition hover:bg-[#d89500] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? '...' : (step === 1
                 ? (locale === 'vi' ? 'TIẾP TỤC' : 'CONTINUE')
                 : (locale === 'vi' ? 'ĐẶT NGAY' : 'BOOK NOW'))}
             </button>
+            {step === 1 && cartItems.length > 0 && (
+              <Link to="/#room-types" className="mt-3 block text-center text-sm font-semibold text-[#bfa15f] hover:text-[#a3854a]">
+                {locale === 'vi' ? '+ Đặt thêm loại phòng khác' : '+ Add another room type'}
+              </Link>
+            )}
             <p className="mt-3 text-center text-xs text-slate-500">{locale === 'vi' ? 'Phòng sẽ được giữ 30 phút sau khi đặt.' : 'The room will be held for 30 minutes after booking.'}</p>
           </aside>
         )}

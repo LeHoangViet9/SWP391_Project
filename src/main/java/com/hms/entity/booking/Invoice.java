@@ -25,9 +25,14 @@ public class Invoice {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_id", nullable = false, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
+
+    @Column(name = "invoice_type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private com.hms.common.enums.InvoiceType invoiceType = com.hms.common.enums.InvoiceType.ROOM;
 
     @Column(name = "amount", nullable = false)
     private BigDecimal amount;
@@ -42,6 +47,16 @@ public class Invoice {
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt;
+
+    @Column(name = "cash_received", precision = 14, scale = 2)
+    private BigDecimal cashReceived;
+
+    @Column(name = "change_amount", precision = 14, scale = 2)
+    private BigDecimal changeAmount;
+
+    @Column(name = "payment_confirmed")
+    @Builder.Default
+    private Boolean paymentConfirmed = false;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

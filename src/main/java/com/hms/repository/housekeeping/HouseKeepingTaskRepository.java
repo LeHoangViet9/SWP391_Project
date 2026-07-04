@@ -46,4 +46,6 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
         Optional<HouseKeepingTask> findByIdWithDetails(@Param("id") Long id);
 
         long countByAssignedTo_IdAndCreatedAtBetween(Long userId, java.time.LocalDateTime start, java.time.LocalDateTime end);
+
+        long countByAssignedTo_IdAndTaskStatusIn(Long userId, List<com.hms.common.enums.TaskStatus> statuses);
 }

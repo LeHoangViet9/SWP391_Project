@@ -5,7 +5,7 @@ import { useLocale } from '../context/LocaleContext';
 import Toast from './shared/Toast';
 
 const PERMISSION_GROUPS = {
-  CHECKIN: { vi: 'Check-in', en: 'Check-in' },
+  CHECKIN_CHECKOUT: { vi: 'Nhận / Trả phòng', en: 'Check-in & Check-out' },
   USER: { vi: 'Quản lý Tài khoản', en: 'User Management' },
   ROOM: { vi: 'Quản lý Phòng', en: 'Room Management' },
   ROOM_TYPE: { vi: 'Quản lý Loại Phòng', en: 'Room Type Management' },
@@ -18,6 +18,51 @@ const PERMISSION_GROUPS = {
   INVOICE: { vi: 'Hóa đơn & Thanh toán', en: 'Invoice & Payment' },
   DASHBOARD: { vi: 'Báo cáo & Dashboard', en: 'Reports & Dashboard' },
   AUDIT_LOG: { vi: 'Audit Log', en: 'Audit Log' }
+};
+
+const PERMISSION_DESCRIPTIONS = {
+  CHECKIN_VIEW: { vi: 'Cho phép truy cập màn hình check-in và thực hiện nhận phòng cho khách', en: 'Allows access to the check-in screen and processing guest check-ins' },
+  CHECKOUT_VIEW: { vi: 'Cho phép truy cập màn hình check-out và thực hiện trả phòng cho khách', en: 'Allows access to the check-out screen and processing guest check-outs' },
+  USER_VIEW: { vi: 'Xem danh sách tài khoản người dùng', en: 'View user accounts' },
+  USER_CREATE: { vi: 'Tạo tài khoản người dùng mới', en: 'Create new user accounts' },
+  USER_UPDATE: { vi: 'Cập nhật thông tin tài khoản người dùng', en: 'Update user accounts' },
+  USER_DELETE: { vi: 'Xóa hoặc ngừng hoạt động tài khoản', en: 'Delete or deactivate user accounts' },
+  USER_AUTHORIZE: { vi: 'Phân quyền vai trò cho người dùng', en: 'Assign role permissions to users' },
+  ROOM_VIEW: { vi: 'Xem danh sách và sơ đồ phòng', en: 'View rooms and room map' },
+  ROOM_CREATE: { vi: 'Thêm phòng mới', en: 'Create new rooms' },
+  ROOM_UPDATE: { vi: 'Cập nhật thông tin phòng', en: 'Update room information' },
+  ROOM_DELETE: { vi: 'Xóa phòng', en: 'Delete rooms' },
+  ROOM_TYPE_VIEW: { vi: 'Xem danh sách hạng phòng', en: 'View room types' },
+  ROOM_TYPE_CREATE: { vi: 'Thêm hạng phòng mới', en: 'Create new room types' },
+  ROOM_TYPE_UPDATE: { vi: 'Cập nhật thông tin hạng phòng', en: 'Update room types' },
+  ROOM_TYPE_DELETE: { vi: 'Xóa hạng phòng', en: 'Delete room types' },
+  CUSTOMER_VIEW: { vi: 'Xem danh sách khách hàng', en: 'View customers' },
+  CUSTOMER_CREATE: { vi: 'Đăng ký khách hàng mới', en: 'Create new customers' },
+  CUSTOMER_UPDATE: { vi: 'Cập nhật thông tin khách hàng', en: 'Update customer information' },
+  CUSTOMER_DELETE: { vi: 'Xóa thông tin khách hàng', en: 'Delete customers' },
+  BOOKING_VIEW: { vi: 'Xem toàn bộ đơn đặt phòng', en: 'View all booking records' },
+  BOOKING_CREATE: { vi: 'Tạo đơn đặt phòng mới', en: 'Create new bookings' },
+  BOOKING_UPDATE: { vi: 'Cập nhật hoặc hủy đơn đặt phòng', en: 'Update or cancel bookings' },
+  BOOKING_DELETE: { vi: 'Xóa đơn đặt phòng', en: 'Delete bookings' },
+  BOOKING_VIEW_OWN: { vi: 'Xem lịch sử đặt phòng của bản thân', en: 'View own booking history' },
+  HOUSEKEEPING_VIEW: { vi: 'Xem nhiệm vụ dọn phòng', en: 'View housekeeping tasks' },
+  HOUSEKEEPING_CREATE: { vi: 'Giao nhiệm vụ dọn phòng', en: 'Assign housekeeping tasks' },
+  HOUSEKEEPING_UPDATE: { vi: 'Cập nhật tiến độ dọn phòng', en: 'Update housekeeping task progress' },
+  HOUSEKEEPING_DELETE: { vi: 'Xóa nhiệm vụ dọn phòng', en: 'Delete housekeeping tasks' },
+  EQUIPMENT_VIEW: { vi: 'Xem danh sách thiết bị', en: 'View equipment list' },
+  EQUIPMENT_CREATE: { vi: 'Thêm thiết bị mới', en: 'Add new equipment' },
+  EQUIPMENT_UPDATE: { vi: 'Cập nhật thông tin thiết bị', en: 'Update equipment info' },
+  EQUIPMENT_DELETE: { vi: 'Xóa thiết bị', en: 'Delete equipment' },
+  MAINTENANCE_VIEW: { vi: 'Xem yêu cầu sửa chữa bảo trì', en: 'View maintenance requests' },
+  MAINTENANCE_CREATE: { vi: 'Tạo yêu cầu bảo trì mới', en: 'Create new maintenance requests' },
+  MAINTENANCE_UPDATE: { vi: 'Cập nhật tiến độ sửa chữa', en: 'Update maintenance progress' },
+  MAINTENANCE_DELETE: { vi: 'Xóa yêu cầu bảo trì', en: 'Delete maintenance requests' },
+  FEEDBACK_VIEW: { vi: 'Xem đánh giá phản hồi của khách hàng', en: 'View customer feedbacks' },
+  FEEDBACK_CREATE: { vi: 'Gửi đánh giá dịch vụ', en: 'Submit feedback' },
+  FEEDBACK_UPDATE: { vi: 'Chỉnh sửa phản hồi', en: 'Edit feedback' },
+  FEEDBACK_DELETE: { vi: 'Xóa phản hồi', en: 'Delete feedback' },
+  INVOICE_VIEW: { vi: 'Xem danh sách hóa đơn', en: 'View invoices' },
+  DASHBOARD_VIEW: { vi: 'Xem báo cáo doanh thu & dashboard', en: 'View financial reports & dashboard' }
 };
 
 export default function RolePermissionManager() {
@@ -76,9 +121,17 @@ export default function RolePermissionManager() {
     setRolePermissions(next);
   };
 
-  const handleToggleGroup = (groupPrefix, checkAll) => {
+  const handleToggleGroup = (groupKey, checkAll) => {
     const next = new Set(rolePermissions);
-    const groupPerms = permissions.filter(p => p.name.startsWith(groupPrefix));
+    const groupPerms = permissions.filter(p => {
+      if (groupKey === 'CHECKIN_CHECKOUT') {
+        return p.name.startsWith('CHECKIN') || p.name.startsWith('CHECKOUT');
+      }
+      if (groupKey === 'ROOM_TYPE') {
+        return p.name.startsWith('ROOM_TYPE');
+      }
+      return p.name.startsWith(groupKey);
+    });
     
     groupPerms.forEach(p => {
       if (checkAll) {
@@ -115,6 +168,7 @@ export default function RolePermissionManager() {
     let groupKey = parts[0];
     if (perm.name.startsWith('ROOM_TYPE')) groupKey = 'ROOM_TYPE';
     if (perm.name.startsWith('AUDIT_LOG')) groupKey = 'AUDIT_LOG';
+    if (perm.name.startsWith('CHECKIN') || perm.name.startsWith('CHECKOUT')) groupKey = 'CHECKIN_CHECKOUT';
     if (!PERMISSION_GROUPS[groupKey]) groupKey = 'OTHER';
 
     if (!acc[groupKey]) acc[groupKey] = [];
@@ -228,6 +282,7 @@ export default function RolePermissionManager() {
                   <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {groupPerms.map((perm) => {
                       const isChecked = rolePermissions.has(perm.id);
+                      const desc = PERMISSION_DESCRIPTIONS[perm.name]?.[isVi ? 'vi' : 'en'] || perm.description || (isVi ? 'Không có mô tả' : 'No description available');
                       return (
                         <label
                           key={perm.id}
@@ -240,7 +295,7 @@ export default function RolePermissionManager() {
                           <div className="flex flex-col min-w-0 pr-2">
                             <span className="text-xs font-mono font-bold tracking-wider truncate">{perm.name}</span>
                             <span className="text-[10px] text-white/40 mt-0.5">
-                              {perm.description || (isVi ? 'Không có mô tả' : 'No description available')}
+                              {desc}
                             </span>
                           </div>
                           

@@ -1,26 +1,7 @@
-import React from 'react';
-import {
-  ClipboardList, AlertTriangle, Sparkles, CheckCircle2,
-  RefreshCw, ShieldCheck, ArrowRight
-} from 'lucide-react';
+import { RefreshCw, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-function KpiCard({ icon: Icon, label, value, color }) {
-  return (
-    <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm flex items-start gap-4 hover:shadow-md transition-all duration-300">
-      <div
-        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: `${color}15` }}
-      >
-        <Icon size={22} style={{ color }} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-slate-800 leading-tight truncate">{value}</p>
-      </div>
-    </div>
-  );
-}
+import DashboardCard from './DashboardCard';
+import { housekeepingDashboardCards } from '../data/dashboardData';
 
 export default function HousekeeperDashboardOverview({ data, refetch }) {
   const navigate = useNavigate();
@@ -44,30 +25,16 @@ export default function HousekeeperDashboardOverview({ data, refetch }) {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          icon={ClipboardList}
-          label="Nhiệm vụ của tôi hôm nay"
-          value={data?.myAssignedTasksCount ?? 0}
-          color="#bfa15f"
-        />
-        <KpiCard
-          icon={AlertTriangle}
-          label="Phòng đang bẩn (DIRTY)"
-          value={data?.dirtyRoomsCount ?? 0}
-          color="#ef4444"
-        />
-        <KpiCard
-          icon={Sparkles}
-          label="Phòng đang dọn (CLEANING)"
-          value={data?.cleaningRoomsCount ?? 0}
-          color="#3b82f6"
-        />
-        <KpiCard
-          icon={CheckCircle2}
-          label="Phòng trống sẵn sàng (AVAILABLE)"
-          value={data?.availableRoomsCount ?? 0}
-          color="#10b981"
-        />
+        {housekeepingDashboardCards.map((card) => (
+          <DashboardCard
+            key={card.key}
+            title={card.title}
+            value={card.getValue(data)}
+            icon={card.icon}
+            linkPath={card.linkPath}
+            color={card.color}
+          />
+        ))}
       </div>
 
       {/* Quick Action Banner */}

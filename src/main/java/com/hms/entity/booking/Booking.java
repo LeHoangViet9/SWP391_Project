@@ -1,6 +1,7 @@
 package com.hms.entity.booking;
 
 import com.hms.common.enums.BookingStatus;
+import com.hms.common.enums.InvoiceType;
 import com.hms.entity.auth.User;
 import com.hms.entity.customer.Customer;
 import com.hms.entity.hotel.Room;
@@ -87,6 +88,9 @@ public class Booking {
     @Column(name = "actual_check_in_time")
     private LocalDateTime actualCheckInTime;
 
+    @Column(name = "actual_check_out_time")
+    private LocalDateTime actualCheckOutTime;
+
     @Column(name = "booking_for_other")
     @Builder.Default
     private Boolean bookingForOther = false;
@@ -109,9 +113,28 @@ public class Booking {
     @Column(name = "guest_nationality")
     private String guestNationality;
 
-    // Quan hệ 1-1 đảo ngược khớp hoàn toàn với Invoice bên dưới
-    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Invoice invoice;
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Invoice> invoices = new ArrayList<>();
+
+    public Invoice getInvoice() {
+        if (invoices == null) return null;
+        return invoices.stream()
+                .filter(inv -> inv.getInvoiceType() == InvoiceType.ROOM)
+                .findFirst()
+                .orElse(null);
+    }
+
+    public void setInvoice(Invoice invoice) {
+        if (this.invoices == null) {
+            this.invoices = new ArrayList<>();
+        }
+        if (invoice != null) {
+            invoice.setBooking(this);
+            invoice.setInvoiceType(InvoiceType.ROOM);
+            this.invoices.add(invoice);
+        }
+    }
 
     @PrePersist
     protected void onCreate() {
