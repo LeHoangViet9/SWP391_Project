@@ -18,6 +18,7 @@ public class UserResponse {
     private String roleName;
     private String token;
     private String accountStatus;
+    private String workStatus;
     private LocalDateTime lastLoginAt;
     /** Danh sách mã quyền hạn (permission codes) dùng để lọc menu trên UI */
     private List<String> permissions;

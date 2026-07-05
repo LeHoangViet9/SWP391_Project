@@ -11,14 +11,13 @@ import com.hms.entity.booking.Booking;
 import com.hms.entity.booking.Invoice;
 import com.hms.entity.hotel.Room;
 import com.hms.entity.hotel.RoomStateHistory;
-import com.hms.entity.housekeeping.HouseKeepingTask;
 import com.hms.repository.auth.UserRepository;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.housekeeping.RoomStateHistoryRepository;
-import com.hms.repository.housekeeping.HouseKeepingTaskRepository;
 import com.hms.service.checkout.CheckoutService;
+import com.hms.service.housekeeping.IHouseKeepingTaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -38,9 +37,9 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final InvoiceRepository invoiceRepository;
     private final RoomRepository roomRepository;
     private final RoomStateHistoryRepository historyRepository;
-    private final HouseKeepingTaskRepository housekeepingTaskRepository;
     private final UserRepository userRepository;
     private final MessageSource messageSource;
+    private final IHouseKeepingTaskService housekeepingTaskService;
 
     @Override
     @Transactional(readOnly = true)
@@ -155,7 +154,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         String historyReason = messageSource.getMessage("checkout.room.history.reason.dirty", null, locale);
         rooms.forEach(room -> changeRoom(room, RoomStatus.DIRTY, user, historyReason));
 
-        assignHousekeepingTasks(rooms, user, booking.getId());
+        assignHousekeepingTasks(rooms, user);
 
         booking.setBookingStatus(BookingStatus.CHECKED_OUT);
         booking.setActualCheckOutTime(LocalDateTime.now());
@@ -203,30 +202,12 @@ public class CheckoutServiceImpl implements CheckoutService {
                 .triggeredByProcess(ProcessTrigger.CHECKOUT).triggeredByUser(user).reason(reason).build());
     }
 
-    private void assignHousekeepingTasks(List<Room> rooms, User checkoutUser, Long bookingId) {
-        Locale locale = LocaleContextHolder.getLocale();
-        List<User> housekeepers = userRepository.findByRole_RoleNameIgnoreCaseAndAccountStatus(
-                "HOUSEKEEPER", AccountStatus.ACTIVE);
-        if (housekeepers.isEmpty()) {
-            throw new ConflictException(messageSource.getMessage("checkout.housekeeper.no.active", null, locale));
-        }
-
-        List<TaskStatus> activeStatuses = List.of(TaskStatus.PENDING, TaskStatus.IN_PROGRESS);
-        String taskNotes = messageSource.getMessage("checkout.housekeeping.task.note", new Object[]{bookingId}, locale);
-
+    private void assignHousekeepingTasks(List<Room> rooms, User checkoutUser) {
         for (Room room : rooms) {
-            User assignedTo = housekeepers.stream()
-                    .min(java.util.Comparator.comparingLong(user ->
-                            housekeepingTaskRepository.countByAssignedTo_IdAndTaskStatusIn(user.getId(), activeStatuses)))
-                    .orElseThrow();
-            User assignedBy = checkoutUser != null ? checkoutUser : assignedTo;
-            housekeepingTaskRepository.save(HouseKeepingTask.builder()
-                    .room(room)
-                    .assignedTo(assignedTo)
-                    .assignedBy(assignedBy)
-                    .taskStatus(TaskStatus.PENDING)
-                    .notes(taskNotes)
-                    .build());
+            housekeepingTaskService.autoCreateCleaningTaskOnCheckout(
+                    room.getId(),
+                    checkoutUser == null ? null : checkoutUser.getId()
+            );
         }
     }
 

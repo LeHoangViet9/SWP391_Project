@@ -23,6 +23,21 @@ const STATUS_CONFIG = {
     CANCELLED: { label: 'Đã hủy', labelEn: 'Cancelled', color: 'bg-slate-100 text-slate-500 border-slate-200', dot: 'bg-slate-400', icon: XCircle },
 };
 // ─── Sub-Components ───────────────────────────────────────────────────────────
+const WORK_STATUS_CONFIG = {
+    AVAILABLE: { label: 'Sẵn sàng', className: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    WORKING: { label: 'Đang làm việc', className: 'text-amber-700 bg-amber-50 border-amber-200' },
+    OFF: { label: 'Đang nghỉ', className: 'text-slate-600 bg-slate-50 border-slate-200' },
+};
+
+const WorkStatusBadge = ({ status }) => {
+    const cfg = WORK_STATUS_CONFIG[status || 'AVAILABLE'] || WORK_STATUS_CONFIG.AVAILABLE;
+    return (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold ${cfg.className}`}>
+            {cfg.label}
+        </span>
+    );
+};
+
 /** Skeleton loading row */
 const SkeletonRow = () => (
     <tr className="animate-pulse">
@@ -213,9 +228,15 @@ const TaskFormModal = ({ task, housekeepers, rooms, onSubmit, onClose, loading }
                                 className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.assignedToId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
                             >
                                 <option value="">Chọn nhân viên...</option>
-                                {housekeepers.map(h => (
-                                    <option key={h.id} value={h.id}>{h.fullName} (#{h.id})</option>
-                                ))}
+                                {housekeepers.map(h => {
+                                    const workStatus = h.workStatus || 'AVAILABLE';
+                                    const label = WORK_STATUS_CONFIG[workStatus]?.label || workStatus;
+                                    return (
+                                        <option key={h.id} value={h.id} disabled={workStatus === 'OFF'}>
+                                            {h.fullName} (#{h.id}) - {label}
+                                        </option>
+                                    );
+                                })}
                             </select>
                         ) : (
                             <input
@@ -453,6 +474,9 @@ const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale }) => {
                                     <User size={11} className="shrink-0" />
                                     <span className="truncate">{task.assignedToName || `NV #${task.assignedToId}`}</span>
                                 </div>
+                                <div className="mt-1">
+                                    <WorkStatusBadge status={task.assignedToWorkStatus} />
+                                </div>
                             </div>
                             <span className="text-[10px] text-slate-400 whitespace-nowrap mt-0.5">
                                 {task.createdAt ? new Date(task.createdAt).toLocaleDateString('vi-VN') : '—'}
@@ -518,6 +542,7 @@ export default function HousekeepingManager() {
         roomNumber: t.roomNumber || t.room?.roomNumber || t.room?.number,
         assignedToId: t.assignedToId || t.assignedTo?.id,
         assignedToName: t.assignedToName || t.assignedTo?.fullName || t.assignedTo?.name,
+        assignedToWorkStatus: t.assignedToWorkStatus || t.assignedTo?.workStatus || 'AVAILABLE',
         assignedById: t.assignedById || t.assignedBy?.id,
         assignedByName: t.assignedByName || t.assignedBy?.fullName || t.assignedBy?.name,
         notes: t.notes || t.description || t.note || '',
@@ -548,7 +573,7 @@ export default function HousekeepingManager() {
     // ── Fetch Housekeepers (for dropdown) ────────────────────────────────────
     const fetchHousekeepers = useCallback(async () => {
         try {
-            const res = await getUsers({ role: 'HOUSEKEEPER', size: 100 }, locale);
+            const res = await getUsers({ roleName: 'HOUSEKEEPER', size: 100 }, locale);
             setHousekeepers(res?.data?.content || res?.data || []);
         } catch {
             // silently fail — input field fallback will handle
@@ -834,7 +859,10 @@ export default function HousekeepingManager() {
                                                 <span className="text-sm font-semibold text-slate-800">{task.roomNumber || `ID: ${task.roomId}`}</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-slate-600">{task.assignedToName || `#${task.assignedToId}`}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-600">
+                                            <div className="font-semibold text-slate-700">{task.assignedToName || `#${task.assignedToId}`}</div>
+                                            <div className="mt-1"><WorkStatusBadge status={task.assignedToWorkStatus} /></div>
+                                        </td>
                                         <td className="px-4 py-3 text-sm text-slate-500">{task.assignedByName || `#${task.assignedById}`}</td>
                                         <td className="px-4 py-3"><StatusBadge status={task.status} locale={locale} /></td>
                                         <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">

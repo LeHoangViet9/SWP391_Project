@@ -15,6 +15,7 @@ public interface HouseKeepingTaskMapper {
     @Mapping(source = "room.roomStatus",      target = "roomState")
     @Mapping(source = "assignedTo.id",        target = "assignedToId")
     @Mapping(source = "assignedTo.fullName",  target = "assignedToName")
+    @Mapping(source = "assignedTo.workStatus", target = "assignedToWorkStatus")
     @Mapping(source = "assignedBy.id",        target = "assignedById")
     @Mapping(source = "assignedBy.fullName",  target = "assignedByName")
     // FIX: Đảm bảo các thuộc tính thời gian mới thêm ở Entity (createdAt, updatedAt)

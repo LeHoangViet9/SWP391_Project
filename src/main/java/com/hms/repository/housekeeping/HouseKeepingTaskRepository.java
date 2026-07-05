@@ -38,6 +38,8 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
 
         List<HouseKeepingTask> findByAssignedTo_IdAndTaskStatusIn(Long userId, List<TaskStatus> statuses);
 
+        boolean existsByRoom_IdAndTaskStatusIn(Long roomId, List<TaskStatus> statuses);
+
         @Query("SELECT t FROM HouseKeepingTask t " +
                         "JOIN FETCH t.room " +
                         "JOIN FETCH t.assignedTo " +
@@ -48,4 +50,6 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
         long countByAssignedTo_IdAndCreatedAtBetween(Long userId, java.time.LocalDateTime start, java.time.LocalDateTime end);
 
         long countByAssignedTo_IdAndTaskStatusIn(Long userId, List<com.hms.common.enums.TaskStatus> statuses);
+
+        boolean existsByAssignedTo_IdAndTaskStatus(Long userId, TaskStatus status);
 }

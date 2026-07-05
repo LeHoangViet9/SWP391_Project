@@ -3,6 +3,7 @@ package com.hms.service.auth.impl;
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
+import com.hms.common.enums.StaffWorkStatus;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ForbiddenException;
 import com.hms.common.exception.ResourceNotFoundException;
@@ -95,6 +96,7 @@ public class UserServiceImpl implements IUserService {
                 .phone(request.getPhone())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .accountStatus(request.getAccountStatus() == null ? AccountStatus.ACTIVE : request.getAccountStatus())
+                .workStatus(resolveWorkStatus(request.getRoleName(), request.getWorkStatus()))
                 .role(role)
                 .build();
 
@@ -142,6 +144,7 @@ public class UserServiceImpl implements IUserService {
         user.setPhone(request.getPhone());
         user.setRole(findRole(request.getRoleName(), locale));
         user.setAccountStatus(request.getAccountStatus() == null ? AccountStatus.ACTIVE : request.getAccountStatus());
+        user.setWorkStatus(resolveWorkStatus(request.getRoleName(), request.getWorkStatus()));
 
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -336,6 +339,13 @@ public class UserServiceImpl implements IUserService {
         return roleName == null ? "" : roleName.trim().toUpperCase(Locale.ROOT);
     }
 
+    private StaffWorkStatus resolveWorkStatus(String roleName, StaffWorkStatus requestedStatus) {
+        if (!"HOUSEKEEPER".equals(normalizeRole(roleName))) {
+            return StaffWorkStatus.AVAILABLE;
+        }
+        return requestedStatus == null ? StaffWorkStatus.AVAILABLE : requestedStatus;
+    }
+
     private void validatePasswordForManagement(UserManagementRequest request, boolean required, Locale locale) {
         String password = request.getPassword();
         boolean blankPassword = password == null || password.isBlank();
@@ -355,6 +365,7 @@ public class UserServiceImpl implements IUserService {
         snapshot.put("phone", user.getPhone());
         snapshot.put("roleName", user.getRole() == null ? null : user.getRole().getRoleName());
         snapshot.put("accountStatus", user.getAccountStatus() == null ? null : user.getAccountStatus().name());
+        snapshot.put("workStatus", user.getWorkStatus() == null ? null : user.getWorkStatus().name());
         snapshot.put("enabled", user.getEnabled());
         snapshot.put("permissions", user.getCustomPermissions() == null
                 ? List.of()

@@ -1,6 +1,7 @@
 package com.hms.dto.auth.request;
 
 import com.hms.common.enums.AccountStatus;
+import com.hms.common.enums.StaffWorkStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -34,4 +35,6 @@ public class UserManagementRequest {
     private String roleName;
 
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
+
+    private StaffWorkStatus workStatus = StaffWorkStatus.AVAILABLE;
 }

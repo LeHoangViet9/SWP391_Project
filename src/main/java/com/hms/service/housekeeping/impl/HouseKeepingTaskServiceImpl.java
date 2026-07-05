@@ -1,6 +1,7 @@
 package com.hms.service.housekeeping.impl;
 
 import com.hms.common.enums.*;
+import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
@@ -78,10 +79,13 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         User assignedTo = userRepository.findById(request.getAssignedToId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.user.notfound", null, locale)));
+        validateAssignableHousekeeper(assignedTo, locale);
 
         User assignedBy = userRepository.findById(request.getAssignedById())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.user.notfound", null, locale)));
+
+        ensureNoActiveTaskForRoom(room.getId(), locale);
 
         TaskStatus initialStatus = (request.getStartedAt() != null
                 && !request.getStartedAt().isAfter(LocalDateTime.now()))
@@ -96,6 +100,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                 .build();
 
         HouseKeepingTask saved = taskRepository.save(task);
+        syncHousekeeperWorkStatus(saved.getAssignedTo(), saved.getTaskStatus());
 
         // Chuyển sang RoomStatus.CLEANING khi tạo task dọn phòng
         if (saved.getTaskStatus() == TaskStatus.IN_PROGRESS) {
@@ -146,6 +151,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
         // Cập nhật trạng thái phòng dựa trên trạng thái task mới
         updateRoomStatusByTaskStatus(updated, newStatus);
+        syncHousekeeperWorkStatus(updated.getAssignedTo(), newStatus);
 
         return taskMapper.toResponse(updated);
     }
@@ -278,6 +284,51 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         }
     }
 
+    private void ensureNoActiveTaskForRoom(Long roomId, Locale locale) {
+        boolean hasActiveTask = taskRepository.existsByRoom_IdAndTaskStatusIn(
+                roomId,
+                List.of(TaskStatus.PENDING, TaskStatus.IN_PROGRESS)
+        );
+        if (hasActiveTask) {
+            throw new ConflictException(messageSource.getMessage("error.task.room.active.exists", null, locale));
+        }
+    }
+
+    private void validateAssignableHousekeeper(User user, Locale locale) {
+        String roleName = user.getRole() == null ? null : user.getRole().getRoleName();
+        if (!"HOUSEKEEPER".equalsIgnoreCase(roleName) || user.getAccountStatus() != AccountStatus.ACTIVE) {
+            throw new ConflictException(messageSource.getMessage("error.housekeeper.invalid", null, locale));
+        }
+        if (user.getWorkStatus() == StaffWorkStatus.OFF) {
+            throw new ConflictException(messageSource.getMessage("error.housekeeper.notavailable", null, locale));
+        }
+    }
+
+    private void syncHousekeeperWorkStatus(User housekeeper, TaskStatus taskStatus) {
+        if (housekeeper == null || housekeeper.getWorkStatus() == StaffWorkStatus.OFF) {
+            return;
+        }
+
+        if (taskStatus == TaskStatus.IN_PROGRESS) {
+            housekeeper.setWorkStatus(StaffWorkStatus.WORKING);
+            userRepository.save(housekeeper);
+            return;
+        }
+
+        if (taskStatus == TaskStatus.COMPLETED
+                || taskStatus == TaskStatus.CANCELLED
+                || taskStatus == TaskStatus.SKIPPED) {
+            boolean stillWorking = taskRepository.existsByAssignedTo_IdAndTaskStatus(
+                    housekeeper.getId(),
+                    TaskStatus.IN_PROGRESS
+            );
+            if (!stillWorking) {
+                housekeeper.setWorkStatus(StaffWorkStatus.AVAILABLE);
+                userRepository.save(housekeeper);
+            }
+        }
+    }
+
 
     private void changeRoomStatus(Room room, RoomStatus newStatus, User changedBy,
                                   HouseKeepingTask task, String reason, ProcessTrigger processName) {
@@ -345,10 +396,16 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                         messageSource.getMessage("error.room.notfound", null, locale)));
 
         // Tìm housekeeper có ít task nhất (round-robin by workload)
+        if (taskRepository.existsByRoom_IdAndTaskStatusIn(roomId, List.of(TaskStatus.PENDING, TaskStatus.IN_PROGRESS))) {
+            log.info("[AUTO-ASSIGN] Room {} already has active housekeeping task. Skip auto-create.",
+                    room.getRoomNumber());
+            return;
+        }
+
         List<User> housekeepers = userRepository.findHousekeepersOrderByTaskCountAsc();
 
         if (housekeepers.isEmpty()) {
-            log.warn("[AUTO-ASSIGN] No available housekeeper found for room {}. " +
+            log.warn("[AUTO-ASSIGN] No AVAILABLE housekeeper found for room {}. " +
                      "Task will NOT be auto-created. Please assign manually.", room.getRoomNumber());
             return;
         }

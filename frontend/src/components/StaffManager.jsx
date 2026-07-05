@@ -24,6 +24,12 @@ const STATUS_OPTIONS = [
   { value: 'BANNED', label: 'Bị cấm' },
 ];
 
+const WORK_STATUS_CONFIG = {
+  AVAILABLE: { label: 'Sẵn sàng', className: 'bg-emerald-100 text-emerald-700' },
+  WORKING: { label: 'Đang làm việc', className: 'bg-amber-100 text-amber-700' },
+  OFF: { label: 'Đang nghỉ', className: 'bg-slate-100 text-slate-600' },
+};
+
 const EMPTY_FORM = {
   fullName: '',
   password: '',
@@ -32,6 +38,7 @@ const EMPTY_FORM = {
   phone: '',
   roleName: 'RECEPTIONIST',
   accountStatus: 'ACTIVE',
+  workStatus: 'AVAILABLE',
 };
 
 export default function StaffManager() {
@@ -117,6 +124,7 @@ export default function StaffManager() {
       phone: item.phone || '',
       roleName: item.roleName || 'RECEPTIONIST',
       accountStatus: item.accountStatus || item.status || 'ACTIVE',
+      workStatus: item.workStatus || 'AVAILABLE',
     });
     setModal({ open: true, editing: item });
   };
@@ -130,6 +138,7 @@ export default function StaffManager() {
       phone: form.phone.trim(),
       roleName: form.roleName,
       accountStatus: form.accountStatus,
+      workStatus: form.roleName === 'HOUSEKEEPER' ? form.workStatus : 'AVAILABLE',
     };
     if (form.password) {
       payload.password = form.password;
@@ -197,6 +206,15 @@ export default function StaffManager() {
         </span>
       </td>
       <td className="px-4 py-3">
+        {item.roleName === 'HOUSEKEEPER' ? (
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${WORK_STATUS_CONFIG[item.workStatus || 'AVAILABLE']?.className || WORK_STATUS_CONFIG.AVAILABLE.className}`}>
+            {WORK_STATUS_CONFIG[item.workStatus || 'AVAILABLE']?.label || item.workStatus}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">-</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           {canEdit && (
             <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
@@ -220,6 +238,7 @@ export default function StaffManager() {
     t('staff.columns.phone'),
     t('staff.columns.role'),
     t('staff.columns.status'),
+    'Trạng thái làm việc',
     ...(canEdit || canDelete ? [t('staff.columns.actions')] : [])
   ];
 
@@ -345,6 +364,18 @@ export default function StaffManager() {
               </select>
             </div>
           </div>
+
+          {form.roleName === 'HOUSEKEEPER' && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Trạng thái làm việc</label>
+              <select required value={form.workStatus} onChange={e => setForm(f => ({ ...f, workStatus: e.target.value }))}
+                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
+                <option value="AVAILABLE">Sẵn sàng</option>
+                <option value="WORKING">Đang làm việc</option>
+                <option value="OFF">Đang nghỉ</option>
+              </select>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">{t('staff.modal.cancel')}</button>

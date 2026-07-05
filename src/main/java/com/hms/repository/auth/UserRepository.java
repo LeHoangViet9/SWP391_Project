@@ -1,6 +1,7 @@
 package com.hms.repository.auth;
 
 import com.hms.common.enums.AccountStatus;
+import com.hms.common.enums.StaffWorkStatus;
 import com.hms.entity.auth.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,11 @@ public interface UserRepository extends JpaRepository<User,Long> {
     Optional<User> findByResetPasswordToken(String resetPasswordToken);
 
     List<User> findByRole_RoleNameIgnoreCaseAndAccountStatus(String roleName, AccountStatus accountStatus);
+
+    List<User> findByRole_RoleNameIgnoreCaseAndAccountStatusAndWorkStatus(
+            String roleName,
+            AccountStatus accountStatus,
+            StaffWorkStatus workStatus);
 
     @Query("SELECT u FROM User u WHERE " +
             "(:id IS NULL OR u.id = :id) AND " +
@@ -84,7 +90,8 @@ public interface UserRepository extends JpaRepository<User,Long> {
             LEFT JOIN HouseKeepingTask t ON t.assignedTo.id = u.id
                 AND t.taskStatus IN ('PENDING', 'IN_PROGRESS')
             WHERE UPPER(u.role.roleName) = 'HOUSEKEEPER'
-                AND u.accountStatus = 'ACTIVE'
+                AND u.accountStatus = com.hms.common.enums.AccountStatus.ACTIVE
+                AND u.workStatus = com.hms.common.enums.StaffWorkStatus.AVAILABLE
             GROUP BY u
             ORDER BY COUNT(t) ASC
             """)
