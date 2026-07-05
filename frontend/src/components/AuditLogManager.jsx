@@ -21,6 +21,28 @@ import Toast from './shared/Toast';
 
 const STATUS_OPTIONS = ['', 'SUCCESS', 'FAILED'];
 const MODULE_OPTIONS = ['', 'AUTH', 'USER', 'ROOM', 'BOOKING', 'CUSTOMER', 'BILLING', 'HOUSEKEEPING', 'MAINTENANCE', 'EQUIPMENT', 'REPORT', 'API'];
+
+const STATUS_LABELS = {
+  '': { vi: 'Tất cả', en: 'All' },
+  'SUCCESS': { vi: 'Thành công', en: 'Success' },
+  'FAILED': { vi: 'Thất bại', en: 'Failed' }
+};
+
+const MODULE_LABELS = {
+  '': { vi: 'Tất cả', en: 'All' },
+  'AUTH': { vi: 'Xác thực', en: 'Auth' },
+  'USER': { vi: 'Nhân viên', en: 'User' },
+  'ROOM': { vi: 'Phòng', en: 'Room' },
+  'BOOKING': { vi: 'Đặt phòng', en: 'Booking' },
+  'CUSTOMER': { vi: 'Khách hàng', en: 'Customer' },
+  'BILLING': { vi: 'Hóa đơn', en: 'Billing' },
+  'HOUSEKEEPING': { vi: 'Buồng phòng', en: 'Housekeeping' },
+  'MAINTENANCE': { vi: 'Bảo trì', en: 'Maintenance' },
+  'EQUIPMENT': { vi: 'Thiết bị', en: 'Equipment' },
+  'REPORT': { vi: 'Báo cáo', en: 'Report' },
+  'API': { vi: 'API hệ thống', en: 'API' }
+};
+
 const DEFAULT_FILTERS = {
   action: '',
   module: '',
@@ -197,21 +219,23 @@ export default function AuditLogManager() {
           : 'bg-red-50 text-red-700 ring-1 ring-red-100'
       }`}>
         <Icon size={13} />
-        {status}
+        {isVi ? (success ? 'Thành công' : 'Thất bại') : status}
       </span>
     );
   };
 
-  const renderFilterSelect = (label, value, field, options) => (
+  const renderFilterSelect = (label, labelEn, value, field, options, translationMap) => (
     <label className="min-w-0 space-y-1">
-      <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{label}</span>
+      <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isVi ? label : labelEn}</span>
       <select
         value={value}
         onChange={(event) => handleFilterChange(field, event.target.value)}
         className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#bfa15f] focus:ring-2 focus:ring-[#bfa15f]/15"
       >
         {options.map((option) => (
-          <option key={option} value={option}>{option || (isVi ? 'Tat ca' : 'All')}</option>
+          <option key={option} value={option}>
+            {translationMap?.[option]?.[locale] || option || (isVi ? 'Tất cả' : 'All')}
+          </option>
         ))}
       </select>
     </label>
@@ -231,33 +255,50 @@ export default function AuditLogManager() {
         {selectedLog && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-              <InfoTile icon={CheckCircle2} label="Status" value={selectedLog.status} tone={selectedLog.status === 'SUCCESS' ? 'green' : 'red'} />
-              <InfoTile icon={Database} label="Module" value={selectedLog.module} />
-              <InfoTile icon={UserRound} label="Actor" value={selectedLog.actorUsername || selectedLog.actorEmail || '-'} />
-              <InfoTile icon={Clock} label="Time" value={formatTime(selectedLog.createdAt)} />
+              <InfoTile
+                icon={CheckCircle2}
+                label={isVi ? 'Trạng thái' : 'Status'}
+                value={isVi && STATUS_LABELS[selectedLog.status] ? STATUS_LABELS[selectedLog.status].vi : selectedLog.status}
+                tone={selectedLog.status === 'SUCCESS' ? 'green' : 'red'}
+              />
+              <InfoTile
+                icon={Database}
+                label={isVi ? 'Phân hệ' : 'Module'}
+                value={isVi && MODULE_LABELS[selectedLog.module] ? MODULE_LABELS[selectedLog.module].vi : selectedLog.module}
+              />
+              <InfoTile
+                icon={UserRound}
+                label={isVi ? 'Người thực hiện' : 'Actor'}
+                value={selectedLog.actorUsername || selectedLog.actorEmail || '-'}
+              />
+              <InfoTile
+                icon={Clock}
+                label={isVi ? 'Thời gian' : 'Time'}
+                value={formatTime(selectedLog.createdAt)}
+              />
             </div>
 
             <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
               <div className="flex flex-col gap-2 border-b border-stone-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
                   <FileJson size={16} className="text-[#bfa15f]" />
-                  {isVi ? 'Chi tiet message' : 'Message details'}
+                  {isVi ? 'Chi tiết thông báo' : 'Message details'}
                 </div>
                 <div className="text-xs font-semibold text-slate-400">
-                  {messageFields.length} {isVi ? 'truong du lieu' : 'fields'}
+                  {messageFields.length} {isVi ? 'trường dữ liệu' : 'fields'}
                 </div>
               </div>
               <div className="max-h-[46vh] overflow-auto">
                 {messageFields.length === 0 ? (
                   <div className="px-4 py-8 text-center text-sm text-slate-400">
-                    {isVi ? 'Khong co chi tiet message.' : 'No message details.'}
+                    {isVi ? 'Không có chi tiết thông báo.' : 'No message details.'}
                   </div>
                 ) : (
                   <table className="w-full min-w-[760px] text-sm">
                     <thead className="sticky top-0 z-10 border-b border-stone-200 bg-white text-[11px] uppercase tracking-wide text-slate-400">
                       <tr>
-                        <th className="w-[190px] px-4 py-3 text-left font-bold">{isVi ? 'Truong' : 'Field'}</th>
-                        <th className="px-4 py-3 text-left font-bold">{isVi ? 'Truoc' : 'Before'}</th>
+                        <th className="w-[190px] px-4 py-3 text-left font-bold">{isVi ? 'Trường' : 'Field'}</th>
+                        <th className="px-4 py-3 text-left font-bold">{isVi ? 'Trước' : 'Before'}</th>
                         <th className="px-4 py-3 text-left font-bold">{isVi ? 'Sau' : 'After'}</th>
                       </tr>
                     </thead>
@@ -285,7 +326,7 @@ export default function AuditLogManager() {
 
             <details className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
               <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-slate-100">
-                {isVi ? 'Xem JSON goc' : 'View raw JSON'}
+                {isVi ? 'Xem JSON gốc' : 'View raw JSON'}
               </summary>
               <pre className="max-h-64 overflow-auto border-t border-white/10 p-4 text-xs leading-relaxed text-slate-100">
                 {rawJson}
@@ -309,23 +350,23 @@ export default function AuditLogManager() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-slate-900">Audit Log</h2>
+              <h2 className="text-xl font-bold text-slate-900">{isVi ? 'Nhật ký hệ thống' : 'Audit Log'}</h2>
               {activeFilterCount > 0 && (
                 <span className="rounded-full bg-[#bfa15f]/10 px-2.5 py-1 text-xs font-bold text-[#8a6f32]">
-                  {activeFilterCount} {isVi ? 'bo loc' : 'filters'}
+                  {activeFilterCount} {isVi ? 'bộ lọc' : 'filters'}
                 </span>
               )}
             </div>
             <p className="mt-1 text-sm text-slate-500">
-              {isVi ? 'Theo doi thao tac va message trong he thong.' : 'Track actions and messages in the system.'}
+              {isVi ? 'Theo dõi thao tác và thông báo trong hệ thống.' : 'Track actions and messages in the system.'}
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 sm:w-[360px]">
-          <StatTile label={isVi ? 'Trang nay' : 'This page'} value={pageStats.total} tone="slate" />
-          <StatTile label="Success" value={pageStats.success} tone="green" />
-          <StatTile label="Failed" value={pageStats.failed} tone="red" />
+          <StatTile label={isVi ? 'Trang này' : 'This page'} value={pageStats.total} tone="slate" />
+          <StatTile label={isVi ? 'Thành công' : 'Success'} value={pageStats.success} tone="green" />
+          <StatTile label={isVi ? 'Thất bại' : 'Failed'} value={pageStats.failed} tone="red" />
         </div>
       </div>
 
@@ -333,7 +374,7 @@ export default function AuditLogManager() {
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
             <Filter size={16} className="text-[#bfa15f]" />
-            {isVi ? 'Bo loc audit' : 'Audit filters'}
+            {isVi ? 'Bộ lọc nhật ký' : 'Audit filters'}
           </div>
           <button
             type="button"
@@ -341,13 +382,13 @@ export default function AuditLogManager() {
             className="inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 text-xs font-bold text-slate-600 hover:bg-stone-50"
           >
             <RefreshCw size={13} />
-            {isVi ? 'Tai lai' : 'Reload'}
+            {isVi ? 'Tải lại' : 'Reload'}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
-          <label className="min-w-0 space-y-1 xl:col-span-2">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Action</span>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <label className="min-w-0 space-y-1">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isVi ? 'Hành động' : 'Action'}</span>
             <input
               value={filters.action}
               onChange={(event) => handleFilterChange('action', event.target.value)}
@@ -356,10 +397,10 @@ export default function AuditLogManager() {
             />
           </label>
 
-          {renderFilterSelect('Module', filters.module, 'module', MODULE_OPTIONS)}
+          {renderFilterSelect('Phân hệ', 'Module', filters.module, 'module', MODULE_OPTIONS, MODULE_LABELS)}
 
           <label className="min-w-0 space-y-1">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Actor ID</span>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isVi ? 'ID Người thực hiện' : 'Actor ID'}</span>
             <input
               type="number"
               min="1"
@@ -370,10 +411,10 @@ export default function AuditLogManager() {
             />
           </label>
 
-          {renderFilterSelect('Status', filters.status, 'status', STATUS_OPTIONS)}
+          {renderFilterSelect('Trạng thái', 'Status', filters.status, 'status', STATUS_OPTIONS, STATUS_LABELS)}
 
           <label className="min-w-0 space-y-1">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isVi ? 'Tu ngay' : 'From'}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isVi ? 'Từ ngày' : 'From'}</span>
             <input
               type="datetime-local"
               value={filters.fromTime}
@@ -381,11 +422,9 @@ export default function AuditLogManager() {
               className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#bfa15f] focus:ring-2 focus:ring-[#bfa15f]/15"
             />
           </label>
-        </div>
 
-        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
           <label className="min-w-0 space-y-1">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isVi ? 'Den ngay' : 'To'}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{isVi ? 'Đến ngày' : 'To'}</span>
             <input
               type="datetime-local"
               value={filters.toTime}
@@ -402,14 +441,14 @@ export default function AuditLogManager() {
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-4 text-sm font-bold text-slate-700 hover:bg-stone-50"
           >
             <X size={15} />
-            {isVi ? 'Xoa loc' : 'Clear'}
+            {isVi ? 'Xóa lọc' : 'Clear'}
           </button>
           <button
             type="submit"
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 text-sm font-bold text-white shadow-sm hover:bg-slate-800"
           >
             <Search size={15} />
-            {isVi ? 'Loc du lieu' : 'Filter logs'}
+            {isVi ? 'Lọc dữ liệu' : 'Filter logs'}
           </button>
         </div>
       </form>
@@ -420,11 +459,11 @@ export default function AuditLogManager() {
             <thead className="border-b border-stone-200 bg-white text-[11px] uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="px-4 py-3 text-left font-bold">ID</th>
-                <th className="px-4 py-3 text-left font-bold">{isVi ? 'Thoi gian' : 'Time'}</th>
-                <th className="px-4 py-3 text-left font-bold">Action</th>
-                <th className="px-4 py-3 text-left font-bold">Status</th>
-                <th className="px-4 py-3 text-left font-bold">Actor</th>
-                <th className="px-4 py-3 text-left font-bold">Message</th>
+                <th className="px-4 py-3 text-left font-bold">{isVi ? 'Thời gian' : 'Time'}</th>
+                <th className="px-4 py-3 text-left font-bold">{isVi ? 'Hành động' : 'Action'}</th>
+                <th className="px-4 py-3 text-left font-bold">{isVi ? 'Trạng thái' : 'Status'}</th>
+                <th className="px-4 py-3 text-left font-bold">{isVi ? 'Người thực hiện' : 'Actor'}</th>
+                <th className="px-4 py-3 text-left font-bold">{isVi ? 'Thông báo' : 'Message'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
@@ -432,13 +471,13 @@ export default function AuditLogManager() {
                 <tr>
                   <td colSpan={6} className="px-4 py-14 text-center text-slate-400">
                     <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-[#bfa15f] border-t-transparent" />
-                    {isVi ? 'Dang tai audit log...' : 'Loading audit logs...'}
+                    {isVi ? 'Đang tải nhật ký...' : 'Loading audit logs...'}
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-14 text-center text-slate-400">
-                    {isVi ? 'Chua co audit log phu hop.' : 'No matching audit logs.'}
+                    {isVi ? 'Chưa có nhật ký phù hợp.' : 'No matching audit logs.'}
                   </td>
                 </tr>
               ) : logs.map((log) => (
@@ -447,7 +486,9 @@ export default function AuditLogManager() {
                   <td className="whitespace-nowrap px-4 py-4 text-slate-600">{formatTime(log.createdAt)}</td>
                   <td className="px-4 py-4">
                     <div className="font-mono text-xs font-bold text-slate-800">{log.action}</div>
-                    <div className="mt-1 text-[11px] font-semibold uppercase text-slate-400">{log.module}</div>
+                    <div className="mt-1 text-[11px] font-semibold uppercase text-slate-400">
+                      {isVi && MODULE_LABELS[log.module] ? MODULE_LABELS[log.module].vi : log.module}
+                    </div>
                   </td>
                   <td className="px-4 py-4">{renderStatus(log.status)}</td>
                   <td className="px-4 py-4">
@@ -472,7 +513,7 @@ export default function AuditLogManager() {
               disabled={page === 0}
               className="h-9 rounded-lg border border-stone-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {isVi ? 'Truoc' : 'Previous'}
+              {isVi ? 'Trước' : 'Previous'}
             </button>
             <button
               type="button"

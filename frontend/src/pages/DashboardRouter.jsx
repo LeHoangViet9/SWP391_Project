@@ -73,9 +73,11 @@ function ContentPage({ routeKey }) {
   if (!route) return <Navigate to="/dashboard" replace />;
 
   let Component = route.Component;
+  let componentProps = {};
   if (routeKey === 'housekeeping') {
     if (user?.roleName === 'HOUSEKEEPER') {
-      Component = HousekeeperTaskBoard;
+      Component = HousekeepingManager;
+      componentProps = { readOnly: true };
     } else if (user?.roleName === 'ADMIN' || user?.roleName === 'MANAGER') {
       Component = HousekeepingManager;
     }
@@ -85,7 +87,7 @@ function ContentPage({ routeKey }) {
 
   return (
       <PermissionLayout title={title}>
-        <Component />
+        <Component {...componentProps} />
       </PermissionLayout>
   );
 }

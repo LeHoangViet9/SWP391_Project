@@ -91,7 +91,9 @@ const DeleteConfirmModal = ({ task, onConfirm, onClose, loading }) => (
     </div>
 );
 /** Task Detail Drawer (side panel) */
-const TaskDetailDrawer = ({ task, onClose, onEdit, locale }) => {
+// readOnly: if true, hides edit button
+// readOnly: if true, hides edit button
+const TaskDetailDrawer = ({ task, onClose, onEdit, locale, readOnly = false }) => {
     if (!task) return null;
     return (
         <div className="fixed inset-0 z-[60] flex">
@@ -148,14 +150,16 @@ const TaskDetailDrawer = ({ task, onClose, onEdit, locale }) => {
                         </div>
                     )}
                 </div>
-                <div className="p-6 border-t border-stone-100">
-                    <button
-                        onClick={() => onEdit(task)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#bfa15f] text-white rounded-xl font-semibold hover:bg-[#a8893f] transition-colors"
-                    >
-                        <Pencil size={16} /> Chỉnh sửa tác vụ
-                    </button>
-                </div>
+                {!readOnly && (
+                    <div className="p-6 border-t border-stone-100">
+                        <button
+                            onClick={() => onEdit(task)}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#bfa15f] text-white rounded-xl font-semibold hover:bg-[#a8893f] transition-colors"
+                        >
+                            <Pencil size={16} /> Chỉnh sửa tác vụ
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -445,7 +449,7 @@ const RoomHistoryModal = ({ onClose }) => {
     );
 };
 /** Kanban Column */
-const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale }) => {
+const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale, readOnly = false }) => {
     const cfg = STATUS_CONFIG[status] || {};
     return (
         <div className="flex flex-col bg-stone-50 rounded-2xl border border-stone-200 min-h-[300px]">
@@ -478,20 +482,6 @@ const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale }) => {
                                     <WorkStatusBadge status={task.assignedToWorkStatus} />
                                 </div>
                             </div>
-                            <span className="text-[10px] text-slate-400 whitespace-nowrap mt-0.5">
-                                {task.createdAt ? new Date(task.createdAt).toLocaleDateString('vi-VN') : '—'}
-                            </span>
-                        </div>
-                        {task.notes && (
-                            <p className="text-xs text-slate-400 mt-2 line-clamp-2 italic border-t border-stone-100 pt-2">{task.notes}</p>
-                        )}
-                        <div className="flex gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                            <button onClick={() => onEdit(task)} className="flex-1 text-xs py-1 px-2 bg-stone-100 hover:bg-[#bfa15f]/10 hover:text-[#bfa15f] text-slate-600 rounded-lg transition-colors flex items-center justify-center gap-1">
-                                <Pencil size={12} /> Sửa
-                            </button>
-                            <button onClick={() => onDelete(task)} className="flex-1 text-xs py-1 px-2 bg-stone-100 hover:bg-red-50 hover:text-red-600 text-slate-600 rounded-lg transition-colors flex items-center justify-center gap-1">
-                                <Trash2 size={12} /> Xóa
-                            </button>
                         </div>
                     </div>
                 ))}
@@ -500,7 +490,7 @@ const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale }) => {
     );
 };
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function HousekeepingManager() {
+export default function HousekeepingManager({ readOnly = false }) {
     const { user } = useAuth();
     const { locale } = useLocale();
     // ── State: Data ──────────────────────────────────────────────────────────
@@ -581,6 +571,13 @@ export default function HousekeepingManager() {
     }, [locale]);
     useEffect(() => { fetchTasks(); }, [fetchTasks]);
     useEffect(() => { fetchHousekeepers(); }, [fetchHousekeepers]);
+
+    useEffect(() => {
+        if (readOnly && user?.id) {
+            setFilters(prev => ({ ...prev, assignedToId: user.id }));
+        }
+    }, [readOnly, user?.id]);
+
     // ── Filter change resets page ────────────────────────────────────────────
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -588,7 +585,7 @@ export default function HousekeepingManager() {
     };
     const handleSearch = (e) => { e.preventDefault(); setPage(0); fetchTasks(); };
     const handleResetFilters = () => {
-        setFilters({ status: '', assignedToId: '', assignedById: '', roomId: '' });
+        setFilters({ status: '', assignedToId: readOnly && user?.id ? user.id : '', assignedById: '', roomId: '' });
         setPage(0);
     };
     // ── Handlers: CRUD ───────────────────────────────────────────────────────
@@ -688,7 +685,7 @@ export default function HousekeepingManager() {
                     onConfirm={handleDeleteTask} onClose={() => { setShowDeleteModal(false); setSelectedTask(null); }} loading={actionLoading} />
             )}
             {showDetailDrawer && selectedTask && (
-                <TaskDetailDrawer task={selectedTask} onClose={() => setShowDetailDrawer(false)} onEdit={openEdit} locale={locale} />
+                <TaskDetailDrawer task={selectedTask} onClose={() => setShowDetailDrawer(false)} onEdit={openEdit} locale={locale} readOnly={readOnly} />
             )}
             {showIssueModal && (
                 <ReportIssueModal onSubmit={handleReportIssue} onClose={() => setShowIssueModal(false)} loading={actionLoading} />
@@ -702,20 +699,22 @@ export default function HousekeepingManager() {
                     <h2 className="text-lg font-bold text-slate-800">Quản lý Tác vụ Buồng phòng</h2>
                     <p className="text-sm text-slate-500 mt-0.5">Tổng cộng <span className="font-bold text-[#bfa15f]">{totalElements}</span> tác vụ</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setShowHistoryModal(true)}
-                        className="flex items-center gap-2 px-3.5 py-2 border border-stone-200 rounded-lg text-sm font-semibold text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors bg-white">
-                        <History size={16} /> Lịch sử phòng
-                    </button>
-                    <button onClick={() => setShowIssueModal(true)}
-                        className="flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors bg-white">
-                        <Wrench size={16} /> Báo cáo sự cố
-                    </button>
-                    <button onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors shadow-sm">
-                        <Plus size={16} /> Tạo tác vụ
-                    </button>
-                </div>
+                {!readOnly && (
+                    <div className="flex flex-wrap gap-2">
+                        <button onClick={() => setShowHistoryModal(true)}
+                            className="flex items-center gap-2 px-3.5 py-2 border border-stone-200 rounded-lg text-sm font-semibold text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors bg-white">
+                            <History size={16} /> Lịch sử phòng
+                        </button>
+                        <button onClick={() => setShowIssueModal(true)}
+                            className="flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors bg-white">
+                            <Wrench size={16} /> Báo cáo sự cố
+                        </button>
+                        <button onClick={() => setShowCreateModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors shadow-sm">
+                            <Plus size={16} /> Tạo tác vụ
+                        </button>
+                    </div>
+                )}
             </div>
             {/* ── Stats Summary ───────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -740,46 +739,48 @@ export default function HousekeepingManager() {
                 })}
             </div>
             {/* ── Filters ─────────────────────────────────────────────────────────── */}
-            <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm">
-                <form onSubmit={handleSearch} className="flex flex-wrap gap-3 items-end">
-                    <div className="flex-1 min-w-[150px]">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Trạng thái</label>
-                        <select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)}
-                            className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]">
-                            <option value="">Tất cả</option>
-                            {TASK_STATUSES.map(s => (
-                                <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex-1 min-w-[130px]">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Nhân viên</label>
-                        <input type="number" value={filters.assignedToId} onChange={e => handleFilterChange('assignedToId', e.target.value)}
-                            placeholder="ID nhân viên..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
-                    </div>
-                    <div className="flex-1 min-w-[130px]">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Người giao</label>
-                        <input type="number" value={filters.assignedById} onChange={e => handleFilterChange('assignedById', e.target.value)}
-                            placeholder="ID người giao..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
-                    </div>
-                    <div className="flex-1 min-w-[120px]">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Phòng</label>
-                        <input type="number" value={filters.roomId} onChange={e => handleFilterChange('roomId', e.target.value)}
-                            placeholder="ID phòng..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                        <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors">
-                            <Search size={15} /> Lọc
-                        </button>
-                        <button type="button" onClick={handleResetFilters} className="px-3 py-2 border border-stone-200 rounded-lg text-sm text-slate-500 hover:bg-stone-50 transition-colors">
-                            <X size={15} />
-                        </button>
-                        <button type="button" onClick={fetchTasks} className="px-3 py-2 border border-stone-200 rounded-lg text-slate-500 hover:bg-stone-50 transition-colors">
-                            <RefreshCw size={15} />
-                        </button>
-                    </div>
-                </form>
-            </div>
+            {!readOnly && (
+                <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm">
+                    <form onSubmit={handleSearch} className="flex flex-wrap gap-3 items-end">
+                        <div className="flex-1 min-w-[150px]">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Trạng thái</label>
+                            <select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)}
+                                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]">
+                                <option value="">Tất cả</option>
+                                {TASK_STATUSES.map(s => (
+                                    <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex-1 min-w-[130px]">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Nhân viên</label>
+                            <input type="number" value={filters.assignedToId} onChange={e => handleFilterChange('assignedToId', e.target.value)}
+                                placeholder="ID nhân viên..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
+                        </div>
+                        <div className="flex-1 min-w-[130px]">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Người giao</label>
+                            <input type="number" value={filters.assignedById} onChange={e => handleFilterChange('assignedById', e.target.value)}
+                                placeholder="ID người giao..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
+                        </div>
+                        <div className="flex-1 min-w-[120px]">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Phòng</label>
+                            <input type="number" value={filters.roomId} onChange={e => handleFilterChange('roomId', e.target.value)}
+                                placeholder="ID phòng..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                            <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors">
+                                <Search size={15} /> Lọc
+                            </button>
+                            <button type="button" onClick={handleResetFilters} className="px-3 py-2 border border-stone-200 rounded-lg text-sm text-slate-500 hover:bg-stone-50 transition-colors">
+                                <X size={15} />
+                            </button>
+                            <button type="button" onClick={fetchTasks} className="px-3 py-2 border border-stone-200 rounded-lg text-slate-500 hover:bg-stone-50 transition-colors">
+                                <RefreshCw size={15} />
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
             {/* ── View Toggle + Sort ───────────────────────────────────────────────── */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-lg">
@@ -823,7 +824,7 @@ export default function HousekeepingManager() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {TASK_STATUSES.map(s => (
                             <KanbanColumn key={s} status={s} tasks={kanbanGroups[s]} locale={locale}
-                                onView={openDetail} onEdit={openEdit} onDelete={openDelete} />
+                                onView={openDetail} onEdit={openEdit} onDelete={openDelete} readOnly={readOnly} />
                         ))}
                     </div>
                 )
