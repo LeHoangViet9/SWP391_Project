@@ -12,7 +12,6 @@ import PermissionLayout from '../components/shared/PermissionLayout';
 import { filterMenuByPermissions } from '../config/menuConfig';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
-import ReportManager from '../components/ReportManager';
 
 // ── Lazy-loaded content components ──────────────────────────────────────────
 import DashboardOverview from '../components/DashboardOverview';
@@ -28,7 +27,6 @@ import AssignEquipmentToRoom from '../components/AssignEquipmentToRoom';
 import MaintenanceManager from '../components/MaintenanceManager';
 import HousekeepingBoard from '../components/HousekeepingBoard';
 import HousekeepingManager from '../components/HousekeepingManager';
-import HousekeeperTaskBoard from '../components/HousekeeperTaskBoard';
 import CustomerBookingHistory from '../components/CustomerBookingHistory';
 import AccountInfo from '../components/AccountInfo';
 import ChangePassword from '../components/ChangePassword';
@@ -43,13 +41,14 @@ import AuditLogManager from '../components/AuditLogManager';
  */
 const ROUTE_COMPONENTS = {
   'audit-logs':       { Component: AuditLogManager,        title: 'Audit Log',              titleEn: 'Audit Log' },
-  'reports':          { Component: ReportManager,          title: 'Báo Cáo',              titleEn: 'Dashboard Reports' },
+  'reports':          { Component: DashboardOverview,      title: 'Báo Cáo',              titleEn: 'Dashboard Reports' },
   'roles':            { Component: RolePermissionManager,  title: 'Phân Quyền',            titleEn: 'Role Configuration' },
   'staff':            { Component: StaffManager,           title: 'Quản Lý Nhân Viên',     titleEn: 'Staff Management' },
   'room-types':       { Component: RoomTypeManager,        title: 'Quản Lý Loại Phòng',    titleEn: 'Room Type Management' },
   'rooms':            { Component: RoomManager,            title: 'Quản Lý Phòng',         titleEn: 'Room Management' },
   'bookings':         { Component: BookingManager,         title: 'Quản Lý Đặt Phòng',     titleEn: 'Booking Management' },
   'check-in':         { Component: CheckInManager,         title: 'Check-in',               titleEn: 'Check-in' },
+  'check-out':        { Component: CheckOutManager,        title: 'Check-out',              titleEn: 'Check-out' },
   'my-bookings':      { Component: CustomerBookingHistory, title: 'Đặt Phòng Của Tôi',     titleEn: 'My Bookings' },
   'customers':        { Component: CustomerManager,        title: 'Quản Lý Khách Hàng',    titleEn: 'Customer Management' },
   'equipment':        { Component: EquipmentManager,       title: 'Quản Lý Thiết Bị',      titleEn: 'Equipment Management' },
