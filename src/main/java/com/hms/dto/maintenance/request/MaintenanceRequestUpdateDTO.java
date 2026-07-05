@@ -19,4 +19,6 @@ public class MaintenanceRequestUpdateDTO {
         private String diagnosis;
 
         private String repairResult;
+
+        private java.time.LocalDateTime estimatedCompletionTime;
 }

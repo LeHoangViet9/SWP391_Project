@@ -74,4 +74,11 @@ export const equipmentService = {
         apiFetch(`/equipments/${equipmentId}/rooms/${roomId}`, {
             method: 'DELETE',
         }, locale),
+
+    // Gán thiết bị vào phòng hàng loạt.
+    assignBulkToRoom: (roomId, dtos = [], locale = 'vi') =>
+        apiFetch(`/equipments/rooms/${roomId}/assign-bulk`, {
+            method: 'POST',
+            body: JSON.stringify(dtos),
+        }, locale),
 };
