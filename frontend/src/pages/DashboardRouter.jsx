@@ -76,7 +76,8 @@ function ContentPage({ routeKey }) {
   let componentProps = {};
   if (routeKey === 'housekeeping') {
     if (user?.roleName === 'HOUSEKEEPER') {
-      Component = HousekeeperTaskBoard;
+      Component = HousekeepingManager;
+      componentProps = { readOnly: true };
     } else if (user?.roleName === 'ADMIN' || user?.roleName === 'MANAGER') {
       Component = HousekeepingManager;
     }

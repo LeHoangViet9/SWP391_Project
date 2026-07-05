@@ -883,14 +883,18 @@ export default function HousekeepingManager({ readOnly = false }) {
                                                     className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-[#bfa15f]" title="Xem chi tiết">
                                                     <Eye size={15} />
                                                 </button>
-                                                <button onClick={() => openEdit(task)}
-                                                    className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-amber-600" title="Chỉnh sửa">
-                                                    <Pencil size={15} />
-                                                </button>
-                                                <button onClick={() => openDelete(task)}
-                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-slate-400 hover:text-red-600" title="Xóa">
-                                                    <Trash2 size={15} />
-                                                </button>
+                                                {!readOnly && (
+                                                    <>
+                                                        <button onClick={() => openEdit(task)}
+                                                            className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-amber-600" title="Chỉnh sửa">
+                                                            <Pencil size={15} />
+                                                        </button>
+                                                        <button onClick={() => openDelete(task)}
+                                                            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-slate-400 hover:text-red-600" title="Xóa">
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
