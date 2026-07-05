@@ -142,6 +142,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         RepairRequest saved = maintenanceRepository.save(repairRequest);
 
+        // THAY ĐỔI: Tự động chuyển trạng thái phòng sang MAINTENANCE khi bắt đầu bảo trì
+        if (saved.getRoomId() != null) {
+            roomRepository.findById(saved.getRoomId()).ifPresent(room -> {
+                room.setRoomStatus(com.hms.common.enums.RoomStatus.MAINTENANCE);
+                roomRepository.save(room);
+            });
+        }
+
         return maintenanceMapper.toResponse(saved);
     }
 
@@ -156,6 +164,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      * - Ghi diagnosis và repairResult.
      */
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public MaintenanceResponse updateRequest(Long id, MaintenanceRequestUpdateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -172,13 +181,19 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         maintenanceMapper.updateFromDto(dto, repairRequest);
 
-        // Nếu chuyển trạng thái sang COMPLETED thì lưu thời gian hoàn tất.
-        if (dto.getStatus() == MaintenanceStatus.COMPLETED) {
-            repairRequest.setCompletedAt(LocalDateTime.now());
+        // THAY ĐỔI: Khi trạng thái chuyển sang COMPLETED (Hoàn thành) hoặc CANCELLED (Hủy), 
+        // tự động cập nhật lại trạng thái phòng về AVAILABLE để khách hàng có thể đặt phòng được ngay
+        if (dto.getStatus() == MaintenanceStatus.COMPLETED || dto.getStatus() == MaintenanceStatus.CANCELLED) {
+            if (dto.getStatus() == MaintenanceStatus.COMPLETED) {
+                repairRequest.setCompletedAt(LocalDateTime.now());
+            }
+            if (repairRequest.getRoomId() != null) {
+                roomRepository.findById(repairRequest.getRoomId()).ifPresent(room -> {
+                    room.setRoomStatus(com.hms.common.enums.RoomStatus.AVAILABLE);
+                    roomRepository.save(room);
+                });
+            }
         }
-
-        // Nếu trạng thái khác COMPLETED thì không tự động xóa completedAt.
-        // Tránh mất dữ liệu lịch sử nếu user update nhầm.
 
         RepairRequest updated = maintenanceRepository.save(repairRequest);
 

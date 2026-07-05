@@ -5,6 +5,7 @@ import com.hms.common.enums.EquipmentStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.dto.equipment.request.AssignEquipmentToRoomDTO;
+import com.hms.dto.equipment.request.BulkAssignEquipmentDTO;
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
 import com.hms.dto.equipment.response.EquipmentImageResponse;
 import com.hms.dto.equipment.response.EquipmentResponse;
@@ -213,5 +214,26 @@ public class EquipmentController {
                 .build();
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // THAY ĐỔI: Thêm REST API gán thiết bị vào phòng hàng loạt
+    // Nhận vào ID phòng (roomId) và danh sách thiết bị kèm số lượng (BulkAssignEquipmentDTO)
+    @PostMapping("/rooms/{roomId}/assign-bulk")
+    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
+    public ResponseEntity<ApiResponse<List<RoomEquipmentResponse>>> assignBulkToRoom(
+            @PathVariable Long roomId,
+            @Valid @RequestBody List<BulkAssignEquipmentDTO> dtos) {
+
+        // Gọi service xử lý gán hàng loạt theo lô
+        List<RoomEquipmentResponse> data = equipmentService.assignBulkToRoom(roomId, dtos);
+
+        ApiResponse<List<RoomEquipmentResponse>> response = ApiResponse.<List<RoomEquipmentResponse>>builder()
+                .success(true)
+                .message("Assign equipments to room successfully")
+                .data(data)
+                .status(HttpStatus.OK)
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 }

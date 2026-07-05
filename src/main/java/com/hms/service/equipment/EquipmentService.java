@@ -4,6 +4,7 @@ import com.hms.common.enums.EquipmentStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.dto.equipment.request.AssignEquipmentToRoomDTO;
+import com.hms.dto.equipment.request.BulkAssignEquipmentDTO;
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
 import com.hms.dto.equipment.response.EquipmentImageResponse;
 import com.hms.dto.equipment.response.EquipmentResponse;
@@ -55,5 +56,11 @@ public interface EquipmentService {
     List<EquipmentImageResponse> uploadImages(
             Long equipmentId,
             List<MultipartFile> images
+    );
+
+    // THÊM MỚI (Cách 2): Gán hàng loạt thiết bị vào phòng
+    List<RoomEquipmentResponse> assignBulkToRoom(
+            Long roomId,
+            List<BulkAssignEquipmentDTO> dtos
     );
 }

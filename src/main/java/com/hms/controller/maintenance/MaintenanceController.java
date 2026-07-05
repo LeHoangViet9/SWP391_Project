@@ -27,8 +27,10 @@ public class MaintenanceController {
     private final MaintenanceService maintenanceService;
     private final MessageSource messageSource;
 
+    // THAY ĐỔI: Sử dụng phân quyền dựa trên Authority ('MAINTENANCE_CREATE') thay cho Role ('HOUSEKEEPING'...)
+    // giúp đồng bộ hóa phân quyền và hỗ trợ vai trò HOUSEKEEPER/MANAGER tạo phiếu bảo trì thành công
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_CREATE')")
     public ApiResponse<MaintenanceResponse> createRequest(
             @Valid @RequestBody MaintenanceRequestCreateDTO dto
     ) {

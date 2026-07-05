@@ -7,6 +7,7 @@ import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.equipment.request.AssignEquipmentToRoomDTO;
+import com.hms.dto.equipment.request.BulkAssignEquipmentDTO;
 import com.hms.dto.equipment.request.EquipmentCreateDTO;
 import com.hms.dto.equipment.response.EquipmentImageResponse;
 import com.hms.dto.equipment.response.EquipmentResponse;
@@ -255,6 +256,17 @@ public class EquipmentServiceImpl implements EquipmentService {
             throw new ConflictException("Image files are required");
         }
 
+        // THAY ĐỔI: Tắt cờ isPrimary (ảnh chính) ở các ảnh cũ
+        // để khi lưu ảnh mới, ảnh mới sẽ được làm ảnh chính duy nhất hiển thị trên giao diện
+        if (equipment.getImages() != null) {
+            for (EquipmentImage img : equipment.getImages()) {
+                if (Boolean.TRUE.equals(img.getIsPrimary())) {
+                    img.setIsPrimary(false);
+                    equipmentImageRepository.save(img);
+                }
+            }
+        }
+
         List<EquipmentImageResponse> result = new java.util.ArrayList<>();
 
         try {
@@ -272,12 +284,23 @@ public class EquipmentServiceImpl implements EquipmentService {
                 }
 
                 String originalName = image.getOriginalFilename() == null
-                        ? "equipment-image"
+                        ? "image.jpg"
                         : image.getOriginalFilename();
 
                 originalName = StringUtils.cleanPath(originalName);
 
-                String fileName = UUID.randomUUID() + "_" + originalName;
+                // THAY ĐỔI (Cách 2): Lấy phần mở rộng của file
+                String extension = "";
+                int dotIndex = originalName.lastIndexOf('.');
+                if (dotIndex >= 0) {
+                    extension = originalName.substring(dotIndex);
+                } else {
+                    extension = ".jpg";
+                }
+
+                // THAY ĐỔI (Cách 2): Đặt tên file gọn gàng theo mã thiết bị và short UUID
+                String fileName = equipment.getEquipmentCode().toLowerCase() + "_" 
+                        + UUID.randomUUID().toString().substring(0, 8) + extension;
 
                 Path targetPath = uploadPath.resolve(fileName).normalize();
 
@@ -321,5 +344,54 @@ public class EquipmentServiceImpl implements EquipmentService {
                                 locale
                         )
                 ));
+    }
+
+    // THAY ĐỔI: Triển khai phương thức gán thiết bị theo lô (Bulk Assign) vào phòng
+    @Override
+    @Transactional
+    public List<RoomEquipmentResponse> assignBulkToRoom(Long roomId, List<BulkAssignEquipmentDTO> dtos) {
+        Locale locale = LocaleContextHolder.getLocale();
+
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage(
+                                ERROR_ROOM_NOTFOUND,
+                                new Object[]{roomId},
+                                locale
+                        )
+                ));
+
+        List<RoomEquipmentResponse> result = new java.util.ArrayList<>();
+
+        for (BulkAssignEquipmentDTO dto : dtos) {
+            Long equipmentId = dto.getEquipmentId();
+            Integer quantity = dto.getQuantity();
+
+            if (quantity == null || quantity < 0) {
+                continue;
+            }
+
+            Equipment equipment = findActiveEquipment(equipmentId, locale);
+
+            if (quantity == 0) {
+                // THAY ĐỔI: Nếu số lượng = 0, thực hiện gỡ thiết bị khỏi phòng (xóa)
+                roomEquipmentRepository.findByRoomIdAndEquipmentId(roomId, equipmentId)
+                        .ifPresent(roomEquipmentRepository::delete);
+            } else {
+                // THAY ĐỔI: Nếu số lượng > 0, thực hiện thêm mới hoặc cập nhật số lượng
+                RoomEquipment roomEquipment = roomEquipmentRepository
+                        .findByRoomIdAndEquipmentId(roomId, equipmentId)
+                        .orElse(RoomEquipment.builder()
+                                .room(room)
+                                .equipment(equipment)
+                                .build());
+
+                roomEquipment.setQuantity(quantity);
+                RoomEquipment saved = roomEquipmentRepository.save(roomEquipment);
+                result.add(equipmentMapper.toRoomEquipmentResponse(saved));
+            }
+        }
+
+        return result;
     }
 }

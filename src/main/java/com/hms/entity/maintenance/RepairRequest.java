@@ -68,4 +68,7 @@ public class RepairRequest {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    @Column(name = "estimated_completion_time")
+    private LocalDateTime estimatedCompletionTime;
 }
