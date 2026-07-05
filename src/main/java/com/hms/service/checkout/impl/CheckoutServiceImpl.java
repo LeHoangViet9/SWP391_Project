@@ -69,17 +69,37 @@ public class CheckoutServiceImpl implements CheckoutService {
         PaymentMethod method = request.getPaymentMethod();
 
         if (roomsOf(booking).stream().allMatch(room -> room.getRoomStatus() == RoomStatus.CHECKOUT_PENDING)) {
+            Invoice surcharge = getSurchargeInvoice(booking);
+            if (surcharge != null && Boolean.TRUE.equals(request.getPaymentConfirmed())) {
+                if (method == null) {
+                    throw new BadRequestException(messageSource.getMessage("checkout.payment.method.required", null, locale));
+                }
+                if (method == PaymentMethod.CASH && value(request.getCashReceived()).compareTo(charges) < 0) {
+                    throw new BadRequestException(messageSource.getMessage("checkout.cash.insufficient", null, locale));
+                }
+                surcharge.setPaymentMethod(method);
+                surcharge.setPaymentConfirmed(true);
+                surcharge.setPaymentStatus(PaymentStatus.PAID);
+                surcharge.setPaidAt(LocalDateTime.now());
+                if (method == PaymentMethod.CASH) {
+                    surcharge.setCashReceived(request.getCashReceived());
+                    surcharge.setChangeAmount(value(request.getCashReceived()).subtract(charges));
+                } else {
+                    surcharge.setCashReceived(null);
+                    surcharge.setChangeAmount(null);
+                }
+                invoiceRepository.save(surcharge);
+            }
             return response(booking, roomInvoice, getSurchargeInvoice(booking), RoomStatus.CHECKOUT_PENDING);
         }
 
-        if (charges.signum() > 0 && method == null) {
-            throw new BadRequestException(messageSource.getMessage("checkout.payment.method.required", null, locale));
-        }
-        if (method == PaymentMethod.CASH && value(request.getCashReceived()).compareTo(charges) < 0) {
-            throw new BadRequestException(messageSource.getMessage("checkout.cash.insufficient", null, locale));
-        }
-        if (charges.signum() > 0 && method != PaymentMethod.CASH && !Boolean.TRUE.equals(request.getPaymentConfirmed())) {
-            throw new BadRequestException(messageSource.getMessage("checkout.confirmation.required", null, locale));
+        if (Boolean.TRUE.equals(request.getPaymentConfirmed())) {
+            if (charges.signum() > 0 && method == null) {
+                throw new BadRequestException(messageSource.getMessage("checkout.payment.method.required", null, locale));
+            }
+            if (method == PaymentMethod.CASH && value(request.getCashReceived()).compareTo(charges) < 0) {
+                throw new BadRequestException(messageSource.getMessage("checkout.cash.insufficient", null, locale));
+            }
         }
 
         Invoice surchargeInvoice = getSurchargeInvoice(booking);
@@ -89,13 +109,13 @@ public class CheckoutServiceImpl implements CheckoutService {
                         .booking(booking)
                         .amount(charges)
                         .additionalCharges(charges)
-                        .paymentStatus(PaymentStatus.PAID)
+                        .paymentStatus(Boolean.TRUE.equals(request.getPaymentConfirmed()) ? PaymentStatus.PAID : PaymentStatus.PENDING)
                         .paymentMethod(method)
-                        .paymentConfirmed(true)
-                        .paidAt(LocalDateTime.now())
+                        .paymentConfirmed(Boolean.TRUE.equals(request.getPaymentConfirmed()))
+                        .paidAt(Boolean.TRUE.equals(request.getPaymentConfirmed()) ? LocalDateTime.now() : null)
                         .createdAt(LocalDateTime.now())
                         .note(request.getChargeNote())
-                        .invoiceType(InvoiceType.SURCHARGE)
+                        .invoiceType(InvoiceType.MINIBAR)
                         .build();
                 if (booking.getInvoices() == null) {
                     booking.setInvoices(new java.util.ArrayList<>());
@@ -105,14 +125,25 @@ public class CheckoutServiceImpl implements CheckoutService {
                 surchargeInvoice.setAmount(charges);
                 surchargeInvoice.setAdditionalCharges(charges);
                 surchargeInvoice.setPaymentMethod(method);
-                surchargeInvoice.setPaymentConfirmed(true);
-                surchargeInvoice.setPaidAt(LocalDateTime.now());
+                surchargeInvoice.setPaymentConfirmed(Boolean.TRUE.equals(request.getPaymentConfirmed()));
+                if (Boolean.TRUE.equals(request.getPaymentConfirmed())) {
+                    surchargeInvoice.setPaymentStatus(PaymentStatus.PAID);
+                    surchargeInvoice.setPaidAt(LocalDateTime.now());
+                } else {
+                    surchargeInvoice.setPaymentStatus(PaymentStatus.PENDING);
+                    surchargeInvoice.setPaidAt(null);
+                }
                 surchargeInvoice.setNote(request.getChargeNote());
             }
 
-            if (method == PaymentMethod.CASH) {
-                surchargeInvoice.setCashReceived(request.getCashReceived());
-                surchargeInvoice.setChangeAmount(value(request.getCashReceived()).subtract(charges));
+            if (Boolean.TRUE.equals(request.getPaymentConfirmed())) {
+                if (method == PaymentMethod.CASH) {
+                    surchargeInvoice.setCashReceived(request.getCashReceived());
+                    surchargeInvoice.setChangeAmount(value(request.getCashReceived()).subtract(charges));
+                } else {
+                    surchargeInvoice.setCashReceived(null);
+                    surchargeInvoice.setChangeAmount(null);
+                }
             } else {
                 surchargeInvoice.setCashReceived(null);
                 surchargeInvoice.setChangeAmount(null);
@@ -126,6 +157,8 @@ public class CheckoutServiceImpl implements CheckoutService {
         String historyReason = messageSource.getMessage("checkout.room.history.reason.pending", null, locale);
         rooms.forEach(room -> changeRoom(room, RoomStatus.CHECKOUT_PENDING, user, historyReason));
         roomRepository.saveAll(rooms);
+
+        assignHousekeepingTasks(rooms, user, booking.getId());
 
         return response(booking, roomInvoice, surchargeInvoice, RoomStatus.CHECKOUT_PENDING);
     }
@@ -147,13 +180,18 @@ public class CheckoutServiceImpl implements CheckoutService {
         Invoice invoice = requireInvoice(booking);
         List<Room> rooms = roomsOf(booking);
 
-        if (rooms.stream().anyMatch(room -> room.getRoomStatus() != RoomStatus.CHECKOUT_PENDING)) {
+        if (rooms.stream().anyMatch(room -> room.getRoomStatus() != RoomStatus.CHECKOUT_PENDING
+                && room.getRoomStatus() != RoomStatus.CLEANING)) {
             throw new ConflictException(messageSource.getMessage("checkout.payment.first.required", null, locale));
         }
 
         User user = userId == null ? null : userRepository.findById(userId).orElse(null);
         String historyReason = messageSource.getMessage("checkout.room.history.reason.dirty", null, locale);
-        rooms.forEach(room -> changeRoom(room, RoomStatus.DIRTY, user, historyReason));
+        rooms.forEach(room -> {
+            if (room.getRoomStatus() == RoomStatus.CHECKOUT_PENDING) {
+                changeRoom(room, RoomStatus.DIRTY, user, historyReason);
+            }
+        });
 
         assignHousekeepingTasks(rooms, user, booking.getId());
 
@@ -215,9 +253,14 @@ public class CheckoutServiceImpl implements CheckoutService {
         String taskNotes = messageSource.getMessage("checkout.housekeeping.task.note", new Object[]{bookingId}, locale);
 
         for (Room room : rooms) {
+            boolean exists = housekeepingTaskRepository.existsByRoom_IdAndTaskStatusIn(room.getId(), activeStatuses);
+            if (exists) {
+                continue;
+            }
+
             User assignedTo = housekeepers.stream()
-                    .min(java.util.Comparator.comparingLong(user ->
-                            housekeepingTaskRepository.countByAssignedTo_IdAndTaskStatusIn(user.getId(), activeStatuses)))
+                    .min(java.util.Comparator.comparingLong(u ->
+                            housekeepingTaskRepository.countByAssignedTo_IdAndTaskStatusIn(u.getId(), activeStatuses)))
                     .orElseThrow();
             User assignedBy = checkoutUser != null ? checkoutUser : assignedTo;
             housekeepingTaskRepository.save(HouseKeepingTask.builder()
@@ -235,7 +278,7 @@ public class CheckoutServiceImpl implements CheckoutService {
     private Invoice getSurchargeInvoice(Booking booking) {
         if (booking.getInvoices() == null) return null;
         return booking.getInvoices().stream()
-                .filter(inv -> inv.getInvoiceType() == InvoiceType.SURCHARGE)
+                .filter(inv -> inv.getInvoiceType() == InvoiceType.MINIBAR)
                 .findFirst()
                 .orElse(null);
     }

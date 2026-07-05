@@ -403,8 +403,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     private InvoiceResponse calculateAndBuildResponse(Invoice invoice, Booking booking) {
-        Locale locale = LocaleContextHolder.getLocale();
-        if (invoice.getInvoiceType() == com.hms.common.enums.InvoiceType.SURCHARGE) {
+        if (invoice.getInvoiceType() == com.hms.common.enums.InvoiceType.MINIBAR) {
             BigDecimal additionalCharges = invoice.getAmount() == null ? BigDecimal.ZERO : invoice.getAmount();
             BigDecimal roomPricePerNight = BigDecimal.ZERO;
             BigDecimal roomPriceSubTotal = BigDecimal.ZERO;
@@ -413,7 +412,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             BigDecimal correctTotalAmount = additionalCharges;
 
             InvoiceResponse response = buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges, vatAmount, correctTotalAmount);
-            response.setRoomTypeName(messageSource.getMessage("text.invoice.surcharge", null, locale));
+            response.setRoomTypeName("Dịch vụ Minibar");
             return response;
         }
 

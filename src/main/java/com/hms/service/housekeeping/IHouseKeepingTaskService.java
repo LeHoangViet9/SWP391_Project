@@ -9,6 +9,7 @@ import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
 import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import org.springframework.data.domain.Page;
 
+import com.hms.dto.housekeeping.request.MinibarReportRequest;
 import java.util.List;
 
 public interface IHouseKeepingTaskService {
@@ -35,4 +36,6 @@ public interface IHouseKeepingTaskService {
     Page<RoomStateHistoryResponse> getRoomStateHistory(Long roomId,Integer page, Integer size,SortField sortBy,SortDirection sortDirection);
 
     void reportRoomIssue(Long roomId, com.hms.dto.housekeeping.request.ReportRoomIssueRequest request);
+
+    void reportMinibar(Long id, MinibarReportRequest request);
 }

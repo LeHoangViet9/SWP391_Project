@@ -6,6 +6,7 @@ import com.hms.common.utils.PageableUtils;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskUpdateRequest;
 import com.hms.dto.housekeeping.request.ReportRoomIssueRequest;
+import com.hms.dto.housekeeping.request.MinibarReportRequest;
 import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
 import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import com.hms.entity.auth.User;
@@ -43,6 +44,8 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     private final RoomStateHistoryRepository roomStateHistoryRepository;
     private final HouseKeepingTaskMapper taskMapper;
     private final MessageSource messageSource;
+    private final com.hms.repository.booking.BookingRepository bookingRepository;
+    private final com.hms.service.checkout.CheckoutService checkoutService;
     private final PageableUtils pageableUtils;
 
     @Override
@@ -330,4 +333,36 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         changeRoomStatus(room, RoomStatus.MAINTENANCE, reportedBy, null, request.getReason(),ProcessTrigger.TASK_MAINTENANCE);
     }
 
+    @Override
+    @Transactional
+    public void reportMinibar(Long id, MinibarReportRequest request) {
+        HouseKeepingTask task = findTaskById(id);
+        Room room = task.getRoom();
+
+        com.hms.entity.booking.Booking booking = bookingRepository.findActiveBookingByRoomId(room.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng đang hoạt động cho phòng này"));
+
+        java.math.BigDecimal waterCost = java.math.BigDecimal.valueOf(request.getWater()).multiply(java.math.BigDecimal.valueOf(10000));
+        java.math.BigDecimal colaCost = java.math.BigDecimal.valueOf(request.getCola()).multiply(java.math.BigDecimal.valueOf(20000));
+        java.math.BigDecimal beerCost = java.math.BigDecimal.valueOf(request.getBeer()).multiply(java.math.BigDecimal.valueOf(35000));
+        java.math.BigDecimal snackCost = java.math.BigDecimal.valueOf(request.getSnack()).multiply(java.math.BigDecimal.valueOf(15000));
+        java.math.BigDecimal total = waterCost.add(colaCost).add(beerCost).add(snackCost);
+
+        List<String> items = new java.util.ArrayList<>();
+        if (request.getWater() > 0) items.add(request.getWater() + " Nước suối Aquafina");
+        if (request.getCola() > 0) items.add(request.getCola() + " Coca-Cola / Pepsi");
+        if (request.getBeer() > 0) items.add(request.getBeer() + " Bia Heineken");
+        if (request.getSnack() > 0) items.add(request.getSnack() + " Snack khoai tây");
+        String note = String.join(", ", items);
+
+        com.hms.dto.checkout.request.CheckoutRequestDTO checkoutRequest = new com.hms.dto.checkout.request.CheckoutRequestDTO();
+        checkoutRequest.setBookingId(booking.getId());
+        checkoutRequest.setAdditionalCharges(total);
+        checkoutRequest.setChargeNote(total.signum() > 0 ? "Tiêu thụ Minibar: " + note : "");
+        checkoutRequest.setPaymentMethod(null);
+        checkoutRequest.setCashReceived(null);
+        checkoutRequest.setPaymentConfirmed(false);
+
+        checkoutService.confirmPayment(checkoutRequest, null);
+    }
 }

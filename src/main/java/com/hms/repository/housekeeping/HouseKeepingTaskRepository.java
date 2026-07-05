@@ -1,7 +1,6 @@
 package com.hms.repository.housekeeping;
 
 import com.hms.common.enums.TaskStatus;
-import com.hms.entity.hotel.RoomStateHistory;
 import com.hms.entity.housekeeping.HouseKeepingTask;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +36,8 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
         List<HouseKeepingTask> findByRoom_IdAndTaskStatus(Long roomId, TaskStatus status);
 
         List<HouseKeepingTask> findByAssignedTo_IdAndTaskStatusIn(Long userId, List<TaskStatus> statuses);
+
+        boolean existsByRoom_IdAndTaskStatusIn(Long roomId, List<TaskStatus> statuses);
 
         @Query("SELECT t FROM HouseKeepingTask t " +
                         "JOIN FETCH t.room " +

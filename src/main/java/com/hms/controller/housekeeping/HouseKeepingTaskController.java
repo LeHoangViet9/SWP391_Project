@@ -7,6 +7,7 @@ import com.hms.common.enums.TaskStatus;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskUpdateRequest;
 import com.hms.dto.housekeeping.request.ReportRoomIssueRequest;
+import com.hms.dto.housekeeping.request.MinibarReportRequest;
 import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
 import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import com.hms.service.housekeeping.IHouseKeepingTaskService;
@@ -183,6 +184,22 @@ public class HouseKeepingTaskController {
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
                 .message("Room issue reported successfully")
+                .status(HttpStatus.OK)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping("/{id}/report-minibar")
+    public ResponseEntity<ApiResponse<Void>> reportMinibar(
+            @PathVariable Long id,
+            @RequestBody @Valid MinibarReportRequest request) {
+
+        taskService.reportMinibar(id, request);
+
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(true)
+                .message("Đã gửi báo cáo minibar buồng phòng thành công")
                 .status(HttpStatus.OK)
                 .build();
 

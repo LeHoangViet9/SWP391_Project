@@ -39,3 +39,60 @@ export async function payInvoice(invoiceId, paymentMethod, locale = 'vi') {
     body: JSON.stringify({ paymentMethod }),
   }, locale);
 }
+
+export async function getUncompletedByUser(userId, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/uncompleted/user/${userId}`, {}, locale);
+}
+
+export async function searchTasks(params = {}, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/search${buildQuery(params)}`, {}, locale);
+}
+
+export async function createTask(payload, locale = 'vi') {
+  return apiFetch('/housekeeping-tasks', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
+export async function updateTask(taskId, payload, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/updateTask/${taskId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
+export async function deleteTask(taskId, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/deleteTask/${taskId}`, {
+    method: 'DELETE',
+  }, locale);
+}
+
+export async function reportRoomIssue(roomId, payload, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/rooms/${roomId}/report-issue`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
+export async function reportMinibar(taskId, payload, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/${taskId}/report-minibar`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
+export const housekeepingService = {
+  getDirtyRooms,
+  getCleaningRooms,
+  updateRoomCleaningStatus,
+  getInvoiceByBookingId,
+  payInvoice,
+  getUncompletedByUser,
+  searchTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+  reportRoomIssue,
+  reportMinibar
+};
