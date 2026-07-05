@@ -36,6 +36,7 @@ const EMPTY_CREATE = {
   issueTitle: '',
   issueDescription: '',
   severity: 'MEDIUM',
+  estimatedCompletionTime: '',
 };
 
 const EMPTY_UPDATE = {
@@ -44,6 +45,12 @@ const EMPTY_UPDATE = {
   status: 'PENDING',
   diagnosis: '',
   repairResult: '',
+  estimatedCompletionTime: '',
+};
+
+const formatForDateTimeLocal = (isoString) => {
+  if (!isoString) return '';
+  return isoString.substring(0, 16);
 };
 
 export default function MaintenanceManager({ readOnly = false }) {
@@ -146,49 +153,55 @@ export default function MaintenanceManager({ readOnly = false }) {
     }
   }, [form.assignedTo, usersList]);
 
+  // THAY ĐỔI: Lọc danh sách người báo cáo, chỉ hiển thị nhân viên (loại trừ vai trò CUSTOMER)
   const filteredReporters = useMemo(() => {
     const query = reportedBySearchQuery.trim().toLowerCase();
-    if (!query) return usersList;
+    const staffUsers = usersList.filter(u => String(u.roleName).toUpperCase() !== 'CUSTOMER');
+    if (!query) return staffUsers;
 
-    const selectedReporter = usersList.find((u) => String(u.id) === String(form.reportedBy));
+    const selectedReporter = staffUsers.find((u) => String(u.id) === String(form.reportedBy));
     const selectedLabel = selectedReporter ? `${selectedReporter.fullName} (${selectedReporter.userName || selectedReporter.username || ''})`.toLowerCase() : '';
 
     if (query === selectedLabel) {
-      return usersList;
+      return staffUsers;
     }
 
-    return usersList.filter((u) => {
+    return staffUsers.filter((u) => {
       const name = (u.fullName || '').toLowerCase();
       const uname = (u.userName || u.username || '').toLowerCase();
       return name.includes(query) || uname.includes(query);
     });
   }, [usersList, reportedBySearchQuery, form.reportedBy]);
 
+  // THAY ĐỔI: Lọc danh sách nhân viên sửa chữa, chỉ hiển thị những tài khoản có vai trò MAINTENANCE
   const filteredAssignees = useMemo(() => {
     const query = assignedToSearchQuery.trim().toLowerCase();
-    if (!query) return usersList;
+    const maintenanceUsers = usersList.filter(u => String(u.roleName).toUpperCase() === 'MAINTENANCE');
+    if (!query) return maintenanceUsers;
 
-    const selectedAssignee = usersList.find((u) => String(u.id) === String(form.assignedTo));
+    const selectedAssignee = maintenanceUsers.find((u) => String(u.id) === String(form.assignedTo));
     const selectedLabel = selectedAssignee ? `${selectedAssignee.fullName} (${selectedAssignee.userName || selectedAssignee.username || ''})`.toLowerCase() : '';
 
     if (query === selectedLabel) {
-      return usersList;
+      return maintenanceUsers;
     }
 
-    return usersList.filter((u) => {
+    return maintenanceUsers.filter((u) => {
       const name = (u.fullName || '').toLowerCase();
       const uname = (u.userName || u.username || '').toLowerCase();
       return name.includes(query) || uname.includes(query);
     });
   }, [usersList, assignedToSearchQuery, form.assignedTo]);
 
+  // THAY ĐỔI: Lọc danh sách phòng dựa trên danh sách phòng đang gán của thiết bị (assignedRooms)
   const filteredRooms = useMemo(() => {
     let list = rooms;
 
     if (form.equipmentId) {
       const selectedEquip = equipments.find((e) => String(e.id) === String(form.equipmentId));
-      if (selectedEquip && selectedEquip.roomId) {
-        list = list.filter((r) => String(r.id) === String(selectedEquip.roomId));
+      if (selectedEquip && selectedEquip.assignedRooms) {
+        const assignedRoomIds = selectedEquip.assignedRooms.map(ar => String(ar.roomId));
+        list = list.filter((r) => assignedRoomIds.includes(String(r.id)));
       }
     }
 
@@ -209,11 +222,15 @@ export default function MaintenanceManager({ readOnly = false }) {
     });
   }, [rooms, roomSearchQuery, form.roomId, form.equipmentId, equipments]);
 
+  // THAY ĐỔI: Lọc danh sách thiết bị dựa trên phòng đang chọn sử dụng assignedRooms (quan hệ nhiều-nhiều)
   const filteredEquipments = useMemo(() => {
     let list = equipments;
 
     if (form.roomId) {
-      list = list.filter((e) => String(e.roomId) === String(form.roomId));
+      list = list.filter((e) => {
+        if (!e.assignedRooms) return false;
+        return e.assignedRooms.some(ar => String(ar.roomId) === String(form.roomId));
+      });
     }
 
     const query = equipmentSearchQuery.trim().toLowerCase();
@@ -290,6 +307,7 @@ export default function MaintenanceManager({ readOnly = false }) {
     setForm({
       ...EMPTY_CREATE,
       reportedBy: user?.id ? String(user.id) : '',
+      estimatedCompletionTime: '',
     });
     setModal({ open: true, editing: null });
   };
@@ -301,6 +319,7 @@ export default function MaintenanceManager({ readOnly = false }) {
       status: item.status || 'PENDING',
       diagnosis: item.diagnosis || '',
       repairResult: item.repairResult || '',
+      estimatedCompletionTime: formatForDateTimeLocal(item.estimatedCompletionTime),
     });
     setModal({ open: true, editing: item });
   };
@@ -319,6 +338,7 @@ export default function MaintenanceManager({ readOnly = false }) {
           status: form.status,
           diagnosis: form.diagnosis || undefined,
           repairResult: form.repairResult || undefined,
+          estimatedCompletionTime: form.estimatedCompletionTime ? form.estimatedCompletionTime : undefined,
         };
         await maintenanceService.update(modal.editing.id, payload);
         notify(t('maintenance.toast.updateSuccess'));
@@ -335,6 +355,7 @@ export default function MaintenanceManager({ readOnly = false }) {
           issueTitle: form.issueTitle.trim(),
           issueDescription: form.issueDescription.trim(),
           severity: form.severity,
+          estimatedCompletionTime: form.estimatedCompletionTime ? form.estimatedCompletionTime : undefined,
         };
         await maintenanceService.create(payload);
         notify(t('maintenance.toast.addSuccess'));
@@ -360,6 +381,14 @@ export default function MaintenanceManager({ readOnly = false }) {
   };
 
   const formatDate = (dt) => dt ? new Date(dt).toLocaleDateString('vi-VN') : '-';
+  const formatDateTime = (dt) => {
+    if (!dt) return '-';
+    try {
+      return new Date(dt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+    } catch {
+      return '-';
+    }
+  };
 
   const rows = items.map(item => {
     const room = rooms.find(r => String(r.id) === String(item.roomId));
@@ -395,6 +424,8 @@ export default function MaintenanceManager({ readOnly = false }) {
           </span>
         </td>
         <td className="px-4 py-3 text-xs text-slate-400">{formatDate(item.createdAt)}</td>
+        <td className="px-4 py-3 text-xs text-slate-500 font-semibold">{formatDateTime(item.estimatedCompletionTime)}</td>
+        <td className="px-4 py-3 text-xs text-emerald-600 font-semibold">{formatDateTime(item.completedAt)}</td>
         {!isReadOnly && (
           <td className="px-4 py-3">
             <div className="flex items-center gap-3">
@@ -407,7 +438,21 @@ export default function MaintenanceManager({ readOnly = false }) {
     );
   });
 
-  const cols = [t('maintenance.columns.id'), t('maintenance.columns.title'), t('maintenance.columns.description'), t('maintenance.columns.room'), t('maintenance.columns.equipment'), t('maintenance.columns.reportedBy'), t('maintenance.columns.assignedTo'), t('maintenance.columns.severity'), t('maintenance.columns.status'), t('maintenance.columns.createdAt'), ...(!isReadOnly ? [t('maintenance.columns.actions')] : [])];
+  const cols = [
+    t('maintenance.columns.id'),
+    t('maintenance.columns.title'),
+    t('maintenance.columns.description'),
+    t('maintenance.columns.room'),
+    t('maintenance.columns.equipment'),
+    t('maintenance.columns.reportedBy'),
+    t('maintenance.columns.assignedTo'),
+    t('maintenance.columns.severity'),
+    t('maintenance.columns.status'),
+    t('maintenance.columns.createdAt'),
+    'Dự kiến xong',
+    'Hoàn thành',
+    ...(!isReadOnly ? [t('maintenance.columns.actions')] : [])
+  ];
 
   return (
     <div>
@@ -593,6 +638,28 @@ export default function MaintenanceManager({ readOnly = false }) {
                   </select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Thời gian dự kiến hoàn thành</label>
+                  <input
+                    type="datetime-local"
+                    value={form.estimatedCompletionTime}
+                    onChange={(e) => setForm((f) => ({ ...f, estimatedCompletionTime: e.target.value }))}
+                    className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white"
+                  />
+                </div>
+                {modal.editing?.completedAt && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Thời gian hoàn thành thực tế</label>
+                    <input
+                      disabled
+                      type="text"
+                      value={new Date(modal.editing.completedAt).toLocaleString('vi-VN')}
+                      className="w-full border border-stone-200 bg-stone-50 rounded px-3 py-2 text-sm outline-none text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+                )}
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.diagnosis')}</label>
                 <textarea rows={2} value={form.diagnosis} onChange={e => setForm(f => ({ ...f, diagnosis: e.target.value }))}
@@ -682,8 +749,11 @@ export default function MaintenanceManager({ readOnly = false }) {
                                   setForm((current) => {
                                     const updated = { ...current, roomId: String(room.id) };
                                     const currentEquip = equipments.find((e) => String(e.id) === String(current.equipmentId));
-                                    if (currentEquip && String(currentEquip.roomId) !== String(room.id)) {
-                                      updated.equipmentId = '';
+                                    if (currentEquip && currentEquip.assignedRooms) {
+                                      const isAssignedToNewRoom = currentEquip.assignedRooms.some(ar => String(ar.roomId) === String(room.id));
+                                      if (!isAssignedToNewRoom) {
+                                        updated.equipmentId = '';
+                                      }
                                     }
                                     return updated;
                                   });
@@ -728,8 +798,9 @@ export default function MaintenanceManager({ readOnly = false }) {
                         if (matched) {
                           setForm((current) => {
                             const updated = { ...current, equipmentId: String(matched.id) };
-                            if (matched.roomId) {
-                              updated.roomId = String(matched.roomId);
+                            const hasMatchedRoom = matched.assignedRooms && matched.assignedRooms.some(ar => String(ar.roomId) === String(current.roomId));
+                            if (!hasMatchedRoom && matched.assignedRooms && matched.assignedRooms.length > 0) {
+                              updated.roomId = String(matched.assignedRooms[0].roomId);
                             }
                             return updated;
                           });
@@ -785,8 +856,9 @@ export default function MaintenanceManager({ readOnly = false }) {
                                 onClick={() => {
                                   setForm((current) => {
                                     const updated = { ...current, equipmentId: String(equip.id) };
-                                    if (equip.roomId) {
-                                      updated.roomId = String(equip.roomId);
+                                    const hasMatchedRoom = equip.assignedRooms && equip.assignedRooms.some(ar => String(ar.roomId) === String(current.roomId));
+                                    if (!hasMatchedRoom && equip.assignedRooms && equip.assignedRooms.length > 0) {
+                                      updated.roomId = String(equip.assignedRooms[0].roomId);
                                     }
                                     return updated;
                                   });
@@ -893,12 +965,23 @@ export default function MaintenanceManager({ readOnly = false }) {
                   )}
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.severity')}</label>
-                <select required value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}
-                  className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
-                  {SEVERITY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.severity')}</label>
+                  <select required value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}
+                    className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
+                    {SEVERITY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Thời gian dự kiến hoàn thành</label>
+                  <input
+                    type="datetime-local"
+                    value={form.estimatedCompletionTime}
+                    onChange={(e) => setForm((f) => ({ ...f, estimatedCompletionTime: e.target.value }))}
+                    className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.description')}</label>

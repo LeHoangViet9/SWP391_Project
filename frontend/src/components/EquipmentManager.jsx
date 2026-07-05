@@ -49,7 +49,8 @@ function getImageUrl(item) {
   if (!imageUrl) return null;
   if (imageUrl.startsWith('http')) return imageUrl;
 
-  return `http://localhost:9999${imageUrl}`;
+  // THAY ĐỔI: Thay vì hardcode cổng 9999 sai, trả về relative path để chạy qua Vite proxy
+  return imageUrl;
 }
 
 export default function EquipmentManager() {
@@ -157,6 +158,8 @@ export default function EquipmentManager() {
     }
 
     setForm(EMPTY_FORM);
+    // THAY ĐỔI: Reset state tệp ảnh cũ khi mở form tạo mới
+    setImageFiles([]);
     setModal({ open: true, editing: null });
   };
 
@@ -166,12 +169,16 @@ export default function EquipmentManager() {
       return;
     }
     setForm(mapEquipmentToForm(item));
+    // THAY ĐỔI: Reset state tệp ảnh cũ khi mở form chỉnh sửa
+    setImageFiles([]);
     setModal({ open: true, editing: item });
   };
 
   const closeModal = () => {
     setModal({ open: false, editing: null });
     setForm(EMPTY_FORM);
+    // THAY ĐỔI: Reset state tệp ảnh khi đóng modal để tránh gửi đè lên các thao tác sau
+    setImageFiles([]);
   };
 
   const buildPayload = () => ({
