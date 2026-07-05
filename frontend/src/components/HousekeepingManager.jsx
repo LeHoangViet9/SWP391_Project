@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Plus, Search, Filter, RefreshCw, Trash2, Pencil, Eye,
+    Plus, Search, RefreshCw, Trash2, Pencil, Eye,
     AlertTriangle, ChevronLeft, ChevronRight, X, Check,
     Clock, CheckCircle2, XCircle, Loader2, History,
-    BedDouble, User, Calendar, SortAsc, SortDesc,
+    BedDouble, User, SortAsc, SortDesc,
     LayoutGrid, TableIcon, Wrench, ClipboardList,
 } from 'lucide-react';
 import Toast from './shared/Toast';
@@ -12,6 +12,7 @@ import { housekeepingService } from '../services/housekeepingService';
 import { useLocale } from '../context/LocaleContext';
 import { getUsers } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
+import { usePermission } from '../hooks/usePermission';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TASK_STATUSES = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 const SORT_FIELDS = ['ID', 'ROOM_ID', 'ASSIGNED_TO_ID', 'STATUS', 'CREATED_AT'];
@@ -165,7 +166,7 @@ const TaskDetailDrawer = ({ task, onClose, onEdit, locale, readOnly = false }) =
     );
 };
 /** Task Create / Edit Modal */
-const TaskFormModal = ({ task, housekeepers, rooms, onSubmit, onClose, loading }) => {
+const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
     const isEdit = Boolean(task?.id);
     const [form, setForm] = useState({
         roomId: task?.roomId ?? '',
@@ -449,7 +450,7 @@ const RoomHistoryModal = ({ onClose }) => {
     );
 };
 /** Kanban Column */
-const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale, readOnly = false }) => {
+const KanbanColumn = ({ status, tasks, onView, locale, readOnly = false }) => {
     const cfg = STATUS_CONFIG[status] || {};
     return (
         <div className="flex flex-col bg-stone-50 rounded-2xl border border-stone-200 min-h-[300px]">
@@ -493,6 +494,7 @@ const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale, readOnl
 export default function HousekeepingManager({ readOnly = false }) {
     const { user } = useAuth();
     const { locale } = useLocale();
+    const { hasPermission } = usePermission();
     // ── State: Data ──────────────────────────────────────────────────────────
     const [tasks, setTasks] = useState([]);
     const [totalPages, setTotalPages] = useState(0);
@@ -699,20 +701,26 @@ export default function HousekeepingManager({ readOnly = false }) {
                     <h2 className="text-lg font-bold text-slate-800">Quản lý Tác vụ Buồng phòng</h2>
                     <p className="text-sm text-slate-500 mt-0.5">Tổng cộng <span className="font-bold text-[#bfa15f]">{totalElements}</span> tác vụ</p>
                 </div>
-                {!readOnly && (
+                {(hasPermission('HOUSEKEEPING_VIEW') || hasPermission('HOUSEKEEPING_UPDATE') || (hasPermission('HOUSEKEEPING_CREATE') && !readOnly)) && (
                     <div className="flex flex-wrap gap-2">
-                        <button onClick={() => setShowHistoryModal(true)}
-                            className="flex items-center gap-2 px-3.5 py-2 border border-stone-200 rounded-lg text-sm font-semibold text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors bg-white">
-                            <History size={16} /> Lịch sử phòng
-                        </button>
-                        <button onClick={() => setShowIssueModal(true)}
-                            className="flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors bg-white">
-                            <Wrench size={16} /> Báo cáo sự cố
-                        </button>
-                        <button onClick={() => setShowCreateModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors shadow-sm">
-                            <Plus size={16} /> Tạo tác vụ
-                        </button>
+                        {hasPermission('HOUSEKEEPING_VIEW') && (
+                            <button onClick={() => setShowHistoryModal(true)}
+                                className="flex items-center gap-2 px-3.5 py-2 border border-stone-200 rounded-lg text-sm font-semibold text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors bg-white">
+                                <History size={16} /> Lịch sử phòng
+                            </button>
+                        )}
+                        {hasPermission('HOUSEKEEPING_UPDATE') && (
+                            <button onClick={() => setShowIssueModal(true)}
+                                className="flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors bg-white">
+                                <Wrench size={16} /> Báo cáo sự cố
+                            </button>
+                        )}
+                        {(hasPermission('HOUSEKEEPING_CREATE') && !readOnly) && (
+                            <button onClick={() => setShowCreateModal(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors shadow-sm">
+                                <Plus size={16} /> Tạo tác vụ
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

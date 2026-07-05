@@ -28,7 +28,7 @@ public class MaintenanceController {
     private final MessageSource messageSource;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RECEPTIONIST', 'HOUSEKEEPING', 'MAINTENANCE')")
+    @PreAuthorize("hasAuthority('MAINTENANCE_CREATE')")
     public ApiResponse<MaintenanceResponse> createRequest(
             @Valid @RequestBody MaintenanceRequestCreateDTO dto
     ) {
