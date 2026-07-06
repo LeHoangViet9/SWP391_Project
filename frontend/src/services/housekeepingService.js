@@ -88,6 +88,13 @@ export async function reportRoomIssue(roomId, payload, locale = 'vi') {
   }, locale);
 }
 
+export async function reportMinibar(taskId, payload, locale = 'vi') {
+  return apiFetch(`/housekeeping-tasks/${taskId}/report-minibar`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }, locale);
+}
+
 // Exported wrapper object for components importing { housekeepingService }
 export const housekeepingService = {
   getDirtyRooms,
@@ -103,5 +110,6 @@ export const housekeepingService = {
   createTask,
   updateTask,
   deleteTask,
-  reportRoomIssue
+  reportRoomIssue,
+  reportMinibar
 };

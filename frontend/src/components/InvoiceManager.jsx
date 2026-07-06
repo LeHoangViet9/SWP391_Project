@@ -96,9 +96,9 @@ export default function InvoiceManager() {
       <td className="px-4 py-3 font-mono text-xs text-slate-700">#{item.bookingId}</td>
       <td className="px-4 py-3 text-slate-800 font-medium">{item.customerName || '-'}</td>
       <td className="px-4 py-3">
-        {item.invoiceType === 'MINIBAR' ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold bg-blue-50 text-blue-700">
-            {isVi ? 'Dịch vụ Minibar' : 'Minibar Service'}
+        {item.invoiceType === 'SURCHARGE' ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold bg-amber-50 text-amber-700">
+            {isVi ? 'Phụ thu Check-out' : 'Surcharge'}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold bg-stone-100 text-stone-700">

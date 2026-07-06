@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import com.hms.common.enums.AccountStatus;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
@@ -78,5 +81,16 @@ public class NotificationServiceImpl implements NotificationService {
                 .read(notification.isRead())
                 .createdAt(notification.getCreatedAt())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void notifyReceptionistsAndManagers(String title, String message, String targetUrl) {
+        List<User> recipients = new java.util.ArrayList<>();
+        recipients.addAll(userRepository.findByRole_RoleNameIgnoreCaseAndAccountStatus("RECEPTIONIST", AccountStatus.ACTIVE));
+        recipients.addAll(userRepository.findByRole_RoleNameIgnoreCaseAndAccountStatus("MANAGER", AccountStatus.ACTIVE));
+        for (User recipient : recipients) {
+            notify(recipient, title, message, targetUrl);
+        }
     }
 }

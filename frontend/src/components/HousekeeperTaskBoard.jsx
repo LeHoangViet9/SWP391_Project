@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     CheckCircle2, Clock, Loader2, XCircle, RefreshCw,
     BedDouble, ClipboardList, ChevronDown, ChevronUp,
-    AlertTriangle, Wrench, Check, X, Loader,
+    AlertTriangle, Wrench, Check, X, Loader, Minus, Plus, FileText,
 } from 'lucide-react';
 import Toast from './shared/Toast';
 import { housekeepingService } from '../services/housekeepingService';
@@ -94,8 +94,97 @@ function ReportIssueMiniModal({ roomId, onSubmit, onClose, loading }) {
     );
 }
 
+// ─── Minibar Report Mini-Modal (inline) ────────────────────────────────────────
+function MinibarReportMiniModal({ task, onSubmit, onClose, loading }) {
+    const [quantities, setQuantities] = useState({ water: 0, cola: 0, beer: 0, snack: 0 });
+
+    const handleUpdateQuantity = (item, delta) => {
+        setQuantities(prev => {
+            const val = Math.max(0, (prev[item] || 0) + delta);
+            return { ...prev, [item]: val };
+        });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSubmit(task.id, quantities);
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center">
+            <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 animate-in slide-in-from-bottom sm:zoom-in-95 duration-200">
+                <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                        <BedDouble size={18} className="text-[#bfa15f]" /> Kê khai Minibar - Phòng {task.roomNumber || task.roomId}
+                    </h3>
+                    <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-stone-100 text-slate-400"><X size={18} /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <p className="text-xs text-slate-500">Vui lòng kiểm tra thực tế trong phòng và nhập số lượng đồ uống đã tiêu thụ.</p>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Nước suối Aquafina</p>
+                                <p className="text-xs text-slate-400">10,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('water', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.water}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('water', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Coca-Cola / Pepsi</p>
+                                <p className="text-xs text-slate-400">20,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('cola', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.cola}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('cola', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Bia Heineken</p>
+                                <p className="text-xs text-slate-400">35,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('beer', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.beer}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('beer', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Snack khoai tây</p>
+                                <p className="text-xs text-slate-400">15,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('snack', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.snack}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('snack', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={onClose} className="flex-1 py-3 border border-stone-200 rounded-xl text-sm font-bold text-slate-600">Hủy</button>
+                        <button type="submit" disabled={loading}
+                            className="flex-1 py-3 bg-[#bfa15f] hover:bg-[#a3874c] text-white rounded-xl text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2">
+                            {loading ? <Loader size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Gửi báo cáo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 // ─── Single Task Card ─────────────────────────────────────────────────────────
-function TaskCard({ task, onUpdateStatus, updating, onReportIssue, locale }) {
+function TaskCard({ task, onUpdateStatus, updating, onReportIssue, onReportMinibar, locale }) {
     const [expanded, setExpanded] = useState(false);
     const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG.PENDING;
     const IconComp = cfg.icon;
@@ -148,6 +237,14 @@ function TaskCard({ task, onUpdateStatus, updating, onReportIssue, locale }) {
                             </button>
                         )}
                     </div>
+                )}
+                {task.status === 'IN_PROGRESS' && (
+                    <button
+                        onClick={() => onReportMinibar(task)}
+                        className="w-full mt-3 py-2.5 flex items-center justify-center gap-2 bg-[#bfa15f] hover:bg-[#a3874c] text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                    >
+                        <FileText size={15} /> Kê khai & Báo cáo Minibar
+                    </button>
                 )}
                 {task.status === 'COMPLETED' && (
                     <div className="flex items-center justify-center gap-2 mt-4 py-3 bg-emerald-100 rounded-xl text-emerald-700 font-bold text-sm">
@@ -239,6 +336,7 @@ export default function HousekeeperTaskBoard() {
     const [toast, setToast] = useState({ type: 'success', message: '' });
     const [filterStatus, setFilterStatus] = useState(''); // '' = all uncompleted
     const [reportRoomId, setReportRoomId] = useState(null); // null | roomId
+    const [minibarTask, setMinibarTask] = useState(null); // null | task
 
     const notify = (msg, type = 'success') => setToast({ type, message: msg });
 
@@ -314,6 +412,20 @@ export default function HousekeeperTaskBoard() {
         }
     };
 
+    // ── Report Minibar Consumption ───────────────────────────────────────────
+    const handleReportMinibar = async (taskId, quantities) => {
+        setActionLoading(true);
+        try {
+            const res = await housekeepingService.reportMinibar(taskId, quantities, locale);
+            notify(res?.message || 'Đã gửi báo cáo tiêu dùng Minibar thành công!');
+            setMinibarTask(null);
+        } catch (err) {
+            notify(err?.message || 'Không tìm thấy đặt phòng hoặc gửi thất bại.', 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     // ── Counts for filter tabs ───────────────────────────────────────────────
     const counts = {
         '': tasks.length,
@@ -332,6 +444,16 @@ export default function HousekeeperTaskBoard() {
                     roomId={reportRoomId}
                     onSubmit={handleReportIssue}
                     onClose={() => setReportRoomId(null)}
+                    loading={actionLoading}
+                />
+            )}
+
+            {/* Report Minibar Modal */}
+            {minibarTask !== null && (
+                <MinibarReportMiniModal
+                    task={minibarTask}
+                    onSubmit={handleReportMinibar}
+                    onClose={() => setMinibarTask(null)}
                     loading={actionLoading}
                 />
             )}
@@ -396,6 +518,7 @@ export default function HousekeeperTaskBoard() {
                             onUpdateStatus={handleUpdateStatus}
                             updating={updating}
                             onReportIssue={(roomId) => setReportRoomId(roomId)}
+                            onReportMinibar={(t) => setMinibarTask(t)}
                         />
                     ))
                 )}
