@@ -24,4 +24,6 @@ public class MaintenanceRequestCreateDTO {
 
         @NotNull(message = "{maintenance.severity.notnull}")
         private MaintenanceSeverity severity;
+
+        private java.time.LocalDateTime estimatedCompletionTime;
 }
