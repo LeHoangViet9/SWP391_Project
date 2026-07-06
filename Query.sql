@@ -41,7 +41,7 @@ ALTER TABLE room DROP CONSTRAINT IF EXISTS room_room_status_check;
 ALTER TABLE room ADD CONSTRAINT room_room_status_check CHECK (room_status IN ('AVAILABLE', 'MAINTENANCE', 'INACTIVE', 'RESERVED', 'CLEANING', 'DIRTY', 'OCCUPIED', 'READY', 'OUT_OF_ORDER', 'CHECKOUT_PENDING'));
 
 ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_booking_status_check;
-ALTER TABLE bookings ADD CONSTRAINT bookings_booking_status_check CHECK (booking_status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED', 'NO_SHOW'));
+ALTER TABLE bookings ADD CONSTRAINT bookings_booking_status_check CHECK (booking_status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED', 'NO_SHOW', 'PENDING_PAYMENT'));
 
 ALTER TABLE invoices DROP CONSTRAINT IF EXISTS invoices_payment_status_check;
 ALTER TABLE invoices ADD CONSTRAINT invoices_payment_status_check CHECK (payment_status IN ('PENDING', 'PAID', 'REFUNDED', 'CANCELLED'));
@@ -56,7 +56,8 @@ ALTER TABLE room_state_history DROP CONSTRAINT IF EXISTS room_state_history_trig
 ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_triggered_by_process_check
     CHECK (triggered_by_process IN (
                                     'TASK_CLEANING', 'TASK_IN_PROGRESS', 'TASK_COMPLETION',
-                                    'TASK_CANCELLATION', 'TASK_SKIPPED', 'TASK_MAINTENANCE'
+                                    'TASK_CANCELLATION', 'TASK_SKIPPED', 'TASK_MAINTENANCE',
+                                    'CHECKIN', 'CHECKOUT'
         ));
 
 ALTER TABLE room_state_history DROP CONSTRAINT IF EXISTS room_state_history_previous_state_check;
@@ -74,6 +75,8 @@ ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_current_state_c
                              'CLEANING', 'DIRTY', 'OCCUPIED', 'READY',
                              'OUT_OF_ORDER', 'CHECKOUT_PENDING'
         ));
+
+ALTER TABLE customer_feedback ALTER COLUMN deleted SET DEFAULT FALSE;
 
 -- =============================================================================
 -- 4. CHÈN DỮ LIỆU DANH MỤC CƠ BẢN (ROLES & PERMISSIONS)
@@ -266,29 +269,29 @@ INSERT INTO bookings (customer_id, room_id, type_id, price_per_night, quantity, 
     (14, 15, 15, 400000.00, 1, '2026-06-12 14:00:00', '2026-06-14 12:00:00', 'CHECKED_OUT', 800000.00, 1, NOW()),
     (15, NULL, 13, 1800000.00, 1, '2026-06-15 14:00:00', '2026-06-16 12:00:00', 'CANCELLED', 1800000.00, 1, NOW());
 
-INSERT INTO invoices (booking_id, amount, payment_status, payment_method, paid_at) VALUES
-    (1, 1000000.00, 'PENDING', NULL, NULL),
-    (2, 1400000.00, 'PENDING', NULL, NULL),
-    (3, 2000000.00, 'PAID', 'CASH', NOW()),
-    (4, 2400000.00, 'PAID', 'TRANSFER', NOW()),
-    (5, 3000000.00, 'PAID', 'CARD', NOW()),
-    (6, 1600000.00, 'PAID', 'CASH', NOW()),
-    (7, 6000000.00, 'PAID', 'TRANSFER', NOW()),
-    (8, 24000000.00, 'PAID', 'CARD', NOW()),
-    (9, 3000000.00, 'PENDING', NULL, NULL),
-    (10, 4400000.00, 'PENDING', NULL, NULL),
-    (11, 1100000.00, 'PAID', 'CASH', NOW()),
-    (12, 4000000.00, 'PAID', 'TRANSFER', NOW()),
-    (13, 48000000.00, 'PENDING', NULL, NULL),
-    (14, 800000.00, 'PENDING', NULL, NULL),
-    (15, 1800000.00, 'CANCELLED', NULL, NULL);
+INSERT INTO invoices (booking_id, amount, payment_status, payment_method, paid_at, invoice_type) VALUES
+    (1, 1000000.00, 'PENDING', NULL, NULL, 'ROOM'),
+    (2, 1400000.00, 'PENDING', NULL, NULL, 'ROOM'),
+    (3, 2000000.00, 'PAID', 'CASH', NOW(), 'ROOM'),
+    (4, 2400000.00, 'PAID', 'TRANSFER', NOW(), 'ROOM'),
+    (5, 3000000.00, 'PAID', 'CARD', NOW(), 'ROOM'),
+    (6, 1600000.00, 'PAID', 'CASH', NOW(), 'ROOM'),
+    (7, 6000000.00, 'PAID', 'TRANSFER', NOW(), 'ROOM'),
+    (8, 24000000.00, 'PAID', 'CARD', NOW(), 'ROOM'),
+    (9, 3000000.00, 'PENDING', NULL, NULL, 'ROOM'),
+    (10, 4400000.00, 'PENDING', NULL, NULL, 'ROOM'),
+    (11, 1100000.00, 'PAID', 'CASH', NOW(), 'ROOM'),
+    (12, 4000000.00, 'PAID', 'TRANSFER', NOW(), 'ROOM'),
+    (13, 48000000.00, 'PENDING', NULL, NULL, 'ROOM'),
+    (14, 800000.00, 'PENDING', NULL, NULL, 'ROOM'),
+    (15, 1800000.00, 'CANCELLED', NULL, NULL, 'ROOM');
 
-INSERT INTO customer_feedback (booking_id, customer_id, rating, category, comment, status, created_at, reply, reply_at) VALUES
-    (5, 5, 5, 'Room', 'Phòng Suite view biển rất đẹp, thiết bị hiện đại!', 'PENDING', NOW() - INTERVAL '3 days', NULL, NULL),
-    (6, 6, 4, 'Cleanliness', 'Khách sạn sạch sẽ, nhân viên dọn phòng chu đáo.', 'REVIEWED', NOW() - INTERVAL '2 days', 'Cảm ơn anh Hùng đã phản hồi tích cực! Rất hân hạnh được phục vụ anh.', NOW() - INTERVAL '1 days'),
-    (7, 7, 3, 'Service', 'Đồ ăn sáng hơi ít món, wifi thi thoảng bị chập chờn.', 'PENDING', NOW() - INTERVAL '1 days', NULL, NULL),
-    (11, 11, 2, 'Staff', 'Nhân viên lễ tân lúc check-out thái độ chưa chuyên nghiệp.', 'PENDING', NOW() - INTERVAL '12 hours', NULL, NULL),
-    (12, 12, 1, 'Room', 'Phòng bị hỏng điều hòa nóng quá không chịu được!', 'RESOLVED', NOW() - INTERVAL '6 hours', 'Chúng tôi thành thật xin lỗi về trải nghiệm này. Khách sạn đã sửa chữa điều hòa và liên hệ hỗ trợ đổi phòng cho quý khách.', NOW() - INTERVAL '5 hours');
+INSERT INTO customer_feedback (booking_id, customer_id, rating, category, comment, status, created_at, reply, reply_at, deleted) VALUES
+    (5, 5, 5, 'Room', 'Phòng Suite view biển rất đẹp, thiết bị hiện đại!', 'PENDING', NOW() - INTERVAL '3 days', NULL, NULL, FALSE),
+    (6, 6, 4, 'Cleanliness', 'Khách sạn sạch sẽ, nhân viên dọn phòng chu đáo.', 'REVIEWED', NOW() - INTERVAL '2 days', 'Cảm ơn anh Hùng đã phản hồi tích cực! Rất hân hạnh được phục vụ anh.', NOW() - INTERVAL '1 days', FALSE),
+    (7, 7, 3, 'Service', 'Đồ ăn sáng hơi ít món, wifi thi thoảng bị chập chờn.', 'PENDING', NOW() - INTERVAL '1 days', NULL, NULL, FALSE),
+    (11, 11, 2, 'Staff', 'Nhân viên lễ tân lúc check-out thái độ chưa chuyên nghiệp.', 'PENDING', NOW() - INTERVAL '12 hours', NULL, NULL, FALSE),
+    (12, 12, 1, 'Room', 'Phòng bị hỏng điều hòa nóng quá không chịu được!', 'RESOLVED', NOW() - INTERVAL '6 hours', 'Chúng tôi thành thật xin lỗi về trải nghiệm này. Khách sạn đã sửa chữa điều hòa và liên hệ hỗ trợ đổi phòng cho quý khách.', NOW() - INTERVAL '5 hours', FALSE);
 
 -- =============================================================================
 -- 8. CHÈN DỮ LIỆU THIẾT BỊ & BẢO TRÌ (EQUIPMENTS & REPAIRS)
@@ -303,7 +306,7 @@ INSERT INTO equipments (equipment_name, equipment_code, description, status, cre
     ('Điều hòa Daikin 2.5 HP', 'AC-301', 'Điều hòa công suất lớn Daikin', 'ACTIVE', NOW()),
     ('Bình nóng lạnh Rossi', 'WH-301', 'Bình nước nóng Rossi 30 lít', 'ACTIVE', NOW()),
     ('Tivi Sony 75 inch', 'TV-501', 'Tivi Sony Bravia OLED', 'ACTIVE', NOW()),
-    ('Điều hòa trung tâm Daikin', 'AC-701', 'Hệ thống điều hòa trung tâm', 'BROKEN', NOW()),
+    ('Điều hòa trung tâm Daikin', 'AC-701', 'Hệ thống điều hòa trung tâm', 'MAINTENANCE', NOW()),
     ('Tủ lạnh Panasonic 150 lít', 'RF-701', 'Tủ lạnh hai cánh Panasonic', 'ACTIVE', NOW()),
     ('Tivi LG 43 inch', 'TV-103', 'Tivi LG Smart Full HD', 'ACTIVE', NOW()),
     ('Điều hòa Midea 1 HP', 'AC-103', 'Điều hòa Midea tiết kiệm điện', 'ACTIVE', NOW()),
@@ -339,14 +342,6 @@ INSERT INTO repair_requests (room_id, equipment_id, reported_by, assigned_to, is
     (3, NULL, 7, NULL, 'Khóa cửa phòng 201 bị kẹt', 'Khóa từ quét thẻ khó nhận.', NULL, NULL, 'MEDIUM', 'PENDING', NOW()),
     (5, 8, 4, 11, 'Bình nóng lạnh phòng 301 rò điện', 'Đèn chống giật nhấp nháy đỏ liên tục.', NULL, NULL, 'CRITICAL', 'ASSIGNED', NOW());
 
-INSERT INTO services (service_name, price, is_available) VALUES
-    ('Coca Cola (Minibar)', 25000.00, TRUE),
-    ('Bia Heineken (Minibar)', 40000.00, TRUE),
-    ('Nước suối Aquafina', 15000.00, TRUE),
-    ('Mì ly Omachi (Minibar)', 20000.00, TRUE),
-    ('Dịch vụ Giặt ủi (Theo kg)', 50000.00, TRUE),
-    ('Trà gừng nóng (Room Service)', 30000.00, TRUE)
-ON CONFLICT (service_name) DO NOTHING;
 
 -- =============================================================================
 -- 9. TẠO INDEXES TỐI ƯU TRUY VẤN

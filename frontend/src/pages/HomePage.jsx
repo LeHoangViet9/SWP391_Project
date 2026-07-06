@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import HeroSection from '../components/home/HeroSection';
@@ -7,22 +6,12 @@ import HotelServices from '../components/home/HotelServices';
 import FeedbackSection from '../components/home/FeedbackSection';
 
 export default function HomePage() {
-  const [searchParams, setSearchParams] = useState({
-    checkIn: '',
-    checkOut: '',
-    guests: 0,
-  });
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1">
-        <HeroSection onSearchGuests={setSearchParams} />
-        <RoomTypesSection
-          guestFilter={searchParams.guests}
-          checkIn={searchParams.checkIn}
-          checkOut={searchParams.checkOut}
-        />
+        <HeroSection />
+        <RoomTypesSection />
         <HotelServices />
         <FeedbackSection />
       </main>
