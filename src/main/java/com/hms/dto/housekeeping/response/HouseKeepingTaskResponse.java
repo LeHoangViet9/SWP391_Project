@@ -27,6 +27,8 @@ public class HouseKeepingTaskResponse {
 
     private String assignedToName;
 
+    private String assignedToWorkStatus;
+
     private Long assignedById;
 
     private String assignedByName;

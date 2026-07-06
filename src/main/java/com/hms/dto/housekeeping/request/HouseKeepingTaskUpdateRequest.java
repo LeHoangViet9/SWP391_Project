@@ -1,5 +1,6 @@
 package com.hms.dto.housekeeping.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.hms.common.enums.TaskStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class HouseKeepingTaskUpdateRequest {
 
+    @JsonAlias("status")
     private TaskStatus taskStatus;
 
     private String notes;

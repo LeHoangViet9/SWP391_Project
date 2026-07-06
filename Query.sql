@@ -339,14 +339,14 @@ INSERT INTO repair_requests (room_id, equipment_id, reported_by, assigned_to, is
     (3, NULL, 7, NULL, 'Khóa cửa phòng 201 bị kẹt', 'Khóa từ quét thẻ khó nhận.', NULL, NULL, 'MEDIUM', 'PENDING', NOW()),
     (5, 8, 4, 11, 'Bình nóng lạnh phòng 301 rò điện', 'Đèn chống giật nhấp nháy đỏ liên tục.', NULL, NULL, 'CRITICAL', 'ASSIGNED', NOW());
 
--- INSERT INTO services (service_name, price, is_available) VALUES
---     ('Coca Cola (Minibar)', 25000.00, TRUE),
---     ('Bia Heineken (Minibar)', 40000.00, TRUE),
---     ('Nước suối Aquafina', 15000.00, TRUE),
---     ('Mì ly Omachi (Minibar)', 20000.00, TRUE),
---     ('Dịch vụ Giặt ủi (Theo kg)', 50000.00, TRUE),
---     ('Trà gừng nóng (Room Service)', 30000.00, TRUE)
--- ON CONFLICT (service_name) DO NOTHING;
+INSERT INTO services (service_name, price, is_available) VALUES
+    ('Coca Cola (Minibar)', 25000.00, TRUE),
+    ('Bia Heineken (Minibar)', 40000.00, TRUE),
+    ('Nước suối Aquafina', 15000.00, TRUE),
+    ('Mì ly Omachi (Minibar)', 20000.00, TRUE),
+    ('Dịch vụ Giặt ủi (Theo kg)', 50000.00, TRUE),
+    ('Trà gừng nóng (Room Service)', 30000.00, TRUE)
+ON CONFLICT (service_name) DO NOTHING;
 
 -- =============================================================================
 -- 9. TẠO INDEXES TỐI ƯU TRUY VẤN

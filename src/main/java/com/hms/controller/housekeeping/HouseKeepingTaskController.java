@@ -18,6 +18,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +33,7 @@ public class HouseKeepingTaskController {
     private final MessageSource messageSource;
 
     @GetMapping("/search")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_VIEW')")
     public ResponseEntity<ApiResponse<Page<HouseKeepingTaskResponse>>> searchTasks(
             @RequestParam(required = false) TaskStatus status,
             @RequestParam(required = false) Long assignedToId,
@@ -58,6 +60,7 @@ public class HouseKeepingTaskController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_VIEW')")
     public ResponseEntity<ApiResponse<HouseKeepingTaskResponse>> getTaskById(@PathVariable Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         HouseKeepingTaskResponse taskResponse = taskService.getTaskById(id);
@@ -74,6 +77,7 @@ public class HouseKeepingTaskController {
     }
 
     @GetMapping("/pending/room/{roomId}")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_VIEW')")
     public ResponseEntity<ApiResponse<List<HouseKeepingTaskResponse>>> getPendingTasksByRoom(
             @PathVariable Long roomId) {
 
@@ -91,6 +95,7 @@ public class HouseKeepingTaskController {
     }
 
     @GetMapping("/uncompleted/user/{userId}")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_VIEW')")
     public ResponseEntity<ApiResponse<List<HouseKeepingTaskResponse>>> getUncompletedTasksByUser(
             @PathVariable Long userId) {
 
@@ -109,6 +114,7 @@ public class HouseKeepingTaskController {
 
 
     @GetMapping("/rooms/{roomId}/state-history")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_VIEW')")
     public ResponseEntity<ApiResponse<Page<RoomStateHistoryResponse>>> getRoomStateHistory(
             @PathVariable Long roomId,
             @RequestParam(required = false) Integer page,
@@ -126,6 +132,7 @@ public class HouseKeepingTaskController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_CREATE')")
     public ResponseEntity<ApiResponse<HouseKeepingTaskResponse>> createTask(
             @RequestBody @Valid HouseKeepingTaskRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -143,6 +150,7 @@ public class HouseKeepingTaskController {
     }
 
     @PutMapping("/updateTask/{id}")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_UPDATE')")
     public ResponseEntity<ApiResponse<HouseKeepingTaskResponse>> updateTask(
             @PathVariable Long id,
             @RequestBody HouseKeepingTaskUpdateRequest request) {
@@ -161,6 +169,7 @@ public class HouseKeepingTaskController {
     }
 
     @DeleteMapping("/deleteTask/{id}")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         Locale locale = LocaleContextHolder.getLocale();
@@ -175,6 +184,7 @@ public class HouseKeepingTaskController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
     @PostMapping("/rooms/{roomId}/report-issue")
+    @PreAuthorize("hasAuthority('HOUSEKEEPING_UPDATE')")
     public ResponseEntity<ApiResponse<Void>> reportRoomIssue(
             @PathVariable Long roomId,
             @RequestBody @Valid ReportRoomIssueRequest request) {

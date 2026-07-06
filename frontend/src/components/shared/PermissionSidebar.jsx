@@ -189,8 +189,8 @@ export default function PermissionSidebar({ mobileOpen = false, onMobileClose })
   // ── STEP 1: Filter menu by user permissions ──────────────────────────────
   // useMemo ensures this only re-runs when user.permissions array changes.
   const visibleMenu = useMemo(
-    () => filterMenuByPermissions(user?.permissions ?? []),
-    [user?.permissions]
+    () => filterMenuByPermissions(user?.permissions ?? [], user?.roleName),
+    [user?.permissions, user?.roleName]
   );
 
   // ── STEP 2: Group visible menu items by their `group` property ───────────

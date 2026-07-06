@@ -51,6 +51,7 @@ import {
   FileText,
   UserCircle,
   KeyRound,
+  ScrollText,
 } from 'lucide-react';
 
 /**
@@ -99,6 +100,16 @@ export const MENU_CONFIG = [
   },
 
   // ── Nhóm: Phòng Ốc ───────────────────────────────────────────────
+  {
+    key: 'audit-logs',
+    label: 'Audit Log',
+    labelEn: 'Audit Log',
+    path: '/dashboard/audit-logs',
+    icon: ScrollText,
+    permissions: ['AUDIT_LOG_VIEW'],
+    roles: ['ADMIN', 'MANAGER'],
+    group: 'system',
+  },
   {
     key: 'room-types',
     label: 'Loại Phòng',
@@ -262,19 +273,27 @@ export const GROUP_LABELS = {
  * @param {string[]} userPermissions - Array of permission codes from user object
  * @returns {MenuItem[]} Filtered list of menu items the user can see
  */
-export function filterMenuByPermissions(userPermissions = []) {
+export function filterMenuByPermissions(userPermissions = [], roleName = null) {
   const permSet = new Set(userPermissions);
   return MENU_CONFIG.filter((item) => {
-    return canAccessMenuItem(item, permSet);
+    return canAccessMenuItem(item, permSet, roleName);
   });
 }
 
-export function canAccessMenuItem(item, userPermissions = []) {
+export function canAccessMenuItem(item, userPermissions = [], roleName = null) {
   const permSet = userPermissions instanceof Set
     ? userPermissions
     : new Set(userPermissions);
 
   if (item.alwaysVisible) return true;
+
+  // Check roles constraint if defined
+  if (item.roles && item.roles.length > 0) {
+    if (!roleName || !item.roles.map(r => r.toUpperCase()).includes(roleName.toUpperCase())) {
+      return false;
+    }
+  }
+
   if (!item.permissions || item.permissions.length === 0) return true;
   return item.permissions.some((p) => permSet.has(p));
 }

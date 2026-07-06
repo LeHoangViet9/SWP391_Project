@@ -9,7 +9,6 @@ import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
 import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import org.springframework.data.domain.Page;
 
-import com.hms.dto.housekeeping.request.MinibarReportRequest;
 import java.util.List;
 
 public interface IHouseKeepingTaskService {
@@ -37,5 +36,13 @@ public interface IHouseKeepingTaskService {
 
     void reportRoomIssue(Long roomId, com.hms.dto.housekeeping.request.ReportRoomIssueRequest request);
 
-    void reportMinibar(Long id, MinibarReportRequest request);
+    /**
+     * Tự động tạo task dọn phòng khi checkout.
+     * Gán cho housekeeper có ít task nhất (round-robin by workload).
+     * Gửi email thông báo cho housekeeper được gán.
+     *
+     * @param roomId ID phòng cần dọn
+     * @param triggeredByUserId ID user thực hiện checkout (có thể null)
+     */
+    void autoCreateCleaningTaskOnCheckout(Long roomId, Long triggeredByUserId);
 }

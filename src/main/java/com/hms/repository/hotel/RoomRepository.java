@@ -81,11 +81,14 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("""
                 SELECT r FROM Room r
                 WHERE r.roomType.id = :roomTypeId
-                AND r.roomStatus = com.hms.common.enums.RoomStatus.AVAILABLE
+                AND (r.roomStatus = com.hms.common.enums.RoomStatus.AVAILABLE
+                     OR r.roomStatus = com.hms.common.enums.RoomStatus.READY
+                     OR r.id = :reservedRoomId)
                 AND NOT EXISTS (
                     SELECT b FROM Booking b
                     WHERE b.room.id = r.id
-                    AND b.bookingStatus IN (com.hms.common.enums.BookingStatus.CONFIRMED,com.hms.common.enums.BookingStatus.CHECKED_IN)
+                    AND b.id <> :bookingId
+                    AND b.bookingStatus IN (com.hms.common.enums.BookingStatus.CONFIRMED, com.hms.common.enums.BookingStatus.CHECKED_IN)
                     AND b.checkInDate < :checkOutDate
                     AND b.checkOutDate > :checkInDate
                 )
@@ -93,7 +96,9 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Room> findAvailableRoomsForCheckIn(
             @Param("roomTypeId") Long roomTypeId,
             @Param("checkInDate") LocalDateTime checkInDate,
-            @Param("checkOutDate") LocalDateTime checkOutDate);
+            @Param("checkOutDate") LocalDateTime checkOutDate,
+            @Param("reservedRoomId") Long reservedRoomId,
+            @Param("bookingId") Long bookingId);
 
     /**
      * Find a room by ID with a pessimistic write lock to prevent race conditions

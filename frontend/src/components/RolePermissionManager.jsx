@@ -16,7 +16,8 @@ const PERMISSION_GROUPS = {
   MAINTENANCE: { vi: 'Bảo trì & Sửa chữa', en: 'Maintenance' },
   FEEDBACK: { vi: 'Phản hồi', en: 'Feedback' },
   INVOICE: { vi: 'Hóa đơn & Thanh toán', en: 'Invoice & Payment' },
-  DASHBOARD: { vi: 'Báo cáo & Dashboard', en: 'Reports & Dashboard' }
+  DASHBOARD: { vi: 'Báo cáo & Dashboard', en: 'Reports & Dashboard' },
+  AUDIT_LOG: { vi: 'Audit Log', en: 'Audit Log' }
 };
 
 const PERMISSION_DESCRIPTIONS = {
@@ -166,6 +167,7 @@ export default function RolePermissionManager() {
     // Handle special cases or default prefix
     let groupKey = parts[0];
     if (perm.name.startsWith('ROOM_TYPE')) groupKey = 'ROOM_TYPE';
+    if (perm.name.startsWith('AUDIT_LOG')) groupKey = 'AUDIT_LOG';
     if (perm.name.startsWith('CHECKIN') || perm.name.startsWith('CHECKOUT')) groupKey = 'CHECKIN_CHECKOUT';
     if (!PERMISSION_GROUPS[groupKey]) groupKey = 'OTHER';
 
@@ -253,6 +255,10 @@ export default function RolePermissionManager() {
             Object.entries(PERMISSION_GROUPS).map(([groupKey, groupLabel]) => {
               const groupPerms = groupedPermissions[groupKey] || [];
               if (groupPerms.length === 0) return null;
+
+              if (groupKey === 'AUDIT_LOG' && selectedRole && !['ADMIN', 'MANAGER'].includes(selectedRole.roleName.toUpperCase())) {
+                return null;
+              }
 
               const label = isVi ? groupLabel.vi : groupLabel.en;
               const allChecked = groupPerms.every(p => rolePermissions.has(p.id));

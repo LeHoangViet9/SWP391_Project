@@ -1,6 +1,7 @@
 package com.hms.entity.auth;
 
 import com.hms.common.enums.AccountStatus;
+import com.hms.common.enums.StaffWorkStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -34,6 +35,11 @@ public class User {
     @Column(name = "account_status", nullable = false, length = 20,columnDefinition = "VARCHAR(20) DEFAULT 'ACTIVE'")
     @Builder.Default
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "work_status", nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'AVAILABLE'")
+    @Builder.Default
+    private StaffWorkStatus workStatus = StaffWorkStatus.AVAILABLE;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp

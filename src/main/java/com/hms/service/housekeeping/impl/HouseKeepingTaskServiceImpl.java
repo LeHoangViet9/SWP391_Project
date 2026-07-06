@@ -1,12 +1,12 @@
 package com.hms.service.housekeeping.impl;
 
 import com.hms.common.enums.*;
+import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskUpdateRequest;
 import com.hms.dto.housekeeping.request.ReportRoomIssueRequest;
-import com.hms.dto.housekeeping.request.MinibarReportRequest;
 import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
 import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import com.hms.entity.auth.User;
@@ -19,6 +19,8 @@ import com.hms.repository.housekeeping.HouseKeepingTaskRepository;
 import com.hms.repository.housekeeping.RoomStateHistoryRepository;
 import com.hms.service.housekeeping.IHouseKeepingTaskService;
 import com.hms.service.housekeeping.mapper.HouseKeepingTaskMapper;
+import com.hms.service.email.EmailService;
+import com.hms.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -44,9 +46,9 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     private final RoomStateHistoryRepository roomStateHistoryRepository;
     private final HouseKeepingTaskMapper taskMapper;
     private final MessageSource messageSource;
-    private final com.hms.repository.booking.BookingRepository bookingRepository;
-    private final com.hms.service.checkout.CheckoutService checkoutService;
     private final PageableUtils pageableUtils;
+    private final EmailService emailService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -79,10 +81,13 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         User assignedTo = userRepository.findById(request.getAssignedToId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.user.notfound", null, locale)));
+        validateAssignableHousekeeper(assignedTo, locale);
 
         User assignedBy = userRepository.findById(request.getAssignedById())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.user.notfound", null, locale)));
+
+        ensureNoActiveTaskForRoom(room.getId(), locale);
 
         TaskStatus initialStatus = (request.getStartedAt() != null
                 && !request.getStartedAt().isAfter(LocalDateTime.now()))
@@ -97,6 +102,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                 .build();
 
         HouseKeepingTask saved = taskRepository.save(task);
+        syncHousekeeperWorkStatus(saved.getAssignedTo(), saved.getTaskStatus());
 
         // Chuyển sang RoomStatus.CLEANING khi tạo task dọn phòng
         if (saved.getTaskStatus() == TaskStatus.IN_PROGRESS) {
@@ -109,6 +115,10 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                     ProcessTrigger.TASK_CLEANING
             );
         }
+
+        // Gửi email thông báo cho housekeeper được gán task
+        sendTaskNotification(assignedTo, room.getRoomNumber(), request.getNotes());
+        sendInAppTaskNotification(assignedTo, room.getRoomNumber(), request.getNotes());
 
         return taskMapper.toResponse(saved);
     }
@@ -136,14 +146,16 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         validateTaskTransition(oldStatus, newStatus);
 
         task.setTaskStatus(newStatus);
-
-        task.setTaskStatus(newStatus);
         updateBusinessTimestamps(task, request, newStatus);
 
         HouseKeepingTask updated = taskRepository.save(task);
 
         // Cập nhật trạng thái phòng dựa trên trạng thái task mới
         updateRoomStatusByTaskStatus(updated, newStatus);
+        syncHousekeeperWorkStatus(updated.getAssignedTo(), newStatus);
+        if (newStatus == TaskStatus.CANCELLED) {
+            reassignCancelledTask(updated);
+        }
 
         return taskMapper.toResponse(updated);
     }
@@ -276,6 +288,51 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         }
     }
 
+    private void ensureNoActiveTaskForRoom(Long roomId, Locale locale) {
+        boolean hasActiveTask = taskRepository.existsByRoom_IdAndTaskStatusIn(
+                roomId,
+                List.of(TaskStatus.PENDING, TaskStatus.IN_PROGRESS)
+        );
+        if (hasActiveTask) {
+            throw new ConflictException(messageSource.getMessage("error.task.room.active.exists", null, locale));
+        }
+    }
+
+    private void validateAssignableHousekeeper(User user, Locale locale) {
+        String roleName = user.getRole() == null ? null : user.getRole().getRoleName();
+        if (!"HOUSEKEEPER".equalsIgnoreCase(roleName) || user.getAccountStatus() != AccountStatus.ACTIVE) {
+            throw new ConflictException(messageSource.getMessage("error.housekeeper.invalid", null, locale));
+        }
+        if (user.getWorkStatus() == StaffWorkStatus.OFF) {
+            throw new ConflictException(messageSource.getMessage("error.housekeeper.notavailable", null, locale));
+        }
+    }
+
+    private void syncHousekeeperWorkStatus(User housekeeper, TaskStatus taskStatus) {
+        if (housekeeper == null || housekeeper.getWorkStatus() == StaffWorkStatus.OFF) {
+            return;
+        }
+
+        if (taskStatus == TaskStatus.IN_PROGRESS) {
+            housekeeper.setWorkStatus(StaffWorkStatus.WORKING);
+            userRepository.save(housekeeper);
+            return;
+        }
+
+        if (taskStatus == TaskStatus.COMPLETED
+                || taskStatus == TaskStatus.CANCELLED
+                || taskStatus == TaskStatus.SKIPPED) {
+            boolean stillWorking = taskRepository.existsByAssignedTo_IdAndTaskStatus(
+                    housekeeper.getId(),
+                    TaskStatus.IN_PROGRESS
+            );
+            if (!stillWorking) {
+                housekeeper.setWorkStatus(StaffWorkStatus.AVAILABLE);
+                userRepository.save(housekeeper);
+            }
+        }
+    }
+
 
     private void changeRoomStatus(Room room, RoomStatus newStatus, User changedBy,
                                   HouseKeepingTask task, String reason, ProcessTrigger processName) {
@@ -335,34 +392,128 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
     @Override
     @Transactional
-    public void reportMinibar(Long id, MinibarReportRequest request) {
-        HouseKeepingTask task = findTaskById(id);
-        Room room = task.getRoom();
+    public void autoCreateCleaningTaskOnCheckout(Long roomId, Long triggeredByUserId) {
+        Locale locale = LocaleContextHolder.getLocale();
 
-        com.hms.entity.booking.Booking booking = bookingRepository.findActiveBookingByRoomId(room.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng đang hoạt động cho phòng này"));
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.room.notfound", null, locale)));
 
-        java.math.BigDecimal waterCost = java.math.BigDecimal.valueOf(request.getWater()).multiply(java.math.BigDecimal.valueOf(10000));
-        java.math.BigDecimal colaCost = java.math.BigDecimal.valueOf(request.getCola()).multiply(java.math.BigDecimal.valueOf(20000));
-        java.math.BigDecimal beerCost = java.math.BigDecimal.valueOf(request.getBeer()).multiply(java.math.BigDecimal.valueOf(35000));
-        java.math.BigDecimal snackCost = java.math.BigDecimal.valueOf(request.getSnack()).multiply(java.math.BigDecimal.valueOf(15000));
-        java.math.BigDecimal total = waterCost.add(colaCost).add(beerCost).add(snackCost);
+        // Tìm housekeeper có ít task nhất (round-robin by workload)
+        if (taskRepository.existsByRoom_IdAndTaskStatusIn(roomId, List.of(TaskStatus.PENDING, TaskStatus.IN_PROGRESS))) {
+            log.info("[AUTO-ASSIGN] Room {} already has active housekeeping task. Skip auto-create.",
+                    room.getRoomNumber());
+            return;
+        }
 
-        List<String> items = new java.util.ArrayList<>();
-        if (request.getWater() > 0) items.add(request.getWater() + " Nước suối Aquafina");
-        if (request.getCola() > 0) items.add(request.getCola() + " Coca-Cola / Pepsi");
-        if (request.getBeer() > 0) items.add(request.getBeer() + " Bia Heineken");
-        if (request.getSnack() > 0) items.add(request.getSnack() + " Snack khoai tây");
-        String note = String.join(", ", items);
+        List<User> housekeepers = userRepository.findHousekeepersOrderByTaskCountAsc();
 
-        com.hms.dto.checkout.request.CheckoutRequestDTO checkoutRequest = new com.hms.dto.checkout.request.CheckoutRequestDTO();
-        checkoutRequest.setBookingId(booking.getId());
-        checkoutRequest.setAdditionalCharges(total);
-        checkoutRequest.setChargeNote(total.signum() > 0 ? "Tiêu thụ Minibar: " + note : "");
-        checkoutRequest.setPaymentMethod(null);
-        checkoutRequest.setCashReceived(null);
-        checkoutRequest.setPaymentConfirmed(false);
+        if (housekeepers.isEmpty()) {
+            log.warn("[AUTO-ASSIGN] No AVAILABLE housekeeper found for room {}. " +
+                     "Task will NOT be auto-created. Please assign manually.", room.getRoomNumber());
+            return;
+        }
 
-        checkoutService.confirmPayment(checkoutRequest, null);
+        User assignedHousekeeper = housekeepers.get(0);
+
+        // Xác định user thực hiện checkout (assignedBy)
+        User assignedBy = null;
+        if (triggeredByUserId != null) {
+            assignedBy = userRepository.findById(triggeredByUserId).orElse(null);
+        }
+        if (assignedBy == null) {
+            assignedBy = assignedHousekeeper; // fallback: self-assigned
+        }
+
+        String notes = "Auto-created on checkout — Room " + room.getRoomNumber();
+
+        HouseKeepingTask task = HouseKeepingTask.builder()
+                .room(room)
+                .assignedTo(assignedHousekeeper)
+                .assignedBy(assignedBy)
+                .taskStatus(TaskStatus.PENDING)
+                .notes(notes)
+                .build();
+
+        HouseKeepingTask saved = taskRepository.save(task);
+
+        log.info("[AUTO-ASSIGN] Created cleaning task #{} for room {} -> assigned to {} (ID: {})",
+                saved.getId(), room.getRoomNumber(),
+                assignedHousekeeper.getFullName(), assignedHousekeeper.getId());
+
+        // Gửi email thông báo cho housekeeper
+        sendTaskNotification(assignedHousekeeper, room.getRoomNumber(), notes);
+        sendInAppTaskNotification(assignedHousekeeper, room.getRoomNumber(), notes);
     }
+
+    private void reassignCancelledTask(HouseKeepingTask cancelledTask) {
+        if (cancelledTask.getRoom() == null) {
+            return;
+        }
+
+        User previousAssignee = cancelledTask.getAssignedTo();
+        Long excludedUserId = previousAssignee == null ? null : previousAssignee.getId();
+        List<User> candidates = userRepository.findHousekeepersOrderByTaskCountAscExcluding(excludedUserId);
+
+        if (candidates.isEmpty()) {
+            log.warn("[AUTO-REASSIGN] No AVAILABLE replacement housekeeper found for cancelled task #{} in room {}.",
+                    cancelledTask.getId(), cancelledTask.getRoom().getRoomNumber());
+            return;
+        }
+
+        User newAssignee = candidates.get(0);
+        User assignedBy = cancelledTask.getAssignedBy() != null
+                ? cancelledTask.getAssignedBy()
+                : newAssignee;
+        String notes = "Reassigned after cancellation - Room " + cancelledTask.getRoom().getRoomNumber();
+
+        HouseKeepingTask reassignedTask = taskRepository.save(HouseKeepingTask.builder()
+                .room(cancelledTask.getRoom())
+                .assignedTo(newAssignee)
+                .assignedBy(assignedBy)
+                .taskStatus(TaskStatus.PENDING)
+                .notes(notes)
+                .build());
+
+        log.info("[AUTO-REASSIGN] Created replacement cleaning task #{} for room {} -> assigned to {} (ID: {})",
+                reassignedTask.getId(), cancelledTask.getRoom().getRoomNumber(),
+                newAssignee.getFullName(), newAssignee.getId());
+
+        sendTaskNotification(newAssignee, cancelledTask.getRoom().getRoomNumber(), notes);
+        sendInAppTaskNotification(newAssignee, cancelledTask.getRoom().getRoomNumber(), notes);
+    }
+
+    /**
+     * Gửi email thông báo gán task cho housekeeper (async-safe, không throw exception).
+     */
+    private void sendTaskNotification(User housekeeper, String roomNumber, String notes) {
+        try {
+            emailService.sendTaskAssignmentNotification(
+                    housekeeper.getEmail(),
+                    housekeeper.getFullName(),
+                    roomNumber,
+                    notes
+            );
+        } catch (Exception e) {
+            log.warn("[NOTIFICATION] Failed to send task assignment email to {} : {}",
+                    housekeeper.getEmail(), e.getMessage());
+        }
+    }
+
+    private void sendInAppTaskNotification(User housekeeper, String roomNumber, String notes) {
+        try {
+            notificationService.notify(
+                    housekeeper,
+                    "Bạn có nhiệm vụ buồng phòng mới",
+                    "Phòng " + roomNumber + " vừa được gán cho bạn."
+                            + (notes == null || notes.isBlank() ? "" : " Ghi chú: " + notes),
+                    "/dashboard/housekeeping"
+            );
+        } catch (Exception e) {
+            log.warn("[NOTIFICATION] Failed to create in-app task notification for {} : {}",
+                    housekeeper != null ? housekeeper.getEmail() : null,
+                    e.getMessage());
+        }
+    }
+
 }
