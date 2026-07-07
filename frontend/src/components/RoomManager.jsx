@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, RefreshCw, Map as MapIcon, BedDouble, Layers3 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
 import {
   getAllRooms,
   getRoomTypes,
@@ -17,31 +17,6 @@ import Toast from './shared/Toast';
 const STATUS_COLORS = {
   AVAILABLE: 'bg-emerald-100 text-emerald-700',
   MAINTENANCE: 'bg-amber-100 text-amber-700',
-};
-
-const MAP_STATUS_STYLES = {
-  AVAILABLE: 'border-emerald-400 bg-emerald-100 text-emerald-800',
-  READY: 'border-cyan-400 bg-cyan-100 text-cyan-800',
-  RESERVED: 'border-amber-400 bg-amber-100 text-amber-800',
-  OCCUPIED: 'border-red-400 bg-red-100 text-red-800',
-  CLEANING: 'border-violet-400 bg-violet-100 text-violet-800',
-  DIRTY: 'border-orange-400 bg-orange-100 text-orange-800',
-  MAINTENANCE: 'border-slate-500 bg-slate-200 text-slate-800',
-  CHECKOUT_PENDING: 'border-pink-400 bg-pink-100 text-pink-800',
-  INACTIVE: 'border-stone-300 bg-stone-100 text-stone-500',
-};
-
-const STATUS_LABELS = {
-  vi: {
-    AVAILABLE: 'Phòng trống', READY: 'Sẵn sàng', RESERVED: 'Đã đặt', OCCUPIED: 'Đang ở',
-    CLEANING: 'Đang dọn', DIRTY: 'Chờ dọn', MAINTENANCE: 'Bảo trì',
-    CHECKOUT_PENDING: 'Chờ trả phòng', INACTIVE: 'Ngừng hoạt động',
-  },
-  en: {
-    AVAILABLE: 'Available', READY: 'Ready', RESERVED: 'Reserved', OCCUPIED: 'Occupied',
-    CLEANING: 'Cleaning', DIRTY: 'Dirty', MAINTENANCE: 'Maintenance',
-    CHECKOUT_PENDING: 'Checkout pending', INACTIVE: 'Inactive',
-  },
 };
 
 const EMPTY_FORM = { roomTypeId: '', floorNumber: '', description: '' };
@@ -77,9 +52,6 @@ export default function RoomManager({ readOnly = false }) {
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [mapOpen, setMapOpen] = useState(false);
-  const [mapLoading, setMapLoading] = useState(false);
-  const [mapRooms, setMapRooms] = useState([]);
 
   useEffect(() => {
     if (!files || files.length === 0) {
@@ -157,32 +129,6 @@ export default function RoomManager({ readOnly = false }) {
   };
 
   const closeModal = () => setModal({ open: false, editing: null });
-
-  const openRoomMap = async () => {
-    setMapOpen(true);
-    setMapLoading(true);
-    try {
-      const res = await getAllRooms({ page: 0, size: 1000 }, locale);
-      setMapRooms(res?.data?.content ?? []);
-    } catch (e) {
-      notify(e.message || (locale === 'vi' ? 'Không thể tải bản đồ phòng.' : 'Could not load room map.'), 'error');
-      setMapOpen(false);
-    } finally {
-      setMapLoading(false);
-    }
-  };
-
-  const roomsByFloor = useMemo(() => {
-    const grouped = mapRooms.reduce((result, room) => {
-      const floor = Number(room.floorNumber || 0);
-      if (!result[floor]) result[floor] = [];
-      result[floor].push(room);
-      return result;
-    }, {});
-    return Object.entries(grouped)
-        .sort(([floorA], [floorB]) => Number(floorA) - Number(floorB))
-        .map(([floor, rooms]) => [floor, rooms.sort((a, b) => String(a.roomNumber).localeCompare(String(b.roomNumber), undefined, { numeric: true }))]);
-  }, [mapRooms]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -370,9 +316,6 @@ export default function RoomManager({ readOnly = false }) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={openRoomMap} className="flex items-center gap-2 rounded border border-[#bfa15f] bg-white px-4 py-2 text-sm font-semibold text-[#9b7d3f] shadow-sm hover:bg-[#bfa15f]/10">
-              <MapIcon size={16} /> {locale === 'vi' ? 'Xem bản đồ phòng' : 'Room map'}
-            </button>
             {!isReadOnly && (
                 <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
                   <Plus size={16} /> {t('room.addBtn')}
@@ -383,8 +326,8 @@ export default function RoomManager({ readOnly = false }) {
 
         <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
 
-        <Modal
-            open={mapOpen}
+        {false && (<Modal
+            open={false}
             title={locale === 'vi' ? 'Bản đồ trạng thái phòng' : 'Room status map'}
             onClose={() => setMapOpen(false)}
             size="2xl"
@@ -455,7 +398,7 @@ export default function RoomManager({ readOnly = false }) {
                 ))}
               </div>
           )}
-        </Modal>
+        </Modal>)}
 
         <Modal open={modal.open} title={modal.editing ? t('room.modal.editTitle') : t('room.modal.addTitle')} onClose={closeModal}>
           <form onSubmit={handleSave} className="space-y-4">

@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -42,6 +43,7 @@ public class CheckoutServiceImpl implements CheckoutService {
     public CheckoutResponseDTO getBill(Long bookingId) {
         Booking booking = findBooking(bookingId);
         validateCheckedIn(booking);
+        validateCheckoutTime(booking);
         return response(booking, booking.getInvoice(), null);
     }
 
@@ -51,6 +53,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         Booking booking = bookingRepository.findByIdWithPessimisticWrite(request.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng #" + request.getBookingId()));
         validateCheckedIn(booking);
+        validateCheckoutTime(booking);
         Invoice invoice = requireInvoice(booking);
         BigDecimal charges = value(request.getAdditionalCharges());
         PaymentMethod method = request.getPaymentMethod();
@@ -100,6 +103,7 @@ public class CheckoutServiceImpl implements CheckoutService {
             return response(booking, requireInvoice(booking), RoomStatus.DIRTY);
         }
         validateCheckedIn(booking);
+        validateCheckoutTime(booking);
         Invoice invoice = requireInvoice(booking);
         List<Room> rooms = roomsOf(booking);
         if (rooms.stream().anyMatch(room -> room.getRoomStatus() != RoomStatus.CHECKOUT_PENDING)) {
@@ -123,6 +127,14 @@ public class CheckoutServiceImpl implements CheckoutService {
     private void validateCheckedIn(Booking booking) {
         if (booking.getBookingStatus() != BookingStatus.CHECKED_IN) {
             throw new ConflictException("Chỉ có thể check-out đơn đang ở trạng thái CHECKED_IN.");
+        }
+    }
+
+    private void validateCheckoutTime(Booking booking) {
+        LocalDateTime now = LocalDateTime.now();
+        if (!now.toLocalDate().isEqual(booking.getCheckOutDate().toLocalDate())
+                || !now.toLocalTime().isBefore(LocalTime.NOON)) {
+            throw new ConflictException("Chỉ được check-out trước 12:00 trong đúng ngày trả phòng đã đặt.");
         }
     }
 

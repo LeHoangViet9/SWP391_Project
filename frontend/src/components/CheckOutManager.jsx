@@ -11,7 +11,7 @@ const money = value => new Intl.NumberFormat('vi-VN', { style: 'currency', curre
 const dateTime = value => value ? new Date(value).toLocaleString('vi-VN') : '-';
 const emptyForm = { additionalCharges: 0, chargeNote: '', paymentMethod: 'CASH', cashReceived: '', paymentConfirmed: false };
 
-export default function CheckOutManager() {
+export default function CheckOutManager({ preferredRoom = null }) {
   const { hasPermission } = usePermission();
   const canProcess = hasPermission('CHECKOUT_PROCESS');
   const [bookings, setBookings] = useState([]);
@@ -37,10 +37,13 @@ export default function CheckOutManager() {
 
   const rows = useMemo(() => {
     const q = keyword.trim().toLowerCase();
-    if (!q) return bookings;
-    return bookings.filter(item => [item.id, item.customerName, item.guestFullName, item.roomNumber, item.roomTypeName]
-      .some(value => String(value || '').toLowerCase().includes(q)));
-  }, [bookings, keyword]);
+    return bookings.filter(item => {
+      const matchesRoom = !preferredRoom || item.roomId === preferredRoom.id || item.roomIds?.includes(preferredRoom.id)
+        || item.roomNumber === preferredRoom.roomNumber || item.roomNumbers?.includes(preferredRoom.roomNumber);
+      return matchesRoom && (!q || [item.id, item.customerName, item.guestFullName, item.roomNumber, item.roomTypeName]
+        .some(value => String(value || '').toLowerCase().includes(q)));
+    });
+  }, [bookings, keyword, preferredRoom]);
 
   async function openCheckout(booking) {
     setSelected(booking); setBill(null); setStage('CHARGES'); setForm(emptyForm);

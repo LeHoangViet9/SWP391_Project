@@ -21,7 +21,7 @@ function normalizeText(value) {
   return String(value ?? '').trim().toLowerCase();
 }
 
-export default function CheckInManager() {
+export default function CheckInManager({ preferredRoom = null }) {
   const { hasPermission } = usePermission();
   const canProcessCheckIn = hasPermission('CHECKIN_PROCESS');
   const [bookings, setBookings] = useState([]);
@@ -75,8 +75,12 @@ export default function CheckInManager() {
 
   const filteredBookings = useMemo(() => {
     const q = normalizeText(keyword);
-    if (!q) return bookings;
     return bookings.filter((booking) => {
+      const matchesRoom = !preferredRoom || booking.roomIds?.includes(preferredRoom.id)
+        || booking.roomId === preferredRoom.id
+        || (!booking.roomId && booking.roomTypeId === (preferredRoom.roomTypeId || preferredRoom.roomType?.id));
+      if (!matchesRoom) return false;
+      if (!q) return true;
       return [
         booking.id,
         booking.customerName,
@@ -87,11 +91,11 @@ export default function CheckInManager() {
         booking.roomNumber,
       ].some((value) => normalizeText(value).includes(q));
     });
-  }, [bookings, keyword]);
+  }, [bookings, keyword, preferredRoom]);
 
   const openCheckInModal = async (booking) => {
     setSelectedBooking(booking);
-    setSelectedRoomId(booking.roomId ? String(booking.roomId) : '');
+    setSelectedRoomId(preferredRoom?.id ? String(preferredRoom.id) : (booking.roomId ? String(booking.roomId) : ''));
     setAvailableRooms([]);
     setCheckInResult(null);
     setGuestInfoConfirmed(false);

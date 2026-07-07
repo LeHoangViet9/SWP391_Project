@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 
@@ -74,12 +75,14 @@ public class CheckInServiceImpl implements CheckInService {
 
         verifyStayGuestInfoBeforeCheckIn(booking, request, locale);
 
-        // 2. Validate Time (Basic validation: Check-in date should not be in the future beyond today)
+        // Check-in is allowed from 14:00 on the booked check-in date.
         LocalDateTime now = LocalDateTime.now();
-        if (now.toLocalDate().isBefore(booking.getCheckInDate().toLocalDate())) {
+        if (now.toLocalDate().isBefore(booking.getCheckInDate().toLocalDate())
+                || (now.toLocalDate().isEqual(booking.getCheckInDate().toLocalDate())
+                && now.toLocalTime().isBefore(LocalTime.of(14, 0)))) {
             throw new ConflictException(
                     messageSource.getMessage(
-                            "error.checkin.too.early",
+                            "error.checkin.before.standard.time",
                             new Object[]{booking.getCheckInDate().toLocalDate()},
                             locale
                     )
