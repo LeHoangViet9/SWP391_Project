@@ -19,9 +19,13 @@ public class AuditLogResponse {
     private String actorRole;
     private String actorEmail;
     private String action;
+    private String actionLabel;
     private String module;
+    private String moduleLabel;
     private Map<String, Object> message;
     private String status;
+    private String statusLabel;
+    private String messageText;
     private String errorMessage;
     private Instant createdAt;
 }
