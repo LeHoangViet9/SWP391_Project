@@ -1,6 +1,7 @@
 package com.hms.entity.hotel;
 
-import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.hms.common.enums.AccountStatus;
 import jakarta.persistence.*;
@@ -30,4 +31,8 @@ public class RoomType {
     private Integer maxGuests;
     @Enumerated(EnumType.STRING)
     private AccountStatus status = AccountStatus.ACTIVE;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "roomType", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<RoomTypeImage> images = new ArrayList<>();
 }
