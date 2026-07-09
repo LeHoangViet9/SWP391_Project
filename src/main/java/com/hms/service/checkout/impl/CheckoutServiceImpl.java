@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 
@@ -188,6 +189,7 @@ public class CheckoutServiceImpl implements CheckoutService {
         }
 
         validateCheckedIn(booking);
+        validateCheckoutTime(booking);
         Invoice invoice = requireInvoice(booking);
         List<Room> rooms = roomsOf(booking);
 
@@ -224,6 +226,14 @@ public class CheckoutServiceImpl implements CheckoutService {
         }
     }
 
+    private void validateCheckoutTime(Booking booking) {
+        LocalDateTime now = LocalDateTime.now();
+        if (!now.toLocalDate().isEqual(booking.getCheckOutDate().toLocalDate())
+                || !now.toLocalTime().isBefore(LocalTime.NOON)) {
+            throw new ConflictException("Chỉ được check-out trước 12:00 trong đúng ngày trả phòng đã đặt.");
+        }
+    }
+
     private Invoice requireInvoice(Booking booking) {
         Locale locale = LocaleContextHolder.getLocale();
         if (booking.getInvoice() == null) {
@@ -241,11 +251,11 @@ public class CheckoutServiceImpl implements CheckoutService {
 
     private void changeRoom(Room room, RoomStatus status, User user, String reason) {
         RoomStatus previous = room.getRoomStatus();
-
+        
         // Prevent regression of room state if the task has already progressed
-        if (status == RoomStatus.DIRTY && (previous == RoomStatus.CLEANING
-                || previous == RoomStatus.READY
-                || previous == RoomStatus.MAINTENANCE
+        if (status == RoomStatus.DIRTY && (previous == RoomStatus.CLEANING 
+                || previous == RoomStatus.READY 
+                || previous == RoomStatus.MAINTENANCE 
                 || previous == RoomStatus.AVAILABLE)) {
             return;
         }
