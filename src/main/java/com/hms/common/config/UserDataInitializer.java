@@ -49,11 +49,16 @@ public class UserDataInitializer implements ApplicationRunner {
     private final JdbcTemplate jdbcTemplate;
 
     @Override
-    @Transactional
     public void run(ApplicationArguments args) {
         try {
             log.info("========== Updating room_state_history check constraints ==========");
             jdbcTemplate.execute("ALTER TABLE room_state_history DROP CONSTRAINT IF EXISTS room_state_history_triggered_by_process_check");
+            
+            // Clean up any historical rows violating the check constraint by setting them to a valid fallback
+            jdbcTemplate.execute("UPDATE room_state_history SET triggered_by_process = 'CHECKIN' " +
+                    "WHERE triggered_by_process NOT IN ('TASK_CLEANING', 'TASK_IN_PROGRESS', 'TASK_COMPLETION', " +
+                    "'TASK_CANCELLATION', 'TASK_SKIPPED', 'TASK_MAINTENANCE', 'CHECKIN', 'CHECKOUT')");
+
             jdbcTemplate.execute("ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_triggered_by_process_check " +
                     "CHECK (triggered_by_process IN ('TASK_CLEANING', 'TASK_IN_PROGRESS', 'TASK_COMPLETION', " +
                     "'TASK_CANCELLATION', 'TASK_SKIPPED', 'TASK_MAINTENANCE', 'CHECKIN', 'CHECKOUT'))");

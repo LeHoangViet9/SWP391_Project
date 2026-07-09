@@ -12,6 +12,7 @@ import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.BillingUtils;
 import com.hms.common.utils.PageableUtils;
+import com.hms.common.utils.TimeUtils;
 import com.hms.dto.booking.request.BookingRequest;
 import com.hms.dto.booking.request.BookingRoomAssignRequest;
 import com.hms.dto.booking.request.BookingStatusRequest;
@@ -507,10 +508,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BigDecimal calculateTotalPrice(RoomType roomType, BookingRequest request){
-        long nights = ChronoUnit.DAYS.between(request.getCheckInDate().toLocalDate(), request.getCheckOutDate().toLocalDate());
-        if (nights <= 0) {
-            nights = 1;
-        }
+        long nights = TimeUtils.calculateNightsMinimumOne(request.getCheckInDate(), request.getCheckOutDate());
         BigDecimal roomCharge = BillingUtils.calculateRoomChargePerNight(BigDecimal.valueOf(roomType.getBasePrice()), nights);
         return roomCharge.multiply(BigDecimal.valueOf(request.getQuantity()));
     }

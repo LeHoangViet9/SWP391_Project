@@ -108,4 +108,19 @@ public interface UserRepository extends JpaRepository<User,Long> {
             ORDER BY COUNT(t) ASC
             """)
     List<User> findHousekeepersOrderByTaskCountAsc();
+
+    /**
+     * Tìm maintenance staff ACTIVE + AVAILABLE, loại trừ các ID đã từ chối.
+     * Sắp xếp theo số lượng task đang làm tăng dần (người ít việc nhất được ưu tiên).
+     */
+    @Query("""
+            SELECT u FROM User u
+            WHERE UPPER(u.role.roleName) = 'MAINTENANCE'
+                AND u.accountStatus = com.hms.common.enums.AccountStatus.ACTIVE
+                AND u.workStatus = com.hms.common.enums.StaffWorkStatus.AVAILABLE
+                AND (:deniedIds IS NULL OR u.id NOT IN :deniedIds)
+            ORDER BY u.id ASC
+            """)
+    List<User> findAvailableMaintenanceStaffExcluding(@Param("deniedIds") List<Long> deniedIds);
 }
+

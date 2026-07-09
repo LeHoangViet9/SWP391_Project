@@ -6,6 +6,7 @@ import {
     Clock, CheckCircle2, XCircle, Loader2, History,
     BedDouble, User, SortAsc, SortDesc,
     LayoutGrid, TableIcon, Wrench, ClipboardList,
+    Minus, FileText, Loader,
 } from 'lucide-react';
 import Toast from './shared/Toast';
 import { housekeepingService } from '../services/housekeepingService';
@@ -94,8 +95,26 @@ const DeleteConfirmModal = ({ task, onConfirm, onClose, loading }) => (
 /** Task Detail Drawer (side panel) */
 // readOnly: if true, hides edit button
 // readOnly: if true, hides edit button
-const TaskDetailDrawer = ({ task, onClose, onEdit, locale, readOnly = false }) => {
+const TaskDetailDrawer = ({
+    task,
+    onClose,
+    onEdit,
+    onUpdateStatus,
+    onReportMinibar,
+    onReportIssue,
+    locale,
+    readOnly = false,
+    actionLoading = false
+}) => {
     if (!task) return null;
+
+    const nextActions = {
+        PENDING: { label: 'Nhận việc', labelEn: 'Accept', nextStatus: 'IN_PROGRESS', btnClass: 'bg-amber-500 hover:bg-amber-600 text-white' },
+        IN_PROGRESS: { label: 'Hoàn thành', labelEn: 'Complete', nextStatus: 'COMPLETED', btnClass: 'bg-emerald-500 hover:bg-emerald-600 text-white' }
+    };
+
+    const nextAction = nextActions[task.status];
+
     return (
         <div className="fixed inset-0 z-[60] flex">
             <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -148,6 +167,47 @@ const TaskDetailDrawer = ({ task, onClose, onEdit, locale, readOnly = false }) =
                         <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
                             <p className="text-xs text-amber-600 font-bold uppercase tracking-wide mb-2">Ghi chú</p>
                             <p className="text-sm text-slate-700 leading-relaxed">{task.notes}</p>
+                        </div>
+                    )}
+
+                    {readOnly && (
+                        <div className="pt-4 border-t border-stone-100 space-y-3">
+                            {nextAction && (
+                                <button
+                                    onClick={() => onUpdateStatus(task.id, nextAction.nextStatus)}
+                                    disabled={actionLoading}
+                                    className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 ${nextAction.btnClass}`}
+                                >
+                                    {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                                    {locale === 'en' ? nextAction.labelEn : nextAction.label}
+                                </button>
+                            )}
+
+                            {(task.status === 'PENDING' || task.status === 'IN_PROGRESS') && (
+                                <button
+                                    onClick={() => onUpdateStatus(task.id, 'CANCELLED')}
+                                    disabled={actionLoading}
+                                    className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
+                                >
+                                    <X size={16} /> {locale === 'en' ? 'Cancel' : 'Hủy việc'}
+                                </button>
+                            )}
+
+                            {task.status === 'IN_PROGRESS' && (
+                                <button
+                                    onClick={() => onReportMinibar(task)}
+                                    className="w-full py-3 flex items-center justify-center gap-2 bg-[#bfa15f] hover:bg-[#a3874c] text-white rounded-xl text-sm font-bold transition-all shadow-sm"
+                                >
+                                    <FileText size={16} /> Kê khai & Báo cáo Minibar
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => onReportIssue(task.roomId)}
+                                className="w-full py-3 flex items-center justify-center gap-2 border border-red-200 text-red-600 rounded-xl text-sm font-bold hover:bg-red-50 transition-colors"
+                            >
+                                <AlertTriangle size={15} /> Báo cáo sự cố phòng này
+                            </button>
                         </div>
                     )}
                 </div>
@@ -302,8 +362,8 @@ const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
     );
 };
 /** Report Room Issue Modal */
-const ReportIssueModal = ({ onSubmit, onClose, loading }) => {
-    const [form, setForm] = useState({ roomId: '', issueDescription: '', severity: 'MEDIUM' });
+const ReportIssueModal = ({ defaultRoomId = '', onSubmit, onClose, loading }) => {
+    const [form, setForm] = useState({ roomId: defaultRoomId, issueDescription: '', severity: 'MEDIUM' });
     const [errors, setErrors] = useState({});
     const validate = () => {
         const errs = {};
@@ -366,6 +426,95 @@ const ReportIssueModal = ({ onSubmit, onClose, loading }) => {
                             className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
                             {loading ? <Loader2 size={16} className="animate-spin" /> : <Wrench size={16} />}
                             Gửi báo cáo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+/** Minibar Report Modal */
+const MinibarReportMiniModal = ({ task, onSubmit, onClose, loading }) => {
+    const [quantities, setQuantities] = useState({ water: 0, cola: 0, beer: 0, snack: 0 });
+
+    const handleUpdateQuantity = (item, delta) => {
+        setQuantities(prev => {
+            const val = Math.max(0, (prev[item] || 0) + delta);
+            return { ...prev, [item]: val };
+        });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSubmit(task.id, quantities);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 animate-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                        <BedDouble size={18} className="text-[#bfa15f]" /> Kê khai Minibar - Phòng {task.roomNumber || task.roomId}
+                    </h3>
+                    <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-stone-100 text-slate-400"><X size={18} /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <p className="text-xs text-slate-500">Vui lòng kiểm tra thực tế trong phòng và nhập số lượng đồ uống đã tiêu thụ.</p>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Nước suối Aquafina</p>
+                                <p className="text-xs text-slate-400">10,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('water', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.water}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('water', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Coca-Cola / Pepsi</p>
+                                <p className="text-xs text-slate-400">20,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('cola', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.cola}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('cola', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Bia Heineken</p>
+                                <p className="text-xs text-slate-400">35,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('beer', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.beer}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('beer', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Snack khoai tây</p>
+                                <p className="text-xs text-slate-400">15,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('snack', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.snack}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('snack', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm font-bold text-slate-600">Hủy</button>
+                        <button type="submit" disabled={loading}
+                            className="flex-1 py-2.5 bg-[#bfa15f] hover:bg-[#a3874c] text-white rounded-xl text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2">
+                            {loading ? <Loader size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Gửi báo cáo
                         </button>
                     </div>
                 </form>
@@ -523,6 +672,9 @@ export default function HousekeepingManager({ readOnly = false }) {
     const [showDetailDrawer, setShowDetailDrawer] = useState(false);
     const [showIssueModal, setShowIssueModal] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [showMinibarModal, setShowMinibarModal] = useState(false);
+    const [minibarTask, setMinibarTask] = useState(null);
+    const [reportRoomId, setReportRoomId] = useState(null);
     const [selectedTask, setSelectedTask] = useState(null);
     const notify = (message, type = 'success') => setToast({ type, message });
     // ── Normalize backend response field names ───────────────────────────────
@@ -636,12 +788,44 @@ export default function HousekeepingManager({ readOnly = false }) {
             setActionLoading(false);
         }
     };
+    const handleUpdateStatus = async (taskId, newStatus) => {
+        setActionLoading(true);
+        try {
+            const res = await housekeepingService.updateTask(taskId, { status: newStatus }, locale);
+            notify(res?.message || 'Cập nhật trạng thái thành công!');
+            fetchTasks();
+            if (selectedTask && selectedTask.id === taskId) {
+                setSelectedTask(prev => ({ ...prev, status: newStatus }));
+            }
+        } catch (err) {
+            notify(err?.message || 'Cập nhật thất bại', 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+    const handleReportMinibar = async (taskId, quantities) => {
+        setActionLoading(true);
+        try {
+            const res = await housekeepingService.reportMinibar(taskId, quantities, locale);
+            notify(res?.message || 'Đã gửi báo cáo tiêu dùng Minibar thành công!');
+            setShowMinibarModal(false);
+            setMinibarTask(null);
+        } catch (err) {
+            notify(err?.message || 'Không tìm thấy đặt phòng hoặc gửi thất bại.', 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
     const handleReportIssue = async (roomId, payload) => {
         setActionLoading(true);
         try {
-            const res = await housekeepingService.reportRoomIssue(roomId, payload, locale);
+            const res = await housekeepingService.reportRoomIssue(roomId, {
+                ...payload,
+                reportedById: user?.id
+            }, locale);
             notify(res?.message || 'Đã gửi báo cáo sự cố!');
             setShowIssueModal(false);
+            setReportRoomId(null);
         } catch (err) {
             notify(err?.message || 'Gửi báo cáo thất bại', 'error');
         } finally {
@@ -687,13 +871,36 @@ export default function HousekeepingManager({ readOnly = false }) {
                     onConfirm={handleDeleteTask} onClose={() => { setShowDeleteModal(false); setSelectedTask(null); }} loading={actionLoading} />
             )}
             {showDetailDrawer && selectedTask && (
-                <TaskDetailDrawer task={selectedTask} onClose={() => setShowDetailDrawer(false)} onEdit={openEdit} locale={locale} readOnly={readOnly} />
+                <TaskDetailDrawer
+                    task={selectedTask}
+                    onClose={() => setShowDetailDrawer(false)}
+                    onEdit={openEdit}
+                    onUpdateStatus={handleUpdateStatus}
+                    onReportMinibar={(task) => { setMinibarTask(task); setShowMinibarModal(true); }}
+                    onReportIssue={(roomId) => { setReportRoomId(roomId); setShowIssueModal(true); }}
+                    locale={locale}
+                    readOnly={readOnly}
+                    actionLoading={actionLoading}
+                />
             )}
             {showIssueModal && (
-                <ReportIssueModal onSubmit={handleReportIssue} onClose={() => setShowIssueModal(false)} loading={actionLoading} />
+                <ReportIssueModal
+                    defaultRoomId={reportRoomId || ''}
+                    onSubmit={handleReportIssue}
+                    onClose={() => { setShowIssueModal(false); setReportRoomId(null); }}
+                    loading={actionLoading}
+                />
             )}
             {showHistoryModal && (
                 <RoomHistoryModal onClose={() => setShowHistoryModal(false)} />
+            )}
+            {showMinibarModal && minibarTask && (
+                <MinibarReportMiniModal
+                    task={minibarTask}
+                    onSubmit={handleReportMinibar}
+                    onClose={() => { setShowMinibarModal(false); setMinibarTask(null); }}
+                    loading={actionLoading}
+                />
             )}
             {/* ── Header ─────────────────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-center justify-between gap-3">

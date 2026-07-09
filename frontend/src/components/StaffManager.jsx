@@ -27,6 +27,7 @@ const STATUS_OPTIONS = [
 const WORK_STATUS_CONFIG = {
   AVAILABLE: { label: 'Sẵn sàng', className: 'bg-emerald-100 text-emerald-700' },
   WORKING: { label: 'Đang làm việc', className: 'bg-amber-100 text-amber-700' },
+  WAITING_CONFIRM: { label: 'Chờ xác nhận', className: 'bg-blue-100 text-blue-700' },
   OFF: { label: 'Đang nghỉ', className: 'bg-slate-100 text-slate-600' },
 };
 
@@ -206,7 +207,7 @@ export default function StaffManager() {
         </span>
       </td>
       <td className="px-4 py-3">
-        {item.roleName === 'HOUSEKEEPER' ? (
+        {item.roleName === 'HOUSEKEEPER' || item.roleName === 'MAINTENANCE' ? (
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${WORK_STATUS_CONFIG[item.workStatus || 'AVAILABLE']?.className || WORK_STATUS_CONFIG.AVAILABLE.className}`}>
             {WORK_STATUS_CONFIG[item.workStatus || 'AVAILABLE']?.label || item.workStatus}
           </span>
@@ -365,13 +366,14 @@ export default function StaffManager() {
             </div>
           </div>
 
-          {form.roleName === 'HOUSEKEEPER' && (
+          {(form.roleName === 'HOUSEKEEPER' || form.roleName === 'MAINTENANCE') && (
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Trạng thái làm việc</label>
               <select required value={form.workStatus} onChange={e => setForm(f => ({ ...f, workStatus: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
                 <option value="AVAILABLE">Sẵn sàng</option>
                 <option value="WORKING">Đang làm việc</option>
+                <option value="WAITING_CONFIRM">Chờ xác nhận</option>
                 <option value="OFF">Đang nghỉ</option>
               </select>
             </div>

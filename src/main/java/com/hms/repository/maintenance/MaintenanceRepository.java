@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -21,6 +22,9 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
     // Kiểm tra thiết bị có đang xuất hiện trong bất kỳ yêu cầu bảo trì nào hay không.
     // Nếu tồn tại thì không cho phép xóa thiết bị.
     boolean existsByEquipmentId(Long equipmentId);
+
+    // Kiểm tra xem nhân viên bảo trì có đang thực hiện yêu cầu sửa chữa nào ở trạng thái nhất định không
+    boolean existsByAssignedToAndStatus(Long assignedTo, MaintenanceStatus status);
 
     // ===========================================================
 
@@ -40,11 +44,19 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
             " OR CAST(r.roomId AS string) ILIKE :keyword " +
             " OR CAST(r.equipmentId AS string) ILIKE :keyword) " +
             "AND (:severity IS NULL OR r.severity = :severity) " +
-            "AND (:status IS NULL OR r.status = :status)")
+            "AND (:status IS NULL OR r.status = :status) " +
+            "AND (:assignedTo IS NULL OR r.assignedTo = :assignedTo)")
     Page<RepairRequest> findRequestsAdvanced(
             @Param("keyword") String keyword,
             @Param("severity") MaintenanceSeverity severity,
             @Param("status") MaintenanceStatus status,
+            @Param("assignedTo") Long assignedTo,
             Pageable pageable
+        );
+
+    @Query("SELECT r FROM RepairRequest r WHERE r.status NOT IN :statuses AND r.estimatedCompletionTime IS NOT NULL AND r.estimatedCompletionTime <= :now")
+    List<RepairRequest> findExpiredActiveRequests(
+            @Param("statuses") List<MaintenanceStatus> statuses,
+            @Param("now") LocalDateTime now
     );
 }

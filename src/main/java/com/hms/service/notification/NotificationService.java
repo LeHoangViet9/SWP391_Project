@@ -13,4 +13,6 @@ public interface NotificationService {
     long countUnread(String email);
 
     NotificationResponse markAsRead(String email, Long notificationId);
+
+    void notifyReceptionistsAndManagers(String title, String message, String targetUrl);
 }

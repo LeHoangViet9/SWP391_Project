@@ -340,7 +340,8 @@ public class UserServiceImpl implements IUserService {
     }
 
     private StaffWorkStatus resolveWorkStatus(String roleName, StaffWorkStatus requestedStatus) {
-        if (!"HOUSEKEEPER".equals(normalizeRole(roleName))) {
+        String normalized = normalizeRole(roleName);
+        if (!"HOUSEKEEPER".equals(normalized) && !"MAINTENANCE".equals(normalized)) {
             return StaffWorkStatus.AVAILABLE;
         }
         return requestedStatus == null ? StaffWorkStatus.AVAILABLE : requestedStatus;

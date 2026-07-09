@@ -5,6 +5,7 @@ import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
+import com.hms.common.utils.TimeUtils;
 import com.hms.dto.invoice.request.InvoiceRequest;
 import com.hms.dto.invoice.request.ReceptionistPaymentRequest;
 import com.hms.dto.invoice.response.InvoiceResponse;
@@ -15,6 +16,7 @@ import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
 import com.hms.service.booking.InvoiceService;
 import com.hms.service.booking.mapper.InvoiceMapper;
+import com.hms.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +47,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     private final InvoiceMapper invoiceMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
+    private final NotificationService notificationService;
 
     @Value("${app.finance.vat-rate:0.08}")
     private BigDecimal vatRate;
@@ -75,13 +78,10 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.bookingId.notfound", null, locale)));
 
-        long numberOfNights = ChronoUnit.DAYS.between(
-                booking.getCheckInDate().toLocalDate(),
-                booking.getCheckOutDate().toLocalDate()
+        long numberOfNights = TimeUtils.calculateNightsMinimumOne(
+                booking.getCheckInDate(),
+                booking.getCheckOutDate()
         );
-        if (numberOfNights <= 0) {
-            numberOfNights = 1;
-        }
 
         BigDecimal roomPricePerNight = booking.getPricePerNight();
         BigDecimal roomPriceSubTotal = roomPricePerNight
@@ -144,6 +144,10 @@ public class InvoiceServiceImpl implements InvoiceService {
         booking.setHoldExpiresAt(null);
         bookingRepository.save(booking);
 
+        String notifTitle = messageSource.getMessage("notification.invoice.payment.success.title", null, locale);
+        String notifMsg = messageSource.getMessage("notification.invoice.payment.success.message.transfer", new Object[]{invoice.getId(), booking.getId(), invoice.getAmount()}, locale);
+        notificationService.notifyReceptionistsAndManagers(notifTitle, notifMsg, "/dashboard/invoices");
+
         return calculateAndBuildResponse(invoice, booking);
     }
 
@@ -199,6 +203,13 @@ public class InvoiceServiceImpl implements InvoiceService {
         });
         invoiceRepository.saveAll(bookings.stream().map(Booking::getInvoice).toList());
         bookingRepository.saveAll(bookings);
+
+        bookings.forEach(booking -> {
+            Invoice invoice = booking.getInvoice();
+            String notifTitle = messageSource.getMessage("notification.invoice.payment.success.title", null, locale);
+            String notifMsg = messageSource.getMessage("notification.invoice.payment.success.message.transfer", new Object[]{invoice.getId(), booking.getId(), invoice.getAmount()}, locale);
+            notificationService.notifyReceptionistsAndManagers(notifTitle, notifMsg, "/dashboard/invoices");
+        });
         return buildCombinedInvoiceResponse(bookings);
     }
 
@@ -267,6 +278,13 @@ public class InvoiceServiceImpl implements InvoiceService {
         }
         invoiceRepository.saveAll(bookings.stream().map(Booking::getInvoice).toList());
         bookingRepository.saveAll(bookings);
+
+        bookings.forEach(booking -> {
+            Invoice invoice = booking.getInvoice();
+            String notifTitle = messageSource.getMessage("notification.invoice.payment.success.title", null, locale);
+            String notifMsg = messageSource.getMessage("notification.invoice.payment.success.message.method", new Object[]{invoice.getId(), booking.getId(), method, invoice.getAmount()}, locale);
+            notificationService.notifyReceptionistsAndManagers(notifTitle, notifMsg, "/dashboard/invoices");
+        });
         return buildCombinedInvoiceResponse(bookings);
     }
 
@@ -403,7 +421,6 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     private InvoiceResponse calculateAndBuildResponse(Invoice invoice, Booking booking) {
-        Locale locale = LocaleContextHolder.getLocale();
         if (invoice.getInvoiceType() == com.hms.common.enums.InvoiceType.SURCHARGE) {
             BigDecimal additionalCharges = invoice.getAmount() == null ? BigDecimal.ZERO : invoice.getAmount();
             BigDecimal roomPricePerNight = BigDecimal.ZERO;
@@ -413,14 +430,14 @@ public class InvoiceServiceImpl implements InvoiceService {
             BigDecimal correctTotalAmount = additionalCharges;
 
             InvoiceResponse response = buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges, vatAmount, correctTotalAmount);
-            response.setRoomTypeName(messageSource.getMessage("text.invoice.surcharge", null, locale));
+            response.setRoomTypeName("Phụ thu dịch vụ");
             return response;
         }
 
-        long numberOfNights = Math.max(1, ChronoUnit.DAYS.between(
-                booking.getCheckInDate().toLocalDate(),
-                booking.getCheckOutDate().toLocalDate()
-        ));
+        long numberOfNights = TimeUtils.calculateNightsMinimumOne(
+                booking.getCheckInDate(),
+                booking.getCheckOutDate()
+        );
         BigDecimal roomPricePerNight = booking.getPricePerNight();
         BigDecimal roomPriceSubTotal = roomPricePerNight
                 .multiply(BigDecimal.valueOf(numberOfNights))

@@ -83,8 +83,8 @@ export default function InvoiceManager() {
     'ID',
     isVi ? 'Mã đặt phòng' : 'Booking ID',
     isVi ? 'Khách hàng' : 'Customer',
+    isVi ? 'Phân loại' : 'Type',
     isVi ? 'Tổng tiền' : 'Total Amount',
-    isVi ? 'Loại' : 'Type',
     isVi ? 'Trạng thái' : 'Status',
     isVi ? 'Ngày tạo' : 'Created Date',
     isVi ? 'Hành động' : 'Actions'
@@ -95,14 +95,18 @@ export default function InvoiceManager() {
       <td className="px-4 py-3 font-mono text-xs text-slate-500">{item.id}</td>
       <td className="px-4 py-3 font-mono text-xs text-slate-700">#{item.bookingId}</td>
       <td className="px-4 py-3 text-slate-800 font-medium">{item.customerName || '-'}</td>
-      <td className="px-4 py-3 font-semibold text-[#bfa15f]">{formatPrice(item.totalAmount || item.totalPrice || 0)}</td>
-      <td className="px-4 py-3 text-sm">
-        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-          item.invoiceType === 'SURCHARGE' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-        }`}>
-          {item.invoiceType === 'SURCHARGE' ? (isVi ? 'Phụ thu' : 'Surcharge') : (isVi ? 'Tiền phòng' : 'Room')}
-        </span>
+      <td className="px-4 py-3">
+        {item.invoiceType === 'SURCHARGE' ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold bg-amber-50 text-amber-700">
+            {isVi ? 'Phụ thu Check-out' : 'Surcharge'}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold bg-stone-100 text-stone-700">
+            {isVi ? 'Tiền phòng' : 'Room Charge'}
+          </span>
+        )}
       </td>
+      <td className="px-4 py-3 font-semibold text-[#bfa15f]">{formatPrice(item.totalAmount || item.totalPrice || 0)}</td>
       <td className="px-4 py-3">{getStatusBadge(item.paymentStatus)}</td>
       <td className="px-4 py-3 text-xs text-slate-500">
         {item.createdAt ? new Date(item.createdAt).toLocaleString(isVi ? 'vi-VN' : 'en-US') : '—'}
