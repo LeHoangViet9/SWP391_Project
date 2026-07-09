@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BedDouble, ClipboardCheck, RefreshCw, Search, CheckCircle2 } from 'lucide-react';
+import { BedDouble, CheckCircle2, ClipboardCheck, RefreshCw, Search } from 'lucide-react';
 import { usePermission } from '../hooks/usePermission';
 import { searchBookings } from '../services/bookingService';
 import { getAvailableRoomsForCheckIn, processCheckIn } from '../services/checkInService';
@@ -21,7 +21,7 @@ function normalizeText(value) {
   return String(value ?? '').trim().toLowerCase();
 }
 
-export default function CheckInManager() {
+export default function CheckInManager({ preferredRoom = null, onCompleted }) {
   const { hasPermission } = usePermission();
   const canProcessCheckIn = hasPermission('CHECKIN_VIEW');
   const [bookings, setBookings] = useState([]);
@@ -75,8 +75,12 @@ export default function CheckInManager() {
 
   const filteredBookings = useMemo(() => {
     const q = normalizeText(keyword);
-    if (!q) return bookings;
     return bookings.filter((booking) => {
+      const matchesRoom = !preferredRoom || booking.roomIds?.includes(preferredRoom.id)
+        || booking.roomId === preferredRoom.id
+        || (!booking.roomId && booking.roomTypeId === (preferredRoom.roomTypeId || preferredRoom.roomType?.id));
+      if (!matchesRoom) return false;
+      if (!q) return true;
       return [
         booking.id,
         booking.customerName,
@@ -87,11 +91,11 @@ export default function CheckInManager() {
         booking.roomNumber,
       ].some((value) => normalizeText(value).includes(q));
     });
-  }, [bookings, keyword]);
+  }, [bookings, keyword, preferredRoom]);
 
   const openCheckInModal = async (booking) => {
     setSelectedBooking(booking);
-    setSelectedRoomId(booking.roomId ? String(booking.roomId) : '');
+    setSelectedRoomId(preferredRoom?.id ? String(preferredRoom.id) : (booking.roomId ? String(booking.roomId) : ''));
     setAvailableRooms([]);
     setCheckInResult(null);
     setGuestInfoConfirmed(false);
@@ -116,14 +120,18 @@ export default function CheckInManager() {
     }
   };
 
-  const closeModal = () => {
-    if (saving) return;
+  const resetModalState = () => {
     setModalOpen(false);
     setSelectedBooking(null);
     setSelectedRoomId('');
     setAvailableRooms([]);
     setCheckInResult(null);
     setGuestInfoConfirmed(false);
+  };
+
+  const closeModal = () => {
+    if (saving) return;
+    resetModalState();
   };
 
   const handleCheckIn = async (event) => {
@@ -144,10 +152,11 @@ export default function CheckInManager() {
         guestNationality: guestReviewForm.nationality,
       };
       const res = await processCheckIn(payload);
-      setCheckInResult(res?.data ?? null);
       notify(res?.data?.message || 'Check-in thành công.');
       await fetchBookings(0);
+      await onCompleted?.();
       setPage(0);
+      resetModalState();
     } catch (err) {
       const message = err.status === 403
         ? 'Bạn chưa có quyền CHECKIN_VIEW. Vui lòng phân quyền lại và đăng nhập lại.'

@@ -17,7 +17,7 @@ const MINIBAR_ITEMS = [
   { id: 'snack', name: 'Snack khoai tây', price: 15000 }
 ];
 
-export default function CheckOutManager() {
+export default function CheckOutManager({ preferredRoom = null }) {
   const { hasPermission } = usePermission();
   const canProcess = hasPermission('CHECKOUT_VIEW');
   const [bookings, setBookings] = useState([]);
@@ -54,10 +54,13 @@ export default function CheckOutManager() {
 
   const rows = useMemo(() => {
     const q = keyword.trim().toLowerCase();
-    if (!q) return bookings;
-    return bookings.filter(item => [item.id, item.customerName, item.guestFullName, item.roomNumber, item.roomTypeName]
-      .some(value => String(value || '').toLowerCase().includes(q)));
-  }, [bookings, keyword]);
+    return bookings.filter(item => {
+      const matchesRoom = !preferredRoom || item.roomId === preferredRoom.id || item.roomIds?.includes(preferredRoom.id)
+        || item.roomNumber === preferredRoom.roomNumber || item.roomNumbers?.includes(preferredRoom.roomNumber);
+      return matchesRoom && (!q || [item.id, item.customerName, item.guestFullName, item.roomNumber, item.roomTypeName]
+        .some(value => String(value || '').toLowerCase().includes(q)));
+    });
+  }, [bookings, keyword, preferredRoom]);
 
   const totalMinibarCost = useMemo(() => {
     return MINIBAR_ITEMS.reduce((sum, item) => sum + (minibarQuantities[item.id] || 0) * item.price, 0);
