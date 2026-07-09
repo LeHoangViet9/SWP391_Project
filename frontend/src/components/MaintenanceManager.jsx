@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Edit2, Trash2, RefreshCw, Check, ChevronDown, X, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, RefreshCw, Check, ChevronDown, X, Search, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { maintenanceService } from '../services/maintenanceService';
 import { useLocale } from '../context/LocaleContext';
@@ -74,6 +74,7 @@ export default function MaintenanceManager({ readOnly = false }) {
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_CREATE);
   const [saving, setSaving] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null); // id đang xử lý accept/deny
 
   const [rooms, setRooms] = useState([]);
   const [equipments, setEquipments] = useState([]);
@@ -380,6 +381,34 @@ export default function MaintenanceManager({ readOnly = false }) {
     }
   };
 
+  // ── Accept/Deny handlers ─────────────────────────────────────────────────────
+  const handleAccept = async (item) => {
+    setActionLoading(item.id);
+    try {
+      await maintenanceService.acceptRequest(item.id, user?.id);
+      notify('✅ Đã chấp nhận yêu cầu sửa chữa!');
+      fetchData();
+    } catch (e) {
+      notify(e.message || 'Không thể chấp nhận yêu cầu', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeny = async (item) => {
+    if (!window.confirm(`Bạn có chắc muốn từ chối yêu cầu #${item.id}? Hệ thống sẽ tìm người khác.`)) return;
+    setActionLoading(item.id);
+    try {
+      await maintenanceService.denyRequest(item.id, user?.id);
+      notify('Đã từ chối. Hệ thống đang tìm người thay thế...');
+      fetchData();
+    } catch (e) {
+      notify(e.message || 'Không thể từ chối yêu cầu', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const formatDate = (dt) => dt ? new Date(dt).toLocaleDateString('vi-VN') : '-';
   const formatDateTime = (dt) => {
     if (!dt) return '-';
@@ -408,10 +437,10 @@ export default function MaintenanceManager({ readOnly = false }) {
           {equip ? `${equip.equipmentName} (${equip.equipmentCode})` : (item.equipmentId ? `TB #${item.equipmentId}` : '-')}
         </td>
         <td className="px-4 py-3 text-xs">
-          {reporter ? `${reporter.fullName} (${reporter.userName || reporter.username || ''})` : (item.reportedBy || '-')}
+          {item.reportedByName || (reporter ? `${reporter.fullName} (${reporter.userName || reporter.username || ''})` : (item.reportedBy || '-'))}
         </td>
         <td className="px-4 py-3 text-xs">
-          {assignee ? `${assignee.fullName} (${assignee.userName || assignee.username || ''})` : (item.assignedTo || '-')}
+          {item.assignedToName || (assignee ? `${assignee.fullName} (${assignee.userName || assignee.username || ''})` : (item.assignedTo || '-'))}
         </td>
         <td className="px-4 py-3">
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SEVERITY_COLORS[item.severity] || SEVERITY_COLORS.MEDIUM}`}>
@@ -428,9 +457,32 @@ export default function MaintenanceManager({ readOnly = false }) {
         <td className="px-4 py-3 text-xs text-emerald-600 font-semibold">{formatDateTime(item.completedAt)}</td>
         {!isReadOnly && (
           <td className="px-4 py-3">
-            <div className="flex items-center gap-3">
-              {canUpdate && <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700"><Edit2 size={15} /></button>}
-              {canDelete && <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700"><Trash2 size={15} /></button>}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Nút Accept/Deny: hiện khi request ASSIGNED và assigned cho user hiện tại */}
+              {item.status === 'ASSIGNED' && String(item.assignedTo) === String(user?.id) && (
+                <>
+                  <button
+                    onClick={() => handleAccept(item)}
+                    disabled={actionLoading === item.id}
+                    title="Chấp nhận"
+                    className="flex items-center gap-1 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
+                  >
+                    {actionLoading === item.id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                    Nhận
+                  </button>
+                  <button
+                    onClick={() => handleDeny(item)}
+                    disabled={actionLoading === item.id}
+                    title="Từ chối"
+                    className="flex items-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
+                  >
+                    {actionLoading === item.id ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
+                    Từ chối
+                  </button>
+                </>
+              )}
+              {canUpdate && <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa"><Edit2 size={15} /></button>}
+              {canDelete && <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa"><Trash2 size={15} /></button>}
             </div>
           </td>
         )}

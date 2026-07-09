@@ -59,4 +59,24 @@ export const maintenanceService = {
           },
           locale
       ),
-};
+
+  /**
+   * Maintenance staff chấp nhận yêu cầu → IN_PROGRESS
+   */
+  acceptRequest: (id, userId, locale = 'vi') =>
+      apiFetch(
+          `/maintenance-requests/${id}/accept?userId=${userId}`,
+          { method: 'POST' },
+          locale
+      ),
+
+  /**
+   * Maintenance staff từ chối yêu cầu → hệ thống giao cho người tiếp theo
+   */
+  denyRequest: (id, userId, locale = 'vi') =>
+      apiFetch(
+          `/maintenance-requests/${id}/deny?userId=${userId}`,
+          { method: 'POST' },
+          locale
+      ),
+};

@@ -353,3 +353,11 @@ ON CONFLICT (service_name) DO NOTHING;
 -- =============================================================================
 CREATE INDEX IF NOT EXISTS idx_user_permissions_user ON user_permissions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_permissions_permission ON user_permissions(permission_id);
+
+-- =============================================================================
+-- 10. MIGRATION: Thêm cột denied_by_ids vào repair_requests
+--     Dùng để lưu danh sách maintenance đã từ chối (dạng "5,8,12")
+-- =============================================================================
+ALTER TABLE repair_requests
+    ADD COLUMN IF NOT EXISTS denied_by_ids VARCHAR(500) DEFAULT '';
+

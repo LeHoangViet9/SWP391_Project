@@ -26,6 +26,9 @@ import com.hms.service.email.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import com.hms.service.notification.NotificationService;
+import com.hms.service.maintenance.MaintenanceService;
+import com.hms.dto.maintenance.request.MaintenanceRequestCreateDTO;
+import com.hms.common.enums.MaintenanceSeverity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -56,6 +59,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     private final EmailService emailService;
     private final NotificationService notificationService;
     private final BookingRepository bookingRepository;
+    private final MaintenanceService maintenanceService;
 
     @Autowired
     @Lazy
@@ -324,24 +328,25 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
             return;
         }
 
-        if (taskStatus == TaskStatus.IN_PROGRESS) {
-            housekeeper.setWorkStatus(StaffWorkStatus.WORKING);
-            userRepository.save(housekeeper);
-            return;
-        }
+        boolean hasInProgress = taskRepository.existsByAssignedTo_IdAndTaskStatus(
+                housekeeper.getId(),
+                TaskStatus.IN_PROGRESS
+        );
 
-        if (taskStatus == TaskStatus.COMPLETED
-                || taskStatus == TaskStatus.CANCELLED
-                || taskStatus == TaskStatus.SKIPPED) {
-            boolean stillWorking = taskRepository.existsByAssignedTo_IdAndTaskStatus(
+        if (hasInProgress) {
+            housekeeper.setWorkStatus(StaffWorkStatus.WORKING);
+        } else {
+            boolean hasPending = taskRepository.existsByAssignedTo_IdAndTaskStatus(
                     housekeeper.getId(),
-                    TaskStatus.IN_PROGRESS
+                    TaskStatus.PENDING
             );
-            if (!stillWorking) {
+            if (hasPending) {
+                housekeeper.setWorkStatus(StaffWorkStatus.WAITING_CONFIRM);
+            } else {
                 housekeeper.setWorkStatus(StaffWorkStatus.AVAILABLE);
-                userRepository.save(housekeeper);
             }
         }
+        userRepository.save(housekeeper);
     }
 
 
@@ -397,8 +402,33 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                     .orElse(null);
         }
 
-        // Đổi trạng thái phòng thành MAINTENANCE và ghi nhận lịch sử với reason
-        changeRoomStatus(room, RoomStatus.MAINTENANCE, reportedBy, null, request.getReason(),ProcessTrigger.TASK_MAINTENANCE);
+        // Đổi trạng thái phòng thành MAINTENANCE và ghi nhận lịch sử
+        changeRoomStatus(room, RoomStatus.MAINTENANCE, reportedBy, null, request.getReason(), ProcessTrigger.TASK_MAINTENANCE);
+
+        // Tạo RepairRequest và TỰ ĐỘNG giao cho maintenance AVAILABLE
+        // (MaintenanceService.createRequest sẽ handle auto-assign và notification)
+        try {
+            MaintenanceSeverity severity;
+            try {
+                severity = request.getSeverity() != null
+                        ? MaintenanceSeverity.valueOf(request.getSeverity().toUpperCase())
+                        : MaintenanceSeverity.MEDIUM;
+            } catch (IllegalArgumentException e) {
+                severity = MaintenanceSeverity.MEDIUM;
+            }
+
+            MaintenanceRequestCreateDTO dto = MaintenanceRequestCreateDTO.builder()
+                    .roomId(roomId)
+                    .reportedBy(request.getReportedById() != null ? request.getReportedById() : 0L)
+                    .issueTitle("Sự cố phòng " + room.getRoomNumber())
+                    .issueDescription(request.getReason())
+                    .severity(severity)
+                    .build();
+
+            maintenanceService.createRequest(dto);
+        } catch (Exception ex) {
+            log.warn("[REPORT-ISSUE] Tạo RepairRequest thất bại cho phòng {}: {}", roomId, ex.getMessage());
+        }
     }
 
     @Override
@@ -455,6 +485,9 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         // Gửi email thông báo cho housekeeper
         sendTaskNotification(assignedHousekeeper, room.getRoomNumber(), notes);
         sendInAppTaskNotification(assignedHousekeeper, room.getRoomNumber(), notes);
+
+        // Đồng bộ trạng thái làm việc của housekeeper (sẽ thành WAITING_CONFIRM)
+        syncHousekeeperWorkStatus(assignedHousekeeper, TaskStatus.PENDING);
     }
 
     private void reassignCancelledTask(HouseKeepingTask cancelledTask) {
@@ -492,6 +525,12 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
         sendTaskNotification(newAssignee, cancelledTask.getRoom().getRoomNumber(), notes);
         sendInAppTaskNotification(newAssignee, cancelledTask.getRoom().getRoomNumber(), notes);
+
+        // Đồng bộ trạng thái cho cả housekeeper cũ (vừa từ chối) và housekeeper mới (được reassign)
+        if (previousAssignee != null) {
+            syncHousekeeperWorkStatus(previousAssignee, TaskStatus.CANCELLED);
+        }
+        syncHousekeeperWorkStatus(newAssignee, TaskStatus.PENDING);
     }
 
     /**

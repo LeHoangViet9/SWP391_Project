@@ -40,4 +40,8 @@ public class MaintenanceResponse {
     private LocalDateTime completedAt;
 
     private LocalDateTime estimatedCompletionTime;
+
+    private String reportedByName;
+
+    private String assignedToName;
 }

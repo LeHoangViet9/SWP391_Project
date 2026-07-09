@@ -11,6 +11,7 @@ import com.hms.dto.maintenance.response.MaintenanceResponse;
 import org.springframework.data.domain.Page;
 
 
+
 public interface MaintenanceService {
 
     MaintenanceResponse createRequest(MaintenanceRequestCreateDTO dto);
@@ -30,4 +31,15 @@ public interface MaintenanceService {
     );
 
     void deleteRequest(Long id);
+
+    /**
+     * Maintenance staff chấp nhận yêu cầu → chuyển trạng thái sang IN_PROGRESS
+     */
+    MaintenanceResponse acceptRequest(Long requestId, Long maintenanceUserId);
+
+    /**
+     * Maintenance staff từ chối yêu cầu → lưu vào deniedByIds, tìm người tiếp theo.
+     * Nếu không còn ai khả dụng, trả về trạng thái PENDING và thông báo manager.
+     */
+    MaintenanceResponse denyRequest(Long requestId, Long maintenanceUserId);
 }

@@ -18,6 +18,7 @@ const STATUS_CONFIG = {
         icon: Clock,
         nextStatus: 'IN_PROGRESS', nextLabel: 'Nhận việc', nextLabelEn: 'Accept',
         nextBtnClass: 'bg-amber-500 hover:bg-amber-600 text-white',
+        canDeny: true, // Có thể từ chối khi ở PENDING
     },
     IN_PROGRESS: {
         label: 'Đang làm', labelEn: 'In Progress',
@@ -26,6 +27,7 @@ const STATUS_CONFIG = {
         icon: Loader2,
         nextStatus: 'COMPLETED', nextLabel: 'Hoàn thành', nextLabelEn: 'Complete',
         nextBtnClass: 'bg-emerald-500 hover:bg-emerald-600 text-white',
+        canDeny: false,
     },
     COMPLETED: {
         label: 'Hoàn thành', labelEn: 'Completed',
@@ -33,6 +35,7 @@ const STATUS_CONFIG = {
         badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500',
         icon: CheckCircle2,
         nextStatus: null,
+        canDeny: false,
     },
     CANCELLED: {
         label: 'Đã hủy', labelEn: 'Cancelled',
@@ -40,6 +43,7 @@ const STATUS_CONFIG = {
         badge: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400',
         icon: XCircle,
         nextStatus: null,
+        canDeny: false,
     },
 };
 
@@ -184,7 +188,7 @@ function MinibarReportMiniModal({ task, onSubmit, onClose, loading }) {
 }
 
 // ─── Single Task Card ─────────────────────────────────────────────────────────
-function TaskCard({ task, onUpdateStatus, updating, onReportIssue, onReportMinibar, locale }) {
+function TaskCard({ task, onUpdateStatus, onDenyTask, updating, onReportIssue, onReportMinibar, locale }) {
     const [expanded, setExpanded] = useState(false);
     const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG.PENDING;
     const IconComp = cfg.icon;
@@ -227,13 +231,13 @@ function TaskCard({ task, onUpdateStatus, updating, onReportIssue, onReportMinib
                                 : <><Check size={16} /> {locale === 'en' ? cfg.nextLabelEn : cfg.nextLabel}</>
                             }
                         </button>
-                        {(task.status === 'PENDING' || task.status === 'IN_PROGRESS') && (
+                        {cfg.canDeny && (
                             <button
-                                onClick={() => onUpdateStatus(task.id, 'CANCELLED')}
+                                onClick={() => onDenyTask(task.id)}
                                 disabled={updating === task.id}
-                                className="py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
+                                className="py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 bg-white border-2 border-red-300 text-red-600 hover:bg-red-50"
                             >
-                                <X size={16} /> {locale === 'en' ? 'Cancel' : 'Hủy việc'}
+                                <X size={16} /> {locale === 'en' ? 'Decline' : 'Từ chối'}
                             </button>
                         )}
                     </div>
@@ -393,6 +397,28 @@ export default function HousekeeperTaskBoard() {
         }
     };
 
+    // ── Từ chối nhận task (chỉ khi PENDING) ────────────────────────────────────
+    const handleDenyTask = async (taskId) => {
+        const task = tasks.find(t => t.id === taskId);
+        const roomNum = task?.roomNumber || task?.roomId || taskId;
+        const confirmed = window.confirm(
+            `Bạn có chắc muốn từ chối nhiệm vụ phòng ${roomNum}?\n\n` +
+            `→ Hệ thống sẽ tự động giao nhiệm vụ này cho nhân viên khác đang sẵn sàng.`
+        );
+        if (!confirmed) return;
+
+        setUpdating(taskId);
+        try {
+            await housekeepingService.updateTask(taskId, { status: 'CANCELLED' }, locale);
+            notify('Đã từ chối nhiệm vụ. Hệ thống đang giao cho nhân viên khác...');
+            setTasks(prev => prev.filter(t => t.id !== taskId));
+        } catch (err) {
+            notify(err?.message || 'Không thể từ chối nhiệm vụ', 'error');
+        } finally {
+            setUpdating(null);
+        }
+    };
+
     // ── Report Room Issue ────────────────────────────────────────────────────
     const handleReportIssue = async (roomId, payload) => {
         setActionLoading(true);
@@ -516,6 +542,7 @@ export default function HousekeeperTaskBoard() {
                             task={task}
                             locale={locale}
                             onUpdateStatus={handleUpdateStatus}
+                            onDenyTask={handleDenyTask}
                             updating={updating}
                             onReportIssue={(roomId) => setReportRoomId(roomId)}
                             onReportMinibar={(t) => setMinibarTask(t)}

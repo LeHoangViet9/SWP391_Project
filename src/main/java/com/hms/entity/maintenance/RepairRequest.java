@@ -71,4 +71,10 @@ public class RepairRequest {
 
     @Column(name = "estimated_completion_time")
     private LocalDateTime estimatedCompletionTime;
+
+    // Lưu danh sách ID các maintenance đã từ chối, dạng "5,8,12"
+    // Dùng để không giao lại cho người đã deny
+    @Column(name = "denied_by_ids", length = 500)
+    @Builder.Default
+    private String deniedByIds = "";
 }
