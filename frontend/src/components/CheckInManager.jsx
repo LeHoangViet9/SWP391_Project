@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BedDouble, ClipboardCheck, RefreshCw, Search } from 'lucide-react';
+import { BedDouble, CheckCircle2, ClipboardCheck, RefreshCw, Search } from 'lucide-react';
 import { usePermission } from '../hooks/usePermission';
 import { searchBookings } from '../services/bookingService';
 import { getAvailableRoomsForCheckIn, processCheckIn } from '../services/checkInService';
@@ -21,7 +21,7 @@ function normalizeText(value) {
   return String(value ?? '').trim().toLowerCase();
 }
 
-export default function CheckInManager({ preferredRoom = null }) {
+export default function CheckInManager({ preferredRoom = null, onCompleted }) {
   const { hasPermission } = usePermission();
   const canProcessCheckIn = hasPermission('CHECKIN_PROCESS');
   const [bookings, setBookings] = useState([]);
@@ -120,14 +120,18 @@ export default function CheckInManager({ preferredRoom = null }) {
     }
   };
 
-  const closeModal = () => {
-    if (saving) return;
+  const resetModalState = () => {
     setModalOpen(false);
     setSelectedBooking(null);
     setSelectedRoomId('');
     setAvailableRooms([]);
     setCheckInResult(null);
     setGuestInfoConfirmed(false);
+  };
+
+  const closeModal = () => {
+    if (saving) return;
+    resetModalState();
   };
 
   const handleCheckIn = async (event) => {
@@ -148,10 +152,11 @@ export default function CheckInManager({ preferredRoom = null }) {
         guestNationality: guestReviewForm.nationality,
       };
       const res = await processCheckIn(payload);
-      setCheckInResult(res?.data ?? null);
       notify(res?.data?.message || 'Check-in thành công.');
       await fetchBookings(0);
+      await onCompleted?.();
       setPage(0);
+      resetModalState();
     } catch (err) {
       const message = err.status === 403
         ? 'Bạn chưa có quyền CHECKIN_PROCESS. Vui lòng phân quyền lại và đăng nhập lại.'

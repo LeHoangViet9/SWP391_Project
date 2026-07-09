@@ -49,25 +49,7 @@ export default function RoomManager({ readOnly = false }) {
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
-  const [files, setFiles] = useState([]);
-  const [previews, setPreviews] = useState([]);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!files || files.length === 0) {
-      setPreviews([]);
-      return;
-    }
-    const objectUrls = files.map(f => URL.createObjectURL(f));
-    setPreviews(objectUrls);
-    return () => objectUrls.forEach(url => URL.revokeObjectURL(url));
-  }, [files]);
-
-  const handleFileChange = (e) => {
-    if (e.target.files) {
-      setFiles(Array.from(e.target.files));
-    }
-  };
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -114,7 +96,6 @@ export default function RoomManager({ readOnly = false }) {
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
-    setFiles([]);
     setModal({ open: true, editing: null });
   };
 
@@ -124,7 +105,6 @@ export default function RoomManager({ readOnly = false }) {
       floorNumber: item.floorNumber || '',
       description: item.description || '',
     });
-    setFiles([]);
     setModal({ open: true, editing: item });
   };
 
@@ -132,7 +112,6 @@ export default function RoomManager({ readOnly = false }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!modal.editing && files.length === 0) return notify(t('room.toast.imageRequired'), 'warning');
 
     const payload = {
       roomTypeId: Number(form.roomTypeId),
@@ -143,10 +122,10 @@ export default function RoomManager({ readOnly = false }) {
     setSaving(true);
     try {
       if (modal.editing) {
-        await updateRoom(modal.editing.id, payload, files, locale);
+        await updateRoom(modal.editing.id, payload, locale);
         notify(t('room.toast.updateSuccess'));
       } else {
-        await createRoom(payload, files, locale);
+        await createRoom(payload, locale);
         notify(t('room.toast.addSuccess'));
       }
       closeModal();
@@ -208,25 +187,6 @@ export default function RoomManager({ readOnly = false }) {
                 </select>
             )}
           </td>
-          <td className="px-4 py-3">
-            {item.imageRooms && item.imageRooms.length > 0 ? (
-                <div className="flex flex-wrap gap-1 max-w-[120px]">
-                  {item.imageRooms.map((img, idx) => (
-                      <img
-                          key={idx}
-                          src={img}
-                          alt={`room-${idx}`}
-                          className="w-8 h-8 object-cover rounded border hover:scale-110 transition-transform cursor-pointer"
-                          onClick={() => window.open(img, '_blank')}
-                      />
-                  ))}
-                </div>
-            ) : item.imageRoom ? (
-                <img src={item.imageRoom} alt="room" className="w-12 h-10 object-cover rounded border cursor-pointer" onClick={() => window.open(item.imageRoom, '_blank')} />
-            ) : (
-                <span className="text-xs text-slate-400">{t('room.noImage')}</span>
-            )}
-          </td>
           {!isReadOnly && (
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3 justify-center">
@@ -243,7 +203,7 @@ export default function RoomManager({ readOnly = false }) {
     );
   });
 
-  const cols = [t('room.columns.id'), t('room.columns.roomNumber'), t('room.columns.roomType'), t('room.columns.floor'), t('room.columns.status'), t('room.columns.image'), ...(!isReadOnly ? [t('room.columns.actions')] : [])];
+  const cols = [t('room.columns.id'), t('room.columns.roomNumber'), t('room.columns.roomType'), t('room.columns.floor'), t('room.columns.status'), ...(!isReadOnly ? [t('room.columns.actions')] : [])];
 
   return (
       <div>
@@ -417,46 +377,7 @@ export default function RoomManager({ readOnly = false }) {
                 </select>
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-                {modal.editing ? t('room.modal.imageNew') : t('room.modal.imageReq')}
-              </label>
-              <input type="file" accept="image/*" multiple required={!modal.editing} onChange={handleFileChange}
-                     className="w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:border-0 file:bg-[#bfa15f] file:text-white file:rounded file:text-xs file:cursor-pointer mb-2" />
-              
-              {previews.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {previews.map((url, idx) => (
-                        <div key={idx} className="relative group w-12 h-12 rounded border overflow-hidden">
-                          <img src={url} alt="preview" className="w-full h-full object-cover" />
-                          <button
-                              type="button"
-                              onClick={() => {
-                                setFiles(prev => prev.filter((_, i) => i !== idx));
-                              }}
-                              className="absolute inset-0 bg-black bg-opacity-50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold"
-                          >
-                            X
-                          </button>
-                        </div>
-                    ))}
-                  </div>
-              )}
-
-              {modal.editing && modal.editing.imageRooms && modal.editing.imageRooms.length > 0 && (
-                  <div className="mt-3">
-                    <span className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
-                      {locale === 'vi' ? 'Ảnh hiện tại:' : 'Current Images:'}
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {modal.editing.imageRooms.map((img, idx) => (
-                          <img key={idx} src={img} alt="current" className="w-12 h-12 object-cover rounded border" />
-                      ))}
-                    </div>
-                  </div>
-              )}
-            </div>
-            <div>
+<div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('room.modal.description')}</label>
               <textarea rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                         className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none resize-none" />

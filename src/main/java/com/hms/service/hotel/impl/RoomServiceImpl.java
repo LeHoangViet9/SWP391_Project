@@ -7,12 +7,10 @@ import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.CloudinaryUtils;
-import com.hms.common.utils.LocalFileUtils;
 import com.hms.common.utils.PageableUtils;
 import com.hms.dto.room.request.RoomRequest;
 import com.hms.dto.room.response.RoomResponse;
 import com.hms.entity.hotel.Room;
-import com.hms.entity.hotel.RoomImage;
 import com.hms.entity.hotel.RoomType;
 import com.hms.repository.hotel.RoomRepository;
 import com.hms.repository.hotel.RoomTypeRepository;
@@ -26,9 +24,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -42,7 +38,6 @@ public class RoomServiceImpl implements IRoomService {
     private final RoomMapper roomMapper;
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
-    private final LocalFileUtils localFileUtils;
 
     @Override
     public Page<RoomResponse> getAllRooms(
@@ -78,7 +73,7 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse createRoom(RoomRequest request, List<MultipartFile> file) {
+    public RoomResponse createRoom(RoomRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
         // Kiểm tra loại phòng
@@ -91,27 +86,6 @@ public class RoomServiceImpl implements IRoomService {
         // Sinh số phòng tự động theo thứ tự tăng dần dựa trên floorNumber
         String generatedRoomNumber = generateRoomNumber(request.getFloorNumber());
         room.setRoomNumber(generatedRoomNumber);
-
-        // Khởi tạo list ảnh trống cho đối tượng Room mới tạo
-        room.setRoomImages(new ArrayList<>());
-
-        // XỬ LÝ ẢNH MỚI: Upload lên Local Storage và lưu vào bảng room_img thay vì lưu cột cũ
-        if (file != null && !file.isEmpty()) {
-
-            for (MultipartFile f : file) {
-
-                String imageUrl = localFileUtils.uploadFile(f);
-
-                RoomImage roomImage = RoomImage.builder()
-                        .room(room)
-                        .imageUrl(imageUrl)
-                        .description("Ảnh khi tạo phòng")
-                        .build();
-
-                room.getRoomImages().add(roomImage);
-            }
-        }
-
         // Set mặc định trạng thái phòng sẵn sàng hoạt động
         room.setRoomStatus(RoomStatus.AVAILABLE);
 
@@ -121,7 +95,7 @@ public class RoomServiceImpl implements IRoomService {
 
     @Override
     @Transactional
-    public RoomResponse updateRoom(Long id, RoomRequest request, List<MultipartFile> file) {
+    public RoomResponse updateRoom(Long id, RoomRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
         Room room = roomRepository.findById(id)
@@ -138,24 +112,6 @@ public class RoomServiceImpl implements IRoomService {
         }
 
         populateRoomData(room, request, roomType);
-
-        // XỬ LÝ ẢNH CẬP NHẬT: Thêm một ảnh mới vào Album ảnh hiện tại của phòng
-        if (file != null && !file.isEmpty()) {
-
-            for (MultipartFile f : file) {
-
-                String imageUrl = localFileUtils.uploadFile(f);
-
-                RoomImage roomImage = RoomImage.builder()
-                        .room(room)
-                        .imageUrl(imageUrl)
-                        .description("Ảnh khi tạo phòng")
-                        .build();
-
-                room.getRoomImages().add(roomImage);
-            }
-        }
-
         Room updated = roomRepository.save(room);
         return roomMapper.toResponse(updated);
     }

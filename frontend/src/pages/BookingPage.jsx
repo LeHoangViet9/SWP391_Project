@@ -200,7 +200,7 @@ function BookingContent() {
           setRoomType({
             ...rt,
             basePrice: Number(rt.basePrice),
-            imageUrl: mock?.imageUrl || mockRoomTypes[0].imageUrl,
+            imageUrl: rt.imageUrl || rt.imageUrls?.[0] || mock?.imageUrl || mockRoomTypes[0].imageUrl,
             amenities: mock?.amenities || [],
           });
         }

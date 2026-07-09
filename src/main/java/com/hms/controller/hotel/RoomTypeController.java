@@ -1,5 +1,6 @@
 package com.hms.controller.hotel;
 
+import java.util.List;
 import java.util.Locale;
 
 import com.hms.dto.roomtype.response.RoomTypeResponse;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import com.hms.common.enums.SortField;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.dto.ApiResponse;
@@ -73,9 +75,11 @@ public class RoomTypeController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ROOM_TYPE_CREATE')")
-    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomType(@RequestBody @Valid RoomTypeRequest roomTypeRequest) {
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomType(
+            @ModelAttribute @Valid RoomTypeRequest roomTypeRequest,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomTypeResponse created = roomTypeService.createRoomType(roomTypeRequest);
+        RoomTypeResponse created = roomTypeService.createRoomType(roomTypeRequest, images);
         String message = messageSource.getMessage("success.roomtype.create", null, locale);
         ApiResponse<RoomTypeResponse> response = ApiResponse.<RoomTypeResponse>builder()
                 .success(true)
@@ -88,9 +92,12 @@ public class RoomTypeController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROOM_TYPE_UPDATE')")
-    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomType(@PathVariable Long id, @RequestBody @Valid RoomTypeRequest roomTypeRequest) {
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomType(
+            @PathVariable Long id,
+            @ModelAttribute @Valid RoomTypeRequest roomTypeRequest,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomTypeResponse updated = roomTypeService.updateRoomType(id, roomTypeRequest);
+        RoomTypeResponse updated = roomTypeService.updateRoomType(id, roomTypeRequest, images);
         String message = messageSource.getMessage("success.roomtype.update", null, locale);
         ApiResponse<RoomTypeResponse> response = ApiResponse.<RoomTypeResponse>builder()
                 .success(true)

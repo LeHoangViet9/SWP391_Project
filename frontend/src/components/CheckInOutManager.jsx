@@ -80,7 +80,9 @@ export default function CheckInOutManager() {
         <button onClick={() => setActiveTab('checkin')} className={`flex-1 rounded-lg px-4 py-2 font-bold ${activeTab === 'checkin' ? 'bg-white text-[#9b7d3f] shadow' : 'text-slate-500'}`}><ClipboardCheck className="mr-2 inline" size={17} />Check-in</button>
         <button onClick={() => setActiveTab('checkout')} className={`flex-1 rounded-lg px-4 py-2 font-bold ${activeTab === 'checkout' ? 'bg-white text-[#9b7d3f] shadow' : 'text-slate-500'}`}><LogOut className="mr-2 inline" size={17} />Check-out</button>
       </div>
-      {activeTab === 'checkin' ? <CheckInManager preferredRoom={preferredRoom} /> : <CheckOutManager preferredRoom={preferredRoom} />}
+      {activeTab === 'checkin'
+        ? <CheckInManager preferredRoom={preferredRoom} onCompleted={loadRooms} />
+        : <CheckOutManager preferredRoom={preferredRoom} />}
     </section>
 
     <Modal open={Boolean(selectedRoom)} title={selectedRoom ? `Phòng ${selectedRoom.roomNumber}` : 'Phòng'} onClose={() => setSelectedRoom(null)}>
