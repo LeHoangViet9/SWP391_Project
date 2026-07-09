@@ -72,6 +72,13 @@ public class BookingControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Clean up any test data that might have persisted from previous failed test runs
+        jdbcTemplate.execute("DELETE FROM invoices WHERE booking_id IN (SELECT id FROM bookings WHERE customer_id IN (SELECT id FROM customers WHERE email = 'test.john.doe@hms-test.com'))");
+        jdbcTemplate.execute("DELETE FROM bookings WHERE customer_id IN (SELECT id FROM customers WHERE email = 'test.john.doe@hms-test.com')");
+        jdbcTemplate.execute("DELETE FROM room WHERE room_type_id IN (SELECT id FROM room_type WHERE type_name = 'TEST-Standard')");
+        jdbcTemplate.execute("DELETE FROM room_type WHERE type_name = 'TEST-Standard'");
+        jdbcTemplate.execute("DELETE FROM customers WHERE email = 'test.john.doe@hms-test.com'");
+
         // 1. Tạo Customer
         testCustomer = Customer.builder()
                 .fullName("John Doe Test")
@@ -283,6 +290,49 @@ public class BookingControllerIntegrationTest {
                 .andExpect(jsonPath("$.success", is(false)));
     }
 
+    @Test
+    @org.springframework.security.test.context.support.WithMockUser(authorities = {
+            "BOOKING_CREATE",
+            "ROLE_RECEPTIONIST",
+            "INVOICE_VIEW"
+    })
+    void createBooking_AsReceptionist_ForTodayCheckIn_Success() throws Exception {
+        BookingRequest request = new BookingRequest();
+        request.setCustomerId(testCustomer.getId());
+        request.setRoomTypeId(testRoomType.getId());
+        request.setRoomId(testRoom.getId());
+        // Set check-in date to today, but 1 hour ago (check-in time has passed)
+        request.setCheckInDate(LocalDateTime.now().minusHours(1));
+        request.setCheckOutDate(LocalDateTime.now().plusDays(2));
+        request.setQuantity(1);
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.data.bookingStatus", is("PENDING_PAYMENT")));
+    }
+
+    @Test
+    void createBooking_AsCustomer_ForTodayCheckIn_PastTime_ThrowsException() throws Exception {
+        BookingRequest request = new BookingRequest();
+        request.setCustomerId(testCustomer.getId());
+        request.setRoomTypeId(testRoomType.getId());
+        request.setRoomId(testRoom.getId());
+        // Set check-in date to 2 hours ago
+        request.setCheckInDate(LocalDateTime.now().minusHours(2));
+        request.setCheckOutDate(LocalDateTime.now().plusDays(2));
+        request.setQuantity(1);
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+
     private BookingRequest createBookingRequest() {
         BookingRequest request = new BookingRequest();
         request.setCustomerId(testCustomer.getId());
@@ -292,4 +342,7 @@ public class BookingControllerIntegrationTest {
         request.setQuantity(1);
         return request;
     }
+
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 }

@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Search, Users } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
 
 export default function BookingBar({ onSearchGuests }) {
   const { t, locale } = useLocale();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const today = () => new Date().toISOString().split('T')[0];
   const tomorrow = () => {
@@ -12,9 +15,18 @@ export default function BookingBar({ onSearchGuests }) {
     return d.toISOString().split('T')[0];
   };
 
-  const [checkIn, setCheckIn] = useState(today());
-  const [checkOut, setCheckOut] = useState(tomorrow());
-  const [adults, setAdults] = useState(2);
+  const [checkIn, setCheckIn] = useState(searchParams.get('checkIn') || today());
+  const [checkOut, setCheckOut] = useState(searchParams.get('checkOut') || tomorrow());
+  const [adults, setAdults] = useState(Number(searchParams.get('guests') || '2'));
+
+  useEffect(() => {
+    const qCheckIn = searchParams.get('checkIn');
+    const qCheckOut = searchParams.get('checkOut');
+    const qGuests = searchParams.get('guests');
+    if (qCheckIn) setCheckIn(qCheckIn);
+    if (qCheckOut) setCheckOut(qCheckOut);
+    if (qGuests) setAdults(Number(qGuests));
+  }, [searchParams]);
 
   const handleCheckInChange = (val) => {
     setCheckIn(val);
@@ -31,11 +43,7 @@ export default function BookingBar({ onSearchGuests }) {
     if (onSearchGuests) {
       onSearchGuests({ checkIn, checkOut, guests: adults });
     }
-    // Smooth scroll to the room types section
-    const el = document.getElementById('room-types');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
+    navigate(`/rooms?checkIn=${checkIn}&checkOut=${checkOut}&guests=${adults}`);
   };
 
   return (

@@ -474,8 +474,16 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateBookingDate(BookingRequest request, Locale locale){
-        if(request.getCheckInDate().isBefore(LocalDateTime.now())){
-            throw new ConflictException(messageSource.getMessage("error.booking.checkin.past", null, locale));
+        boolean receptionistBooking = isReceptionistRequest();
+        LocalDateTime now = LocalDateTime.now();
+        if (receptionistBooking) {
+            if (request.getCheckInDate().toLocalDate().isBefore(now.toLocalDate())) {
+                throw new ConflictException(messageSource.getMessage("error.booking.checkin.past", null, locale));
+            }
+        } else {
+            if (request.getCheckInDate().isBefore(now)) {
+                throw new ConflictException(messageSource.getMessage("error.booking.checkin.past", null, locale));
+            }
         }
 
         if(!request.getCheckOutDate().isAfter(request.getCheckInDate())){
