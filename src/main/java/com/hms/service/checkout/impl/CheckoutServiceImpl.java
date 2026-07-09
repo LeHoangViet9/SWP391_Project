@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 
@@ -189,7 +188,6 @@ public class CheckoutServiceImpl implements CheckoutService {
         }
 
         validateCheckedIn(booking);
-        validateCheckoutTime(booking);
         Invoice invoice = requireInvoice(booking);
         List<Room> rooms = roomsOf(booking);
 
@@ -223,14 +221,6 @@ public class CheckoutServiceImpl implements CheckoutService {
         Locale locale = LocaleContextHolder.getLocale();
         if (booking.getBookingStatus() != BookingStatus.CHECKED_IN) {
             throw new ConflictException(messageSource.getMessage("checkout.booking.invalid.status", null, locale));
-        }
-    }
-
-    private void validateCheckoutTime(Booking booking) {
-        LocalDateTime now = LocalDateTime.now();
-        if (!now.toLocalDate().isEqual(booking.getCheckOutDate().toLocalDate())
-                || !now.toLocalTime().isBefore(LocalTime.NOON)) {
-            throw new ConflictException("Chỉ được check-out trước 12:00 trong đúng ngày trả phòng đã đặt.");
         }
     }
 

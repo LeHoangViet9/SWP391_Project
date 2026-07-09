@@ -39,9 +39,7 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
           const apiRooms = res.data.content.map((rt) => ({
             ...rt,
             basePrice: Number(rt.basePrice),
-            imageUrl: rt.imageUrl
-              || rt.imageUrls?.[0]
-              || mockRoomTypes.find((m) => m.id === rt.id)?.imageUrl
+            imageUrl: mockRoomTypes.find((m) => m.id === rt.id)?.imageUrl
               || mockRoomTypes[0].imageUrl,
             amenities: mockRoomTypes.find((m) => m.id === rt.id)?.amenities
               || ['Wifi', 'Điều hòa'],
