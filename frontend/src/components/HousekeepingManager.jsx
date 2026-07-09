@@ -1,16 +1,19 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Plus, Search, Filter, RefreshCw, Trash2, Pencil, Eye,
+    Plus, Search, RefreshCw, Trash2, Pencil, Eye,
     AlertTriangle, ChevronLeft, ChevronRight, X, Check,
     Clock, CheckCircle2, XCircle, Loader2, History,
-    BedDouble, User, Calendar, SortAsc, SortDesc,
+    BedDouble, User, SortAsc, SortDesc,
     LayoutGrid, TableIcon, Wrench, ClipboardList,
+    Minus, FileText, Loader,
 } from 'lucide-react';
 import Toast from './shared/Toast';
 import { housekeepingService } from '../services/housekeepingService';
 import { useLocale } from '../context/LocaleContext';
 import { getUsers } from '../services/userService';
+import { useAuth } from '../context/AuthContext';
+import { usePermission } from '../hooks/usePermission';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TASK_STATUSES = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 const SORT_FIELDS = ['ID', 'ROOM_ID', 'ASSIGNED_TO_ID', 'STATUS', 'CREATED_AT'];
@@ -22,6 +25,21 @@ const STATUS_CONFIG = {
     CANCELLED: { label: 'Đã hủy', labelEn: 'Cancelled', color: 'bg-slate-100 text-slate-500 border-slate-200', dot: 'bg-slate-400', icon: XCircle },
 };
 // ─── Sub-Components ───────────────────────────────────────────────────────────
+const WORK_STATUS_CONFIG = {
+    AVAILABLE: { label: 'Sẵn sàng', className: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    WORKING: { label: 'Đang làm việc', className: 'text-amber-700 bg-amber-50 border-amber-200' },
+    OFF: { label: 'Đang nghỉ', className: 'text-slate-600 bg-slate-50 border-slate-200' },
+};
+
+const WorkStatusBadge = ({ status }) => {
+    const cfg = WORK_STATUS_CONFIG[status || 'AVAILABLE'] || WORK_STATUS_CONFIG.AVAILABLE;
+    return (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold ${cfg.className}`}>
+            {cfg.label}
+        </span>
+    );
+};
+
 /** Skeleton loading row */
 const SkeletonRow = () => (
     <tr className="animate-pulse">
@@ -75,8 +93,28 @@ const DeleteConfirmModal = ({ task, onConfirm, onClose, loading }) => (
     </div>
 );
 /** Task Detail Drawer (side panel) */
-const TaskDetailDrawer = ({ task, onClose, onEdit, locale }) => {
+// readOnly: if true, hides edit button
+// readOnly: if true, hides edit button
+const TaskDetailDrawer = ({
+    task,
+    onClose,
+    onEdit,
+    onUpdateStatus,
+    onReportMinibar,
+    onReportIssue,
+    locale,
+    readOnly = false,
+    actionLoading = false
+}) => {
     if (!task) return null;
+
+    const nextActions = {
+        PENDING: { label: 'Nhận việc', labelEn: 'Accept', nextStatus: 'IN_PROGRESS', btnClass: 'bg-amber-500 hover:bg-amber-600 text-white' },
+        IN_PROGRESS: { label: 'Hoàn thành', labelEn: 'Complete', nextStatus: 'COMPLETED', btnClass: 'bg-emerald-500 hover:bg-emerald-600 text-white' }
+    };
+
+    const nextAction = nextActions[task.status];
+
     return (
         <div className="fixed inset-0 z-[60] flex">
             <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={onClose} />
@@ -131,21 +169,64 @@ const TaskDetailDrawer = ({ task, onClose, onEdit, locale }) => {
                             <p className="text-sm text-slate-700 leading-relaxed">{task.notes}</p>
                         </div>
                     )}
+
+                    {readOnly && (
+                        <div className="pt-4 border-t border-stone-100 space-y-3">
+                            {nextAction && (
+                                <button
+                                    onClick={() => onUpdateStatus(task.id, nextAction.nextStatus)}
+                                    disabled={actionLoading}
+                                    className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 ${nextAction.btnClass}`}
+                                >
+                                    {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                                    {locale === 'en' ? nextAction.labelEn : nextAction.label}
+                                </button>
+                            )}
+
+                            {(task.status === 'PENDING' || task.status === 'IN_PROGRESS') && (
+                                <button
+                                    onClick={() => onUpdateStatus(task.id, 'CANCELLED')}
+                                    disabled={actionLoading}
+                                    className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
+                                >
+                                    <X size={16} /> {locale === 'en' ? 'Cancel' : 'Hủy việc'}
+                                </button>
+                            )}
+
+                            {task.status === 'IN_PROGRESS' && (
+                                <button
+                                    onClick={() => onReportMinibar(task)}
+                                    className="w-full py-3 flex items-center justify-center gap-2 bg-[#bfa15f] hover:bg-[#a3874c] text-white rounded-xl text-sm font-bold transition-all shadow-sm"
+                                >
+                                    <FileText size={16} /> Kê khai & Báo cáo Minibar
+                                </button>
+                            )}
+
+                            <button
+                                onClick={() => onReportIssue(task.roomId)}
+                                className="w-full py-3 flex items-center justify-center gap-2 border border-red-200 text-red-600 rounded-xl text-sm font-bold hover:bg-red-50 transition-colors"
+                            >
+                                <AlertTriangle size={15} /> Báo cáo sự cố phòng này
+                            </button>
+                        </div>
+                    )}
                 </div>
-                <div className="p-6 border-t border-stone-100">
-                    <button
-                        onClick={() => onEdit(task)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#bfa15f] text-white rounded-xl font-semibold hover:bg-[#a8893f] transition-colors"
-                    >
-                        <Pencil size={16} /> Chỉnh sửa tác vụ
-                    </button>
-                </div>
+                {!readOnly && (
+                    <div className="p-6 border-t border-stone-100">
+                        <button
+                            onClick={() => onEdit(task)}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#bfa15f] text-white rounded-xl font-semibold hover:bg-[#a8893f] transition-colors"
+                        >
+                            <Pencil size={16} /> Chỉnh sửa tác vụ
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 /** Task Create / Edit Modal */
-const TaskFormModal = ({ task, housekeepers, rooms, onSubmit, onClose, loading }) => {
+const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
     const isEdit = Boolean(task?.id);
     const [form, setForm] = useState({
         roomId: task?.roomId ?? '',
@@ -212,9 +293,15 @@ const TaskFormModal = ({ task, housekeepers, rooms, onSubmit, onClose, loading }
                                 className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.assignedToId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
                             >
                                 <option value="">Chọn nhân viên...</option>
-                                {housekeepers.map(h => (
-                                    <option key={h.id} value={h.id}>{h.fullName} (#{h.id})</option>
-                                ))}
+                                {housekeepers.map(h => {
+                                    const workStatus = h.workStatus || 'AVAILABLE';
+                                    const label = WORK_STATUS_CONFIG[workStatus]?.label || workStatus;
+                                    return (
+                                        <option key={h.id} value={h.id} disabled={workStatus === 'OFF'}>
+                                            {h.fullName} (#{h.id}) - {label}
+                                        </option>
+                                    );
+                                })}
                             </select>
                         ) : (
                             <input
@@ -275,8 +362,8 @@ const TaskFormModal = ({ task, housekeepers, rooms, onSubmit, onClose, loading }
     );
 };
 /** Report Room Issue Modal */
-const ReportIssueModal = ({ onSubmit, onClose, loading }) => {
-    const [form, setForm] = useState({ roomId: '', issueDescription: '', severity: 'MEDIUM' });
+const ReportIssueModal = ({ defaultRoomId = '', onSubmit, onClose, loading }) => {
+    const [form, setForm] = useState({ roomId: defaultRoomId, issueDescription: '', severity: 'MEDIUM' });
     const [errors, setErrors] = useState({});
     const validate = () => {
         const errs = {};
@@ -339,6 +426,95 @@ const ReportIssueModal = ({ onSubmit, onClose, loading }) => {
                             className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
                             {loading ? <Loader2 size={16} className="animate-spin" /> : <Wrench size={16} />}
                             Gửi báo cáo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+/** Minibar Report Modal */
+const MinibarReportMiniModal = ({ task, onSubmit, onClose, loading }) => {
+    const [quantities, setQuantities] = useState({ water: 0, cola: 0, beer: 0, snack: 0 });
+
+    const handleUpdateQuantity = (item, delta) => {
+        setQuantities(prev => {
+            const val = Math.max(0, (prev[item] || 0) + delta);
+            return { ...prev, [item]: val };
+        });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSubmit(task.id, quantities);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4 animate-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                        <BedDouble size={18} className="text-[#bfa15f]" /> Kê khai Minibar - Phòng {task.roomNumber || task.roomId}
+                    </h3>
+                    <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-stone-100 text-slate-400"><X size={18} /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <p className="text-xs text-slate-500">Vui lòng kiểm tra thực tế trong phòng và nhập số lượng đồ uống đã tiêu thụ.</p>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Nước suối Aquafina</p>
+                                <p className="text-xs text-slate-400">10,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('water', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.water}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('water', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Coca-Cola / Pepsi</p>
+                                <p className="text-xs text-slate-400">20,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('cola', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.cola}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('cola', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Bia Heineken</p>
+                                <p className="text-xs text-slate-400">35,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('beer', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.beer}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('beer', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
+                            <div>
+                                <p className="font-semibold text-slate-800 text-sm">Snack khoai tây</p>
+                                <p className="text-xs text-slate-400">15,000 VND</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button type="button" onClick={() => handleUpdateQuantity('snack', -1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Minus size={14} /></button>
+                                <span className="w-5 text-center font-bold text-sm">{quantities.snack}</span>
+                                <button type="button" onClick={() => handleUpdateQuantity('snack', 1)} className="p-1 rounded bg-stone-100 hover:bg-stone-200"><Plus size={14} /></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm font-bold text-slate-600">Hủy</button>
+                        <button type="submit" disabled={loading}
+                            className="flex-1 py-2.5 bg-[#bfa15f] hover:bg-[#a3874c] text-white rounded-xl text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2">
+                            {loading ? <Loader size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Gửi báo cáo
                         </button>
                     </div>
                 </form>
@@ -423,7 +599,7 @@ const RoomHistoryModal = ({ onClose }) => {
     );
 };
 /** Kanban Column */
-const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale }) => {
+const KanbanColumn = ({ status, tasks, onView, locale, readOnly = false }) => {
     const cfg = STATUS_CONFIG[status] || {};
     return (
         <div className="flex flex-col bg-stone-50 rounded-2xl border border-stone-200 min-h-[300px]">
@@ -452,21 +628,10 @@ const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale }) => {
                                     <User size={11} className="shrink-0" />
                                     <span className="truncate">{task.assignedToName || `NV #${task.assignedToId}`}</span>
                                 </div>
+                                <div className="mt-1">
+                                    <WorkStatusBadge status={task.assignedToWorkStatus} />
+                                </div>
                             </div>
-                            <span className="text-[10px] text-slate-400 whitespace-nowrap mt-0.5">
-                                {task.createdAt ? new Date(task.createdAt).toLocaleDateString('vi-VN') : '—'}
-                            </span>
-                        </div>
-                        {task.notes && (
-                            <p className="text-xs text-slate-400 mt-2 line-clamp-2 italic border-t border-stone-100 pt-2">{task.notes}</p>
-                        )}
-                        <div className="flex gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                            <button onClick={() => onEdit(task)} className="flex-1 text-xs py-1 px-2 bg-stone-100 hover:bg-[#bfa15f]/10 hover:text-[#bfa15f] text-slate-600 rounded-lg transition-colors flex items-center justify-center gap-1">
-                                <Pencil size={12} /> Sửa
-                            </button>
-                            <button onClick={() => onDelete(task)} className="flex-1 text-xs py-1 px-2 bg-stone-100 hover:bg-red-50 hover:text-red-600 text-slate-600 rounded-lg transition-colors flex items-center justify-center gap-1">
-                                <Trash2 size={12} /> Xóa
-                            </button>
                         </div>
                     </div>
                 ))}
@@ -475,8 +640,10 @@ const KanbanColumn = ({ status, tasks, onView, onEdit, onDelete, locale }) => {
     );
 };
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function HousekeepingManager() {
+export default function HousekeepingManager({ readOnly = false }) {
+    const { user } = useAuth();
     const { locale } = useLocale();
+    const { hasPermission } = usePermission();
     // ── State: Data ──────────────────────────────────────────────────────────
     const [tasks, setTasks] = useState([]);
     const [totalPages, setTotalPages] = useState(0);
@@ -505,6 +672,9 @@ export default function HousekeepingManager() {
     const [showDetailDrawer, setShowDetailDrawer] = useState(false);
     const [showIssueModal, setShowIssueModal] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [showMinibarModal, setShowMinibarModal] = useState(false);
+    const [minibarTask, setMinibarTask] = useState(null);
+    const [reportRoomId, setReportRoomId] = useState(null);
     const [selectedTask, setSelectedTask] = useState(null);
     const notify = (message, type = 'success') => setToast({ type, message });
     // ── Normalize backend response field names ───────────────────────────────
@@ -516,6 +686,7 @@ export default function HousekeepingManager() {
         roomNumber: t.roomNumber || t.room?.roomNumber || t.room?.number,
         assignedToId: t.assignedToId || t.assignedTo?.id,
         assignedToName: t.assignedToName || t.assignedTo?.fullName || t.assignedTo?.name,
+        assignedToWorkStatus: t.assignedToWorkStatus || t.assignedTo?.workStatus || 'AVAILABLE',
         assignedById: t.assignedById || t.assignedBy?.id,
         assignedByName: t.assignedByName || t.assignedBy?.fullName || t.assignedBy?.name,
         notes: t.notes || t.description || t.note || '',
@@ -546,7 +717,7 @@ export default function HousekeepingManager() {
     // ── Fetch Housekeepers (for dropdown) ────────────────────────────────────
     const fetchHousekeepers = useCallback(async () => {
         try {
-            const res = await getUsers({ role: 'HOUSEKEEPER', size: 100 }, locale);
+            const res = await getUsers({ roleName: 'HOUSEKEEPER', size: 100 }, locale);
             setHousekeepers(res?.data?.content || res?.data || []);
         } catch {
             // silently fail — input field fallback will handle
@@ -554,6 +725,13 @@ export default function HousekeepingManager() {
     }, [locale]);
     useEffect(() => { fetchTasks(); }, [fetchTasks]);
     useEffect(() => { fetchHousekeepers(); }, [fetchHousekeepers]);
+
+    useEffect(() => {
+        if (readOnly && user?.id) {
+            setFilters(prev => ({ ...prev, assignedToId: user.id }));
+        }
+    }, [readOnly, user?.id]);
+
     // ── Filter change resets page ────────────────────────────────────────────
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
@@ -561,14 +739,18 @@ export default function HousekeepingManager() {
     };
     const handleSearch = (e) => { e.preventDefault(); setPage(0); fetchTasks(); };
     const handleResetFilters = () => {
-        setFilters({ status: '', assignedToId: '', assignedById: '', roomId: '' });
+        setFilters({ status: '', assignedToId: readOnly && user?.id ? user.id : '', assignedById: '', roomId: '' });
         setPage(0);
     };
     // ── Handlers: CRUD ───────────────────────────────────────────────────────
     const handleCreateTask = async (formData) => {
         setActionLoading(true);
         try {
-            const res = await housekeepingService.createTask(formData, locale);
+            const payload = {
+                ...formData,
+                assignedById: user?.id
+            };
+            const res = await housekeepingService.createTask(payload, locale);
             notify(res?.message || 'Tạo tác vụ thành công!');
             setShowCreateModal(false);
             fetchTasks();
@@ -606,12 +788,44 @@ export default function HousekeepingManager() {
             setActionLoading(false);
         }
     };
+    const handleUpdateStatus = async (taskId, newStatus) => {
+        setActionLoading(true);
+        try {
+            const res = await housekeepingService.updateTask(taskId, { status: newStatus }, locale);
+            notify(res?.message || 'Cập nhật trạng thái thành công!');
+            fetchTasks();
+            if (selectedTask && selectedTask.id === taskId) {
+                setSelectedTask(prev => ({ ...prev, status: newStatus }));
+            }
+        } catch (err) {
+            notify(err?.message || 'Cập nhật thất bại', 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+    const handleReportMinibar = async (taskId, quantities) => {
+        setActionLoading(true);
+        try {
+            const res = await housekeepingService.reportMinibar(taskId, quantities, locale);
+            notify(res?.message || 'Đã gửi báo cáo tiêu dùng Minibar thành công!');
+            setShowMinibarModal(false);
+            setMinibarTask(null);
+        } catch (err) {
+            notify(err?.message || 'Không tìm thấy đặt phòng hoặc gửi thất bại.', 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
     const handleReportIssue = async (roomId, payload) => {
         setActionLoading(true);
         try {
-            const res = await housekeepingService.reportRoomIssue(roomId, payload, locale);
+            const res = await housekeepingService.reportRoomIssue(roomId, {
+                ...payload,
+                reportedById: user?.id
+            }, locale);
             notify(res?.message || 'Đã gửi báo cáo sự cố!');
             setShowIssueModal(false);
+            setReportRoomId(null);
         } catch (err) {
             notify(err?.message || 'Gửi báo cáo thất bại', 'error');
         } finally {
@@ -657,13 +871,36 @@ export default function HousekeepingManager() {
                     onConfirm={handleDeleteTask} onClose={() => { setShowDeleteModal(false); setSelectedTask(null); }} loading={actionLoading} />
             )}
             {showDetailDrawer && selectedTask && (
-                <TaskDetailDrawer task={selectedTask} onClose={() => setShowDetailDrawer(false)} onEdit={openEdit} locale={locale} />
+                <TaskDetailDrawer
+                    task={selectedTask}
+                    onClose={() => setShowDetailDrawer(false)}
+                    onEdit={openEdit}
+                    onUpdateStatus={handleUpdateStatus}
+                    onReportMinibar={(task) => { setMinibarTask(task); setShowMinibarModal(true); }}
+                    onReportIssue={(roomId) => { setReportRoomId(roomId); setShowIssueModal(true); }}
+                    locale={locale}
+                    readOnly={readOnly}
+                    actionLoading={actionLoading}
+                />
             )}
             {showIssueModal && (
-                <ReportIssueModal onSubmit={handleReportIssue} onClose={() => setShowIssueModal(false)} loading={actionLoading} />
+                <ReportIssueModal
+                    defaultRoomId={reportRoomId || ''}
+                    onSubmit={handleReportIssue}
+                    onClose={() => { setShowIssueModal(false); setReportRoomId(null); }}
+                    loading={actionLoading}
+                />
             )}
             {showHistoryModal && (
                 <RoomHistoryModal onClose={() => setShowHistoryModal(false)} />
+            )}
+            {showMinibarModal && minibarTask && (
+                <MinibarReportMiniModal
+                    task={minibarTask}
+                    onSubmit={handleReportMinibar}
+                    onClose={() => { setShowMinibarModal(false); setMinibarTask(null); }}
+                    loading={actionLoading}
+                />
             )}
             {/* ── Header ─────────────────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -671,20 +908,28 @@ export default function HousekeepingManager() {
                     <h2 className="text-lg font-bold text-slate-800">Quản lý Tác vụ Buồng phòng</h2>
                     <p className="text-sm text-slate-500 mt-0.5">Tổng cộng <span className="font-bold text-[#bfa15f]">{totalElements}</span> tác vụ</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    <button onClick={() => setShowHistoryModal(true)}
-                        className="flex items-center gap-2 px-3.5 py-2 border border-stone-200 rounded-lg text-sm font-semibold text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors bg-white">
-                        <History size={16} /> Lịch sử phòng
-                    </button>
-                    <button onClick={() => setShowIssueModal(true)}
-                        className="flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors bg-white">
-                        <Wrench size={16} /> Báo cáo sự cố
-                    </button>
-                    <button onClick={() => setShowCreateModal(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors shadow-sm">
-                        <Plus size={16} /> Tạo tác vụ
-                    </button>
-                </div>
+                {(hasPermission('HOUSEKEEPING_VIEW') || hasPermission('HOUSEKEEPING_UPDATE') || (hasPermission('HOUSEKEEPING_CREATE') && !readOnly)) && (
+                    <div className="flex flex-wrap gap-2">
+                        {hasPermission('HOUSEKEEPING_VIEW') && (
+                            <button onClick={() => setShowHistoryModal(true)}
+                                className="flex items-center gap-2 px-3.5 py-2 border border-stone-200 rounded-lg text-sm font-semibold text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors bg-white">
+                                <History size={16} /> Lịch sử phòng
+                            </button>
+                        )}
+                        {hasPermission('HOUSEKEEPING_UPDATE') && (
+                            <button onClick={() => setShowIssueModal(true)}
+                                className="flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors bg-white">
+                                <Wrench size={16} /> Báo cáo sự cố
+                            </button>
+                        )}
+                        {(hasPermission('HOUSEKEEPING_CREATE') && !readOnly) && (
+                            <button onClick={() => setShowCreateModal(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors shadow-sm">
+                                <Plus size={16} /> Tạo tác vụ
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
             {/* ── Stats Summary ───────────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -709,46 +954,48 @@ export default function HousekeepingManager() {
                 })}
             </div>
             {/* ── Filters ─────────────────────────────────────────────────────────── */}
-            <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm">
-                <form onSubmit={handleSearch} className="flex flex-wrap gap-3 items-end">
-                    <div className="flex-1 min-w-[150px]">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Trạng thái</label>
-                        <select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)}
-                            className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]">
-                            <option value="">Tất cả</option>
-                            {TASK_STATUSES.map(s => (
-                                <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex-1 min-w-[130px]">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Nhân viên</label>
-                        <input type="number" value={filters.assignedToId} onChange={e => handleFilterChange('assignedToId', e.target.value)}
-                            placeholder="ID nhân viên..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
-                    </div>
-                    <div className="flex-1 min-w-[130px]">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Người giao</label>
-                        <input type="number" value={filters.assignedById} onChange={e => handleFilterChange('assignedById', e.target.value)}
-                            placeholder="ID người giao..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
-                    </div>
-                    <div className="flex-1 min-w-[120px]">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Phòng</label>
-                        <input type="number" value={filters.roomId} onChange={e => handleFilterChange('roomId', e.target.value)}
-                            placeholder="ID phòng..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                        <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors">
-                            <Search size={15} /> Lọc
-                        </button>
-                        <button type="button" onClick={handleResetFilters} className="px-3 py-2 border border-stone-200 rounded-lg text-sm text-slate-500 hover:bg-stone-50 transition-colors">
-                            <X size={15} />
-                        </button>
-                        <button type="button" onClick={fetchTasks} className="px-3 py-2 border border-stone-200 rounded-lg text-slate-500 hover:bg-stone-50 transition-colors">
-                            <RefreshCw size={15} />
-                        </button>
-                    </div>
-                </form>
-            </div>
+            {!readOnly && (
+                <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm">
+                    <form onSubmit={handleSearch} className="flex flex-wrap gap-3 items-end">
+                        <div className="flex-1 min-w-[150px]">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Trạng thái</label>
+                            <select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)}
+                                className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]">
+                                <option value="">Tất cả</option>
+                                {TASK_STATUSES.map(s => (
+                                    <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex-1 min-w-[130px]">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Nhân viên</label>
+                            <input type="number" value={filters.assignedToId} onChange={e => handleFilterChange('assignedToId', e.target.value)}
+                                placeholder="ID nhân viên..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
+                        </div>
+                        <div className="flex-1 min-w-[130px]">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Người giao</label>
+                            <input type="number" value={filters.assignedById} onChange={e => handleFilterChange('assignedById', e.target.value)}
+                                placeholder="ID người giao..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
+                        </div>
+                        <div className="flex-1 min-w-[120px]">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Phòng</label>
+                            <input type="number" value={filters.roomId} onChange={e => handleFilterChange('roomId', e.target.value)}
+                                placeholder="ID phòng..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                            <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors">
+                                <Search size={15} /> Lọc
+                            </button>
+                            <button type="button" onClick={handleResetFilters} className="px-3 py-2 border border-stone-200 rounded-lg text-sm text-slate-500 hover:bg-stone-50 transition-colors">
+                                <X size={15} />
+                            </button>
+                            <button type="button" onClick={fetchTasks} className="px-3 py-2 border border-stone-200 rounded-lg text-slate-500 hover:bg-stone-50 transition-colors">
+                                <RefreshCw size={15} />
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
             {/* ── View Toggle + Sort ───────────────────────────────────────────────── */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-lg">
@@ -792,7 +1039,7 @@ export default function HousekeepingManager() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {TASK_STATUSES.map(s => (
                             <KanbanColumn key={s} status={s} tasks={kanbanGroups[s]} locale={locale}
-                                onView={openDetail} onEdit={openEdit} onDelete={openDelete} />
+                                onView={openDetail} onEdit={openEdit} onDelete={openDelete} readOnly={readOnly} />
                         ))}
                     </div>
                 )
@@ -828,7 +1075,10 @@ export default function HousekeepingManager() {
                                                 <span className="text-sm font-semibold text-slate-800">{task.roomNumber || `ID: ${task.roomId}`}</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-slate-600">{task.assignedToName || `#${task.assignedToId}`}</td>
+                                        <td className="px-4 py-3 text-sm text-slate-600">
+                                            <div className="font-semibold text-slate-700">{task.assignedToName || `#${task.assignedToId}`}</div>
+                                            <div className="mt-1"><WorkStatusBadge status={task.assignedToWorkStatus} /></div>
+                                        </td>
                                         <td className="px-4 py-3 text-sm text-slate-500">{task.assignedByName || `#${task.assignedById}`}</td>
                                         <td className="px-4 py-3"><StatusBadge status={task.status} locale={locale} /></td>
                                         <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">
@@ -840,14 +1090,18 @@ export default function HousekeepingManager() {
                                                     className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-[#bfa15f]" title="Xem chi tiết">
                                                     <Eye size={15} />
                                                 </button>
-                                                <button onClick={() => openEdit(task)}
-                                                    className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-amber-600" title="Chỉnh sửa">
-                                                    <Pencil size={15} />
-                                                </button>
-                                                <button onClick={() => openDelete(task)}
-                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-slate-400 hover:text-red-600" title="Xóa">
-                                                    <Trash2 size={15} />
-                                                </button>
+                                                {!readOnly && (
+                                                    <>
+                                                        <button onClick={() => openEdit(task)}
+                                                            className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-amber-600" title="Chỉnh sửa">
+                                                            <Pencil size={15} />
+                                                        </button>
+                                                        <button onClick={() => openDelete(task)}
+                                                            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-slate-400 hover:text-red-600" title="Xóa">
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

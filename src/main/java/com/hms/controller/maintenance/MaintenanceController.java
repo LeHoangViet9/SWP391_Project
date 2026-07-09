@@ -134,4 +134,38 @@ public class MaintenanceController {
                 )
         );
     }
-}
+
+    /**
+     * Maintenance staff CHẤP NHẬN yêu cầu → IN_PROGRESS
+     * POST /api/v1/maintenance-requests/{id}/accept?userId={maintenanceUserId}
+     */
+    @PostMapping("/{id}/accept")
+    @PreAuthorize("hasAuthority('MAINTENANCE_UPDATE')")
+    public ApiResponse<MaintenanceResponse> acceptRequest(
+            @PathVariable Long id,
+            @RequestParam Long userId
+    ) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return ApiResponse.success(
+                messageSource.getMessage("maintenance.update.success", null, locale),
+                maintenanceService.acceptRequest(id, userId)
+        );
+    }
+
+    /**
+     * Maintenance staff TỪ CHỐI yêu cầu → hệ thống tìm người tiếp theo
+     * POST /api/v1/maintenance-requests/{id}/deny?userId={maintenanceUserId}
+     */
+    @PostMapping("/{id}/deny")
+    @PreAuthorize("hasAuthority('MAINTENANCE_UPDATE')")
+    public ApiResponse<MaintenanceResponse> denyRequest(
+            @PathVariable Long id,
+            @RequestParam Long userId
+    ) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return ApiResponse.success(
+                messageSource.getMessage("maintenance.update.success", null, locale),
+                maintenanceService.denyRequest(id, userId)
+        );
+    }
+}

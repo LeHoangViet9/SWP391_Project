@@ -1,7 +1,6 @@
 package com.hms.repository.housekeeping;
 
 import com.hms.common.enums.TaskStatus;
-import com.hms.entity.hotel.RoomStateHistory;
 import com.hms.entity.housekeeping.HouseKeepingTask;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +37,8 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
 
         List<HouseKeepingTask> findByAssignedTo_IdAndTaskStatusIn(Long userId, List<TaskStatus> statuses);
 
+        boolean existsByRoom_IdAndTaskStatusIn(Long roomId, List<TaskStatus> statuses);
+
         @Query("SELECT t FROM HouseKeepingTask t " +
                         "JOIN FETCH t.room " +
                         "JOIN FETCH t.assignedTo " +
@@ -47,5 +48,7 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
 
         long countByAssignedTo_IdAndCreatedAtBetween(Long userId, java.time.LocalDateTime start, java.time.LocalDateTime end);
 
-        long countByAssignedTo_IdAndTaskStatusIn(Long userId, List<com.hms.common.enums.TaskStatus> statuses);
+        boolean existsByAssignedTo_IdAndTaskStatus(Long userId, TaskStatus status);
+
+        List<HouseKeepingTask> findByTaskStatusInAndCreatedAtBefore(List<TaskStatus> statuses, java.time.LocalDateTime dateTime);
 }

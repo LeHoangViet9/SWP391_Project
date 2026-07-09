@@ -5,6 +5,7 @@ import com.hms.common.enums.SortField;
 import com.hms.common.enums.TaskStatus;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskUpdateRequest;
+import com.hms.dto.housekeeping.request.MinibarReportRequest;
 import com.hms.dto.housekeeping.response.HouseKeepingTaskResponse;
 import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import org.springframework.data.domain.Page;
@@ -34,5 +35,17 @@ public interface IHouseKeepingTaskService {
     // FIX: Thêm hàm lấy lịch sử đổi trạng thái phòng cho housekeeping audit.
     Page<RoomStateHistoryResponse> getRoomStateHistory(Long roomId,Integer page, Integer size,SortField sortBy,SortDirection sortDirection);
 
+
     void reportRoomIssue(Long roomId, com.hms.dto.housekeeping.request.ReportRoomIssueRequest request);
+
+    void reportMinibar(Long id, MinibarReportRequest request);
+    /**
+     * Tự động tạo task dọn phòng khi checkout.
+     * Gán cho housekeeper có ít task nhất (round-robin by workload).
+     * Gửi email thông báo cho housekeeper được gán.
+     *
+     * @param roomId ID phòng cần dọn
+     * @param triggeredByUserId ID user thực hiện checkout (có thể null)
+     */
+    void autoCreateCleaningTaskOnCheckout(Long roomId, Long triggeredByUserId);
 }

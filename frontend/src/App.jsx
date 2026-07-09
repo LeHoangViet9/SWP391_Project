@@ -59,6 +59,8 @@ export default function App() {
             />
 
             {/* ═══ BACKWARD COMPATIBILITY — redirect old role-specific paths ═══ */}
+            <Route path="/maintenance"             element={<Navigate to="/dashboard/maintenance" replace />} />
+            <Route path="/housekeeping"            element={<Navigate to="/dashboard/housekeeping" replace />} />
             <Route path="/admin/dashboard"        element={<Navigate to="/dashboard" replace />} />
             <Route path="/manager/dashboard"      element={<Navigate to="/dashboard" replace />} />
             <Route path="/receptionist/dashboard"  element={<Navigate to="/dashboard" replace />} />

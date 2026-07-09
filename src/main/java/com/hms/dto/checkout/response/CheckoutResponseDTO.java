@@ -25,5 +25,7 @@ public class CheckoutResponseDTO {
     private PaymentStatus paymentStatus;
     private BookingStatus bookingStatus;
     private RoomStatus roomStatus;
+    private boolean minibarChecked;
+    private String chargeNote;
     private LocalDateTime checkoutTime;
 }

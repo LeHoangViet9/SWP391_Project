@@ -71,6 +71,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                         @Param("excludedBookingId") Long excludedBookingId,
                         @Param("statuses") Collection<BookingStatus> statuses);
 
+        @Query("SELECT b FROM Booking b WHERE b.room.id = :roomId AND b.bookingStatus = com.hms.common.enums.BookingStatus.CHECKED_IN")
+        Optional<Booking> findActiveBookingByRoomId(@Param("roomId") Long roomId);
+
         boolean existsByRoomIdAndCheckInDateLessThanAndCheckOutDateGreaterThan(
                         Long roomId,
                         LocalDateTime newCheckOutDate,
@@ -102,10 +105,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                         LocalDateTime start,
                         LocalDateTime end);
 
-        long countByBookingStatusAndCreatedAtBetween(
-                        BookingStatus status,
-                        LocalDateTime start,
-                        LocalDateTime end);
 
         @Query("""
                             SELECT b.roomType.typeName, COUNT(b)
@@ -118,9 +117,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
         boolean existsByRoomTypeId(Long roomTypeId);
 
-        List<Booking> findByBookingStatusAndCreatedAtBefore(
-                        BookingStatus bookingStatus,
-                        LocalDateTime dateTime);
 
         List<Booking> findByBookingStatusAndHoldExpiresAtBefore(
                         BookingStatus bookingStatus,

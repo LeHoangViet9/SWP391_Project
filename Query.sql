@@ -1,21 +1,6 @@
 -- =============================================================================
 -- 1. TẠO BẢNG & INDEXES CHO CUSTOMER_FEEDBACK (NẾU CHƯA CÓ)
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS customer_feedback (
-    feedback_id BIGSERIAL PRIMARY KEY,
-    booking_id BIGINT NOT NULL,
-    customer_id BIGINT NOT NULL,
-    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
-    category VARCHAR(50) NOT NULL CHECK (category IN ('Room', 'Service', 'Cleanliness', 'Staff')),
-    comment TEXT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'REVIEWED', 'RESOLVED')),
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    reply TEXT,
-    reply_at TIMESTAMP WITHOUT TIME ZONE,
-    deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    CONSTRAINT fk_customer_feedback_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-    CONSTRAINT fk_customer_feedback_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
-);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_feedback_booking ON customer_feedback (booking_id) WHERE (deleted = false);
 CREATE INDEX IF NOT EXISTS idx_feedback_customer_id ON customer_feedback (customer_id);
@@ -148,8 +133,7 @@ INSERT INTO users (full_name, email, phone, password, account_status, created_at
     ('Lê Thị Đào', 'housekeeper3@hms.com', '0901234568', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
     ('Nguyễn Văn Hùng', 'maintenance1@hms.com', '0901234569', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
     ('Trần Văn Mạnh', 'maintenance2@hms.com', '0901234570', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
-    ('Phạm Văn Dũng', 'maintenance3@hms.com', '0901234571', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
-    ('Trần Văn An', 'customer1@gmail.com', '0908111222', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+    ('Phạm Văn Dũng', 'customer1@gmail.com', '0908111222', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
     ('Lê Thị Bình', 'customer2@gmail.com', '0908333444', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
     ('Nguyễn Hoàng Cường', 'customer3@gmail.com', '0908555666', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
     ('John Doe', 'john.doe@gmail.com', '0908777888', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
@@ -266,29 +250,31 @@ INSERT INTO bookings (customer_id, room_id, type_id, price_per_night, quantity, 
     (14, 15, 15, 400000.00, 1, '2026-06-12 14:00:00', '2026-06-14 12:00:00', 'CHECKED_OUT', 800000.00, 1, NOW()),
     (15, NULL, 13, 1800000.00, 1, '2026-06-15 14:00:00', '2026-06-16 12:00:00', 'CANCELLED', 1800000.00, 1, NOW());
 
-INSERT INTO invoices (booking_id, amount, payment_status, payment_method, paid_at) VALUES
-    (1, 1000000.00, 'PENDING', NULL, NULL),
-    (2, 1400000.00, 'PENDING', NULL, NULL),
-    (3, 2000000.00, 'PAID', 'CASH', NOW()),
-    (4, 2400000.00, 'PAID', 'TRANSFER', NOW()),
-    (5, 3000000.00, 'PAID', 'CARD', NOW()),
-    (6, 1600000.00, 'PAID', 'CASH', NOW()),
-    (7, 6000000.00, 'PAID', 'TRANSFER', NOW()),
-    (8, 24000000.00, 'PAID', 'CARD', NOW()),
-    (9, 3000000.00, 'PENDING', NULL, NULL),
-    (10, 4400000.00, 'PENDING', NULL, NULL),
-    (11, 1100000.00, 'PAID', 'CASH', NOW()),
-    (12, 4000000.00, 'PAID', 'TRANSFER', NOW()),
-    (13, 48000000.00, 'PENDING', NULL, NULL),
-    (14, 800000.00, 'PENDING', NULL, NULL),
-    (15, 1800000.00, 'CANCELLED', NULL, NULL);
+INSERT INTO invoices (booking_id, amount, payment_status, payment_method, paid_at, invoice_type) VALUES
+                                                                                                     (1, 1000000.00, 'PENDING', NULL, NULL, 'ROOM'),
+                                                                                                     (2, 1400000.00, 'PENDING', NULL, NULL, 'ROOM'),
+                                                                                                     (3, 2000000.00, 'PAID', 'CASH', '2026-07-09 22:00:00', 'ROOM'),
+                                                                                                     (4, 2400000.00, 'PAID', 'TRANSFER', '2026-07-09 22:00:00', 'ROOM'),
+                                                                                                     (5, 3000000.00, 'PAID', 'CARD', '2026-07-09 22:00:00', 'ROOM'),
+                                                                                                     (6, 1600000.00, 'PAID', 'CASH', '2026-07-09 22:00:00', 'ROOM'),
+                                                                                                     (7, 6000000.00, 'PAID', 'TRANSFER', '2026-07-09 22:00:00', 'ROOM'),
+                                                                                                     (8, 2400000.00, 'PAID', 'CARD', '2026-07-09 22:00:00', 'ROOM'),
+                                                                                                     (9, 3000000.00, 'PENDING', NULL, NULL, 'ROOM'),
+                                                                                                     (10, 4400000.00, 'PENDING', NULL, NULL, 'ROOM'),
+                                                                                                     (11, 1100000.00, 'PAID', 'CASH', '2026-07-09 22:00:00', 'ROOM'),
+                                                                                                     (12, 4000000.00, 'PAID', 'TRANSFER', '2026-07-09 22:00:00', 'ROOM'),
+                                                                                                     (13, 4800000.00, 'PENDING', NULL, NULL, 'ROOM'),
+                                                                                                     (14, 8000000.00, 'PENDING', NULL, NULL, 'ROOM'),
+                                                                                                     (15, 1800000.00, 'CANCELLED', NULL, NULL, 'ROOM');
 
-INSERT INTO customer_feedback (booking_id, customer_id, rating, category, comment, status, created_at, reply, reply_at) VALUES
-    (5, 5, 5, 'Room', 'Phòng Suite view biển rất đẹp, thiết bị hiện đại!', 'PENDING', NOW() - INTERVAL '3 days', NULL, NULL),
-    (6, 6, 4, 'Cleanliness', 'Khách sạn sạch sẽ, nhân viên dọn phòng chu đáo.', 'REVIEWED', NOW() - INTERVAL '2 days', 'Cảm ơn anh Hùng đã phản hồi tích cực! Rất hân hạnh được phục vụ anh.', NOW() - INTERVAL '1 days'),
-    (7, 7, 3, 'Service', 'Đồ ăn sáng hơi ít món, wifi thi thoảng bị chập chờn.', 'PENDING', NOW() - INTERVAL '1 days', NULL, NULL),
-    (11, 11, 2, 'Staff', 'Nhân viên lễ tân lúc check-out thái độ chưa chuyên nghiệp.', 'PENDING', NOW() - INTERVAL '12 hours', NULL, NULL),
-    (12, 12, 1, 'Room', 'Phòng bị hỏng điều hòa nóng quá không chịu được!', 'RESOLVED', NOW() - INTERVAL '6 hours', 'Chúng tôi thành thật xin lỗi về trải nghiệm này. Khách sạn đã sửa chữa điều hòa và liên hệ hỗ trợ đổi phòng cho quý khách.', NOW() - INTERVAL '5 hours');
+
+INSERT INTO customer_feedback (booking_id, customer_id, rating, category, comment, status, deleted) VALUES
+                                                                                                        (5, 5, 5, 'Room', 'Phòng Suite view biển rất đẹp, thiết bị hiện đại...', 'PENDING', false),
+                                                                                                        (6, 6, 4, 'Cleanliness', 'Khách sạn sạch sẽ, nhân viên dọn phòng kỹ...', 'PENDING', false),
+                                                                                                        (7, 7, 3, 'Service', 'Đồ ăn sáng hơi ít món, cần đa dạng hơn...', 'PENDING', false),
+                                                                                                        (11, 11, 2, 'Staff', 'Nhân viên lễ tân lúc check-in hơi chậm...', 'PENDING', false),
+                                                                                                        (12, 12, 1, 'Room', 'Phòng bị hỏng điều hòa, gọi sửa hơi lâu...', 'PENDING', false);
+
 
 -- =============================================================================
 -- 8. CHÈN DỮ LIỆU THIẾT BỊ & BẢO TRÌ (EQUIPMENTS & REPAIRS)
@@ -339,17 +325,17 @@ INSERT INTO repair_requests (room_id, equipment_id, reported_by, assigned_to, is
     (3, NULL, 7, NULL, 'Khóa cửa phòng 201 bị kẹt', 'Khóa từ quét thẻ khó nhận.', NULL, NULL, 'MEDIUM', 'PENDING', NOW()),
     (5, 8, 4, 11, 'Bình nóng lạnh phòng 301 rò điện', 'Đèn chống giật nhấp nháy đỏ liên tục.', NULL, NULL, 'CRITICAL', 'ASSIGNED', NOW());
 
-INSERT INTO services (service_name, price, is_available) VALUES
-    ('Coca Cola (Minibar)', 25000.00, TRUE),
-    ('Bia Heineken (Minibar)', 40000.00, TRUE),
-    ('Nước suối Aquafina', 15000.00, TRUE),
-    ('Mì ly Omachi (Minibar)', 20000.00, TRUE),
-    ('Dịch vụ Giặt ủi (Theo kg)', 50000.00, TRUE),
-    ('Trà gừng nóng (Room Service)', 30000.00, TRUE)
-ON CONFLICT (service_name) DO NOTHING;
 
 -- =============================================================================
 -- 9. TẠO INDEXES TỐI ƯU TRUY VẤN
 -- =============================================================================
 CREATE INDEX IF NOT EXISTS idx_user_permissions_user ON user_permissions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_permissions_permission ON user_permissions(permission_id);
+
+-- =============================================================================
+-- 10. MIGRATION: Thêm cột denied_by_ids vào repair_requests
+--     Dùng để lưu danh sách maintenance đã từ chối (dạng "5,8,12")
+-- =============================================================================
+ALTER TABLE repair_requests
+    ADD COLUMN IF NOT EXISTS denied_by_ids VARCHAR(500) DEFAULT '';
+

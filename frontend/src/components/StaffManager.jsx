@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
+import { useAuth } from '../context/AuthContext';
 import { usePermission } from '../hooks/usePermission';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/userService';
 
-const ROLES = ['ADMIN', 'MANAGER', 'RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE']; // Loại bỏ CUSTOMER khỏi danh sách thêm mới
+const ADMIN_ASSIGNABLE_ROLES = ['MANAGER', 'RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE'];
+const MANAGER_ASSIGNABLE_ROLES = ['RECEPTIONIST', 'HOUSEKEEPER', 'MAINTENANCE'];
+
+function getAssignableRoles(actorRole) {
+  if (actorRole === 'ADMIN') return ADMIN_ASSIGNABLE_ROLES;
+  if (actorRole === 'MANAGER') return MANAGER_ASSIGNABLE_ROLES;
+  return [];
+}
 
 const STATUS_OPTIONS = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -15,6 +23,13 @@ const STATUS_OPTIONS = [
   { value: 'INACTIVE', label: 'Ngừng hoạt động' },
   { value: 'BANNED', label: 'Bị cấm' },
 ];
+
+const WORK_STATUS_CONFIG = {
+  AVAILABLE: { label: 'Sẵn sàng', className: 'bg-emerald-100 text-emerald-700' },
+  WORKING: { label: 'Đang làm việc', className: 'bg-amber-100 text-amber-700' },
+  WAITING_CONFIRM: { label: 'Chờ xác nhận', className: 'bg-blue-100 text-blue-700' },
+  OFF: { label: 'Đang nghỉ', className: 'bg-slate-100 text-slate-600' },
+};
 
 const EMPTY_FORM = {
   fullName: '',
@@ -24,15 +39,19 @@ const EMPTY_FORM = {
   phone: '',
   roleName: 'RECEPTIONIST',
   accountStatus: 'ACTIVE',
+  workStatus: 'AVAILABLE',
 };
 
 export default function StaffManager() {
   const { t } = useLocale();
+  const { user } = useAuth();
   const { hasPermission } = usePermission();
 
   const canCreate = hasPermission('USER_CREATE');
   const canEdit = hasPermission('USER_UPDATE');
   const canDelete = hasPermission('USER_DELETE');
+  const actorRole = String(user?.roleName || '').toUpperCase();
+  const assignableRoles = getAssignableRoles(actorRole);
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -92,7 +111,7 @@ export default function StaffManager() {
 
   const openCreate = () => {
     if (!canCreate) return notify(t('staff.toast.forbidden') || 'Không có quyền thực hiện', 'error');
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, roleName: assignableRoles[0] || EMPTY_FORM.roleName });
     setModal({ open: true, editing: null });
   };
 
@@ -106,6 +125,7 @@ export default function StaffManager() {
       phone: item.phone || '',
       roleName: item.roleName || 'RECEPTIONIST',
       accountStatus: item.accountStatus || item.status || 'ACTIVE',
+      workStatus: item.workStatus || 'AVAILABLE',
     });
     setModal({ open: true, editing: item });
   };
@@ -119,6 +139,7 @@ export default function StaffManager() {
       phone: form.phone.trim(),
       roleName: form.roleName,
       accountStatus: form.accountStatus,
+      workStatus: form.roleName === 'HOUSEKEEPER' ? form.workStatus : 'AVAILABLE',
     };
     if (form.password) {
       payload.password = form.password;
@@ -186,6 +207,15 @@ export default function StaffManager() {
         </span>
       </td>
       <td className="px-4 py-3">
+        {item.roleName === 'HOUSEKEEPER' || item.roleName === 'MAINTENANCE' ? (
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${WORK_STATUS_CONFIG[item.workStatus || 'AVAILABLE']?.className || WORK_STATUS_CONFIG.AVAILABLE.className}`}>
+            {WORK_STATUS_CONFIG[item.workStatus || 'AVAILABLE']?.label || item.workStatus}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">-</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           {canEdit && (
             <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
@@ -209,8 +239,13 @@ export default function StaffManager() {
     t('staff.columns.phone'),
     t('staff.columns.role'),
     t('staff.columns.status'),
+    'Trạng thái làm việc',
     ...(canEdit || canDelete ? [t('staff.columns.actions')] : [])
   ];
+
+  const roleOptions = form.roleName && !assignableRoles.includes(form.roleName)
+    ? [form.roleName, ...assignableRoles]
+    : assignableRoles;
 
   return (
     <div>
@@ -313,7 +348,11 @@ export default function StaffManager() {
               <select required value={form.roleName} onChange={e => setForm(f => ({ ...f, roleName: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
                 {form.roleName === 'CUSTOMER' && <option value="CUSTOMER" disabled>CUSTOMER</option>}
-                {ROLES.map(role => <option key={role} value={role}>{role}</option>)}
+                {roleOptions.map(role => (
+                  <option key={role} value={role} disabled={!assignableRoles.includes(role)}>
+                    {role}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -326,6 +365,19 @@ export default function StaffManager() {
               </select>
             </div>
           </div>
+
+          {(form.roleName === 'HOUSEKEEPER' || form.roleName === 'MAINTENANCE') && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Trạng thái làm việc</label>
+              <select required value={form.workStatus} onChange={e => setForm(f => ({ ...f, workStatus: e.target.value }))}
+                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
+                <option value="AVAILABLE">Sẵn sàng</option>
+                <option value="WORKING">Đang làm việc</option>
+                <option value="WAITING_CONFIRM">Chờ xác nhận</option>
+                <option value="OFF">Đang nghỉ</option>
+              </select>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">{t('staff.modal.cancel')}</button>

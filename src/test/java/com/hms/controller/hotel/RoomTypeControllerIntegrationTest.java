@@ -71,7 +71,7 @@ public class RoomTypeControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        entityManager.createNativeQuery("TRUNCATE TABLE room_state_history, room_img, equipment_images, equipment_checks, repair_requests, equipments, invoices, bookings, customer_feedback, room, room_type RESTART IDENTITY CASCADE").executeUpdate();
+        entityManager.createNativeQuery("TRUNCATE TABLE room_state_history, room_img, equipment_images, repair_requests, equipments, invoices, bookings, customer_feedback, room, room_type RESTART IDENTITY CASCADE").executeUpdate();
 
         // 🛠️ Cập nhật: Thêm trạng thái ACTIVE để phù hợp với hàm findByIdAndStatus và các bộ lọc tìm kiếm
         testRoomType1 = RoomType.builder()
