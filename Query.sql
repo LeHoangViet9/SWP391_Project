@@ -33,6 +33,7 @@ ALTER TABLE invoices ADD CONSTRAINT invoices_payment_status_check CHECK (payment
 
 ALTER TABLE invoices DROP CONSTRAINT IF EXISTS invoices_payment_method_check;
 ALTER TABLE invoices ADD CONSTRAINT invoices_payment_method_check CHECK (payment_method IN ('CASH', 'CARD', 'VNPAY', 'TRANSFER'));
+CREATE UNIQUE INDEX IF NOT EXISTS uk_invoices_booking_invoice_type ON invoices (booking_id, invoice_type);
 
 ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_id_type_check;
 ALTER TABLE customers ADD CONSTRAINT customers_id_type_check CHECK (id_type IN ('CCCD', 'PASSPORT', 'OTHER'));
@@ -41,7 +42,8 @@ ALTER TABLE room_state_history DROP CONSTRAINT IF EXISTS room_state_history_trig
 ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_triggered_by_process_check
     CHECK (triggered_by_process IN (
                                     'TASK_CLEANING', 'TASK_IN_PROGRESS', 'TASK_COMPLETION',
-                                    'TASK_CANCELLATION', 'TASK_SKIPPED', 'TASK_MAINTENANCE'
+                                    'TASK_CANCELLATION', 'TASK_SKIPPED', 'TASK_MAINTENANCE',
+                                    'CHECKIN', 'CHECKOUT'
         ));
 
 ALTER TABLE room_state_history DROP CONSTRAINT IF EXISTS room_state_history_previous_state_check;
@@ -72,12 +74,14 @@ INSERT INTO permission (name) VALUES
     ('ROOM_TYPE_VIEW'), ('ROOM_TYPE_CREATE'), ('ROOM_TYPE_UPDATE'), ('ROOM_TYPE_DELETE'),
     ('CUSTOMER_VIEW'), ('CUSTOMER_CREATE'), ('CUSTOMER_UPDATE'), ('CUSTOMER_DELETE'),
     ('BOOKING_VIEW'), ('BOOKING_CREATE'), ('BOOKING_UPDATE'), ('BOOKING_DELETE'), ('BOOKING_VIEW_OWN'),
+    ('CHECKIN_VIEW'), ('CHECKOUT_VIEW'),
     ('HOUSEKEEPING_VIEW'), ('HOUSEKEEPING_CREATE'), ('HOUSEKEEPING_UPDATE'), ('HOUSEKEEPING_DELETE'),
     ('EQUIPMENT_VIEW'), ('EQUIPMENT_CREATE'), ('EQUIPMENT_UPDATE'), ('EQUIPMENT_DELETE'),
     ('MAINTENANCE_VIEW'), ('MAINTENANCE_CREATE'), ('MAINTENANCE_UPDATE'), ('MAINTENANCE_DELETE'),
     ('FEEDBACK_VIEW'), ('FEEDBACK_CREATE'), ('FEEDBACK_UPDATE'), ('FEEDBACK_DELETE'),
     ('FEEDBACK_VIEW_OWN'), ('FEEDBACK_UPDATE_OWN'), ('FEEDBACK_DELETE_OWN'),
-    ('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE')
+    ('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE'),
+    ('DASHBOARD_VIEW')
 ON CONFLICT (name) DO NOTHING;
 
 -- Phân quyền cho từng Role
@@ -92,7 +96,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permission p
 WHERE r.role_name = 'RECEPTIONIST' AND p.name IN (
     'ROOM_VIEW', 'ROOM_TYPE_VIEW', 'CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_UPDATE',
-    'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE', 'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE',
+    'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE', 'CHECKIN_VIEW', 'CHECKOUT_VIEW',
+    'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE',
     'FEEDBACK_VIEW', 'EQUIPMENT_VIEW'
 );
 
@@ -339,3 +344,4 @@ CREATE INDEX IF NOT EXISTS idx_user_permissions_permission ON user_permissions(p
 ALTER TABLE repair_requests
     ADD COLUMN IF NOT EXISTS denied_by_ids VARCHAR(500) DEFAULT '';
 
+select * from users;

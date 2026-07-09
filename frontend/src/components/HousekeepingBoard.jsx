@@ -1,13 +1,286 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    RefreshCw, Sparkles, CheckCircle2, Wind, Clock, BedDouble,
+    RefreshCw, Sparkles, CheckCircle2, Wind, BedDouble,
     ArrowRight, LayoutGrid, Table, Filter, AlertTriangle,
-    ChevronDown, Wrench,
+    ChevronDown, Wrench, Plus, History, Search, X, Loader2,
+    Clock, XCircle, Check, Minus, FileText,
 } from 'lucide-react';
-import { getDirtyRooms, getCleaningRooms, updateRoomCleaningStatus } from '../services/housekeepingService';
+import { getDirtyRooms, getCleaningRooms, updateRoomCleaningStatus, housekeepingService } from '../services/housekeepingService';
+import { getUsers } from '../services/userService';
 import { usePermission } from '../hooks/usePermission';
+import { useAuth } from '../context/AuthContext';
 import Toast from './shared/Toast';
 import Modal from './shared/Modal';
+
+// ─── Task Create Modal ───
+function TaskFormModal({ housekeepers, onSubmit, onClose, loading }) {
+    const [form, setForm] = useState({ roomId: '', assignedToId: '', notes: '' });
+    const [errors, setErrors] = useState({});
+    const validate = () => {
+        const errs = {};
+        if (!form.roomId) errs.roomId = 'Vui lòng nhập ID phòng';
+        if (!form.assignedToId) errs.assignedToId = 'Vui lòng chọn nhân viên';
+        return errs;
+    };
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm(prev => ({ ...prev, [name]: value }));
+        if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    };
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const errs = validate();
+        if (Object.keys(errs).length) { setErrors(errs); return; }
+        onSubmit({ ...form, roomId: Number(form.roomId), assignedToId: Number(form.assignedToId) });
+    };
+    return (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in zoom-in-95 fade-in duration-200">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100">
+                    <h2 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <Plus size={18} className="text-[#bfa15f]" /> Tạo tác vụ mới
+                    </h2>
+                    <button onClick={onClose} className="p-2 hover:bg-stone-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
+                        <X size={20} />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                            Số phòng (ID) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="number" name="roomId" value={form.roomId} onChange={handleChange}
+                            placeholder="Nhập ID phòng..."
+                            className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.roomId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
+                        />
+                        {errors.roomId && <p className="text-red-500 text-xs mt-1">{errors.roomId}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                            Nhân viên thực hiện <span className="text-red-500">*</span>
+                        </label>
+                        {housekeepers.length > 0 ? (
+                            <select
+                                name="assignedToId" value={form.assignedToId} onChange={handleChange}
+                                className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.assignedToId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
+                            >
+                                <option value="">Chọn nhân viên...</option>
+                                {housekeepers.map(h => (
+                                    <option key={h.id} value={h.id} disabled={h.workStatus === 'OFF'}>
+                                        {h.fullName} (#{h.id}){h.workStatus === 'OFF' ? ' — Nghỉ' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                type="number" name="assignedToId" value={form.assignedToId} onChange={handleChange}
+                                placeholder="Nhập ID nhân viên..."
+                                className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.assignedToId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
+                            />
+                        )}
+                        {errors.assignedToId && <p className="text-red-500 text-xs mt-1">{errors.assignedToId}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Ghi chú</label>
+                        <textarea
+                            name="notes" value={form.notes} onChange={handleChange}
+                            rows={3} placeholder="Ghi chú thêm về tác vụ..."
+                            className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f] resize-none"
+                        />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-stone-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-stone-50 transition-colors">
+                            Hủy
+                        </button>
+                        <button
+                            type="submit" disabled={loading}
+                            className="flex-1 px-4 py-2.5 bg-[#bfa15f] text-white rounded-xl text-sm font-semibold hover:bg-[#a8893f] disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
+                        >
+                            {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                            Tạo tác vụ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// ─── Report Issue Modal ───
+function ReportIssueModal({ onSubmit, onClose, loading }) {
+    const [form, setForm] = useState({ roomId: '', issueDescription: '', severity: 'MEDIUM' });
+    const [errors, setErrors] = useState({});
+    const validate = () => {
+        const errs = {};
+        if (!form.roomId) errs.roomId = 'Vui lòng nhập ID phòng';
+        if (!form.issueDescription) errs.issueDescription = 'Vui lòng mô tả sự cố';
+        return errs;
+    };
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm(prev => ({ ...prev, [name]: value }));
+        if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    };
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const errs = validate();
+        if (Object.keys(errs).length) { setErrors(errs); return; }
+        onSubmit(Number(form.roomId), { issueDescription: form.issueDescription, severity: form.severity });
+    };
+    return (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 fade-in duration-200">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100">
+                    <h2 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <Wrench size={18} className="text-red-500" /> Báo cáo sự cố phòng
+                    </h2>
+                    <button onClick={onClose} className="p-2 hover:bg-stone-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">ID Phòng <span className="text-red-500">*</span></label>
+                        <input
+                            type="number" name="roomId" value={form.roomId} onChange={handleChange}
+                            placeholder="Nhập ID phòng gặp sự cố..."
+                            className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none focus:border-[#bfa15f] ${errors.roomId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
+                        />
+                        {errors.roomId && <p className="text-red-500 text-xs mt-1">{errors.roomId}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Mức độ nghiêm trọng</label>
+                        <select name="severity" value={form.severity} onChange={handleChange}
+                            className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]">
+                            <option value="LOW">🟢 Thấp</option>
+                            <option value="MEDIUM">🟡 Trung bình</option>
+                            <option value="HIGH">🟠 Cao</option>
+                            <option value="CRITICAL">🔴 Khẩn cấp</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Mô tả sự cố <span className="text-red-500">*</span></label>
+                        <textarea
+                            name="issueDescription" value={form.issueDescription} onChange={handleChange}
+                            rows={4} placeholder="Ví dụ: Điều hòa không hoạt động, vòi sen bị rỉ nước..."
+                            className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none resize-none focus:border-[#bfa15f] ${errors.issueDescription ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
+                        />
+                        {errors.issueDescription && <p className="text-red-500 text-xs mt-1">{errors.issueDescription}</p>}
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-stone-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-stone-50 transition-colors">Hủy</button>
+                        <button type="submit" disabled={loading}
+                            className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
+                            {loading ? <Loader2 size={16} className="animate-spin" /> : <Wrench size={16} />}
+                            Gửi báo cáo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+// ─── Room History Modal ───
+function RoomHistoryModal({ onClose }) {
+    const [roomId, setRoomId] = useState('');
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [searched, setSearched] = useState(false);
+
+    const STATUS_LABELS = {
+        DIRTY: { label: 'Cần dọn', color: 'bg-red-100 text-red-700 border-red-200', dot: 'bg-red-500' },
+        CLEANING: { label: 'Đang dọn', color: 'bg-amber-100 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
+        READY: { label: 'Sẵn sàng', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+        AVAILABLE: { label: 'Khả dụng', color: 'bg-blue-100 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
+        OCCUPIED: { label: 'Đang có khách', color: 'bg-purple-100 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
+        MAINTENANCE: { label: 'Bảo trì', color: 'bg-orange-100 text-orange-700 border-orange-200', dot: 'bg-orange-500' },
+        CHECKOUT_PENDING: { label: 'Chờ trả phòng', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', dot: 'bg-yellow-500' },
+    };
+
+    const fetchHistory = async (e) => {
+        e?.preventDefault();
+        if (!roomId) return;
+        setLoading(true);
+        setSearched(true);
+        try {
+            const res = await housekeepingService.getRoomStateHistory(roomId, { page: 0, size: 30, sortBy: 'ID', direction: 'DESC' });
+            setHistory(res?.data?.content || []);
+        } catch {
+            setHistory([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in zoom-in-95 fade-in duration-200 flex flex-col max-h-[80vh]">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100 shrink-0">
+                    <h2 className="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <History size={18} className="text-[#bfa15f]" /> Lịch sử trạng thái phòng
+                    </h2>
+                    <button onClick={onClose} className="p-2 hover:bg-stone-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
+                </div>
+                <div className="p-6 shrink-0">
+                    <form onSubmit={fetchHistory} className="flex gap-2">
+                        <input
+                            type="number" value={roomId} onChange={e => setRoomId(e.target.value)}
+                            placeholder="Nhập ID phòng..."
+                            className="flex-1 px-3 py-2.5 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]"
+                        />
+                        <button type="submit" className="px-4 py-2.5 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors flex items-center gap-2">
+                            <Search size={16} /> Xem
+                        </button>
+                    </form>
+                </div>
+                <div className="flex-1 overflow-y-auto px-6 pb-6">
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 size={32} className="animate-spin text-[#bfa15f]" />
+                        </div>
+                    ) : history.length === 0 && searched ? (
+                        <p className="text-center text-slate-400 py-12">Không có lịch sử cho phòng này</p>
+                    ) : history.length > 0 ? (
+                        <div className="relative pl-6">
+                            <div className="absolute left-2.5 top-0 bottom-0 w-0.5 bg-stone-200" />
+                            {history.map((item, idx) => {
+                                const statusKey = item.currentState || item.newStatus || item.status || '';
+                                const cfg = STATUS_LABELS[statusKey] || { label: statusKey, color: 'bg-gray-100 text-gray-600 border-gray-200', dot: 'bg-gray-400' };
+                                return (
+                                    <div key={item.id || idx} className="relative mb-5 last:mb-0">
+                                        <div className="absolute -left-3.5 top-1.5 w-3 h-3 rounded-full bg-[#bfa15f] border-2 border-white shadow" />
+                                        <div className="bg-stone-50 rounded-xl p-4 ml-2">
+                                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${cfg.color}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                                                    {cfg.label}
+                                                </span>
+                                                <span className="text-xs text-slate-400">
+                                                    {item.changedAt ? new Date(item.changedAt).toLocaleString('vi-VN') : '—'}
+                                                </span>
+                                            </div>
+                                            {item.previousState && (
+                                                <p className="text-xs text-slate-400 mt-1.5">
+                                                    Trước đó: <span className="font-medium">{STATUS_LABELS[item.previousState]?.label || item.previousState}</span>
+                                                </p>
+                                            )}
+                                            {(item.triggeredByUserName || item.changedByName) && (
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    Bởi: <span className="font-semibold">{item.triggeredByUserName || item.changedByName}</span>
+                                                </p>
+                                            )}
+                                            {item.reason && <p className="text-xs text-slate-600 mt-1 italic">"{item.reason}"</p>}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 const STATUS_CONFIG = {
     DIRTY: {
@@ -214,18 +487,28 @@ function TableView({ rooms, onAction, updating, canUpdate }) {
 // ─── Main Housekeeping Board ───
 export default function HousekeepingBoard() {
     const { hasPermission } = usePermission();
+    const { user } = useAuth();
     const canUpdate = hasPermission('HOUSEKEEPING_UPDATE');
     const canReport = hasPermission('MAINTENANCE_CREATE');
+    const canCreate = hasPermission('HOUSEKEEPING_CREATE');
+    const canViewHistory = hasPermission('HOUSEKEEPING_VIEW');
 
     const [dirtyRooms, setDirtyRooms] = useState([]);
     const [cleaningRooms, setCleaningRooms] = useState([]);
     const [readyRooms, setReadyRooms] = useState([]);
+    const [housekeepers, setHousekeepers] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
     const [updating, setUpdating] = useState(null);
     const [toast, setToast] = useState({ type: 'success', message: '' });
     const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
     const [filter, setFilter] = useState('all'); // 'all' | 'priority'
     const [filterOpen, setFilterOpen] = useState(false);
+
+    // Action modals
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showIssueModal, setShowIssueModal] = useState(false);
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     // Maintenance report modal state
     const [maintenanceModal, setMaintenanceModal] = useState(false);
@@ -253,15 +536,53 @@ export default function HousekeepingBoard() {
         }
     }, []);
 
+    const fetchHousekeepers = useCallback(async () => {
+        try {
+            const res = await getUsers({ role: 'HOUSEKEEPER', page: 0, size: 100 });
+            setHousekeepers(res?.data?.content || []);
+        } catch {
+            setHousekeepers([]);
+        }
+    }, []);
+
     useEffect(() => {
         fetchAll();
-    }, [fetchAll]);
+        fetchHousekeepers();
+    }, [fetchAll, fetchHousekeepers]);
 
-    // Auto-refresh every 30 seconds
-    useEffect(() => {
-        const interval = setInterval(fetchAll, 30000);
-        return () => clearInterval(interval);
-    }, [fetchAll]);
+    // ── Handlers ──────────────────────────────────────────────────────────────
+    const handleCreateTask = async (payload) => {
+        setActionLoading(true);
+        try {
+            await housekeepingService.createTask({
+                ...payload,
+                assignedById: user?.id,
+            });
+            notify('Tạo tác vụ thành công!');
+            setShowCreateModal(false);
+            fetchAll();
+        } catch (err) {
+            notify(err?.message || 'Tạo tác vụ thất bại', 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleReportIssue = async (roomId, payload) => {
+        setActionLoading(true);
+        try {
+            await housekeepingService.reportRoomIssue(roomId, {
+                ...payload,
+                reportedById: user?.id,
+            });
+            notify('Đã gửi báo cáo sự cố!');
+            setShowIssueModal(false);
+        } catch (err) {
+            notify(err?.message || 'Gửi báo cáo thất bại', 'error');
+        } finally {
+            setActionLoading(false);
+        }
+    };
 
     const handleAction = async (roomId, nextStatus) => {
         setUpdating(roomId);
@@ -313,6 +634,59 @@ export default function HousekeepingBoard() {
     return (
         <div className="space-y-5">
             <Toast type={toast.type} message={toast.message} onClose={closeToast} />
+
+            {/* ─── Action Modals ─── */}
+            {showCreateModal && (
+                <TaskFormModal
+                    housekeepers={housekeepers}
+                    onSubmit={handleCreateTask}
+                    onClose={() => setShowCreateModal(false)}
+                    loading={actionLoading}
+                />
+            )}
+            {showIssueModal && (
+                <ReportIssueModal
+                    onSubmit={handleReportIssue}
+                    onClose={() => setShowIssueModal(false)}
+                    loading={actionLoading}
+                />
+            )}
+            {showHistoryModal && (
+                <RoomHistoryModal onClose={() => setShowHistoryModal(false)} />
+            )}
+            {/* ─── Header: Title + Action Buttons ─── */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+                <div>
+                    <h2 className="text-lg font-bold text-slate-800">Quản lý Buồng phòng</h2>
+                    <p className="text-sm text-slate-500 mt-0.5">Tổng cộng <span className="font-bold text-[#bfa15f]">{total}</span> phòng đang theo dõi</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {canViewHistory && (
+                        <button
+                            onClick={() => setShowHistoryModal(true)}
+                            className="flex items-center gap-2 px-3.5 py-2 border border-stone-200 rounded-lg text-sm font-semibold text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors bg-white"
+                        >
+                            <History size={16} /> Lịch sử phòng
+                        </button>
+                    )}
+                    {canUpdate && (
+                        <button
+                            onClick={() => setShowIssueModal(true)}
+                            className="flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors bg-white"
+                        >
+                            <Wrench size={16} /> Báo cáo sự cố
+                        </button>
+                    )}
+                    {canCreate && (
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors shadow-sm"
+                        >
+                            <Plus size={16} /> Tạo tác vụ
+                        </button>
+                    )}
+                </div>
+            </div>
 
             {/* ─── Summary Cards ─── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -405,11 +779,6 @@ export default function HousekeepingBoard() {
                     {loading ? 'Đang tải...' : 'Làm mới'}
                 </button>
 
-                {/* Auto-refresh indicator */}
-                <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                    <Clock size={10} />
-                    Tự động làm mới 30s
-                </div>
             </div>
 
             {/* ─── Content: Kanban or Table ─── */}

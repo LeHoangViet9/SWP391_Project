@@ -109,6 +109,9 @@ export default function DashboardRouter() {
       {/* Index — redirect to first allowed page */}
       <Route index element={<Navigate to={firstAllowedPath} replace />} />
 
+      <Route path="checkout" element={<Navigate to="/dashboard/check-in" replace />} />
+      <Route path="check-out" element={<Navigate to="/dashboard/check-in" replace />} />
+
       {/* Dynamic content routes */}
       {Object.keys(ROUTE_COMPONENTS).map((key) => (
         <Route

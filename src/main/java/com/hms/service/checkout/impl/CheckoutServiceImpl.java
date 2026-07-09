@@ -251,11 +251,11 @@ public class CheckoutServiceImpl implements CheckoutService {
 
     private void changeRoom(Room room, RoomStatus status, User user, String reason) {
         RoomStatus previous = room.getRoomStatus();
-        
+
         // Prevent regression of room state if the task has already progressed
-        if (status == RoomStatus.DIRTY && (previous == RoomStatus.CLEANING 
-                || previous == RoomStatus.READY 
-                || previous == RoomStatus.MAINTENANCE 
+        if (status == RoomStatus.DIRTY && (previous == RoomStatus.CLEANING
+                || previous == RoomStatus.READY
+                || previous == RoomStatus.MAINTENANCE
                 || previous == RoomStatus.AVAILABLE)) {
             return;
         }

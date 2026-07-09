@@ -591,7 +591,11 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         com.hms.dto.checkout.request.CheckoutRequestDTO checkoutRequest = new com.hms.dto.checkout.request.CheckoutRequestDTO();
         checkoutRequest.setBookingId(booking.getId());
         checkoutRequest.setAdditionalCharges(total);
-        checkoutRequest.setChargeNote(total.signum() > 0 ? "Tiêu thụ Minibar: " + note : "");
+        Locale locale = LocaleContextHolder.getLocale();
+        String resolvedNoteText = note.isEmpty()
+                ? messageSource.getMessage("checkout.minibar.no_consumption", null, locale)
+                : note;
+        checkoutRequest.setChargeNote("Tiêu thụ Minibar: " + resolvedNoteText);
         checkoutRequest.setPaymentMethod(null);
         checkoutRequest.setCashReceived(null);
         checkoutRequest.setPaymentConfirmed(false);
@@ -599,13 +603,9 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         checkoutService.confirmPayment(checkoutRequest, null);
 
         // Gửi thông báo cho lễ tân và quản lý về báo cáo minibar
-        Locale locale = LocaleContextHolder.getLocale();
         String notifTitle = messageSource.getMessage("notification.minibar.report.title", new Object[]{room.getRoomNumber()}, locale);
-        String resolvedNoteText = note.isEmpty() 
-                ? messageSource.getMessage("checkout.minibar.no_consumption", null, locale)
-                : note;
         String notifMsg = messageSource.getMessage("notification.minibar.report.message", new Object[]{room.getRoomNumber(), resolvedNoteText, total}, locale);
-        notificationService.notifyReceptionistsAndManagers(notifTitle, notifMsg, "/dashboard/checkout");
+        notificationService.notifyReceptionistsAndManagers(notifTitle, notifMsg, "/dashboard/check-out");
     }
 
     @Scheduled(fixedRate = 60000)

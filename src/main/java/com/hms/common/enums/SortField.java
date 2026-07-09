@@ -7,7 +7,13 @@ import lombok.RequiredArgsConstructor;
 public enum SortField {
     ID("id"),
     TYPE_NAME("typeName"),
-    BASE_PRICE("basePrice");
+    BASE_PRICE("basePrice"),
+    ROOM_ID("room.id"),
+    ASSIGNED_TO_ID("assignedTo.id"),
+    ASSIGNED_BY_ID("assignedBy.id"),
+    STATUS("taskStatus"),
+    CREATED_AT("createdAt"),
+    UPDATED_AT("updatedAt");
 
     private final String field;
 
