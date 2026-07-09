@@ -19,12 +19,15 @@ import StaffManager from '../components/StaffManager';
 import RoomTypeManager from '../components/RoomTypeManager';
 import RoomManager from '../components/RoomManager';
 import BookingManager from '../components/BookingManager';
-import CheckInOutManager from '../components/CheckInOutManager';
+import CheckInManager from '../components/CheckInManager';
+import CheckOutManager from '../components/CheckOutManager';
 import CustomerManager from '../components/CustomerManager';
 import EquipmentManager from '../components/EquipmentManager';
 import AssignEquipmentToRoom from '../components/AssignEquipmentToRoom';
 import MaintenanceManager from '../components/MaintenanceManager';
 import HousekeepingBoard from '../components/HousekeepingBoard';
+import HousekeepingManager from '../components/HousekeepingManager';
+import HousekeeperTaskBoard from '../components/HousekeeperTaskBoard';
 import CustomerBookingHistory from '../components/CustomerBookingHistory';
 import AccountInfo from '../components/AccountInfo';
 import ChangePassword from '../components/ChangePassword';
@@ -38,41 +41,54 @@ import AuditLogManager from '../components/AuditLogManager';
  * Keys match the `path` suffix in menuConfig.js (e.g., '/dashboard/reports' → 'reports').
  */
 const ROUTE_COMPONENTS = {
-  'audit-logs': { Component: AuditLogManager, title: 'Audit Log', titleEn: 'Audit Log' },
-  'reports': { Component: DashboardOverview, title: 'Báo Cáo', titleEn: 'Dashboard' },
-  'roles': { Component: RolePermissionManager, title: 'Phân Quyền', titleEn: 'Role Configuration' },
-  'staff': { Component: StaffManager, title: 'Quản Lý Nhân Viên', titleEn: 'Staff Management' },
-  'room-types': { Component: RoomTypeManager, title: 'Quản Lý Loại Phòng', titleEn: 'Room Type Management' },
-  'rooms': { Component: RoomManager, title: 'Quản Lý Phòng', titleEn: 'Room Management' },
-  'bookings': { Component: BookingManager, title: 'Quản Lý Đặt Phòng', titleEn: 'Booking Management' },
-  'check-in': { Component: CheckInOutManager, title: 'Check-in / Check-out', titleEn: 'Check-in / Check-out' },
-  'my-bookings': { Component: CustomerBookingHistory, title: 'Đặt Phòng Của Tôi', titleEn: 'My Bookings' },
-  'customers': { Component: CustomerManager, title: 'Quản Lý Khách Hàng', titleEn: 'Customer Management' },
-  'equipment': { Component: EquipmentManager, title: 'Quản Lý Thiết Bị', titleEn: 'Equipment Management' },
-  'assign-equipment': { Component: AssignEquipmentToRoom, title: 'Phân Bổ Thiết Bị', titleEn: 'Assign Equipment' },
-  'maintenance': { Component: MaintenanceManager, title: 'Quản Lý Bảo Trì', titleEn: 'Maintenance Management' },
-  'housekeeping': { Component: HousekeepingBoard, title: 'Quản Lý Buồng Phòng', titleEn: 'Housekeeping' },
-  'feedback': { Component: FeedbackManager, title: 'Đánh Giá', titleEn: 'Feedback' },
-  'invoices': { Component: InvoiceManager, title: 'Hóa Đơn', titleEn: 'Invoices' },
-  'account': { Component: AccountInfo, title: 'Thông Tin Tài Khoản', titleEn: 'Account Info' },
-  'password': { Component: ChangePassword, title: 'Đổi Mật Khẩu', titleEn: 'Change Password' },
-};
+  'audit-logs':       { Component: AuditLogManager,        title: 'Audit Log',              titleEn: 'Audit Log' },
+  'reports':          { Component: DashboardOverview,      title: 'Báo Cáo',              titleEn: 'Dashboard Reports' },
+  'roles':            { Component: RolePermissionManager,  title: 'Phân Quyền',            titleEn: 'Role Configuration' },
+  'staff':            { Component: StaffManager,           title: 'Quản Lý Nhân Viên',     titleEn: 'Staff Management' },
+  'room-types':       { Component: RoomTypeManager,        title: 'Quản Lý Loại Phòng',    titleEn: 'Room Type Management' },
+  'rooms':            { Component: RoomManager,            title: 'Quản Lý Phòng',         titleEn: 'Room Management' },
+  'bookings':         { Component: BookingManager,         title: 'Quản Lý Đặt Phòng',     titleEn: 'Booking Management' },
+  'check-in':         { Component: CheckInManager,         title: 'Check-in',               titleEn: 'Check-in' },
+  'check-out':        { Component: CheckOutManager,        title: 'Check-out',              titleEn: 'Check-out' },
+  'my-bookings':      { Component: CustomerBookingHistory, title: 'Đặt Phòng Của Tôi',     titleEn: 'My Bookings' },
+  'customers':        { Component: CustomerManager,        title: 'Quản Lý Khách Hàng',    titleEn: 'Customer Management' },
+  'equipment':        { Component: EquipmentManager,       title: 'Quản Lý Thiết Bị',      titleEn: 'Equipment Management' },
+  'assign-equipment': { Component: AssignEquipmentToRoom,  title: 'Phân Bổ Thiết Bị',      titleEn: 'Assign Equipment' },
+  'maintenance':      { Component: MaintenanceManager,     title: 'Quản Lý Bảo Trì',       titleEn: 'Maintenance Management' },
+  'housekeeping':     { Component: HousekeepingBoard,      title: 'Quản Lý Buồng Phòng',   titleEn: 'Housekeeping' },
+  'feedback':         { Component: FeedbackManager,        title: 'Đánh Giá',              titleEn: 'Feedback' },
+  'invoices':         { Component: InvoiceManager,         title: 'Hóa Đơn',               titleEn: 'Invoices' },
+  'account':          { Component: AccountInfo,            title: 'Thông Tin Tài Khoản',   titleEn: 'Account Info' },
+  'password':         { Component: ChangePassword,         title: 'Đổi Mật Khẩu',          titleEn: 'Change Password' }
+}; // <-- Đã thêm dấu đóng ngoặc ở đây
+
 
 /**
  * ContentPage — Renders a single dashboard content area with title.
  */
 function ContentPage({ routeKey }) {
   const { locale } = useLocale();
+  const { user } = useAuth();
   const route = ROUTE_COMPONENTS[routeKey];
   if (!route) return <Navigate to="/dashboard" replace />;
 
-  const { Component } = route;
+  let Component = route.Component;
+  let componentProps = {};
+  if (routeKey === 'housekeeping') {
+    if (user?.roleName === 'HOUSEKEEPER') {
+      Component = HousekeepingManager;
+      componentProps = { readOnly: true };
+    } else if (user?.roleName === 'ADMIN' || user?.roleName === 'MANAGER') {
+      Component = HousekeepingManager;
+    }
+  }
+
   const title = locale === 'vi' ? route.title : route.titleEn;
 
   return (
-    <PermissionLayout title={title}>
-      <Component />
-    </PermissionLayout>
+      <PermissionLayout title={title}>
+        <Component {...componentProps} />
+      </PermissionLayout>
   );
 }
 
@@ -83,8 +99,8 @@ export default function DashboardRouter() {
   const { user } = useAuth();
 
   const visibleMenu = useMemo(
-    () => filterMenuByPermissions(user?.permissions ?? []),
-    [user?.permissions]
+      () => filterMenuByPermissions(user?.permissions ?? [], user?.roleName),
+      [user?.permissions, user?.roleName]
   );
 
   const allowedRouteKeys = useMemo(() => {
@@ -105,24 +121,21 @@ export default function DashboardRouter() {
   };
 
   return (
-    <Routes>
-      {/* Index — redirect to first allowed page */}
-      <Route index element={<Navigate to={firstAllowedPath} replace />} />
+      <Routes>
+        {/* Index — redirect to first allowed page */}
+        <Route index element={<Navigate to={firstAllowedPath} replace />} />
 
-      <Route path="checkout" element={<Navigate to="/dashboard/check-in" replace />} />
-      <Route path="check-out" element={<Navigate to="/dashboard/check-in" replace />} />
+        {/* Dynamic content routes */}
+        {Object.keys(ROUTE_COMPONENTS).map((key) => (
+            <Route
+                key={key}
+                path={key}
+                element={renderRoute(key)}
+            />
+        ))}
 
-      {/* Dynamic content routes */}
-      {Object.keys(ROUTE_COMPONENTS).map((key) => (
-        <Route
-          key={key}
-          path={key}
-          element={renderRoute(key)}
-        />
-      ))}
-
-      {/* Catch-all — redirect to first allowed page */}
-      <Route path="*" element={<Navigate to={firstAllowedPath} replace />} />
-    </Routes>
+        {/* Catch-all — redirect to first allowed page */}
+        <Route path="*" element={<Navigate to={firstAllowedPath} replace />} />
+      </Routes>
   );
 }

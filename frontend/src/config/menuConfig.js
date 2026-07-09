@@ -141,11 +141,20 @@ export const MENU_CONFIG = [
   },
   {
     key: 'check-in',
-    label: 'Check-in / Check-out',
-    labelEn: 'Check-in / Check-out',
+    label: 'Check-in',
+    labelEn: 'Check-in',
     path: '/dashboard/check-in',
     icon: ClipboardCheck,
-    permissions: ['CHECKIN_VIEW', 'CHECKIN_PROCESS', 'CHECKOUT_VIEW', 'CHECKOUT_PROCESS'],
+    permissions: ['CHECKIN_VIEW'],
+    group: 'operations',
+  },
+  {
+    key: 'check-out',
+    label: 'Check-out',
+    labelEn: 'Check-out',
+    path: '/dashboard/check-out',
+    icon: LogOut,
+    permissions: ['CHECKOUT_VIEW'],
     group: 'operations',
   },
   {

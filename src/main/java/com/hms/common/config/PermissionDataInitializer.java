@@ -98,9 +98,6 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "USER_VIEW", "USER_CREATE", "USER_UPDATE", "USER_DELETE", "USER_AUTHORIZE",
                 "ROOM_VIEW", "ROOM_CREATE", "ROOM_UPDATE", "ROOM_DELETE",
                 "ROOM_TYPE_VIEW", "ROOM_TYPE_CREATE", "ROOM_TYPE_UPDATE", "ROOM_TYPE_DELETE",
-                "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE", "BOOKING_DELETE",
-                "CHECKIN_VIEW", "CHECKIN_PROCESS",
-                "CHECKOUT_VIEW", "CHECKOUT_PROCESS",
                 "DASHBOARD_VIEW"
         );
         syncRolePermissions("ADMIN", adminPerms);
