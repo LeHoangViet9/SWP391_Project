@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-06-06T22:23:44+0700",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Oracle Corporation)"
+    date = "2026-07-10T00:21:53+0700",
+    comments = "version: 1.5.5.Final, compiler: IncrementalProcessingEnvironment from gradle-language-java-9.4.1.jar, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class UserMapperImpl implements UserMapper {
@@ -23,7 +23,6 @@ public class UserMapperImpl implements UserMapper {
 
         User.UserBuilder user = User.builder();
 
-        user.userName( userRegisterRequest.getUserName() );
         user.fullName( userRegisterRequest.getFullName() );
         user.email( userRegisterRequest.getEmail() );
         user.phone( userRegisterRequest.getPhone() );
@@ -42,7 +41,6 @@ public class UserMapperImpl implements UserMapper {
 
         if ( user != null ) {
             userResponse.setRoleName( userRoleRoleName( user ) );
-            userResponse.setUsername( user.getUserName() );
             userResponse.setId( user.getId() );
             userResponse.setFullName( user.getFullName() );
             userResponse.setEmail( user.getEmail() );
@@ -53,6 +51,7 @@ public class UserMapperImpl implements UserMapper {
             userResponse.setLastLoginAt( user.getLastLoginAt() );
         }
         userResponse.setToken( token );
+        userResponse.setPermissions( java.util.stream.Stream.concat(user.getCustomPermissions().stream(), user.getRole() != null && user.getRole().getPermissions() != null ? user.getRole().getPermissions().stream() : java.util.stream.Stream.empty()).map(p -> p.getName()).distinct().collect(java.util.stream.Collectors.toList()) );
 
         return userResponse;
     }
