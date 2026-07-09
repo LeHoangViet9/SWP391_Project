@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'http://localhost:8089',
         changeOrigin: true,
       },
+      // MỚI: Proxy các yêu cầu lấy ảnh tĩnh cục bộ (/uploads/**) sang server backend (cổng 8089)
+      '/uploads': {
+        target: 'http://localhost:8089',
+        changeOrigin: true,
+      },
     },
   },
 });

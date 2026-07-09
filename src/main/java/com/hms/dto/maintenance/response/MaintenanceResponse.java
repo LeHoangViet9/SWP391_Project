@@ -38,4 +38,6 @@ public class MaintenanceResponse {
     private LocalDateTime updatedAt;
 
     private LocalDateTime completedAt;
+
+    private LocalDateTime estimatedCompletionTime;
 }

@@ -311,21 +311,21 @@ INSERT INTO equipments (equipment_name, equipment_code, description, status, cre
     ('Két sắt chống cháy Honeywell', 'SF-501', 'Két sắt vân tay Honeywell', 'ACTIVE', NOW());
 
 INSERT INTO equipment_images (image_url, is_primary, equipment_id, created_at) VALUES
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/sony_tv.jpg', TRUE, 1, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/daikin_ac.jpg', TRUE, 2, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/electrolux_fridge.jpg', TRUE, 3, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/panasonic_dryer.jpg', TRUE, 4, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/panasonic_ac.jpg', TRUE, 5, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/samsung_tv.jpg', TRUE, 6, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/daikin_ac_large.jpg', TRUE, 7, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/rossi_heater.jpg', TRUE, 8, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/sony_oled.jpg', TRUE, 9, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/daikin_central.jpg', TRUE, 10, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/panasonic_fridge.jpg', TRUE, 11, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/lg_tv.jpg', TRUE, 12, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/midea_ac.jpg', TRUE, 13, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/philips_kettle.jpg', TRUE, 14, NOW()),
-    ('https://res.cloudinary.com/dkkd1nhqr/image/upload/v1/equipments/honeywell_safe.jpg', TRUE, 15, NOW());
+    ('/uploads/equipments/sony_tv.jpg', TRUE, 1, NOW()),
+    ('/uploads/equipments/daikin_ac.jpg', TRUE, 2, NOW()),
+    ('/uploads/equipments/electrolux_fridge.jpg', TRUE, 3, NOW()),
+    ('/uploads/equipments/panasonic_dryer.jpg', TRUE, 4, NOW()),
+    ('/uploads/equipments/panasonic_ac.jpg', TRUE, 5, NOW()),
+    ('/uploads/equipments/samsung_tv.jpg', TRUE, 6, NOW()),
+    ('/uploads/equipments/daikin_ac_large.jpg', TRUE, 7, NOW()),
+    ('/uploads/equipments/rossi_heater.jpg', TRUE, 8, NOW()),
+    ('/uploads/equipments/sony_oled.jpg', TRUE, 9, NOW()),
+    ('/uploads/equipments/daikin_central.jpg', TRUE, 10, NOW()),
+    ('/uploads/equipments/panasonic_fridge.jpg', TRUE, 11, NOW()),
+    ('/uploads/equipments/lg_tv.jpg', TRUE, 12, NOW()),
+    ('/uploads/equipments/midea_ac.jpg', TRUE, 13, NOW()),
+    ('/uploads/equipments/philips_kettle.jpg', TRUE, 14, NOW()),
+    ('/uploads/equipments/honeywell_safe.jpg', TRUE, 15, NOW());
 
 INSERT INTO repair_requests (room_id, equipment_id, reported_by, assigned_to, issue_title, issue_description, diagnosis, repair_result, severity, status, created_at) VALUES
     (1, 1, 4, 10, 'Lỗi Tivi không kết nối được Wifi', 'Khách báo tivi Sony phòng 101 không thể kết nối mạng.', 'Lỗi cài đặt phần mềm mạng.', 'Đã reset cài đặt mạng.', 'LOW', 'COMPLETED', NOW()),
