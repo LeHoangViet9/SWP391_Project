@@ -218,7 +218,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             throw new ConflictException(messageSource.getMessage("error.maintenance.invalid.status.assigned", null, locale));
         }
 
-        // Lưu lý do từ chối vào diagnosis
+        // THAY ĐỔI: Lưu lý do từ chối vào trường diagnosis
         if (reason != null && !reason.isBlank()) {
             String existingDiagnosis = request.getDiagnosis() != null ? request.getDiagnosis() : "";
             String reasonEntry = "[Từ chối] " + reason;
@@ -299,7 +299,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         if (updated.getAssignedTo() != null && !updated.getAssignedTo().equals(previousAssignee)) {
             syncMaintenanceWorkStatus(updated.getAssignedTo(), updated.getStatus());
 
-            // Gửi notification cho nhân viên bảo trì mới được gán bởi manager
+            // THAY ĐỔI: Gửi notification cho nhân viên bảo trì mới được gán bởi manager
             final Locale notifLocale = locale;
             userRepository.findById(updated.getAssignedTo()).ifPresent(assignee -> {
                 String roomInfo = updated.getRoomId() != null

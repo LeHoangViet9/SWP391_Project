@@ -16,6 +16,7 @@ export const maintenanceService = {
     if (params.page != null) q.set('page', params.page);
     if (params.size != null) q.set('size', params.size);
 
+    // THAY ĐỔI: Sửa mặc định sắp xếp theo ngày tạo (CREATED_AT) và mới nhất trước (DESC)
     q.set('sortBy', params.sortBy || 'CREATED_AT');
     q.set('direction', params.direction || 'DESC');
 
@@ -73,6 +74,7 @@ export const maintenanceService = {
   /**
    * Maintenance staff từ chối yêu cầu → hệ thống giao cho người tiếp theo
    */
+  // THAY ĐỔI: Gửi kèm lý do từ chối (reason) nếu có lên server
   denyRequest: (id, userId, reason, locale = 'vi') => {
     const params = new URLSearchParams({ userId });
     if (reason && reason.trim()) params.set('reason', reason.trim());

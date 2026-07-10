@@ -47,6 +47,7 @@ public class MaintenanceController {
         );
     }
 
+    // THAY ĐỔI: Đổi defaultValue của sortBy thành CREATED_AT và direction thành DESC để mặc định hiển thị ngày mới nhất trước
     @GetMapping
     @PreAuthorize("hasAuthority('MAINTENANCE_VIEW')")
     public ApiResponse<Page<MaintenanceResponse>> getAllRequests(
@@ -156,6 +157,7 @@ public class MaintenanceController {
      * Maintenance staff TỪ CHỐI yêu cầu → hệ thống tìm người tiếp theo
      * POST /api/v1/maintenance-requests/{id}/deny?userId={maintenanceUserId}
      */
+    // THAY ĐỔI: Nhận thêm param lý do từ chối (reason) để lưu vết vào chẩn đoán (diagnosis)
     @PostMapping("/{id}/deny")
     @PreAuthorize("hasAuthority('MAINTENANCE_UPDATE')")
     public ApiResponse<MaintenanceResponse> denyRequest(

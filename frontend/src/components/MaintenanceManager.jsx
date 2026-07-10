@@ -76,9 +76,9 @@ export default function MaintenanceManager({ readOnly = false }) {
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // id đang xử lý accept/deny
 
-  // Modal từ chối
+  // THAY ĐỔI: Thêm state lưu thông tin modal từ chối và lý do từ chối
   const [denyModal, setDenyModal] = useState({ open: false, item: null, reason: '' });
-  // Modal checklist trước khi nhận việc
+  // THAY ĐỔI: Thêm các mục checklist chuẩn bị trước khi nhận việc sửa chữa
   const CHECKLIST_ITEMS = [
     'Đã đọc kỹ mô tả vấn đề và tình trạng sự cố',
     'Đã chuẩn bị dụng cụ và vật tư cần thiết',
@@ -86,6 +86,7 @@ export default function MaintenanceManager({ readOnly = false }) {
     'Đã xác nhận vị trí phòng / thiết bị cần sửa',
     'Đã kiểm tra an toàn (điện, nước, khí gas nếu liên quan)',
   ];
+  // THAY ĐỔI: Thêm state quản lý checklist modal
   const [checklistModal, setChecklistModal] = useState({ open: false, item: null, checked: [] });
 
   const [rooms, setRooms] = useState([]);
