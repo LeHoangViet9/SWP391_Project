@@ -31,6 +31,7 @@ public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEnv
 
                 cleanupLegacyUsers(stmt);
                 syncBookingStatusConstraint(stmt);
+                syncWorkStatusConstraint(stmt);
             }
         } catch (ClassNotFoundException e) {
             log.debug("[PreHibernate] PostgreSQL driver not found, skipping cleanup");
@@ -73,6 +74,28 @@ public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEnv
             log.info("[PreHibernate] Booking status check constraint synchronized");
         } catch (Exception e) {
             log.debug("[PreHibernate] Booking status constraint cleanup skipped: {}", e.getMessage());
+        }
+    }
+
+    private void syncWorkStatusConstraint(Statement stmt) {
+        try {
+            stmt.execute("""
+                    ALTER TABLE users
+                    DROP CONSTRAINT IF EXISTS users_work_status_check
+                    """);
+            stmt.execute("""
+                    ALTER TABLE users
+                    ADD CONSTRAINT users_work_status_check
+                    CHECK (work_status IN (
+                        'AVAILABLE',
+                        'WORKING',
+                        'WAITING_CONFIRM',
+                        'OFF'
+                    ))
+                    """);
+            log.info("[PreHibernate] User work status check constraint synchronized");
+        } catch (Exception e) {
+            log.debug("[PreHibernate] User work status constraint cleanup skipped: {}", e.getMessage());
         }
     }
 }
