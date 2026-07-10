@@ -92,6 +92,19 @@ public class UserDataInitializer implements ApplicationRunner {
             log.info("  [created] email={} | password={} | role={}",
                     tu.email(), tu.plainPassword(), tu.roleName());
         }
+
+        // Giao một số task mặc định cho tài khoản test Maintenance Test để trang bảo trì hiển thị dữ liệu
+        userRepository.findUserByEmail("maintenance@test.hms").ifPresent(maintTest -> {
+            try {
+                // Update các repair_requests có ID 5, 6, 10 thành được assign cho Maintenance Test
+                // để người dùng thấy dữ liệu thực tế khi test bằng tài khoản này
+                jdbcTemplate.update("UPDATE repair_requests SET assigned_to = ? WHERE id IN (5, 6, 10)", maintTest.getId());
+                log.info("Assigned seeded repair requests (IDs: 5, 6, 10) to Maintenance Test (ID: {}) for demonstration.", maintTest.getId());
+            } catch (Exception e) {
+                log.error("Failed to assign default tasks to Maintenance Test: ", e);
+            }
+        });
+
         log.info("=========================================================");
         log.info("BCrypt hash trong DB KHÔNG đọc ngược được — dùng mật khẩu ở trên để đăng nhập.");
     }

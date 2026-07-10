@@ -167,6 +167,37 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
+    public MaintenanceDashboardResponse getMaintenanceDashboardForTechnician(String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+        User technician = userRepository.findUserByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage(MSG_USER_NOT_FOUND_EMAIL, new Object[]{email}, locale)
+                ));
+
+        Long total = maintenanceRepository.countByAssignedTo(technician.getId());
+        Long pending = 0L; // Technicians do not own pending tasks (they are unassigned)
+        Long inProgress = maintenanceRepository.countByAssignedToAndStatus(technician.getId(), MaintenanceStatus.IN_PROGRESS);
+        Long completed = maintenanceRepository.countByAssignedToAndStatus(technician.getId(), MaintenanceStatus.COMPLETED);
+
+        BigDecimal totalCost = BigDecimal.ZERO;
+
+        Map<String, Long> severityMap = new java.util.HashMap<>();
+        List<Object[]> severityData = maintenanceRepository.countRequestsBySeverityAndAssignedTo(technician.getId());
+        for (Object[] row : severityData) {
+            severityMap.put(row[0].toString(), (Long) row[1]);
+        }
+
+        return MaintenanceDashboardResponse.builder()
+                .totalRequests(total)
+                .pendingRequests(pending)
+                .inProgressRequests(inProgress)
+                .completedRequests(completed)
+                .totalCost(totalCost)
+                .requestsBySeverity(severityMap)
+                .build();
+    }
+
+    @Override
     public HouseKeepingDashboardResponse getHousekeeperDashboard(String housekeeperEmail) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -219,7 +250,7 @@ public class DashboardServiceImpl implements DashboardService {
             case "RECEPTIONIST":
                 return getReceptionistDashboard();
             case "MAINTENANCE":
-                return getMaintenanceDashboard();
+                return getMaintenanceDashboardForTechnician(email);
             case "HOUSEKEEPER":
                 return getHousekeeperDashboard(email);
             default:

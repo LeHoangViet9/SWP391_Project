@@ -9,6 +9,7 @@ public interface DashboardService {
     AdminDashboardResponse getAdminDashboard();
     ReceptionistDashboardResponse getReceptionistDashboard();
     MaintenanceDashboardResponse getMaintenanceDashboard();
+    MaintenanceDashboardResponse getMaintenanceDashboardForTechnician(String email);
     HouseKeepingDashboardResponse getHousekeeperDashboard(String housekeeperEmail);
     Object getDashboardData(String email);
 

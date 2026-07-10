@@ -30,12 +30,19 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
 
     long countByStatus(MaintenanceStatus status);
 
+    long countByAssignedTo(Long assignedTo);
+
+    long countByAssignedToAndStatus(Long assignedTo, MaintenanceStatus status);
+
     default BigDecimal totalMaintenanceCost() {
         return BigDecimal.ZERO;
     }
 
     @Query("select r.severity, count(r) from RepairRequest r group by r.severity")
     List<Object[]> countRequestsBySeverity();
+
+    @Query("SELECT r.severity, COUNT(r) FROM RepairRequest r WHERE r.assignedTo = :assignedTo GROUP BY r.severity")
+    List<Object[]> countRequestsBySeverityAndAssignedTo(@Param("assignedTo") Long assignedTo);
 
     @Query("SELECT r FROM RepairRequest r WHERE " +
             "(:keyword IS NULL " +
