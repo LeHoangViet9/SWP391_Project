@@ -128,6 +128,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                         BookingStatus bookingStatus,
                         LocalDateTime dateTime);
 
+        @Query("""
+                            SELECT DISTINCT b
+                            FROM Booking b
+                            LEFT JOIN FETCH b.rooms
+                            LEFT JOIN FETCH b.room
+                            WHERE b.bookingStatus = com.hms.common.enums.BookingStatus.CHECKED_IN
+                            AND b.checkOutDate < :cutoffExclusive
+                        """)
+        List<Booking> findCheckedInDueForAutoCheckout(
+                        @Param("cutoffExclusive") LocalDateTime cutoffExclusive);
+
         /**
          * Check if a room is already booked in the given date range (excluding the
          * current booking). Used for double-check after acquiring pessimistic lock

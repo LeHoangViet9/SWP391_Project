@@ -7,4 +7,5 @@ public interface CheckoutService {
     CheckoutResponseDTO getBill(Long bookingId);
     CheckoutResponseDTO confirmPayment(CheckoutRequestDTO request, Long userId);
     CheckoutResponseDTO releaseRoom(Long bookingId, Long userId);
+    int autoCheckoutOverdueBookings();
 }

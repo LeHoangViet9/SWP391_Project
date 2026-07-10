@@ -212,6 +212,39 @@ public class CheckoutServiceImpl implements CheckoutService {
         return response(booking, invoice, getSurchargeInvoice(booking), RoomStatus.DIRTY);
     }
 
+    @Override
+    @Transactional
+    public int autoCheckoutOverdueBookings() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime cutoffExclusive = now.toLocalTime().isBefore(LocalTime.NOON)
+                ? now.toLocalDate().atStartOfDay()
+                : now.toLocalDate().plusDays(1).atStartOfDay();
+
+        List<Booking> candidates = bookingRepository.findCheckedInDueForAutoCheckout(cutoffExclusive);
+        int processed = 0;
+        for (Booking candidate : candidates) {
+            Booking booking = bookingRepository.findByIdWithPessimisticWrite(candidate.getId()).orElse(null);
+            if (booking == null
+                    || booking.getBookingStatus() != BookingStatus.CHECKED_IN
+                    || !isCheckoutDeadlinePassed(booking, now)) {
+                continue;
+            }
+
+            List<Room> rooms = roomsOf(booking);
+            String historyReason = "Hệ thống tự động check-out sau 12:00 ngày trả phòng.";
+            rooms.forEach(room -> changeRoom(room, RoomStatus.DIRTY, null, historyReason));
+            assignHousekeepingTasks(rooms, null);
+
+            booking.setBookingStatus(BookingStatus.CHECKED_OUT);
+            booking.setActualCheckOutTime(now);
+
+            bookingRepository.save(booking);
+            roomRepository.saveAll(rooms);
+            processed++;
+        }
+        return processed;
+    }
+
     private Booking findBooking(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         return bookingRepository.findById(id)
@@ -227,11 +260,14 @@ public class CheckoutServiceImpl implements CheckoutService {
     }
 
     private void validateCheckoutTime(Booking booking) {
-        LocalDateTime now = LocalDateTime.now();
-        if (!now.toLocalDate().isEqual(booking.getCheckOutDate().toLocalDate())
-                || !now.toLocalTime().isBefore(LocalTime.NOON)) {
-            throw new ConflictException("Chỉ được check-out trước 12:00 trong đúng ngày trả phòng đã đặt.");
+        if (isCheckoutDeadlinePassed(booking, LocalDateTime.now())) {
+            throw new ConflictException("Chỉ được check-out từ 12:00 ngày trả phòng trở về trước.");
         }
+    }
+
+    private boolean isCheckoutDeadlinePassed(Booking booking, LocalDateTime now) {
+        LocalDateTime checkoutDeadline = booking.getCheckOutDate().toLocalDate().atTime(12, 0);
+        return now.isAfter(checkoutDeadline);
     }
 
     private Invoice requireInvoice(Booking booking) {
