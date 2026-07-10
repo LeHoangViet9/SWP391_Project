@@ -131,16 +131,19 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             request.setAssignedTo(assignee.getId());
             request.setStatus(MaintenanceStatus.ASSIGNED);
 
+            Locale locale = LocaleContextHolder.getLocale();
             // Gửi notification cho maintenance được giao
             String roomInfo = request.getRoomId() != null
-                    ? "phòng #" + request.getRoomId()
-                    : "thiết bị #" + request.getEquipmentId();
+                    ? messageSource.getMessage("maintenance.room.info", new Object[]{request.getRoomId()}, locale)
+                    : messageSource.getMessage("maintenance.equipment.info", new Object[]{request.getEquipmentId()}, locale);
+
+            String notifTitle = messageSource.getMessage("maintenance.notification.new.title", null, locale);
+            String notifMsg = messageSource.getMessage("maintenance.notification.new.message", new Object[]{request.getId(), roomInfo}, locale);
 
             notificationService.notify(
                     assignee,
-                    "📋 Yêu cầu sửa chữa mới",
-                    "Bạn được giao yêu cầu sửa chữa #" + request.getId()
-                            + " tại " + roomInfo + ". Vui lòng xem và xác nhận.",
+                    notifTitle,
+                    notifMsg,
                     "/dashboard/maintenance"
             );
 
@@ -150,10 +153,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             // Không có maintenance nào sẵn sàng → giữ PENDING, thông báo manager
             request.setStatus(MaintenanceStatus.PENDING);
             request.setAssignedTo(null);
+
+            Locale locale = LocaleContextHolder.getLocale();
+            String noStaffTitle = messageSource.getMessage("maintenance.notification.cannot_assign.title", null, locale);
+            String noStaffMsg = messageSource.getMessage("maintenance.notification.cannot_assign.message", new Object[]{request.getId()}, locale);
+
             notificationService.notifyReceptionistsAndManagers(
-                    "⚠️ Không thể giao yêu cầu sửa chữa",
-                    "Yêu cầu sửa chữa #" + request.getId()
-                            + " không thể giao vì không có nhân viên maintenance nào sẵn sàng.",
+                    noStaffTitle,
+                    noStaffMsg,
                     "/dashboard/maintenance"
             );
         }
@@ -173,11 +180,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         // Chỉ cho phép người được assign mới accept
         if (!maintenanceUserId.equals(request.getAssignedTo())) {
-            throw new ConflictException("Bạn không được giao yêu cầu này.");
+            throw new ConflictException(messageSource.getMessage("error.maintenance.not.assigned.to.you", null, locale));
         }
 
         if (request.getStatus() != MaintenanceStatus.ASSIGNED) {
-            throw new ConflictException("Yêu cầu không ở trạng thái ASSIGNED.");
+            throw new ConflictException(messageSource.getMessage("error.maintenance.invalid.status.assigned", null, locale));
         }
 
         request.setStatus(MaintenanceStatus.IN_PROGRESS);
@@ -204,11 +211,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         // Chỉ cho phép người được assign mới deny
         if (!maintenanceUserId.equals(request.getAssignedTo())) {
-            throw new ConflictException("Bạn không được giao yêu cầu này.");
+            throw new ConflictException(messageSource.getMessage("error.maintenance.not.assigned.to.you", null, locale));
         }
 
         if (request.getStatus() != MaintenanceStatus.ASSIGNED) {
-            throw new ConflictException("Yêu cầu không ở trạng thái ASSIGNED.");
+            throw new ConflictException(messageSource.getMessage("error.maintenance.invalid.status.assigned", null, locale));
         }
 
         // Thêm người từ chối vào deniedByIds
@@ -440,10 +447,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                             syncMaintenanceWorkStatus(request.getAssignedTo(), MaintenanceStatus.COMPLETED);
                         }
 
+                        Locale locale = LocaleContextHolder.getLocale();
+                        String notifTitle = messageSource.getMessage("maintenance.notification.auto_complete.title", new Object[]{room.getRoomNumber()}, locale);
+                        String notifMsg = messageSource.getMessage("maintenance.notification.auto_complete.message", new Object[]{request.getId()}, locale);
+
                         // Gửi thông báo cho lễ tân & quản lý
                         notificationService.notifyReceptionistsAndManagers(
-                                "🔧 Tự động hoàn tất bảo trì phòng " + room.getRoomNumber(),
-                                "Yêu cầu sửa chữa #" + request.getId() + " đã tự động hoàn thành do quá thời hạn dự kiến. Trạng thái phòng được chuyển về Sẵn sàng.",
+                                notifTitle,
+                                notifMsg,
                                 "/dashboard/maintenance"
                         );
                     }

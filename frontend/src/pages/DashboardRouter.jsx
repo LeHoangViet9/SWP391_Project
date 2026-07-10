@@ -19,8 +19,7 @@ import StaffManager from '../components/StaffManager';
 import RoomTypeManager from '../components/RoomTypeManager';
 import RoomManager from '../components/RoomManager';
 import BookingManager from '../components/BookingManager';
-import CheckInManager from '../components/CheckInManager';
-import CheckOutManager from '../components/CheckOutManager';
+import CheckInOutManager from '../components/CheckInOutManager';
 import CustomerManager from '../components/CustomerManager';
 import EquipmentManager from '../components/EquipmentManager';
 import AssignEquipmentToRoom from '../components/AssignEquipmentToRoom';
@@ -48,8 +47,7 @@ const ROUTE_COMPONENTS = {
   'room-types':       { Component: RoomTypeManager,        title: 'Quản Lý Loại Phòng',    titleEn: 'Room Type Management' },
   'rooms':            { Component: RoomManager,            title: 'Quản Lý Phòng',         titleEn: 'Room Management' },
   'bookings':         { Component: BookingManager,         title: 'Quản Lý Đặt Phòng',     titleEn: 'Booking Management' },
-  'check-in':         { Component: CheckInManager,         title: 'Check-in',               titleEn: 'Check-in' },
-  'check-out':        { Component: CheckOutManager,        title: 'Check-out',              titleEn: 'Check-out' },
+  'check-in':         { Component: CheckInOutManager,      title: 'Check-in / Check-out',   titleEn: 'Check-in / Check-out' },
   'my-bookings':      { Component: CustomerBookingHistory, title: 'Đặt Phòng Của Tôi',     titleEn: 'My Bookings' },
   'customers':        { Component: CustomerManager,        title: 'Quản Lý Khách Hàng',    titleEn: 'Customer Management' },
   'equipment':        { Component: EquipmentManager,       title: 'Quản Lý Thiết Bị',      titleEn: 'Equipment Management' },

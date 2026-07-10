@@ -1,21 +1,6 @@
 -- =============================================================================
 -- 1. TẠO BẢNG & INDEXES CHO CUSTOMER_FEEDBACK (NẾU CHƯA CÓ)
 -- =============================================================================
-CREATE TABLE IF NOT EXISTS customer_feedback (
-    feedback_id BIGSERIAL PRIMARY KEY,
-    booking_id BIGINT NOT NULL,
-    customer_id BIGINT NOT NULL,
-    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
-    category VARCHAR(50) NOT NULL CHECK (category IN ('Room', 'Service', 'Cleanliness', 'Staff')),
-    comment TEXT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'REVIEWED', 'RESOLVED')),
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    reply TEXT,
-    reply_at TIMESTAMP WITHOUT TIME ZONE,
-    deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    CONSTRAINT fk_customer_feedback_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
-    CONSTRAINT fk_customer_feedback_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
-);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_feedback_booking ON customer_feedback (booking_id) WHERE (deleted = false);
 CREATE INDEX IF NOT EXISTS idx_feedback_customer_id ON customer_feedback (customer_id);
@@ -48,6 +33,7 @@ ALTER TABLE invoices ADD CONSTRAINT invoices_payment_status_check CHECK (payment
 
 ALTER TABLE invoices DROP CONSTRAINT IF EXISTS invoices_payment_method_check;
 ALTER TABLE invoices ADD CONSTRAINT invoices_payment_method_check CHECK (payment_method IN ('CASH', 'CARD', 'VNPAY', 'TRANSFER'));
+CREATE UNIQUE INDEX IF NOT EXISTS uk_invoices_booking_invoice_type ON invoices (booking_id, invoice_type);
 
 ALTER TABLE customers DROP CONSTRAINT IF EXISTS customers_id_type_check;
 ALTER TABLE customers ADD CONSTRAINT customers_id_type_check CHECK (id_type IN ('CCCD', 'PASSPORT', 'OTHER'));
@@ -90,12 +76,14 @@ INSERT INTO permission (name) VALUES
     ('ROOM_TYPE_VIEW'), ('ROOM_TYPE_CREATE'), ('ROOM_TYPE_UPDATE'), ('ROOM_TYPE_DELETE'),
     ('CUSTOMER_VIEW'), ('CUSTOMER_CREATE'), ('CUSTOMER_UPDATE'), ('CUSTOMER_DELETE'),
     ('BOOKING_VIEW'), ('BOOKING_CREATE'), ('BOOKING_UPDATE'), ('BOOKING_DELETE'), ('BOOKING_VIEW_OWN'),
+    ('CHECKIN_VIEW'), ('CHECKOUT_VIEW'),
     ('HOUSEKEEPING_VIEW'), ('HOUSEKEEPING_CREATE'), ('HOUSEKEEPING_UPDATE'), ('HOUSEKEEPING_DELETE'),
     ('EQUIPMENT_VIEW'), ('EQUIPMENT_CREATE'), ('EQUIPMENT_UPDATE'), ('EQUIPMENT_DELETE'),
     ('MAINTENANCE_VIEW'), ('MAINTENANCE_CREATE'), ('MAINTENANCE_UPDATE'), ('MAINTENANCE_DELETE'),
     ('FEEDBACK_VIEW'), ('FEEDBACK_CREATE'), ('FEEDBACK_UPDATE'), ('FEEDBACK_DELETE'),
     ('FEEDBACK_VIEW_OWN'), ('FEEDBACK_UPDATE_OWN'), ('FEEDBACK_DELETE_OWN'),
-    ('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE')
+    ('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE'),
+    ('DASHBOARD_VIEW')
 ON CONFLICT (name) DO NOTHING;
 
 -- Phân quyền cho từng Role
@@ -110,7 +98,8 @@ INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permission p
 WHERE r.role_name = 'RECEPTIONIST' AND p.name IN (
     'ROOM_VIEW', 'ROOM_TYPE_VIEW', 'CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_UPDATE',
-    'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE', 'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE',
+    'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE', 'CHECKIN_VIEW', 'CHECKOUT_VIEW',
+    'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE',
     'FEEDBACK_VIEW', 'EQUIPMENT_VIEW'
 );
 
@@ -151,8 +140,7 @@ INSERT INTO users (full_name, email, phone, password, account_status, created_at
     ('Lê Thị Đào', 'housekeeper3@hms.com', '0901234568', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 6),
     ('Nguyễn Văn Hùng', 'maintenance1@hms.com', '0901234569', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
     ('Trần Văn Mạnh', 'maintenance2@hms.com', '0901234570', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
-    ('Phạm Văn Dũng', 'maintenance3@hms.com', '0901234571', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 5),
-    ('Trần Văn An', 'customer1@gmail.com', '0908111222', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
+    ('Phạm Văn Dũng', 'customer1@gmail.com', '0908111222', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
     ('Lê Thị Bình', 'customer2@gmail.com', '0908333444', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
     ('Nguyễn Hoàng Cường', 'customer3@gmail.com', '0908555666', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
     ('John Doe', 'john.doe@gmail.com', '0908777888', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
@@ -356,3 +344,4 @@ CREATE INDEX IF NOT EXISTS idx_user_permissions_permission ON user_permissions(p
 ALTER TABLE repair_requests
     ADD COLUMN IF NOT EXISTS denied_by_ids VARCHAR(500) DEFAULT '';
 
+select * from users;

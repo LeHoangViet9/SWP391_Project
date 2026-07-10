@@ -20,8 +20,25 @@ public class LocaleConfig implements WebMvcConfigurer {
     // 1. Xác định nơi lưu trữ và cấu hình ngôn ngữ mặc định (Đã sửa chuẩn Spring Boot 3.x)
     @Bean
     public LocaleResolver localeResolver() {
-        // Truyền thẳng tên Cookie vào hàm khởi tạo (Constructor) để tránh lỗi setCookieName
-        CookieLocaleResolver resolver = new CookieLocaleResolver("hms_lang");
+        // Subclass CookieLocaleResolver to prioritize the Accept-Language header (sent by React)
+        // and fall back to the cookie if the header is not present.
+        CookieLocaleResolver resolver = new CookieLocaleResolver("hms_lang") {
+            private final org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver acceptHeaderResolver = 
+                    new org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver();
+
+            {
+                acceptHeaderResolver.setDefaultLocale(Locale.ENGLISH);
+            }
+
+            @Override
+            public Locale resolveLocale(jakarta.servlet.http.HttpServletRequest request) {
+                String acceptLang = request.getHeader("Accept-Language");
+                if (acceptLang != null && !acceptLang.trim().isEmpty()) {
+                    return acceptHeaderResolver.resolveLocale(request);
+                }
+                return super.resolveLocale(request);
+            }
+        };
 
         // Thiết lập ngôn ngữ mặc định ban đầu là Tiếng Anh
         resolver.setDefaultLocale(Locale.ENGLISH);

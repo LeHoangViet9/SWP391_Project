@@ -12,7 +12,3 @@ export function getAuditLogs(filters = {}, locale = 'vi') {
   const query = params.toString();
   return apiFetch(`/audit-logs${query ? `?${query}` : ''}`, {}, locale);
 }
-
-export function getAuditLogById(id, locale = 'vi') {
-  return apiFetch(`/audit-logs/${id}`, {}, locale);
-}

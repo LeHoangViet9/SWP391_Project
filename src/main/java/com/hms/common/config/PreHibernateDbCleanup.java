@@ -30,6 +30,7 @@ public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEnv
                  Statement stmt = conn.createStatement()) {
 
                 cleanupLegacyUsers(stmt);
+                syncInvoiceConstraints(stmt);
                 syncBookingStatusConstraint(stmt);
                 syncWorkStatusConstraint(stmt);
             }
@@ -49,6 +50,40 @@ public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEnv
             }
         } catch (Exception e) {
             log.debug("[PreHibernate] Legacy user cleanup skipped: {}", e.getMessage());
+        }
+    }
+
+    private void syncInvoiceConstraints(Statement stmt) {
+        try {
+            stmt.execute("""
+                    DO $$
+                    DECLARE
+                        constraint_record record;
+                    BEGIN
+                        FOR constraint_record IN
+                            SELECT tc.constraint_name
+                            FROM information_schema.table_constraints tc
+                            JOIN information_schema.key_column_usage kcu
+                                ON tc.constraint_schema = kcu.constraint_schema
+                                AND tc.constraint_name = kcu.constraint_name
+                                AND tc.table_name = kcu.table_name
+                            WHERE tc.table_schema = 'public'
+                                AND tc.table_name = 'invoices'
+                                AND tc.constraint_type = 'UNIQUE'
+                            GROUP BY tc.constraint_name
+                            HAVING array_agg(kcu.column_name ORDER BY kcu.ordinal_position) = ARRAY['booking_id']
+                        LOOP
+                            EXECUTE format('ALTER TABLE invoices DROP CONSTRAINT %I', constraint_record.constraint_name);
+                        END LOOP;
+                    END $$;
+                    """);
+            stmt.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS uk_invoices_booking_invoice_type
+                    ON invoices (booking_id, invoice_type)
+                    """);
+            log.info("[PreHibernate] Invoice constraints synchronized");
+        } catch (Exception e) {
+            log.debug("[PreHibernate] Invoice constraint cleanup skipped: {}", e.getMessage());
         }
     }
 
