@@ -202,7 +202,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      */
     @Override
     @Transactional
-    public MaintenanceResponse denyRequest(Long requestId, Long maintenanceUserId) {
+    public MaintenanceResponse denyRequest(Long requestId, Long maintenanceUserId, String reason) {
         Locale locale = LocaleContextHolder.getLocale();
 
         RepairRequest request = maintenanceRepository.findById(requestId)
@@ -216,6 +216,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         if (request.getStatus() != MaintenanceStatus.ASSIGNED) {
             throw new ConflictException(messageSource.getMessage("error.maintenance.invalid.status.assigned", null, locale));
+        }
+
+        // Lưu lý do từ chối vào diagnosis
+        if (reason != null && !reason.isBlank()) {
+            String existingDiagnosis = request.getDiagnosis() != null ? request.getDiagnosis() : "";
+            String reasonEntry = "[Từ chối] " + reason;
+            request.setDiagnosis(existingDiagnosis.isBlank() ? reasonEntry : existingDiagnosis + "\n" + reasonEntry);
         }
 
         // Thêm người từ chối vào deniedByIds
@@ -291,6 +298,23 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         }
         if (updated.getAssignedTo() != null && !updated.getAssignedTo().equals(previousAssignee)) {
             syncMaintenanceWorkStatus(updated.getAssignedTo(), updated.getStatus());
+
+            // Gửi notification cho nhân viên bảo trì mới được gán bởi manager
+            final Locale notifLocale = locale;
+            userRepository.findById(updated.getAssignedTo()).ifPresent(assignee -> {
+                String roomInfo = updated.getRoomId() != null
+                        ? messageSource.getMessage("maintenance.room.info", new Object[]{updated.getRoomId()}, notifLocale)
+                        : messageSource.getMessage("maintenance.equipment.info", new Object[]{updated.getEquipmentId()}, notifLocale);
+                String notifTitle = messageSource.getMessage("maintenance.notification.new.title", null, notifLocale);
+                String notifMsg = messageSource.getMessage("maintenance.notification.assigned_by_manager.message",
+                        new Object[]{updated.getId(), roomInfo}, notifLocale);
+                notificationService.notify(
+                        assignee,
+                        notifTitle,
+                        notifMsg,
+                        "/dashboard/maintenance"
+                );
+            });
         }
 
         return enrich(maintenanceMapper.toResponse(updated));

@@ -55,8 +55,8 @@ public class MaintenanceController {
             @RequestParam(required = false) MaintenanceStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
-            @RequestParam(defaultValue = "ID") SortField sortBy,
-            @RequestParam(defaultValue = "ASC") SortDirection direction
+            @RequestParam(defaultValue = "CREATED_AT") SortField sortBy,
+            @RequestParam(defaultValue = "DESC") SortDirection direction
     ) {
 
         Locale locale = LocaleContextHolder.getLocale();
@@ -160,12 +160,13 @@ public class MaintenanceController {
     @PreAuthorize("hasAuthority('MAINTENANCE_UPDATE')")
     public ApiResponse<MaintenanceResponse> denyRequest(
             @PathVariable Long id,
-            @RequestParam Long userId
+            @RequestParam Long userId,
+            @RequestParam(required = false) String reason
     ) {
         Locale locale = LocaleContextHolder.getLocale();
         return ApiResponse.success(
                 messageSource.getMessage("maintenance.update.success", null, locale),
-                maintenanceService.denyRequest(id, userId)
+                maintenanceService.denyRequest(id, userId, reason)
         );
     }
 }

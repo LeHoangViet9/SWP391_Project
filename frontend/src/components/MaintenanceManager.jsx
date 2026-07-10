@@ -76,6 +76,18 @@ export default function MaintenanceManager({ readOnly = false }) {
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // id đang xử lý accept/deny
 
+  // Modal từ chối
+  const [denyModal, setDenyModal] = useState({ open: false, item: null, reason: '' });
+  // Modal checklist trước khi nhận việc
+  const CHECKLIST_ITEMS = [
+    'Đã đọc kỹ mô tả vấn đề và tình trạng sự cố',
+    'Đã chuẩn bị dụng cụ và vật tư cần thiết',
+    'Đã thông báo cho bộ phận liên quan (lễ tân / quản lý)',
+    'Đã xác nhận vị trí phòng / thiết bị cần sửa',
+    'Đã kiểm tra an toàn (điện, nước, khí gas nếu liên quan)',
+  ];
+  const [checklistModal, setChecklistModal] = useState({ open: false, item: null, checked: [] });
+
   const [rooms, setRooms] = useState([]);
   const [equipments, setEquipments] = useState([]);
   const [usersList, setUsersList] = useState([]);
@@ -154,7 +166,6 @@ export default function MaintenanceManager({ readOnly = false }) {
     }
   }, [form.assignedTo, usersList]);
 
-  // THAY ĐỔI: Lọc danh sách người báo cáo, chỉ hiển thị nhân viên (loại trừ vai trò CUSTOMER)
   const filteredReporters = useMemo(() => {
     const query = reportedBySearchQuery.trim().toLowerCase();
     const staffUsers = usersList.filter(u => String(u.roleName).toUpperCase() !== 'CUSTOMER');
@@ -174,7 +185,6 @@ export default function MaintenanceManager({ readOnly = false }) {
     });
   }, [usersList, reportedBySearchQuery, form.reportedBy]);
 
-  // THAY ĐỔI: Lọc danh sách nhân viên sửa chữa, chỉ hiển thị những tài khoản có vai trò MAINTENANCE
   const filteredAssignees = useMemo(() => {
     const query = assignedToSearchQuery.trim().toLowerCase();
     const maintenanceUsers = usersList.filter(u => String(u.roleName).toUpperCase() === 'MAINTENANCE');
@@ -194,7 +204,6 @@ export default function MaintenanceManager({ readOnly = false }) {
     });
   }, [usersList, assignedToSearchQuery, form.assignedTo]);
 
-  // THAY ĐỔI: Lọc danh sách phòng dựa trên danh sách phòng đang gán của thiết bị (assignedRooms)
   const filteredRooms = useMemo(() => {
     let list = rooms;
 
@@ -223,7 +232,6 @@ export default function MaintenanceManager({ readOnly = false }) {
     });
   }, [rooms, roomSearchQuery, form.roomId, form.equipmentId, equipments]);
 
-  // THAY ĐỔI: Lọc danh sách thiết bị dựa trên phòng đang chọn sử dụng assignedRooms (quan hệ nhiều-nhiều)
   const filteredEquipments = useMemo(() => {
     let list = equipments;
 
@@ -381,8 +389,24 @@ export default function MaintenanceManager({ readOnly = false }) {
     }
   };
 
-  // ── Accept/Deny handlers ─────────────────────────────────────────────────────
-  const handleAccept = async (item) => {
+  // ── Accept: mở modal checklist trước khi xác nhận ─────────────────────────────
+  const openChecklist = (item) => {
+    setChecklistModal({ open: true, item, checked: [] });
+  };
+
+  const handleChecklistToggle = (idx) => {
+    setChecklistModal(prev => {
+      const alreadyChecked = prev.checked.includes(idx);
+      return {
+        ...prev,
+        checked: alreadyChecked ? prev.checked.filter(i => i !== idx) : [...prev.checked, idx],
+      };
+    });
+  };
+
+  const handleConfirmAccept = async () => {
+    const item = checklistModal.item;
+    setChecklistModal({ open: false, item: null, checked: [] });
     setActionLoading(item.id);
     try {
       await maintenanceService.acceptRequest(item.id, user?.id);
@@ -395,11 +419,18 @@ export default function MaintenanceManager({ readOnly = false }) {
     }
   };
 
-  const handleDeny = async (item) => {
-    if (!window.confirm(`Bạn có chắc muốn từ chối yêu cầu #${item.id}? Hệ thống sẽ tìm người khác.`)) return;
+  // ── Deny: mở modal xác nhận có lý do ──────────────────────────────────────────
+  const openDenyModal = (item) => {
+    setDenyModal({ open: true, item, reason: '' });
+  };
+
+  const handleConfirmDeny = async () => {
+    const item = denyModal.item;
+    const reason = denyModal.reason;
+    setDenyModal({ open: false, item: null, reason: '' });
     setActionLoading(item.id);
     try {
-      await maintenanceService.denyRequest(item.id, user?.id);
+      await maintenanceService.denyRequest(item.id, user?.id, reason);
       notify('Đã từ chối. Hệ thống đang tìm người thay thế...');
       fetchData();
     } catch (e) {
@@ -458,11 +489,10 @@ export default function MaintenanceManager({ readOnly = false }) {
         {!isReadOnly && (
           <td className="px-4 py-3">
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Nút Accept/Deny: hiện khi request ASSIGNED và assigned cho user hiện tại */}
               {item.status === 'ASSIGNED' && String(item.assignedTo) === String(user?.id) && (
                 <>
                   <button
-                    onClick={() => handleAccept(item)}
+                    onClick={() => openChecklist(item)}
                     disabled={actionLoading === item.id}
                     title="Chấp nhận"
                     className="flex items-center gap-1 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
@@ -471,7 +501,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                     Nhận
                   </button>
                   <button
-                    onClick={() => handleDeny(item)}
+                    onClick={() => openDenyModal(item)}
                     disabled={actionLoading === item.id}
                     title="Từ chối"
                     className="flex items-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
@@ -1051,6 +1081,137 @@ export default function MaintenanceManager({ readOnly = false }) {
           </div>
         </form>
       </Modal>
+
+      {/* ── Modal Từ Chối ─────────────────────────────────────────────────── */}
+      {denyModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDenyModal({ open: false, item: null, reason: '' })} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <XCircle size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg">Từ chối yêu cầu</h3>
+                  <p className="text-red-100 text-sm">Yêu cầu #{denyModal.item?.id}</p>
+                </div>
+              </div>
+            </div>
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-700">
+                <p className="font-semibold mb-1">⚠️ Lưu ý:</p>
+                <p>Sau khi từ chối, hệ thống sẽ tự động tìm nhân viên khác thay thế. Bạn sẽ không còn thấy yêu cầu này.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Lý do từ chối <span className="text-slate-400 font-normal">(không bắt buộc)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={denyModal.reason}
+                  onChange={e => setDenyModal(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="Ví dụ: Thiếu dụng cụ chuyên dụng, đang bận việc khác..."
+                  className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none resize-none transition-all"
+                />
+              </div>
+            </div>
+            {/* Footer */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setDenyModal({ open: false, item: null, reason: '' })}
+                className="flex-1 px-4 py-2.5 text-sm border-2 border-slate-200 rounded-xl hover:bg-slate-50 font-semibold text-slate-600 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleConfirmDeny}
+                className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl font-semibold shadow transition-all"
+              >
+                Xác nhận từ chối
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Checklist Trước Khi Nhận Việc ──────────────────────────── */}
+      {checklistModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setChecklistModal({ open: false, item: null, checked: [] })} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <CheckCircle2 size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg">Checklist chuẩn bị sửa chữa</h3>
+                  <p className="text-emerald-100 text-sm">Yêu cầu #{checklistModal.item?.id} — {checklistModal.item?.issueTitle}</p>
+                </div>
+              </div>
+            </div>
+            {/* Body */}
+            <div className="p-6 space-y-3">
+              <p className="text-sm text-slate-500 mb-4">Vui lòng xác nhận các mục sau trước khi bắt đầu công việc:</p>
+              {CHECKLIST_ITEMS.map((item, idx) => {
+                const isChecked = checklistModal.checked.includes(idx);
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleChecklistToggle(idx)}
+                    className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
+                      isChecked
+                        ? 'border-emerald-400 bg-emerald-50'
+                        : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/30'
+                    }`}
+                  >
+                    <div className={`mt-0.5 w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                      isChecked ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
+                    }`}>
+                      {isChecked && <Check size={12} className="text-white" strokeWidth={3} />}
+                    </div>
+                    <span className={`text-sm font-medium ${isChecked ? 'text-emerald-700' : 'text-slate-600'}`}>{item}</span>
+                  </button>
+                );
+              })}
+              {/* Progress */}
+              <div className="mt-4 bg-slate-100 rounded-full h-2">
+                <div
+                  className="bg-gradient-to-r from-emerald-400 to-teal-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(checklistModal.checked.length / CHECKLIST_ITEMS.length) * 100}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-500 text-center">
+                {checklistModal.checked.length}/{CHECKLIST_ITEMS.length} mục đã xác nhận
+              </p>
+            </div>
+            {/* Footer */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setChecklistModal({ open: false, item: null, checked: [] })}
+                className="flex-1 px-4 py-2.5 text-sm border-2 border-slate-200 rounded-xl hover:bg-slate-50 font-semibold text-slate-600 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleConfirmAccept}
+                disabled={checklistModal.checked.length < CHECKLIST_ITEMS.length}
+                className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-semibold shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {checklistModal.checked.length < CHECKLIST_ITEMS.length
+                  ? `Còn ${CHECKLIST_ITEMS.length - checklistModal.checked.length} mục chưa tick`
+                  : '✓ Xác nhận bắt đầu sửa chữa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

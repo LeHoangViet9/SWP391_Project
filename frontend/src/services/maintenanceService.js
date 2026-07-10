@@ -16,8 +16,8 @@ export const maintenanceService = {
     if (params.page != null) q.set('page', params.page);
     if (params.size != null) q.set('size', params.size);
 
-    q.set('sortBy', params.sortBy || 'ID');
-    q.set('direction', params.direction || 'ASC');
+    q.set('sortBy', params.sortBy || 'CREATED_AT');
+    q.set('direction', params.direction || 'DESC');
 
     const query = q.toString();
 
@@ -73,10 +73,13 @@ export const maintenanceService = {
   /**
    * Maintenance staff từ chối yêu cầu → hệ thống giao cho người tiếp theo
    */
-  denyRequest: (id, userId, locale = 'vi') =>
-      apiFetch(
-          `/maintenance-requests/${id}/deny?userId=${userId}`,
-          { method: 'POST' },
-          locale
-      ),
-};
+  denyRequest: (id, userId, reason, locale = 'vi') => {
+    const params = new URLSearchParams({ userId });
+    if (reason && reason.trim()) params.set('reason', reason.trim());
+    return apiFetch(
+        `/maintenance-requests/${id}/deny?${params.toString()}`,
+        { method: 'POST' },
+        locale
+    );
+  },
+};

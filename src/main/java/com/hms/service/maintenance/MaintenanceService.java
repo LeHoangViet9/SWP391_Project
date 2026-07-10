@@ -41,5 +41,5 @@ public interface MaintenanceService {
      * Maintenance staff từ chối yêu cầu → lưu vào deniedByIds, tìm người tiếp theo.
      * Nếu không còn ai khả dụng, trả về trạng thái PENDING và thông báo manager.
      */
-    MaintenanceResponse denyRequest(Long requestId, Long maintenanceUserId);
+    MaintenanceResponse denyRequest(Long requestId, Long maintenanceUserId, String reason);
 }
