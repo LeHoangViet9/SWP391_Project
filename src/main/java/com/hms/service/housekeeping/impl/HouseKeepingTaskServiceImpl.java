@@ -59,7 +59,18 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     private final EmailService emailService;
     private final NotificationService notificationService;
     private final BookingRepository bookingRepository;
-    private final MaintenanceService maintenanceService;
+
+    /*
+     * THAY ĐỔI: Chuyển MaintenanceService từ final field (inject qua Lombok constructor)
+     * sang @Autowired @Lazy để phá vỡ circular dependency:
+     *   HouseKeepingTaskServiceImpl → MaintenanceService
+     *   MaintenanceServiceImpl (cần @Scheduled, không inject HouseKeepingTask)
+     * Trước đây: Lỗi "required a bean of type MaintenanceService that could not be found"
+     * Sau khi sửa: Spring tạo proxy lười, không bị vòng tròn phụ thuộc.
+     */
+    @Autowired
+    @Lazy
+    private MaintenanceService maintenanceService;
 
     @Autowired
     @Lazy

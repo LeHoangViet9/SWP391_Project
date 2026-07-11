@@ -4,12 +4,10 @@ export const maintenanceService = {
   getAll: (params = {}, locale = 'vi') => {
     const q = new URLSearchParams();
 
-    if (params.id) q.set('id', params.id);
-    if (params.issueTitle) q.set('issueTitle', params.issueTitle);
-    if (params.roomId) q.set('roomId', params.roomId);
-    if (params.equipmentId) q.set('equipmentId', params.equipmentId);
-    if (params.reportedBy) q.set('reportedBy', params.reportedBy);
-    if (params.assignedTo) q.set('assignedTo', params.assignedTo);
+    // THAY ĐỔI: Gộp tất cả loại tìm kiếm vào 1 param 'keyword' để khớp với backend.
+    // Trước đây: Gửi túng param riêng (id, issueTitle, roomId...) nhưng backend chỉ nhận 'keyword'
+    // Sau khi sửa: Thống nhất gửi 'keyword' cho mọi loại tìm kiếm.
+    if (params.keyword) q.set('keyword', params.keyword);
     if (params.severity) q.set('severity', params.severity);
     if (params.status) q.set('status', params.status);
 

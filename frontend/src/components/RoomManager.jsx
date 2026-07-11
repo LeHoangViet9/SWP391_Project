@@ -15,8 +15,15 @@ import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
 const STATUS_COLORS = {
-  AVAILABLE: 'bg-emerald-100 text-emerald-700',
-  MAINTENANCE: 'bg-amber-100 text-amber-700',
+  AVAILABLE: 'bg-emerald-100 text-emerald-700 border border-emerald-300',
+  READY: 'bg-cyan-100 text-cyan-700 border border-cyan-300',
+  RESERVED: 'bg-amber-100 text-amber-700 border border-amber-300',
+  OCCUPIED: 'bg-red-100 text-red-700 border border-red-300',
+  CLEANING: 'bg-violet-100 text-violet-700 border border-violet-300',
+  DIRTY: 'bg-orange-100 text-orange-700 border border-orange-300',
+  MAINTENANCE: 'bg-slate-200 text-slate-700 border border-slate-400',
+  CHECKOUT_PENDING: 'bg-pink-100 text-pink-700 border border-pink-300',
+  INACTIVE: 'bg-stone-100 text-stone-700 border border-stone-300',
 };
 
 const MAP_STATUS_STYLES = {
@@ -235,7 +242,7 @@ export default function RoomManager({ readOnly = false }) {
 
   const rows = items.map(item => {
     const status = getRoomStatus(item);
-    const displayStatus = status === 'AVAILABLE' ? t('room.status.available') : t('room.status.maintenance');
+    const displayStatus = STATUS_LABELS[locale]?.[status] || status;
     return (
         <tr key={item.id} className="hover:bg-stone-50">
           <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
@@ -253,10 +260,10 @@ export default function RoomManager({ readOnly = false }) {
                 <select
                     value={status}
                     onChange={e => handleStatusChange(item, e.target.value)}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full border-0 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
+                    className={`text-xs font-semibold px-2 py-1 rounded-full border border-stone-200 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
                 >
-                  {['AVAILABLE', 'MAINTENANCE'].map(s => {
-                    const label = s === 'AVAILABLE' ? t('room.status.available') : t('room.status.maintenance');
+                  {Object.keys(STATUS_LABELS[locale] || {}).map(s => {
+                    const label = STATUS_LABELS[locale]?.[s] || s;
                     return <option key={s} value={s}>{label}</option>;
                   })}
                 </select>

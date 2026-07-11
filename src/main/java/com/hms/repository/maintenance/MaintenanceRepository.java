@@ -66,4 +66,13 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
             @Param("statuses") List<MaintenanceStatus> statuses,
             @Param("now") LocalDateTime now
     );
+
+    /*
+     * THÊM MỚI: Tìm tất cả phiếu ASSIGNED mà đã được giao trước thời điểm :threshold (quá 15 phút).
+     * Trước đây: Không có query này → không thể phát hiện phiếu bị "treo" bao lâu.
+     * Sau khi thêm: Scheduler dùng query này để quét mọi phút và thu hồi việc quá hạn.
+     * :threshold = LocalDateTime.now().minusMinutes(15)
+     */
+    @Query("SELECT r FROM RepairRequest r WHERE r.status = com.hms.common.enums.MaintenanceStatus.ASSIGNED AND r.assignedAt IS NOT NULL AND r.assignedAt <= :threshold")
+    List<RepairRequest> findStaleAssignedRequests(@Param("threshold") LocalDateTime threshold);
 }

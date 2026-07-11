@@ -72,6 +72,15 @@ public class RepairRequest {
     @Column(name = "estimated_completion_time")
     private LocalDateTime estimatedCompletionTime;
 
+    /*
+     * THÊM MỚI: Ghi lại thời điểm phiếu được giao (ASSIGNED) cho nhân viên.
+     * Dùng để scheduler tự động thu hồi việc nếu sau 15 phút nhân viên không bấm Nhận.
+     * Trước đây: Không có field này → không biết phiếu bị "treo" bao lâu.
+     * Sau khi thêm: Có thể so sánh assignedAt + 15 phút với thời gian hiện tại.
+     */
+    @Column(name = "assigned_at")
+    private LocalDateTime assignedAt;
+
     // Lưu danh sách ID các maintenance đã từ chối, dạng "5,8,12"
     // Dùng để không giao lại cho người đã deny
     @Column(name = "denied_by_ids", length = 500)
