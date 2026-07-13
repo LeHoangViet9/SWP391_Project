@@ -27,10 +27,8 @@ import com.hms.service.audit.AuditLogService;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -271,7 +269,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException(messageSource.getMessage("error.otp.alreadyVerified", null, locale));
         }
 
-        String otp = String.format("%06d", new java.util.Random().nextInt(1000000));
+        String otp = generateOtp(6);
         user.setOtpCode(otp);
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
         userRepository.save(user);
@@ -279,8 +277,25 @@ public class AuthServiceImpl implements AuthService {
         emailService.sendRegistrationOtp(user.getEmail(), otp);
     }
 
-    private java.util.Map<String, Object> userAuditSnapshot(User user) {
-        java.util.Map<String, Object> snapshot = new LinkedHashMap<>();
+    private String generateOtp(int length){
+        StringBuilder otp = new StringBuilder();
+        for(char c='0';c<='9';c++){
+            otp.append(c);
+        }
+        for(char c='A';c<='Z';c++){
+            otp.append(c);
+        }
+        String finalChar=otp.toString();
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder(length);
+        for(int i=0;i<length;i++){
+            sb.append(finalChar.charAt(random.nextInt(finalChar.length())));
+        }
+        return sb.toString();
+    }
+
+    private Map<String, Object> userAuditSnapshot(User user) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("id", user.getId());
         snapshot.put("fullName", user.getFullName());
         snapshot.put("email", user.getEmail());
@@ -291,8 +306,8 @@ public class AuthServiceImpl implements AuthService {
         return snapshot;
     }
 
-    private java.util.Map<String, Object> loginAttemptChanges(String email) {
-        java.util.Map<String, Object> changes = new LinkedHashMap<>();
+    private Map<String, Object> loginAttemptChanges(String email) {
+        Map<String, Object> changes = new LinkedHashMap<>();
         changes.put("email", email);
         return auditLogService.message(null, changes);
     }

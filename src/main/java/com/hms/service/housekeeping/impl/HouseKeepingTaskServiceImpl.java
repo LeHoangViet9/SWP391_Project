@@ -47,7 +47,7 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
+public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
     private final HouseKeepingTaskRepository taskRepository;
     private final RoomRepository roomRepository;

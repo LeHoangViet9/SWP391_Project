@@ -30,6 +30,49 @@ export default function RegisterPage() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const fullNameRef = useRef(null);
+    const [errors, setErrors] = useState({});
+
+    const validateField = (name, value) => {
+        let err = '';
+        if (name === 'fullName') {
+            const trimmed = value ? value.trim() : '';
+            if (!trimmed) {
+                err = locale === 'vi' ? 'Họ và tên không được để trống.' : 'Full name is required.';
+            } else if (/^\s|\s$/.test(value)) {
+                err = locale === 'vi' ? 'Họ và tên không được chứa khoảng trắng ở đầu hoặc cuối.' : 'Full name cannot have leading or trailing spaces.';
+            } else if (/\s{2,}/.test(value)) {
+                err = locale === 'vi' ? 'Họ và tên không được chứa nhiều khoảng trắng liên tiếp.' : 'Full name cannot have consecutive spaces.';
+            }
+        } else if (name === 'email') {
+            const trimmed = value ? value.trim() : '';
+            if (!trimmed) {
+                err = locale === 'vi' ? 'Email không được để trống.' : 'Email is required.';
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+                err = locale === 'vi' ? 'Email không hợp lệ.' : 'Email format is invalid.';
+            }
+        } else if (name === 'phone') {
+            const trimmed = value ? value.trim() : '';
+            if (!trimmed) {
+                err = locale === 'vi' ? 'Số điện thoại không được để trống.' : 'Phone number is required.';
+            } else if (!PHONE_RE.test(trimmed)) {
+                err = t('auth.errPhone');
+            }
+        } else if (name === 'password') {
+            if (!value) {
+                err = locale === 'vi' ? 'Mật khẩu không được để trống.' : 'Password is required.';
+            } else if (!PASSWORD_RE.test(value)) {
+                err = t('auth.errPassword');
+            }
+        } else if (name === 'rePassword') {
+            if (!value) {
+                err = locale === 'vi' ? 'Vui lòng xác nhận mật khẩu.' : 'Please confirm your password.';
+            } else if (value !== form.password) {
+                err = t('auth.errPasswordMatch');
+            }
+        }
+        setErrors(prev => ({ ...prev, [name]: err }));
+        return err;
+    };
 
     const update = (field, value) => {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -38,6 +81,12 @@ export default function RegisterPage() {
     const validate = () => {
         // Kiểm tra blank/whitespace-only
         if (!form.fullName.trim()) return locale === 'vi' ? 'Họ và tên không được để trống.' : 'Full name is required.';
+        if (/^\s|\s$/.test(form.fullName)) {
+            return locale === 'vi' ? 'Họ và tên không được chứa khoảng trắng ở đầu hoặc cuối.' : 'Full name cannot have leading or trailing spaces.';
+        }
+        if (/\s{2,}/.test(form.fullName)) {
+            return locale === 'vi' ? 'Họ và tên không được chứa nhiều khoảng trắng liên tiếp.' : 'Full name cannot have consecutive spaces.';
+        }
         if (!form.email.trim()) return locale === 'vi' ? 'Email không được để trống.' : 'Email is required.';
         if (!form.phone.trim()) return locale === 'vi' ? 'Số điện thoại không được để trống.' : 'Phone number is required.';
         if (!form.password) return locale === 'vi' ? 'Mật khẩu không được để trống.' : 'Password is required.';
@@ -54,17 +103,14 @@ export default function RegisterPage() {
         setError('');
         setSuccess('');
 
-        if (!form.fullName.trim()) {
-            fullNameRef.current?.setCustomValidity(
-                locale === 'vi' ? 'Vui lòng điền vào trường này.' : 'Please fill out this field.'
-            );
-            fullNameRef.current?.reportValidity();
-            return;
-        }
+        const errFullName = validateField('fullName', form.fullName);
+        const errEmail = validateField('email', form.email);
+        const errPhone = validateField('phone', form.phone);
+        const errPassword = validateField('password', form.password);
+        const errRePassword = validateField('rePassword', form.rePassword);
 
-        const err = validate();
-        if (err) {
-            setError(err);
+        if (errFullName || errEmail || errPhone || errPassword || errRePassword) {
+            setError(locale === 'vi' ? 'Vui lòng điền đúng thông tin đăng ký!' : 'Please fill in correct registration details!');
             return;
         }
 
@@ -80,10 +126,10 @@ export default function RegisterPage() {
             const res = await register(payload);
             setSuccess(res.message || t('auth.registerSuccess'));
 
-            // Sau đăng ký → chuyển thẳng tới trang OTP verification
+            // Sau đăng ký → chuyển tới trang login và điền email
             setTimeout(() => {
                 navigate(
-                    `/verify-otp?email=${encodeURIComponent(payload.email)}`
+                    `/login?email=${encodeURIComponent(payload.email)}&registered=1`
                 );
             }, 1500);
         } catch (err) {
@@ -127,11 +173,13 @@ export default function RegisterPage() {
                         ref={fullNameRef}
                         value={form.fullName}
                         onChange={(e) => {
-                            e.target.setCustomValidity('');
                             update('fullName', e.target.value);
+                            if (errors.fullName) validateField('fullName', e.target.value);
                         }}
-                        className={inputClass}
+                        onBlur={(e) => validateField('fullName', e.target.value)}
+                        className={`${inputClass} ${errors.fullName ? 'border-red-500 focus:border-red-500' : ''}`}
                     />
+                    {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
                 </div>
 
                 {/* Email + Phone */}
@@ -142,10 +190,15 @@ export default function RegisterPage() {
                             type="email"
                             required
                             value={form.email}
-                            onChange={(e) => update('email', e.target.value)}
-                            className={inputClass}
+                            onChange={(e) => {
+                                update('email', e.target.value);
+                                if (errors.email) validateField('email', e.target.value);
+                            }}
+                            onBlur={(e) => validateField('email', e.target.value)}
+                            className={`${inputClass} ${errors.email ? 'border-red-500 focus:border-red-500' : ''}`}
                             placeholder="example@gmail.com"
                         />
+                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                     </div>
 
                     <div>
@@ -154,10 +207,15 @@ export default function RegisterPage() {
                             type="tel"
                             required
                             value={form.phone}
-                            onChange={(e) => update('phone', e.target.value)}
-                            className={inputClass}
+                            onChange={(e) => {
+                                update('phone', e.target.value);
+                                if (errors.phone) validateField('phone', e.target.value);
+                            }}
+                            onBlur={(e) => validateField('phone', e.target.value)}
+                            className={`${inputClass} ${errors.phone ? 'border-red-500 focus:border-red-500' : ''}`}
                             placeholder="0912345678"
                         />
+                        {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                     </div>
                 </div>
 
@@ -168,10 +226,14 @@ export default function RegisterPage() {
                         <input
                             type={showPass ? 'text' : 'password'}
                             required
-                            minLength={6}
                             value={form.password}
-                            onChange={(e) => update('password', e.target.value)}
-                            className={`${inputClass} pr-12`}
+                            onChange={(e) => {
+                                update('password', e.target.value);
+                                if (errors.password) validateField('password', e.target.value);
+                                if (form.rePassword) validateField('rePassword', form.rePassword);
+                            }}
+                            onBlur={(e) => validateField('password', e.target.value)}
+                            className={`${inputClass} pr-12 ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
                         />
                         <button
                             type="button"
@@ -181,6 +243,7 @@ export default function RegisterPage() {
                             {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                     </div>
+                    {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
                     <p className="text-xs text-slate-400 mt-1">
                         {t('auth.passwordHint')}
                     </p>
@@ -194,8 +257,12 @@ export default function RegisterPage() {
                             type={showRePass ? 'text' : 'password'}
                             required
                             value={form.rePassword}
-                            onChange={(e) => update('rePassword', e.target.value)}
-                            className={`${inputClass} pr-12`}
+                            onChange={(e) => {
+                                update('rePassword', e.target.value);
+                                if (errors.rePassword) validateField('rePassword', e.target.value);
+                            }}
+                            onBlur={(e) => validateField('rePassword', e.target.value)}
+                            className={`${inputClass} pr-12 ${errors.rePassword ? 'border-red-500 focus:border-red-500' : ''}`}
                         />
                         <button
                             type="button"
@@ -205,6 +272,7 @@ export default function RegisterPage() {
                             {showRePass ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                     </div>
+                    {errors.rePassword && <p className="text-red-500 text-xs mt-1">{errors.rePassword}</p>}
                 </div>
 
                 {/* Submit */}

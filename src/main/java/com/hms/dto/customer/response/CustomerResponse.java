@@ -17,4 +17,5 @@ public class CustomerResponse {
     private String status;
     private String nationality;
     private LocalDateTime createdAt;
+    private String notes;
 }

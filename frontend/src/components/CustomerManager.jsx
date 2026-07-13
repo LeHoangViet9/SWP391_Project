@@ -49,6 +49,45 @@ export default function CustomerManager() {
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const validateField = (name, value) => {
+    let err = '';
+    const trimmed = value ? value.trim() : '';
+    if (name === 'fullName') {
+      if (!trimmed) {
+        err = locale === 'vi' ? 'Họ và tên không được chỉ chứa khoảng trắng!' : 'Full name cannot be empty or only spaces!';
+      } else if (/^\s|\s$/.test(value)) {
+        err = locale === 'vi' ? 'Họ và tên không được chứa khoảng trắng ở đầu hoặc cuối!' : 'Full name cannot have leading or trailing spaces!';
+      } else if (/\s{2,}/.test(value)) {
+        err = locale === 'vi' ? 'Họ và tên không được chứa nhiều khoảng trắng liên tiếp!' : 'Full name cannot have consecutive spaces!';
+      }
+    } else if (name === 'email') {
+      if (!trimmed) {
+        err = locale === 'vi' ? 'Email không được chỉ chứa khoảng trắng!' : 'Email cannot be empty or only spaces!';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+        err = locale === 'vi' ? 'Email không hợp lệ!' : 'Invalid email format!';
+      }
+    } else if (name === 'phone') {
+      if (!trimmed) {
+        err = locale === 'vi' ? 'Số điện thoại không được chỉ chứa khoảng trắng!' : 'Phone number cannot be empty or only spaces!';
+      } else if (!/^0[0-9]{9}$/.test(trimmed)) {
+        err = locale === 'vi' ? 'Số điện thoại phải bắt đầu bằng 0 và có 10 chữ số!' : 'Phone number must start with 0 and have 10 digits!';
+      }
+    } else if (name === 'idNumberCard') {
+      if (!trimmed) {
+        err = locale === 'vi' ? 'Số giấy tờ không được chỉ chứa khoảng trắng!' : 'ID card number cannot be empty or only spaces!';
+      } else if (!/^[A-Za-z0-9\-]{6,20}$/.test(trimmed)) {
+        err = locale === 'vi' ? 'Số giấy tờ phải từ 6-20 ký tự!' : 'ID card number must be 6-20 characters!';
+      }
+    } else if (name === 'nationality') {
+      if (!trimmed) {
+        err = locale === 'vi' ? 'Quốc tịch không được chỉ chứa khoảng trắng!' : 'Nationality cannot be empty or only spaces!';
+      }
+    }
+    setErrors(prev => ({ ...prev, [name]: err }));
+    return err;
+  };
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -94,6 +133,7 @@ export default function CustomerManager() {
   const openCreate = () => {
     if (!canCreate) return notify(t('customer.toast.forbidden'), 'error');
     setForm(EMPTY);
+    setErrors({});
     setModal({ open: true, editing: null });
   };
 
@@ -107,6 +147,7 @@ export default function CustomerManager() {
       idNumberCard: item.idNumberCard || item.idCard || '',
       nationality: item.nationality || 'Việt Nam',
     });
+    setErrors({});
     setModal({ open: true, editing: item });
   };
 
@@ -114,6 +155,18 @@ export default function CustomerManager() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    
+    const errFullName = validateField('fullName', form.fullName);
+    const errEmail = validateField('email', form.email);
+    const errPhone = validateField('phone', form.phone);
+    const errIdNumberCard = validateField('idNumberCard', form.idNumberCard);
+    const errNationality = validateField('nationality', form.nationality);
+
+    if (errFullName || errEmail || errPhone || errIdNumberCard || errNationality) {
+      notify(locale === 'vi' ? 'Vui lòng sửa các trường thông tin bị lỗi!' : 'Please fix the invalid fields!', 'error');
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
@@ -320,20 +373,38 @@ export default function CustomerManager() {
         <form onSubmit={handleSave} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('customer.modal.fullName')}</label>
-            <input required value={form.fullName} onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))}
-              className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+            <input required value={form.fullName}
+              onChange={e => {
+                setForm(f => ({ ...f, fullName: e.target.value }));
+                if (errors.fullName) validateField('fullName', e.target.value);
+              }}
+              onBlur={e => validateField('fullName', e.target.value)}
+              className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 ${errors.fullName ? 'border-red-500 focus:ring-red-500' : 'border-stone-300 focus:border-[#bfa15f] focus:ring-[#bfa15f]'}`} />
+            {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('customer.modal.email')}</label>
-              <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+              <input required type="email" value={form.email}
+                onChange={e => {
+                  setForm(f => ({ ...f, email: e.target.value }));
+                  if (errors.email) validateField('email', e.target.value);
+                }}
+                onBlur={e => validateField('email', e.target.value)}
+                className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-stone-300 focus:border-[#bfa15f] focus:ring-[#bfa15f]'}`} />
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('customer.modal.phone')}</label>
-              <input required pattern="^0[0-9]{9}$" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+              <input required value={form.phone}
+                onChange={e => {
+                  setForm(f => ({ ...f, phone: e.target.value }));
+                  if (errors.phone) validateField('phone', e.target.value);
+                }}
+                onBlur={e => validateField('phone', e.target.value)}
+                className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 ${errors.phone ? 'border-red-500 focus:ring-red-500' : 'border-stone-300 focus:border-[#bfa15f] focus:ring-[#bfa15f]'}`} />
+              {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
             </div>
           </div>
 
@@ -341,21 +412,33 @@ export default function CustomerManager() {
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('customer.modal.idType')}</label>
               <select required value={form.idType} onChange={e => setForm(f => ({ ...f, idType: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
+                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700">
                 {ID_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('customer.modal.idNumber')}</label>
-              <input required pattern="^[A-Za-z0-9\\-]{6,20}$" value={form.idNumberCard} onChange={e => setForm(f => ({ ...f, idNumberCard: e.target.value }))}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+              <input required value={form.idNumberCard}
+                onChange={e => {
+                  setForm(f => ({ ...f, idNumberCard: e.target.value }));
+                  if (errors.idNumberCard) validateField('idNumberCard', e.target.value);
+                }}
+                onBlur={e => validateField('idNumberCard', e.target.value)}
+                className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 ${errors.idNumberCard ? 'border-red-500 focus:ring-red-500' : 'border-stone-300 focus:border-[#bfa15f] focus:ring-[#bfa15f]'}`} />
+              {errors.idNumberCard && <p className="text-red-500 text-xs mt-1">{errors.idNumberCard}</p>}
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('customer.modal.nationality')}</label>
-            <input required value={form.nationality} onChange={e => setForm(f => ({ ...f, nationality: e.target.value }))}
-              className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" />
+            <input required value={form.nationality}
+              onChange={e => {
+                setForm(f => ({ ...f, nationality: e.target.value }));
+                if (errors.nationality) validateField('nationality', e.target.value);
+              }}
+              onBlur={e => validateField('nationality', e.target.value)}
+              className={`w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 ${errors.nationality ? 'border-red-500 focus:ring-red-500' : 'border-stone-300 focus:border-[#bfa15f] focus:ring-[#bfa15f]'}`} />
+            {errors.nationality && <p className="text-red-500 text-xs mt-1">{errors.nationality}</p>}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

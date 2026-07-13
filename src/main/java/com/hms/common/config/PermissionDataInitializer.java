@@ -42,7 +42,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "ROOM_TYPE_VIEW", "ROOM_TYPE_CREATE", "ROOM_TYPE_UPDATE", "ROOM_TYPE_DELETE",
 
                 // Customer permissions
-                "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE", "CUSTOMER_DELETE",
+                "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE", "CUSTOMER_DELETE","CUSTOMER_EXPORT",
 
                 // Booking permissions
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE", "BOOKING_DELETE", "BOOKING_VIEW_OWN",

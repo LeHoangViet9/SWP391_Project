@@ -5,6 +5,10 @@ import AuthLayout from '../components/auth/AuthLayout';
 import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 
+/**
+ * Trang Đăng nhập (LoginPage Component).
+ * Cung cấp giao diện form đăng nhập và xử lý điều hướng người dùng dựa theo phân vai trò (Roles).
+ */
 export default function LoginPage() {
   const { t, locale } = useLocale();
   const { login } = useAuth();
@@ -20,13 +24,23 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Nếu URL thay đổi (ví dụ navigate lại trang login), cập nhật email
+  /**
+   * Effect tự động điền lại email vào form khi email trong search parameters thay đổi
+   * (phổ biến khi được chuyển tiếp từ trang Đăng ký thành công).
+   */
   useEffect(() => {
     if (emailFromUrl) {
       setForm((prev) => ({ ...prev, email: emailFromUrl }));
     }
   }, [emailFromUrl]);
 
+  /**
+   * Xử lý gửi form đăng nhập (Email & Mật khẩu).
+   * Kiểm tra hợp lệ dữ liệu, gọi service đăng nhập, xử lý chuyển hướng dựa trên vai trò
+   * hoặc chuyển hướng sang trang xác thực OTP nếu tài khoản đang ở trạng thái chờ kích hoạt (pending).
+   *
+   * @param {Event} e - Đối tượng sự kiện submit của form
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');

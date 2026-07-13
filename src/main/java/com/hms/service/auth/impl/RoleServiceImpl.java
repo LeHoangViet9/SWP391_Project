@@ -31,6 +31,11 @@ public class RoleServiceImpl implements IRoleService {
     private final RoleMapper roleMapper;
     private final MessageSource messageSource;
 
+    /**
+     * Lấy danh sách tất cả các vai trò (Role) trong hệ thống.
+     * 
+     * @return danh sách đối tượng RoleResponse đại diện cho các vai trò
+     */
     @Override
     public List<RoleResponse> getAllRoles() {
         return roleRepository.findAll().stream()
@@ -38,6 +43,13 @@ public class RoleServiceImpl implements IRoleService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Lấy thông tin chi tiết của một vai trò dựa trên ID.
+     * 
+     * @param id của vai trò cần tìm
+     * @return đối tượng RoleResponse chứa thông tin vai trò
+     * @throws ResourceNotFoundException nếu không tìm thấy vai trò với ID cung cấp
+     */
     @Override
     public RoleResponse getRoleById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
@@ -48,6 +60,13 @@ public class RoleServiceImpl implements IRoleService {
         return roleMapper.toResponse(role);
     }
 
+    /**
+     * Tạo mới một vai trò trong hệ thống kèm theo danh sách các quyền được gán.
+     * 
+     * @param request chứa thông tin tên vai trò và danh sách ID quyền hạn
+     * @return đối tượng RoleResponse của vai trò mới tạo
+     * @throws ConflictException nếu tên vai trò đã tồn tại trong hệ thống
+     */
     @Override
     @Transactional
     public RoleResponse createRole(RoleRequest request) {
@@ -69,6 +88,15 @@ public class RoleServiceImpl implements IRoleService {
         return roleMapper.toResponse(roleRepository.save(role));
     }
 
+    /**
+     * Cập nhật thông tin của một vai trò hiện có (tên vai trò và danh sách quyền).
+     * 
+     * @param id của vai trò cần cập nhật
+     * @param request chứa thông tin cập nhật mới của vai trò
+     * @return đối tượng RoleResponse của vai trò sau khi cập nhật
+     * @throws ResourceNotFoundException nếu không tìm thấy vai trò với ID cung cấp
+     * @throws ConflictException nếu tên vai trò mới trùng lặp với một vai trò khác đã có
+     */
     @Override
     @Transactional
     public RoleResponse updateRole(Long id, RoleRequest request) {
@@ -94,6 +122,12 @@ public class RoleServiceImpl implements IRoleService {
         return roleMapper.toResponse(roleRepository.save(role));
     }
 
+    /**
+     * Xóa một vai trò khỏi hệ thống dựa trên ID.
+     * 
+     * @param id của vai trò cần xóa
+     * @throws ResourceNotFoundException nếu không tìm thấy vai trò với ID cung cấp
+     */
     @Override
     @Transactional
     public void deleteRole(Long id) {
@@ -107,6 +141,14 @@ public class RoleServiceImpl implements IRoleService {
         roleRepository.delete(role);
     }
 
+    /**
+     * Gán danh sách quyền hạn (Permissions) trực tiếp cho một vai trò.
+     * 
+     * @param roleId của vai trò cần gán quyền
+     * @param permissionIds danh sách ID quyền hạn cần gán
+     * @return đối tượng RoleResponse của vai trò sau khi gán lại quyền
+     * @throws ResourceNotFoundException nếu không tìm thấy vai trò với ID cung cấp
+     */
     @Override
     @Transactional
     public RoleResponse assignPermissionsToRole(Long roleId, List<Long> permissionIds) {

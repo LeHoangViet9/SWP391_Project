@@ -91,8 +91,8 @@ export default function InvoiceManager() {
   ];
 
   const rows = items.map(item => (
-    <tr key={item.id} className="hover:bg-stone-50 border-b border-stone-100">
-      <td className="px-4 py-3 font-mono text-xs text-slate-500">{item.id}</td>
+    <tr key={item.invoiceId || item.id} className="hover:bg-stone-50 border-b border-stone-100">
+      <td className="px-4 py-3 font-mono text-xs text-slate-500">{item.invoiceId || item.id}</td>
       <td className="px-4 py-3 font-mono text-xs text-slate-700">#{item.bookingId}</td>
       <td className="px-4 py-3 text-slate-800 font-medium">{item.customerName || '-'}</td>
       <td className="px-4 py-3">
