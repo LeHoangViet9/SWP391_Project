@@ -68,7 +68,6 @@ export default function MaintenanceManager({ readOnly = false }) {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
-  const [searchOpt, setSearchOpt] = useState('issueTitle');
   const [statusFilter, setStatusFilter] = useState('');
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
@@ -76,17 +75,8 @@ export default function MaintenanceManager({ readOnly = false }) {
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // id đang xử lý accept/deny
 
-  // Modal từ chối
+  // State modal từ chối (giữ lại để nhân viên có thể ghi lý do)
   const [denyModal, setDenyModal] = useState({ open: false, item: null, reason: '' });
-  // Modal checklist trước khi nhận việc
-  const CHECKLIST_ITEMS = [
-    'Đã đọc kỹ mô tả vấn đề và tình trạng sự cố',
-    'Đã chuẩn bị dụng cụ và vật tư cần thiết',
-    'Đã thông báo cho bộ phận liên quan (lễ tân / quản lý)',
-    'Đã xác nhận vị trí phòng / thiết bị cần sửa',
-    'Đã kiểm tra an toàn (điện, nước, khí gas nếu liên quan)',
-  ];
-  const [checklistModal, setChecklistModal] = useState({ open: false, item: null, checked: [] });
 
   const [rooms, setRooms] = useState([]);
   const [equipments, setEquipments] = useState([]);
@@ -262,7 +252,7 @@ export default function MaintenanceManager({ readOnly = false }) {
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
 
-  const fetchDataDirect = useCallback(async (p, opt, val, statusVal) => {
+  const fetchDataDirect = useCallback(async (p, val, statusVal) => {
     setLoading(true);
     try {
       const params = {
@@ -271,21 +261,12 @@ export default function MaintenanceManager({ readOnly = false }) {
         status: statusVal || undefined,
       };
 
+      // THAY ĐỔI: Gộp tất cả loại tìm kiếm vào param 'keyword' duy nhất khớp với backend.
+      // Trước đây: Tách thành id, issueTitle, roomId... riêng lẻ → backend không nhận được (bỏ qua hết)
+      // Sau khi sửa: Tất cả đều gửi vào 'keyword' → backend dùng ILIKE để tìm theo title/id/roomId/equipmentId
       const trimmed = val ? String(val).trim() : '';
       if (trimmed) {
-        if (opt === 'id') {
-          params.id = trimmed;
-        } else if (opt === 'issueTitle') {
-          params.issueTitle = trimmed;
-        } else if (opt === 'roomId') {
-          params.roomId = trimmed;
-        } else if (opt === 'equipmentId') {
-          params.equipmentId = trimmed;
-        } else if (opt === 'reportedBy') {
-          params.reportedBy = trimmed;
-        } else if (opt === 'assignedTo') {
-          params.assignedTo = trimmed;
-        }
+        params.keyword = trimmed;
       }
 
       const res = await maintenanceService.getAll(params);
@@ -299,9 +280,10 @@ export default function MaintenanceManager({ readOnly = false }) {
     }
   }, []);
 
+
   const fetchData = useCallback(async (p = page) => {
-    await fetchDataDirect(p, searchOpt, search, statusFilter);
-  }, [page, searchOpt, search, statusFilter, fetchDataDirect]);
+    await fetchDataDirect(p, search, statusFilter);
+  }, [page, search, statusFilter, fetchDataDirect]);
 
   useEffect(() => {
     fetchData(page);
@@ -309,7 +291,7 @@ export default function MaintenanceManager({ readOnly = false }) {
 
   const handleSearch = () => {
     setPage(0);
-    fetchDataDirect(0, searchOpt, search, statusFilter);
+    fetchDataDirect(0, search, statusFilter);
   };
 
   const openCreate = () => {
@@ -389,24 +371,9 @@ export default function MaintenanceManager({ readOnly = false }) {
     }
   };
 
-  // ── Accept: mở modal checklist trước khi xác nhận ─────────────────────────────
-  const openChecklist = (item) => {
-    setChecklistModal({ open: true, item, checked: [] });
-  };
-
-  const handleChecklistToggle = (idx) => {
-    setChecklistModal(prev => {
-      const alreadyChecked = prev.checked.includes(idx);
-      return {
-        ...prev,
-        checked: alreadyChecked ? prev.checked.filter(i => i !== idx) : [...prev.checked, idx],
-      };
-    });
-  };
-
-  const handleConfirmAccept = async () => {
-    const item = checklistModal.item;
-    setChecklistModal({ open: false, item: null, checked: [] });
+  // ── Accept: xác nhận trực tiếp, không cần checklist modal ──────────────────────
+  // THAY ĐỔI: Trước đây mở checklist 5 mục → Sau khi sửa: bấm Nhận là nhận luôn (1 click)
+  const handleAccept = async (item) => {
     setActionLoading(item.id);
     try {
       await maintenanceService.acceptRequest(item.id, user?.id);
@@ -492,9 +459,9 @@ export default function MaintenanceManager({ readOnly = false }) {
               {item.status === 'ASSIGNED' && String(item.assignedTo) === String(user?.id) && (
                 <>
                   <button
-                    onClick={() => openChecklist(item)}
+                    onClick={() => handleAccept(item)}
                     disabled={actionLoading === item.id}
-                    title="Chấp nhận"
+                    title="Chấp nhận yêu cầu"
                     className="flex items-center gap-1 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold disabled:opacity-60 transition-colors"
                   >
                     {actionLoading === item.id ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
@@ -542,30 +509,14 @@ export default function MaintenanceManager({ readOnly = false }) {
 
       <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row">
         <div className="flex flex-1 flex-wrap items-center gap-2">
-          <select
-            value={searchOpt}
-            onChange={(e) => {
-              setSearchOpt(e.target.value);
-              setSearch('');
-            }}
-            className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
-          >
-            <option value="issueTitle">{t('maintenance.searchOptions.title') || 'Tiêu đề lỗi'}</option>
-            <option value="roomId">{t('maintenance.searchOptions.roomId') || 'Mã phòng'}</option>
-            <option value="equipmentId">{t('maintenance.searchOptions.equipmentId') || 'Mã thiết bị'}</option>
-            <option value="reportedBy">{t('maintenance.searchOptions.reportedBy') || 'Mã người báo'}</option>
-            <option value="assignedTo">{t('maintenance.searchOptions.assignedTo') || 'Mã người sửa'}</option>
-            <option value="id">{t('maintenance.searchOptions.id') || 'Mã yêu cầu'}</option>
-          </select>
-
-          <div className="relative max-w-xs flex-1">
+          <div className="relative max-w-sm flex-1">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              type={searchOpt === 'issueTitle' ? 'text' : 'number'}
+              type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
-              placeholder={t(`maintenance.placeholders.${searchOpt}`) || t('maintenance.searchPlaceholder') || 'Tìm kiếm...'}
+              placeholder="Tìm theo tiêu đề, phòng, thiết bị, ID..."
               className="w-full rounded border border-stone-300 py-2 pl-8 pr-3 text-sm outline-none focus:border-[#bfa15f]"
             />
           </div>
@@ -1137,80 +1088,7 @@ export default function MaintenanceManager({ readOnly = false }) {
         </div>
       )}
 
-      {/* ── Modal Checklist Trước Khi Nhận Việc ──────────────────────────── */}
-      {checklistModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setChecklistModal({ open: false, item: null, checked: [] })} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                  <CheckCircle2 size={20} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="text-white font-bold text-lg">Checklist chuẩn bị sửa chữa</h3>
-                  <p className="text-emerald-100 text-sm">Yêu cầu #{checklistModal.item?.id} — {checklistModal.item?.issueTitle}</p>
-                </div>
-              </div>
-            </div>
-            {/* Body */}
-            <div className="p-6 space-y-3">
-              <p className="text-sm text-slate-500 mb-4">Vui lòng xác nhận các mục sau trước khi bắt đầu công việc:</p>
-              {CHECKLIST_ITEMS.map((item, idx) => {
-                const isChecked = checklistModal.checked.includes(idx);
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleChecklistToggle(idx)}
-                    className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
-                      isChecked
-                        ? 'border-emerald-400 bg-emerald-50'
-                        : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/30'
-                    }`}
-                  >
-                    <div className={`mt-0.5 w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-                      isChecked ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
-                    }`}>
-                      {isChecked && <Check size={12} className="text-white" strokeWidth={3} />}
-                    </div>
-                    <span className={`text-sm font-medium ${isChecked ? 'text-emerald-700' : 'text-slate-600'}`}>{item}</span>
-                  </button>
-                );
-              })}
-              {/* Progress */}
-              <div className="mt-4 bg-slate-100 rounded-full h-2">
-                <div
-                  className="bg-gradient-to-r from-emerald-400 to-teal-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(checklistModal.checked.length / CHECKLIST_ITEMS.length) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-slate-500 text-center">
-                {checklistModal.checked.length}/{CHECKLIST_ITEMS.length} mục đã xác nhận
-              </p>
-            </div>
-            {/* Footer */}
-            <div className="px-6 pb-6 flex gap-3">
-              <button
-                onClick={() => setChecklistModal({ open: false, item: null, checked: [] })}
-                className="flex-1 px-4 py-2.5 text-sm border-2 border-slate-200 rounded-xl hover:bg-slate-50 font-semibold text-slate-600 transition-colors"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                onClick={handleConfirmAccept}
-                disabled={checklistModal.checked.length < CHECKLIST_ITEMS.length}
-                className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-xl font-semibold shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {checklistModal.checked.length < CHECKLIST_ITEMS.length
-                  ? `Còn ${CHECKLIST_ITEMS.length - checklistModal.checked.length} mục chưa tick`
-                  : '✓ Xác nhận bắt đầu sửa chữa'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Checklist Modal đã được xóa — Nhận việc trực tiếp 1 click qua handleAccept */}
     </div>
   );
 }

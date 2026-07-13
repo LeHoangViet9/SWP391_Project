@@ -120,9 +120,26 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
     /**
      * Tìm maintenance staff AVAILABLE và giao việc, gửi notification.
+     *
+     * THAY ĐỔI: Bổ sung loại trừ người tạo phiếu (reportedBy) khỏi danh sách ứng viên.
+     * Trước đây: Chỉ loại trừ người đã từ chối → nhân viên tự tạo phiếu có thể bị
+     *            hệ thống giao lại cho chính họ (vô nghĩa).
+     * Sau khi sửa: Danh sách loại trừ = deniedByIds + reportedBy (nếu là MAINTENANCE staff).
+     *              Đảm bảo người tạo phiếu không bao giờ tự nhận việc của chính mình.
      */
     private void autoAssignToMaintenance(RepairRequest request) {
-        List<Long> deniedIds = parseDeniedIds(request.getDeniedByIds());
+        List<Long> deniedIds = new ArrayList<>(parseDeniedIds(request.getDeniedByIds()));
+
+        /*
+         * THÊM MỚI: Loại trừ người tạo phiếu (reportedBy) để tránh tự giao việc.
+         * Trước đây: excludeIds = deniedIds (chỉ loại người đã từ chối)
+         * Sau khi sửa: excludeIds = deniedIds + reportedBy
+         * Lý do: Nếu nhân viên bảo trì A tự tạo phiếu, không được giao lại cho A.
+         */
+        if (request.getReportedBy() != null && !deniedIds.contains(request.getReportedBy())) {
+            deniedIds.add(request.getReportedBy());
+        }
+
         List<User> candidates = userRepository.findAvailableMaintenanceStaffExcluding(
                 deniedIds.isEmpty() ? null : deniedIds);
 
@@ -130,6 +147,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             User assignee = candidates.get(0);
             request.setAssignedTo(assignee.getId());
             request.setStatus(MaintenanceStatus.ASSIGNED);
+
+            /*
+             * THÊM MỚI: Ghi lại thời điểm giao việc (assignedAt).
+             * Trước đây: Không lưu → không biết phiếu bị treo bao lâu.
+             * Sau khi thêm: Scheduler sẽ so sánh assignedAt với now để tự động thu hồi sau 15 phút.
+             */
+            request.setAssignedAt(LocalDateTime.now());
 
             Locale locale = LocaleContextHolder.getLocale();
             // Gửi notification cho maintenance được giao
@@ -218,7 +242,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             throw new ConflictException(messageSource.getMessage("error.maintenance.invalid.status.assigned", null, locale));
         }
 
-        // Lưu lý do từ chối vào diagnosis
+        // THAY ĐỔI: Lưu lý do từ chối vào trường diagnosis
         if (reason != null && !reason.isBlank()) {
             String existingDiagnosis = request.getDiagnosis() != null ? request.getDiagnosis() : "";
             String reasonEntry = "[Từ chối] " + reason;
@@ -235,6 +259,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         // Reset assigned
         request.setAssignedTo(null);
         request.setStatus(MaintenanceStatus.PENDING);
+
+        /*
+         * THÊM MỚI: Xóa assignedAt khi nhân viên từ chối.
+         * Trước đây: Trường này chưa tồn tại.
+         * Sau khi thêm: Đảm bảo phiếu trả về PENDING không bị scheduler thu hồi nhầm.
+         */
+        request.setAssignedAt(null);
         maintenanceRepository.save(request);
 
         // Đồng bộ trạng thái của nhân viên bảo trì vừa từ chối
@@ -274,6 +305,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                                                 ERROR_MAINTENANCE_NOTFOUND, new Object[]{id}, locale)));
 
         Long previousAssignee = repairRequest.getAssignedTo();
+        MaintenanceStatus oldStatus = repairRequest.getStatus();
 
         maintenanceMapper.updateFromDto(dto, repairRequest);
 
@@ -292,6 +324,50 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         RepairRequest updated = maintenanceRepository.save(repairRequest);
 
+        /*
+         * THÊM MỚI: Gửi thông báo cho Quản lý & Lễ tân khi nhân viên bảo trì hoàn thành công việc.
+         * Trước đây: Chỉ có tác vụ tự động quá hạn mới gửi thông báo hoàn thành. Hoàn thành thủ công không thông báo.
+         * Sau khi sửa: Khi trạng thái vừa được đổi sang COMPLETED → Gửi thông báo hiển thị tên người làm và mã phòng/thiết bị.
+         */
+        if (updated.getStatus() == MaintenanceStatus.COMPLETED && oldStatus != MaintenanceStatus.COMPLETED) {
+            String locationName = "";
+            if (updated.getRoomId() != null) {
+                locationName = roomRepository.findById(updated.getRoomId())
+                        .map(r -> "phòng " + r.getRoomNumber())
+                        .orElse("phòng #" + updated.getRoomId());
+            } else if (updated.getEquipmentId() != null) {
+                locationName = equipmentRepository.findById(updated.getEquipmentId())
+                        .map(e -> "thiết bị " + e.getEquipmentName())
+                        .orElse("thiết bị #" + updated.getEquipmentId());
+            }
+
+            String staffName = "N/A";
+            if (updated.getAssignedTo() != null) {
+                staffName = userRepository.findById(updated.getAssignedTo())
+                        .map(User::getFullName)
+                        .orElse("N/A");
+            }
+
+            String notifTitle = messageSource.getMessage(
+                    "maintenance.notification.manual_complete.title",
+                    new Object[]{locationName},
+                    "🔧 Bảo trì hoàn thành cho " + locationName,
+                    locale
+            );
+            String notifMsg = messageSource.getMessage(
+                    "maintenance.notification.manual_complete.message",
+                    new Object[]{updated.getId(), staffName},
+                    "Yêu cầu bảo trì #" + updated.getId() + " đã hoàn thành bởi nhân viên " + staffName + ".",
+                    locale
+            );
+
+            notificationService.notifyReceptionistsAndManagers(
+                    notifTitle,
+                    notifMsg,
+                    "/dashboard/maintenance"
+            );
+        }
+
         // Đồng bộ trạng thái làm việc của nhân viên cũ và nhân viên mới (nếu có thay đổi)
         if (previousAssignee != null) {
             syncMaintenanceWorkStatus(previousAssignee, updated.getStatus());
@@ -299,7 +375,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         if (updated.getAssignedTo() != null && !updated.getAssignedTo().equals(previousAssignee)) {
             syncMaintenanceWorkStatus(updated.getAssignedTo(), updated.getStatus());
 
-            // Gửi notification cho nhân viên bảo trì mới được gán bởi manager
+            // THAY ĐỔI: Gửi notification cho nhân viên bảo trì mới được gán bởi manager
             final Locale notifLocale = locale;
             userRepository.findById(updated.getAssignedTo()).ifPresent(assignee -> {
                 String roomInfo = updated.getRoomId() != null
@@ -484,6 +560,60 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                     }
                 });
             }
+        }
+    }
+
+    /*
+     * THÊM MỚI: Scheduler tự động thu hồi việc nếu nhân viên KHÔNG bấm Nhận sau 15 phút.
+     * Chức năng: Thay thế cho việc Quản lý phải vào gán lại bằng tay khi nhân viên bỏ quên.
+     * Trước đây: Phiếu ASSIGNED bị treo vô thời hạn nếu nhân viên không phản hồi.
+     * Sau khi thêm:
+     *   - Chạy mỗi 60 giây (fixedRate = 60000).
+     *   - Tìm các phiếu ASSIGNED có assignedAt quá 15 phút.
+     *   - Tự động thêm nhân viên đó vào danh sách từ chối (deniedByIds).
+     *   - Reset phiếu về PENDING và giao lại cho người tiếp theo qua autoAssignToMaintenance.
+     *   - Gửi thông báo cho nhân viên bị thu hồi và quản lý.
+     */
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 60000)
+    @Transactional
+    public void autoRevokeStaleAssignments() {
+        // Ngưỡng thời gian: phiếu giao quá 15 phút mà chưa được nhân viên bấm Nhận
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(15);
+        List<RepairRequest> staleRequests = maintenanceRepository.findStaleAssignedRequests(threshold);
+
+        for (RepairRequest request : staleRequests) {
+            Long timedOutUserId = request.getAssignedTo();
+
+            // Thêm nhân viên không phản hồi vào danh sách từ chối để không giao lại
+            List<Long> deniedIds = new ArrayList<>(parseDeniedIds(request.getDeniedByIds()));
+            if (timedOutUserId != null && !deniedIds.contains(timedOutUserId)) {
+                deniedIds.add(timedOutUserId);
+            }
+            request.setDeniedByIds(deniedIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
+
+            // Reset phiếu về PENDING để tự động giao lại
+            request.setAssignedTo(null);
+            request.setAssignedAt(null);
+            request.setStatus(MaintenanceStatus.PENDING);
+            maintenanceRepository.save(request);
+
+            // Trả trạng thái nhân viên về AVAILABLE
+            if (timedOutUserId != null) {
+                syncMaintenanceWorkStatus(timedOutUserId, MaintenanceStatus.PENDING);
+
+                // Gửi thông báo cho nhân viên bị thu hồi
+                userRepository.findById(timedOutUserId).ifPresent(user -> {
+                    Locale locale = LocaleContextHolder.getLocale();
+                    String title = messageSource.getMessage("maintenance.notification.timeout.title", null, locale);
+                    String msg = messageSource.getMessage("maintenance.notification.timeout.message",
+                            new Object[]{request.getId()}, locale);
+                    notificationService.notify(user, title, msg, "/dashboard/maintenance");
+                });
+            }
+
+            // Thử giao cho người tiếp theo trong danh sách
+            autoAssignToMaintenance(request);
+            maintenanceRepository.save(request);
         }
     }
 }
