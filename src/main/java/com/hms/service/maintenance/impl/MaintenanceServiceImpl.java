@@ -54,8 +54,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     private static final String ERROR_ROOM_NOTFOUND = "error.room.notfound";
     private static final String ERROR_EQUIPMENT_NOTFOUND = "error.equipment.notfound";
     private static final String ERROR_EQUIPMENT_NOT_ASSIGNED = "error.equipment.not.assigned.room";
-    private static final String ERROR_MAINTENANCE_ROOM_OR_EQUIPMENT_REQUIRED =
-            "error.maintenance.room.or.equipment.required";
+    private static final String ERROR_MAINTENANCE_ROOM_OR_EQUIPMENT_REQUIRED = "error.maintenance.room.or.equipment.required";
 
     /*
      * Tạo yêu cầu bảo trì mới và TỰ ĐỘNG giao cho maintenance AVAILABLE đầu tiên.
@@ -76,13 +75,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         // Kiểm tra phòng tồn tại
         if (dto.getRoomId() != null && !roomRepository.existsById(dto.getRoomId())) {
             throw new ResourceNotFoundException(
-                    messageSource.getMessage(ERROR_ROOM_NOTFOUND, new Object[]{dto.getRoomId()}, locale));
+                    messageSource.getMessage(ERROR_ROOM_NOTFOUND, new Object[] { dto.getRoomId() }, locale));
         }
 
         // Kiểm tra thiết bị tồn tại
         if (dto.getEquipmentId() != null && !equipmentRepository.existsById(dto.getEquipmentId())) {
             throw new ResourceNotFoundException(
-                    messageSource.getMessage(ERROR_EQUIPMENT_NOTFOUND, new Object[]{dto.getEquipmentId()}, locale));
+                    messageSource.getMessage(ERROR_EQUIPMENT_NOTFOUND, new Object[] { dto.getEquipmentId() }, locale));
         }
 
         // Nếu có cả roomId và equipmentId, thiết bị phải được gán đúng phòng
@@ -121,11 +120,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     /**
      * Tìm maintenance staff AVAILABLE và giao việc, gửi notification.
      *
-     * THAY ĐỔI: Bổ sung loại trừ người tạo phiếu (reportedBy) khỏi danh sách ứng viên.
+     * THAY ĐỔI: Bổ sung loại trừ người tạo phiếu (reportedBy) khỏi danh sách ứng
+     * viên.
      * Trước đây: Chỉ loại trừ người đã từ chối → nhân viên tự tạo phiếu có thể bị
-     *            hệ thống giao lại cho chính họ (vô nghĩa).
-     * Sau khi sửa: Danh sách loại trừ = deniedByIds + reportedBy (nếu là MAINTENANCE staff).
-     *              Đảm bảo người tạo phiếu không bao giờ tự nhận việc của chính mình.
+     * hệ thống giao lại cho chính họ (vô nghĩa).
+     * Sau khi sửa: Danh sách loại trừ = deniedByIds + reportedBy (nếu là
+     * MAINTENANCE staff).
+     * Đảm bảo người tạo phiếu không bao giờ tự nhận việc của chính mình.
      */
     private void autoAssignToMaintenance(RepairRequest request) {
         List<Long> deniedIds = new ArrayList<>(parseDeniedIds(request.getDeniedByIds()));
@@ -151,25 +152,27 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             /*
              * THÊM MỚI: Ghi lại thời điểm giao việc (assignedAt).
              * Trước đây: Không lưu → không biết phiếu bị treo bao lâu.
-             * Sau khi thêm: Scheduler sẽ so sánh assignedAt với now để tự động thu hồi sau 15 phút.
+             * Sau khi thêm: Scheduler sẽ so sánh assignedAt với now để tự động thu hồi sau
+             * 15 phút.
              */
             request.setAssignedAt(LocalDateTime.now());
 
             Locale locale = LocaleContextHolder.getLocale();
             // Gửi notification cho maintenance được giao
             String roomInfo = request.getRoomId() != null
-                    ? messageSource.getMessage("maintenance.room.info", new Object[]{request.getRoomId()}, locale)
-                    : messageSource.getMessage("maintenance.equipment.info", new Object[]{request.getEquipmentId()}, locale);
+                    ? messageSource.getMessage("maintenance.room.info", new Object[] { request.getRoomId() }, locale)
+                    : messageSource.getMessage("maintenance.equipment.info", new Object[] { request.getEquipmentId() },
+                            locale);
 
             String notifTitle = messageSource.getMessage("maintenance.notification.new.title", null, locale);
-            String notifMsg = messageSource.getMessage("maintenance.notification.new.message", new Object[]{request.getId(), roomInfo}, locale);
+            String notifMsg = messageSource.getMessage("maintenance.notification.new.message",
+                    new Object[] { request.getId(), roomInfo }, locale);
 
             notificationService.notify(
                     assignee,
                     notifTitle,
                     notifMsg,
-                    "/dashboard/maintenance"
-            );
+                    "/dashboard/maintenance");
 
             // Đồng bộ trạng thái của nhân viên bảo trì sang WAITING_CONFIRM
             syncMaintenanceWorkStatus(assignee.getId(), MaintenanceStatus.ASSIGNED);
@@ -179,14 +182,15 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             request.setAssignedTo(null);
 
             Locale locale = LocaleContextHolder.getLocale();
-            String noStaffTitle = messageSource.getMessage("maintenance.notification.cannot_assign.title", null, locale);
-            String noStaffMsg = messageSource.getMessage("maintenance.notification.cannot_assign.message", new Object[]{request.getId()}, locale);
+            String noStaffTitle = messageSource.getMessage("maintenance.notification.cannot_assign.title", null,
+                    locale);
+            String noStaffMsg = messageSource.getMessage("maintenance.notification.cannot_assign.message",
+                    new Object[] { request.getId() }, locale);
 
             notificationService.notifyReceptionistsAndManagers(
                     noStaffTitle,
                     noStaffMsg,
-                    "/dashboard/maintenance"
-            );
+                    "/dashboard/maintenance");
         }
     }
 
@@ -200,28 +204,31 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         RepairRequest request = maintenanceRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(ERROR_MAINTENANCE_NOTFOUND, new Object[]{requestId}, locale)));
+                        messageSource.getMessage(ERROR_MAINTENANCE_NOTFOUND, new Object[] { requestId }, locale)));
 
         // Chỉ cho phép người được assign mới accept
         if (!maintenanceUserId.equals(request.getAssignedTo())) {
-            throw new ConflictException(messageSource.getMessage("error.maintenance.not.assigned.to.you", null, locale));
+            throw new ConflictException(
+                    messageSource.getMessage("error.maintenance.not.assigned.to.you", null, locale));
         }
 
         if (request.getStatus() != MaintenanceStatus.ASSIGNED) {
-            throw new ConflictException(messageSource.getMessage("error.maintenance.invalid.status.assigned", null, locale));
+            throw new ConflictException(
+                    messageSource.getMessage("error.maintenance.invalid.status.assigned", null, locale));
         }
 
         request.setStatus(MaintenanceStatus.IN_PROGRESS);
         RepairRequest saved = maintenanceRepository.save(request);
-        
+
         // Đồng bộ trạng thái làm việc của nhân viên bảo trì sang WORKING
         syncMaintenanceWorkStatus(maintenanceUserId, MaintenanceStatus.IN_PROGRESS);
-        
+
         return enrich(maintenanceMapper.toResponse(saved));
     }
 
     /*
-     * Maintenance staff TỪ CHỐI yêu cầu → lưu vào deniedByIds, giao cho người tiếp theo.
+     * Maintenance staff TỪ CHỐI yêu cầu → lưu vào deniedByIds, giao cho người tiếp
+     * theo.
      * Nếu hết người → giữ PENDING, thông báo manager.
      */
     @Override
@@ -231,15 +238,17 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         RepairRequest request = maintenanceRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(ERROR_MAINTENANCE_NOTFOUND, new Object[]{requestId}, locale)));
+                        messageSource.getMessage(ERROR_MAINTENANCE_NOTFOUND, new Object[] { requestId }, locale)));
 
         // Chỉ cho phép người được assign mới deny
         if (!maintenanceUserId.equals(request.getAssignedTo())) {
-            throw new ConflictException(messageSource.getMessage("error.maintenance.not.assigned.to.you", null, locale));
+            throw new ConflictException(
+                    messageSource.getMessage("error.maintenance.not.assigned.to.you", null, locale));
         }
 
         if (request.getStatus() != MaintenanceStatus.ASSIGNED) {
-            throw new ConflictException(messageSource.getMessage("error.maintenance.invalid.status.assigned", null, locale));
+            throw new ConflictException(
+                    messageSource.getMessage("error.maintenance.invalid.status.assigned", null, locale));
         }
 
         // THAY ĐỔI: Lưu lý do từ chối vào trường diagnosis
@@ -281,7 +290,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      * Parse danh sách ID từ chuỗi CSV "5,8,12"
      */
     private List<Long> parseDeniedIds(String deniedByIds) {
-        if (deniedByIds == null || deniedByIds.isBlank()) return new ArrayList<>();
+        if (deniedByIds == null || deniedByIds.isBlank())
+            return new ArrayList<>();
         return Arrays.stream(deniedByIds.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
@@ -297,12 +307,10 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     public MaintenanceResponse updateRequest(Long id, MaintenanceRequestUpdateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        RepairRequest repairRequest =
-                maintenanceRepository.findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        messageSource.getMessage(
-                                                ERROR_MAINTENANCE_NOTFOUND, new Object[]{id}, locale)));
+        RepairRequest repairRequest = maintenanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage(
+                                ERROR_MAINTENANCE_NOTFOUND, new Object[] { id }, locale)));
 
         Long previousAssignee = repairRequest.getAssignedTo();
         MaintenanceStatus oldStatus = repairRequest.getStatus();
@@ -325,9 +333,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         RepairRequest updated = maintenanceRepository.save(repairRequest);
 
         /*
-         * THÊM MỚI: Gửi thông báo cho Quản lý & Lễ tân khi nhân viên bảo trì hoàn thành công việc.
-         * Trước đây: Chỉ có tác vụ tự động quá hạn mới gửi thông báo hoàn thành. Hoàn thành thủ công không thông báo.
-         * Sau khi sửa: Khi trạng thái vừa được đổi sang COMPLETED → Gửi thông báo hiển thị tên người làm và mã phòng/thiết bị.
+         * THÊM MỚI: Gửi thông báo cho Quản lý & Lễ tân khi nhân viên bảo trì hoàn thành
+         * công việc.
+         * Trước đây: Chỉ có tác vụ tự động quá hạn mới gửi thông báo hoàn thành. Hoàn
+         * thành thủ công không thông báo.
+         * Sau khi sửa: Khi trạng thái vừa được đổi sang COMPLETED → Gửi thông báo hiển
+         * thị tên người làm và mã phòng/thiết bị.
          */
         if (updated.getStatus() == MaintenanceStatus.COMPLETED && oldStatus != MaintenanceStatus.COMPLETED) {
             String locationName = "";
@@ -350,25 +361,23 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
             String notifTitle = messageSource.getMessage(
                     "maintenance.notification.manual_complete.title",
-                    new Object[]{locationName},
+                    new Object[] { locationName },
                     "🔧 Bảo trì hoàn thành cho " + locationName,
-                    locale
-            );
+                    locale);
             String notifMsg = messageSource.getMessage(
                     "maintenance.notification.manual_complete.message",
-                    new Object[]{updated.getId(), staffName},
+                    new Object[] { updated.getId(), staffName },
                     "Yêu cầu bảo trì #" + updated.getId() + " đã hoàn thành bởi nhân viên " + staffName + ".",
-                    locale
-            );
+                    locale);
 
             notificationService.notifyReceptionistsAndManagers(
                     notifTitle,
                     notifMsg,
-                    "/dashboard/maintenance"
-            );
+                    "/dashboard/maintenance");
         }
 
-        // Đồng bộ trạng thái làm việc của nhân viên cũ và nhân viên mới (nếu có thay đổi)
+        // Đồng bộ trạng thái làm việc của nhân viên cũ và nhân viên mới (nếu có thay
+        // đổi)
         if (previousAssignee != null) {
             syncMaintenanceWorkStatus(previousAssignee, updated.getStatus());
         }
@@ -379,17 +388,18 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             final Locale notifLocale = locale;
             userRepository.findById(updated.getAssignedTo()).ifPresent(assignee -> {
                 String roomInfo = updated.getRoomId() != null
-                        ? messageSource.getMessage("maintenance.room.info", new Object[]{updated.getRoomId()}, notifLocale)
-                        : messageSource.getMessage("maintenance.equipment.info", new Object[]{updated.getEquipmentId()}, notifLocale);
+                        ? messageSource.getMessage("maintenance.room.info", new Object[] { updated.getRoomId() },
+                                notifLocale)
+                        : messageSource.getMessage("maintenance.equipment.info",
+                                new Object[] { updated.getEquipmentId() }, notifLocale);
                 String notifTitle = messageSource.getMessage("maintenance.notification.new.title", null, notifLocale);
                 String notifMsg = messageSource.getMessage("maintenance.notification.assigned_by_manager.message",
-                        new Object[]{updated.getId(), roomInfo}, notifLocale);
+                        new Object[] { updated.getId(), roomInfo }, notifLocale);
                 notificationService.notify(
                         assignee,
                         notifTitle,
                         notifMsg,
-                        "/dashboard/maintenance"
-                );
+                        "/dashboard/maintenance");
             });
         }
 
@@ -400,12 +410,10 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     @Transactional(readOnly = true)
     public MaintenanceResponse getRequestById(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        RepairRequest repairRequest =
-                maintenanceRepository.findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        messageSource.getMessage(
-                                                ERROR_MAINTENANCE_NOTFOUND, new Object[]{id}, locale)));
+        RepairRequest repairRequest = maintenanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage(
+                                ERROR_MAINTENANCE_NOTFOUND, new Object[] { id }, locale)));
         return enrich(maintenanceMapper.toResponse(repairRequest));
     }
 
@@ -418,8 +426,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             Integer page,
             Integer size,
             SortField sortBy,
-            SortDirection direction
-    ) {
+            SortDirection direction) {
         String sortField = (sortBy != null && sortBy.getField() != null) ? sortBy.getField() : "createdAt";
         Pageable pageable = pageableUtils.createPageable(page, size, sortField, direction);
 
@@ -430,14 +437,15 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         // Lọc theo nhân viên kỹ thuật đang đăng nhập (chỉ xem việc được giao cho mình)
         Long filterAssignedTo = null;
-        org.springframework.security.core.Authentication auth =
-                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof String) {
             String email = (String) auth.getPrincipal();
             java.util.Optional<User> currentUserOpt = userRepository.findUserByEmail(email);
             if (currentUserOpt.isPresent()) {
                 User currentUser = currentUserOpt.get();
-                if (currentUser.getRole() != null && "MAINTENANCE".equalsIgnoreCase(currentUser.getRole().getRoleName())) {
+                if (currentUser.getRole() != null
+                        && "MAINTENANCE".equalsIgnoreCase(currentUser.getRole().getRoleName())) {
                     filterAssignedTo = currentUser.getId();
                 }
             }
@@ -452,17 +460,16 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     @Override
     public void deleteRequest(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
-        RepairRequest repairRequest =
-                maintenanceRepository.findById(id)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        messageSource.getMessage(
-                                                ERROR_MAINTENANCE_NOTFOUND, new Object[]{id}, locale)));
+        RepairRequest repairRequest = maintenanceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage(
+                                ERROR_MAINTENANCE_NOTFOUND, new Object[] { id }, locale)));
         maintenanceRepository.delete(repairRequest);
     }
 
     /**
-     * Đồng bộ trạng thái làm việc (StaffWorkStatus) của nhân viên kỹ thuật (Maintenance)
+     * Đồng bộ trạng thái làm việc (StaffWorkStatus) của nhân viên kỹ thuật
+     * (Maintenance)
      */
     private void syncMaintenanceWorkStatus(Long maintenanceUserId, MaintenanceStatus taskStatus) {
         if (maintenanceUserId == null) {
@@ -476,16 +483,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
             boolean hasInProgress = maintenanceRepository.existsByAssignedToAndStatus(
                     maintenanceUserId,
-                    MaintenanceStatus.IN_PROGRESS
-            );
+                    MaintenanceStatus.IN_PROGRESS);
 
             if (hasInProgress) {
                 user.setWorkStatus(com.hms.common.enums.StaffWorkStatus.WORKING);
             } else {
                 boolean hasAssigned = maintenanceRepository.existsByAssignedToAndStatus(
                         maintenanceUserId,
-                        MaintenanceStatus.ASSIGNED
-                );
+                        MaintenanceStatus.ASSIGNED);
                 if (hasAssigned) {
                     user.setWorkStatus(com.hms.common.enums.StaffWorkStatus.WAITING_CONFIRM);
                 } else {
@@ -497,7 +502,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     /**
-     * Bổ sung thông tin tên đầy đủ và vai trò của người báo cáo / người được phân công
+     * Bổ sung thông tin tên đầy đủ và vai trò của người báo cáo / người được phân
+     * công
      */
     private MaintenanceResponse enrich(MaintenanceResponse res) {
         if (res == null) {
@@ -518,7 +524,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     /**
-     * Tự động hoàn thành bảo trì & giải phóng phòng sang AVAILABLE khi thời gian dự kiến hoàn thành trôi qua
+     * Tự động hoàn thành bảo trì & giải phóng phòng sang AVAILABLE khi thời gian dự
+     * kiến hoàn thành trôi qua
      */
     @org.springframework.scheduling.annotation.Scheduled(fixedRate = 60000)
     @Transactional
@@ -526,8 +533,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         LocalDateTime now = LocalDateTime.now();
         List<RepairRequest> expiredRequests = maintenanceRepository.findExpiredActiveRequests(
                 List.of(MaintenanceStatus.COMPLETED, MaintenanceStatus.CANCELLED),
-                now
-        );
+                now);
 
         for (RepairRequest request : expiredRequests) {
             if (request.getRoomId() != null) {
@@ -536,7 +542,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                     if (room.getRoomStatus() == com.hms.common.enums.RoomStatus.MAINTENANCE) {
                         room.setRoomStatus(com.hms.common.enums.RoomStatus.AVAILABLE);
                         roomRepository.save(room);
-                        
+
                         // Cập nhật RepairRequest thành COMPLETED
                         request.setStatus(MaintenanceStatus.COMPLETED);
                         request.setCompletedAt(now);
@@ -548,15 +554,16 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                         }
 
                         Locale locale = LocaleContextHolder.getLocale();
-                        String notifTitle = messageSource.getMessage("maintenance.notification.auto_complete.title", new Object[]{room.getRoomNumber()}, locale);
-                        String notifMsg = messageSource.getMessage("maintenance.notification.auto_complete.message", new Object[]{request.getId()}, locale);
+                        String notifTitle = messageSource.getMessage("maintenance.notification.auto_complete.title",
+                                new Object[] { room.getRoomNumber() }, locale);
+                        String notifMsg = messageSource.getMessage("maintenance.notification.auto_complete.message",
+                                new Object[] { request.getId() }, locale);
 
                         // Gửi thông báo cho lễ tân & quản lý
                         notificationService.notifyReceptionistsAndManagers(
                                 notifTitle,
                                 notifMsg,
-                                "/dashboard/maintenance"
-                        );
+                                "/dashboard/maintenance");
                     }
                 });
             }
@@ -564,15 +571,18 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     /*
-     * THÊM MỚI: Scheduler tự động thu hồi việc nếu nhân viên KHÔNG bấm Nhận sau 15 phút.
-     * Chức năng: Thay thế cho việc Quản lý phải vào gán lại bằng tay khi nhân viên bỏ quên.
+     * THÊM MỚI: Scheduler tự động thu hồi việc nếu nhân viên KHÔNG bấm Nhận sau 15
+     * phút.
+     * Chức năng: Thay thế cho việc Quản lý phải vào gán lại bằng tay khi nhân viên
+     * bỏ quên.
      * Trước đây: Phiếu ASSIGNED bị treo vô thời hạn nếu nhân viên không phản hồi.
      * Sau khi thêm:
-     *   - Chạy mỗi 60 giây (fixedRate = 60000).
-     *   - Tìm các phiếu ASSIGNED có assignedAt quá 15 phút.
-     *   - Tự động thêm nhân viên đó vào danh sách từ chối (deniedByIds).
-     *   - Reset phiếu về PENDING và giao lại cho người tiếp theo qua autoAssignToMaintenance.
-     *   - Gửi thông báo cho nhân viên bị thu hồi và quản lý.
+     * - Chạy mỗi 60 giây (fixedRate = 60000).
+     * - Tìm các phiếu ASSIGNED có assignedAt quá 15 phút.
+     * - Tự động thêm nhân viên đó vào danh sách từ chối (deniedByIds).
+     * - Reset phiếu về PENDING và giao lại cho người tiếp theo qua
+     * autoAssignToMaintenance.
+     * - Gửi thông báo cho nhân viên bị thu hồi và quản lý.
      */
     @org.springframework.scheduling.annotation.Scheduled(fixedRate = 60000)
     @Transactional
@@ -606,7 +616,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                     Locale locale = LocaleContextHolder.getLocale();
                     String title = messageSource.getMessage("maintenance.notification.timeout.title", null, locale);
                     String msg = messageSource.getMessage("maintenance.notification.timeout.message",
-                            new Object[]{request.getId()}, locale);
+                            new Object[] { request.getId() }, locale);
                     notificationService.notify(user, title, msg, "/dashboard/maintenance");
                 });
             }

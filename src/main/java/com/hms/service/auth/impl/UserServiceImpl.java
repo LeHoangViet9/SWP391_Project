@@ -107,8 +107,7 @@ public class UserServiceImpl implements IUserService {
                 "USER",
                 saved.getId(),
                 saved.getEmail(),
-                auditLogService.message(null, userAuditSnapshot(saved))
-        );
+                auditLogService.message(null, userAuditSnapshot(saved)));
         return userMapper.toResponse(saved, null);
     }
 
@@ -120,8 +119,7 @@ public class UserServiceImpl implements IUserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(ERROR_USER_INVALID, null, locale)
-                ));
+                        messageSource.getMessage(ERROR_USER_INVALID, null, locale)));
         Map<String, Object> before = userAuditSnapshot(user);
         String previousRole = user.getRole() == null ? null : user.getRole().getRoleName();
 
@@ -160,8 +158,7 @@ public class UserServiceImpl implements IUserService {
                 "USER",
                 updated.getId(),
                 updated.getEmail(),
-                auditLogService.message(before, userAuditSnapshot(updated))
-        );
+                auditLogService.message(before, userAuditSnapshot(updated)));
         return userMapper.toResponse(updated, null);
     }
 
@@ -173,8 +170,7 @@ public class UserServiceImpl implements IUserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(ERROR_USER_INVALID, null, locale)
-                ));
+                        messageSource.getMessage(ERROR_USER_INVALID, null, locale)));
         Map<String, Object> before = userAuditSnapshot(user);
         user.setAccountStatus(AccountStatus.INACTIVE);
         User deleted = userRepository.save(user);
@@ -184,8 +180,7 @@ public class UserServiceImpl implements IUserService {
                 "USER",
                 deleted.getId(),
                 deleted.getEmail(),
-                auditLogService.message(before, userAuditSnapshot(deleted))
-        );
+                auditLogService.message(before, userAuditSnapshot(deleted)));
     }
 
     @Override
@@ -195,16 +190,14 @@ public class UserServiceImpl implements IUserService {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(ERROR_USER_INVALID, null, locale)
-                ));
+                        messageSource.getMessage(ERROR_USER_INVALID, null, locale)));
         Map<String, Object> before = userAuditSnapshot(user);
 
         List<Permission> permissions = permissionRepository.findAllById(permissionIds);
 
         if (permissions.isEmpty()) {
             throw new ResourceNotFoundException(
-                    messageSource.getMessage("error.permission.notfound", null, locale)
-            );
+                    messageSource.getMessage("error.permission.notfound", null, locale));
         }
 
         // Gán quyền mới (ghi đè sử dụng Set để tránh trùng dữ liệu)
@@ -217,8 +210,7 @@ public class UserServiceImpl implements IUserService {
                 "USER",
                 updated.getId(),
                 updated.getEmail(),
-                auditLogService.message(before, userAuditSnapshot(updated))
-        );
+                auditLogService.message(before, userAuditSnapshot(updated)));
         return userMapper.toResponse(updated, null);
     }
 
@@ -230,8 +222,7 @@ public class UserServiceImpl implements IUserService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(ERROR_USER_INVALID, null, locale)
-                ));
+                        messageSource.getMessage(ERROR_USER_INVALID, null, locale)));
         Map<String, Object> before = userAuditSnapshot(user);
 
         if (user.getCustomPermissions() != null) {
@@ -245,8 +236,7 @@ public class UserServiceImpl implements IUserService {
                 "USER",
                 updated.getId(),
                 updated.getEmail(),
-                auditLogService.message(before, userAuditSnapshot(updated))
-        );
+                auditLogService.message(before, userAuditSnapshot(updated)));
         return userMapper.toResponse(updated, null);
     }
 
@@ -256,8 +246,7 @@ public class UserServiceImpl implements IUserService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage(ERROR_USER_INVALID, null, locale)
-                ));
+                        messageSource.getMessage(ERROR_USER_INVALID, null, locale)));
 
         return userMapper.toResponse(user, null);
     }
@@ -265,8 +254,7 @@ public class UserServiceImpl implements IUserService {
     private Role findRole(String roleName, Locale locale) {
         return roleRepository.findByRoleNameIgnoreCase(roleName)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage("error.role.invalid", new Object[]{roleName}, locale)
-                ));
+                        messageSource.getMessage("error.role.invalid", new Object[] { roleName }, locale)));
     }
 
     private void validateCreatableRole(String requestedRoleName, Locale locale) {
@@ -278,14 +266,16 @@ public class UserServiceImpl implements IUserService {
         String actorRole = getCurrentActorRole();
         if (ROLE_ADMIN.equals(actorRole)) {
             if (ROLE_ADMIN.equals(requestedRole)) {
-                throw new ForbiddenException(messageSource.getMessage("error.user.create.admin.disabled", null, locale));
+                throw new ForbiddenException(
+                        messageSource.getMessage("error.user.create.admin.disabled", null, locale));
             }
             return;
         }
 
         if (ROLE_MANAGER.equals(actorRole)) {
             if (ROLE_ADMIN.equals(requestedRole) || ROLE_MANAGER.equals(requestedRole)) {
-                throw new ForbiddenException(messageSource.getMessage("error.user.create.manager.disabled", null, locale));
+                throw new ForbiddenException(
+                        messageSource.getMessage("error.user.create.manager.disabled", null, locale));
             }
             return;
         }
@@ -302,17 +292,20 @@ public class UserServiceImpl implements IUserService {
         String actorRole = getCurrentActorRole();
         if (ROLE_ADMIN.equals(actorRole)) {
             if (ROLE_ADMIN.equals(requestedRole)) {
-                throw new ForbiddenException(messageSource.getMessage("error.user.update.admin.disabled", null, locale));
+                throw new ForbiddenException(
+                        messageSource.getMessage("error.user.update.admin.disabled", null, locale));
             }
             return;
         }
 
         if (ROLE_MANAGER.equals(actorRole)) {
             if (ROLE_ADMIN.equals(requestedRole)) {
-                throw new ForbiddenException(messageSource.getMessage("error.user.update.admin.disabled", null, locale));
+                throw new ForbiddenException(
+                        messageSource.getMessage("error.user.update.admin.disabled", null, locale));
             }
             if (ROLE_MANAGER.equals(requestedRole)) {
-                throw new ForbiddenException(messageSource.getMessage("error.user.update.manager.disabled", null, locale));
+                throw new ForbiddenException(
+                        messageSource.getMessage("error.user.update.manager.disabled", null, locale));
             }
             return;
         }
@@ -328,7 +321,8 @@ public class UserServiceImpl implements IUserService {
 
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .filter(authority -> authority != null && authority.toUpperCase(Locale.ROOT).startsWith(ROLE_AUTHORITY_PREFIX))
+                .filter(authority -> authority != null
+                        && authority.toUpperCase(Locale.ROOT).startsWith(ROLE_AUTHORITY_PREFIX))
                 .map(authority -> authority.substring(ROLE_AUTHORITY_PREFIX.length()).toUpperCase(Locale.ROOT))
                 .filter(role -> ROLE_ADMIN.equals(role) || ROLE_MANAGER.equals(role))
                 .findFirst()

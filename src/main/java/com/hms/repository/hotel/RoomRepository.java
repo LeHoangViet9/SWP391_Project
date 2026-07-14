@@ -111,11 +111,12 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("""
             SELECT r FROM Room r
             WHERE r.roomType.id = :roomTypeId
-            AND r.roomStatus IN (com.hms.common.enums.RoomStatus.AVAILABLE,
-                                 com.hms.common.enums.RoomStatus.READY)
+            AND r.roomStatus NOT IN (com.hms.common.enums.RoomStatus.INACTIVE,
+                                     com.hms.common.enums.RoomStatus.MAINTENANCE)
             AND NOT EXISTS (
                 SELECT b FROM Booking b
-                WHERE b.room.id = r.id
+                LEFT JOIN b.rooms br
+                WHERE (b.room.id = r.id OR br.id = r.id)
                 AND b.bookingStatus IN :statuses
                 AND b.checkInDate < :checkOutDate
                 AND b.checkOutDate > :checkInDate

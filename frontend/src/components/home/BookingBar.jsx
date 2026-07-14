@@ -8,11 +8,18 @@ export default function BookingBar({ onSearchGuests }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const today = () => new Date().toISOString().split('T')[0];
+  const getLocalDateString = (dateObj = new Date()) => {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const today = () => getLocalDateString();
   const tomorrow = () => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
+    return getLocalDateString(d);
   };
 
   const [checkIn, setCheckIn] = useState(searchParams.get('checkIn') || today());
@@ -35,7 +42,7 @@ export default function BookingBar({ onSearchGuests }) {
     if (d2 <= d1) {
       const nextDay = new Date(d1);
       nextDay.setDate(nextDay.getDate() + 1);
-      setCheckOut(nextDay.toISOString().split('T')[0]);
+      setCheckOut(getLocalDateString(nextDay));
     }
   };
 
@@ -76,7 +83,7 @@ export default function BookingBar({ onSearchGuests }) {
             min={checkIn ? (() => {
               const d = new Date(checkIn);
               d.setDate(d.getDate() + 1);
-              return d.toISOString().split('T')[0];
+              return getLocalDateString(d);
             })() : today()}
             onChange={(e) => setCheckOut(e.target.value)}
             className="w-full text-slate-800 font-medium bg-transparent outline-none cursor-pointer"

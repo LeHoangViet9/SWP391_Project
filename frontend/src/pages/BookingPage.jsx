@@ -19,7 +19,14 @@ import {
 } from '../services/customerService';
 import BookingFailureModal from '../components/BookingFailureModal';
 
-const today = () => new Date().toISOString().split('T')[0];
+const getLocalDateString = (dateObj = new Date()) => {
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const today = () => getLocalDateString();
 const CART_STORAGE_KEY = 'hms_booking_cart';
 
 function loadBookingCart() {
@@ -37,7 +44,7 @@ function createCartKey(roomTypeId, checkIn, checkOut) {
 const tomorrow = () => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  return d.toISOString().split('T')[0];
+  return getLocalDateString(d);
 };
 
 function toCheckIn(date) {
@@ -676,7 +683,7 @@ function BookingContent() {
                       if (!prev.checkOut || prev.checkOut <= newCheckIn) {
                         const nextDay = new Date(newCheckIn);
                         nextDay.setDate(nextDay.getDate() + 1);
-                        updated.checkOut = nextDay.toISOString().split('T')[0];
+                        updated.checkOut = getLocalDateString(nextDay);
                       }
                       return updated;
                     });
@@ -695,7 +702,7 @@ function BookingContent() {
                     if (!booking.checkIn) return today();
                     const dt = new Date(booking.checkIn);
                     dt.setDate(dt.getDate() + 1);
-                    return dt.toISOString().split('T')[0];
+                    return getLocalDateString(dt);
                   })()}
                   onChange={(e) => {
                     touchSelectionField('checkOut');

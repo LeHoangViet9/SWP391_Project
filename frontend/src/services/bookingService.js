@@ -37,6 +37,11 @@ export async function createBooking(payload, locale = 'vi') {
   }, locale);
 }
 
+/** GET /api/v1/bookings/check-availability */
+export async function checkAvailability(params, locale = 'vi') {
+  return apiFetch(`/bookings/check-availability${buildQuery(params)}`, {}, locale);
+}
+
 /** GET concrete rooms that can be added to the cart for the selected stay. */
 export async function getAvailableRooms(params, locale = 'vi') {
   return apiFetch(`/bookings/available-rooms${buildQuery(params)}`, {}, locale);

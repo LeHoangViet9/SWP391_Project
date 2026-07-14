@@ -23,10 +23,10 @@ import java.util.Map;
 public class GlobalExceptionHandler {
     @Autowired
     private MessageSource messageSource;
+
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResponse<Object>> handleAppException(
-            AppException exception
-    ) {
+            AppException exception) {
 
         ApiResponse<Object> response = ApiResponse.builder()
                 .success(false)
@@ -38,8 +38,10 @@ public class GlobalExceptionHandler {
                 .status(exception.getStatus())
                 .body(response);
     }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException exception) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(
+            MethodArgumentNotValidException exception) {
 
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -69,10 +71,10 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleException(
-            Exception exception
-    ) {
+            Exception exception) {
         log.error("Unhandled exception", exception);
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -88,6 +90,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(response);
     }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex, Locale locale) {
         String exceptionMsg = ex.getMessage();
@@ -95,7 +98,7 @@ public class GlobalExceptionHandler {
         if (exceptionMsg != null && exceptionMsg.matches("\\d+")) {
 
             String localizedMessage = messageSource.getMessage(
-                    "error.time.limit_exceeded", new Object[]{exceptionMsg}, locale);
+                    "error.time.limit_exceeded", new Object[] { exceptionMsg }, locale);
             return ResponseEntity.badRequest().body(Map.of("error", localizedMessage));
         }
         return ResponseEntity.badRequest().body(Map.of("error", exceptionMsg));
@@ -103,8 +106,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<ApiResponse<Object>> handleAuthorizationDenied(
-            AuthorizationDeniedException exception
-    ) {
+            AuthorizationDeniedException exception) {
         ApiResponse<Object> response = ApiResponse.builder()
                 .success(false)
                 .message("Access denied")
@@ -118,14 +120,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Object>> handleTypeMismatch(
-            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException exception
-    ) {
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException exception) {
         Locale locale = LocaleContextHolder.getLocale();
         String message;
         if (exception.getRequiredType() != null && exception.getRequiredType().isEnum()) {
             String enumName = exception.getRequiredType().getSimpleName().toLowerCase();
             if ("feedbackstatus".equals(enumName)) {
-                message = messageSource.getMessage("error.feedback.status.invalid", null, "Invalid feedback status!", locale);
+                message = messageSource.getMessage("error.feedback.status.invalid", null, "Invalid feedback status!",
+                        locale);
             } else {
                 message = "Invalid value: " + exception.getValue() + " for parameter: " + exception.getName();
             }

@@ -69,9 +69,10 @@ public class InvoiceServiceImpl implements InvoiceService {
     public InvoiceResponse createInvoice(InvoiceRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        if (invoiceRepository.existsByBookingIdAndInvoiceType(request.getBookingId(), com.hms.common.enums.InvoiceType.ROOM)) {
+        if (invoiceRepository.existsByBookingIdAndInvoiceType(request.getBookingId(),
+                com.hms.common.enums.InvoiceType.ROOM)) {
             throw new ConflictException(messageSource.getMessage("error.bookingId.exist",
-                    new Object[]{request.getBookingId()}, locale));
+                    new Object[] { request.getBookingId() }, locale));
         }
 
         Booking booking = bookingRepository.findById(request.getBookingId())
@@ -80,15 +81,15 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         long numberOfNights = TimeUtils.calculateNightsMinimumOne(
                 booking.getCheckInDate(),
-                booking.getCheckOutDate()
-        );
+                booking.getCheckOutDate());
 
         BigDecimal roomPricePerNight = booking.getPricePerNight();
         BigDecimal roomPriceSubTotal = roomPricePerNight
                 .multiply(BigDecimal.valueOf(numberOfNights))
                 .multiply(BigDecimal.valueOf(booking.getQuantity()));
 
-        BigDecimal additionalCharges = request.getAdditionalChages() != null ? request.getAdditionalChages() : BigDecimal.ZERO;
+        BigDecimal additionalCharges = request.getAdditionalChages() != null ? request.getAdditionalChages()
+                : BigDecimal.ZERO;
 
         BigDecimal subTotalBeforeTax = roomPriceSubTotal.add(additionalCharges);
         BigDecimal vatAmount = subTotalBeforeTax.multiply(vatRate).setScale(0, RoundingMode.HALF_UP);
@@ -104,7 +105,8 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         invoiceRepository.save(invoice);
 
-        return buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges, vatAmount, total);
+        return buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight, roomPriceSubTotal,
+                additionalCharges, vatAmount, total);
     }
 
     @Override
@@ -135,7 +137,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         }
 
         invoice.setPaymentStatus(PaymentStatus.PAID);
-        if (invoice.getPaymentMethod() == null) invoice.setPaymentMethod(PaymentMethod.TRANSFER);
+        if (invoice.getPaymentMethod() == null)
+            invoice.setPaymentMethod(PaymentMethod.TRANSFER);
         invoice.setPaymentConfirmed(true);
         invoice.setPaidAt(LocalDateTime.now());
         invoiceRepository.save(invoice);
@@ -145,7 +148,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         bookingRepository.save(booking);
 
         String notifTitle = messageSource.getMessage("notification.invoice.payment.success.title", null, locale);
-        String notifMsg = messageSource.getMessage("notification.invoice.payment.success.message.transfer", new Object[]{invoice.getId(), booking.getId(), invoice.getAmount()}, locale);
+        String notifMsg = messageSource.getMessage("notification.invoice.payment.success.message.transfer",
+                new Object[] { invoice.getId(), booking.getId(), invoice.getAmount() }, locale);
         notificationService.notifyReceptionistsAndManagers(notifTitle, notifMsg, "/dashboard/invoices");
 
         return calculateAndBuildResponse(invoice, booking);
@@ -159,7 +163,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         List<Booking> bookings = normalizedIds.stream()
                 .map(id -> bookingRepository.findById(id)
                         .orElseThrow(() -> new ResourceNotFoundException(
-                                messageSource.getMessage("error.booking.notfound.param", new Object[]{id}, locale))))
+                                messageSource.getMessage("error.booking.notfound.param", new Object[] { id }, locale))))
                 .toList();
         validateCombinedBookings(bookings);
         return buildCombinedInvoiceResponse(bookings);
@@ -173,29 +177,32 @@ public class InvoiceServiceImpl implements InvoiceService {
         List<Booking> bookings = normalizedIds.stream()
                 .map(id -> bookingRepository.findByIdWithPessimisticWrite(id)
                         .orElseThrow(() -> new ResourceNotFoundException(
-                                messageSource.getMessage("error.booking.notfound.param", new Object[]{id}, locale))))
+                                messageSource.getMessage("error.booking.notfound.param", new Object[] { id }, locale))))
                 .toList();
         validateCombinedBookings(bookings);
 
-        boolean allPaid = bookings.stream().allMatch(booking ->
-                booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID
+        boolean allPaid = bookings.stream()
+                .allMatch(booking -> booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID
                         && booking.getBookingStatus() == BookingStatus.CONFIRMED);
-        if (allPaid) return buildCombinedInvoiceResponse(bookings);
+        if (allPaid)
+            return buildCombinedInvoiceResponse(bookings);
 
         LocalDateTime now = LocalDateTime.now();
-        boolean invalid = bookings.stream().anyMatch(booking ->
-                booking.getBookingStatus() != BookingStatus.PENDING_PAYMENT
+        boolean invalid = bookings.stream()
+                .anyMatch(booking -> booking.getBookingStatus() != BookingStatus.PENDING_PAYMENT
                         || booking.getHoldExpiresAt() == null
                         || !booking.getHoldExpiresAt().isAfter(now)
                         || booking.getInvoice().getPaymentStatus() != PaymentStatus.PENDING);
         if (invalid) {
-            throw new ConflictException(messageSource.getMessage("error.combined.expired.or.not.pending", null, locale));
+            throw new ConflictException(
+                    messageSource.getMessage("error.combined.expired.or.not.pending", null, locale));
         }
 
         bookings.forEach(booking -> {
             Invoice invoice = booking.getInvoice();
             invoice.setPaymentStatus(PaymentStatus.PAID);
-            if (invoice.getPaymentMethod() == null) invoice.setPaymentMethod(PaymentMethod.TRANSFER);
+            if (invoice.getPaymentMethod() == null)
+                invoice.setPaymentMethod(PaymentMethod.TRANSFER);
             invoice.setPaymentConfirmed(true);
             invoice.setPaidAt(now);
             booking.setBookingStatus(BookingStatus.CONFIRMED);
@@ -207,7 +214,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         bookings.forEach(booking -> {
             Invoice invoice = booking.getInvoice();
             String notifTitle = messageSource.getMessage("notification.invoice.payment.success.title", null, locale);
-            String notifMsg = messageSource.getMessage("notification.invoice.payment.success.message.transfer", new Object[]{invoice.getId(), booking.getId(), invoice.getAmount()}, locale);
+            String notifMsg = messageSource.getMessage("notification.invoice.payment.success.message.transfer",
+                    new Object[] { invoice.getId(), booking.getId(), invoice.getAmount() }, locale);
             notificationService.notifyReceptionistsAndManagers(notifTitle, notifMsg, "/dashboard/invoices");
         });
         return buildCombinedInvoiceResponse(bookings);
@@ -222,7 +230,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         List<Booking> bookings = normalizedIds.stream()
                 .map(id -> bookingRepository.findByIdWithPessimisticWrite(id)
                         .orElseThrow(() -> new ResourceNotFoundException(
-                                messageSource.getMessage("error.booking.notfound.param", new Object[]{id}, locale))))
+                                messageSource.getMessage("error.booking.notfound.param", new Object[] { id }, locale))))
                 .toList();
         validateCombinedBookings(bookings);
 
@@ -231,14 +239,15 @@ public class InvoiceServiceImpl implements InvoiceService {
             throw new BadRequestException(messageSource.getMessage("error.receptionist.invalid.method", null, locale));
         }
 
-        boolean allPaid = bookings.stream().allMatch(booking ->
-                booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID
+        boolean allPaid = bookings.stream()
+                .allMatch(booking -> booking.getInvoice().getPaymentStatus() == PaymentStatus.PAID
                         && booking.getBookingStatus() == BookingStatus.CONFIRMED);
-        if (allPaid) return buildCombinedInvoiceResponse(bookings);
+        if (allPaid)
+            return buildCombinedInvoiceResponse(bookings);
 
         LocalDateTime now = LocalDateTime.now();
-        boolean invalid = bookings.stream().anyMatch(booking ->
-                booking.getBookingStatus() != BookingStatus.PENDING_PAYMENT
+        boolean invalid = bookings.stream()
+                .anyMatch(booking -> booking.getBookingStatus() != BookingStatus.PENDING_PAYMENT
                         || booking.getInvoice().getPaymentStatus() != PaymentStatus.PENDING);
         if (invalid) {
             throw new ConflictException(messageSource.getMessage("error.receptionist.not.pending", null, locale));
@@ -252,10 +261,12 @@ public class InvoiceServiceImpl implements InvoiceService {
         if (method == PaymentMethod.CASH) {
             cashReceived = request.getCashReceived();
             if (cashReceived == null) {
-                throw new BadRequestException(messageSource.getMessage("error.receptionist.cash.missing", null, locale));
+                throw new BadRequestException(
+                        messageSource.getMessage("error.receptionist.cash.missing", null, locale));
             }
             if (cashReceived.compareTo(total) < 0) {
-                throw new BadRequestException(messageSource.getMessage("error.receptionist.cash.insufficient", null, locale));
+                throw new BadRequestException(
+                        messageSource.getMessage("error.receptionist.cash.insufficient", null, locale));
             }
             changeAmount = cashReceived.subtract(total);
         } else if (!Boolean.TRUE.equals(request.getPaymentConfirmed())) {
@@ -282,7 +293,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         bookings.forEach(booking -> {
             Invoice invoice = booking.getInvoice();
             String notifTitle = messageSource.getMessage("notification.invoice.payment.success.title", null, locale);
-            String notifMsg = messageSource.getMessage("notification.invoice.payment.success.message.method", new Object[]{invoice.getId(), booking.getId(), method, invoice.getAmount()}, locale);
+            String notifMsg = messageSource.getMessage("notification.invoice.payment.success.message.method",
+                    new Object[] { invoice.getId(), booking.getId(), method, invoice.getAmount() }, locale);
             notificationService.notifyReceptionistsAndManagers(notifTitle, notifMsg, "/dashboard/invoices");
         });
         return buildCombinedInvoiceResponse(bookings);
@@ -334,7 +346,8 @@ public class InvoiceServiceImpl implements InvoiceService {
             processedKeyword = "%" + keyword.trim().toLowerCase() + "%";
         }
 
-        Page<Invoice> invoicePage = invoiceRepository.findInvoicesAdvanced(processedKeyword, status, fromDate, toDate, pageable);
+        Page<Invoice> invoicePage = invoiceRepository.findInvoicesAdvanced(processedKeyword, status, fromDate, toDate,
+                pageable);
         return invoicePage.map(invoice -> calculateAndBuildResponse(invoice, invoice.getBooking()));
     }
 
@@ -362,7 +375,8 @@ public class InvoiceServiceImpl implements InvoiceService {
             throw new BadRequestException(messageSource.getMessage("error.combined.customer.mismatch", null, locale));
         }
         if (bookings.stream().anyMatch(booking -> booking.getInvoice() == null)) {
-            throw new ResourceNotFoundException(messageSource.getMessage("error.combined.invoice.missing", null, locale));
+            throw new ResourceNotFoundException(
+                    messageSource.getMessage("error.combined.invoice.missing", null, locale));
         }
     }
 
@@ -397,8 +411,10 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .cashReceived(cashReceived.signum() == 0 ? null : cashReceived)
                 .changeAmount(changeAmount)
                 .paymentConfirmed(allPaid)
-                .createdAt(bookings.stream().map(Booking::getCreatedAt).filter(Objects::nonNull).min(LocalDateTime::compareTo).orElse(null))
-                .holdExpiresAt(bookings.stream().map(Booking::getHoldExpiresAt).filter(Objects::nonNull).min(LocalDateTime::compareTo).orElse(null))
+                .createdAt(bookings.stream().map(Booking::getCreatedAt).filter(Objects::nonNull)
+                        .min(LocalDateTime::compareTo).orElse(null))
+                .holdExpiresAt(bookings.stream().map(Booking::getHoldExpiresAt).filter(Objects::nonNull)
+                        .min(LocalDateTime::compareTo).orElse(null))
                 .build();
 
         if (!allPaid) {
@@ -429,15 +445,15 @@ public class InvoiceServiceImpl implements InvoiceService {
             BigDecimal vatAmount = BigDecimal.ZERO;
             BigDecimal correctTotalAmount = additionalCharges;
 
-            InvoiceResponse response = buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges, vatAmount, correctTotalAmount);
+            InvoiceResponse response = buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight,
+                    roomPriceSubTotal, additionalCharges, vatAmount, correctTotalAmount);
             response.setRoomTypeName("Phụ thu dịch vụ");
             return response;
         }
 
         long numberOfNights = TimeUtils.calculateNightsMinimumOne(
                 booking.getCheckInDate(),
-                booking.getCheckOutDate()
-        );
+                booking.getCheckOutDate());
         BigDecimal roomPricePerNight = booking.getPricePerNight();
         BigDecimal roomPriceSubTotal = roomPricePerNight
                 .multiply(BigDecimal.valueOf(numberOfNights))
@@ -450,11 +466,14 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         BigDecimal correctTotalAmount = subTotalBeforeTax.add(vatAmount);
 
-        return buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight, roomPriceSubTotal, additionalCharges, vatAmount, correctTotalAmount);
+        return buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight, roomPriceSubTotal,
+                additionalCharges, vatAmount, correctTotalAmount);
     }
 
-    private InvoiceResponse buildInvoiceResponse(Invoice invoice, Booking booking, long numberOfNights, BigDecimal roomPricePerNight,
-                                                 BigDecimal roomPriceSubTotal, BigDecimal additionalCharges, BigDecimal vatAmount, BigDecimal calculatedTotal) {
+    private InvoiceResponse buildInvoiceResponse(Invoice invoice, Booking booking, long numberOfNights,
+            BigDecimal roomPricePerNight,
+            BigDecimal roomPriceSubTotal, BigDecimal additionalCharges, BigDecimal vatAmount,
+            BigDecimal calculatedTotal) {
         InvoiceResponse response = invoiceMapper.toResponse(invoice);
 
         response.setInvoiceId(invoice.getId());
