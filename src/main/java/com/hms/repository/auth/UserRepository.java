@@ -16,6 +16,10 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
 
+    @Query("SELECT u FROM User u WHERE UPPER(u.role.roleName) = 'HOUSEKEEPER' " +
+            "AND u.accountStatus = com.hms.common.enums.AccountStatus.ACTIVE")
+    List<User> findActiveHousekeepers();
+
     boolean existsUserByEmail(String email);
 
     boolean existsUserByPhone(String phone);
@@ -81,7 +85,7 @@ public interface UserRepository extends JpaRepository<User,Long> {
             Pageable pageable);
 
     /**
-     * Tìm housekeeper ACTIVE có ít task PENDING/IN_PROGRESS nhất (round-robin by workload).
+     * Tìm housekeeper ACTIVE + AVAILABLE theo thứ tự ngẫu nhiên.
      * Dùng cho auto-assign task khi checkout.
      */
     @Query("""
@@ -93,7 +97,7 @@ public interface UserRepository extends JpaRepository<User,Long> {
                 AND u.workStatus = com.hms.common.enums.StaffWorkStatus.AVAILABLE
                 AND (:excludedUserId IS NULL OR u.id <> :excludedUserId)
             GROUP BY u
-            ORDER BY COUNT(t) ASC
+            ORDER BY FUNCTION('RANDOM')
             """)
     List<User> findHousekeepersOrderByTaskCountAscExcluding(@Param("excludedUserId") Long excludedUserId);
 
@@ -105,7 +109,7 @@ public interface UserRepository extends JpaRepository<User,Long> {
                 AND u.accountStatus = com.hms.common.enums.AccountStatus.ACTIVE
                 AND u.workStatus = com.hms.common.enums.StaffWorkStatus.AVAILABLE
             GROUP BY u
-            ORDER BY COUNT(t) ASC
+            ORDER BY FUNCTION('RANDOM')
             """)
     List<User> findHousekeepersOrderByTaskCountAsc();
 

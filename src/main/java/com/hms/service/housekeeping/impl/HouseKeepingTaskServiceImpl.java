@@ -33,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
+import java.time.LocalDate;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -78,13 +79,21 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<HouseKeepingTaskResponse> searchTasks(TaskStatus status, Long assignedToId, Long assignedById, Long roomId, Integer page, Integer size, SortField sortField, SortDirection direction) {
+    public Page<HouseKeepingTaskResponse> searchTasks(TaskStatus status, Long assignedToId, Long assignedById, Long roomId, LocalDate fromDate, LocalDate toDate, Integer page, Integer size, SortField sortField, SortDirection direction) {
         String sortBy = sortField != null
                 ? sortField.getField()
                 : "createdAt";
 
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy, direction);
-        return taskRepository.searchTasks(status, Collections.emptyList(), false, assignedToId, assignedById, roomId, pageable)
+        // Use typed bounds instead of nullable JPQL parameters. PostgreSQL cannot
+        // infer the type of parameters used only in an "IS NULL" expression.
+        LocalDateTime from = fromDate == null
+                ? LocalDateTime.of(1900, 1, 1, 0, 0)
+                : fromDate.atStartOfDay();
+        LocalDateTime to = toDate == null
+                ? LocalDateTime.of(9999, 12, 31, 23, 59, 59)
+                : toDate.plusDays(1).atStartOfDay();
+        return taskRepository.searchTasks(status, Collections.emptyList(), false, assignedToId, assignedById, roomId, from, to, pageable)
                 .map(taskMapper::toResponse);
     }
 
@@ -360,6 +369,18 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         userRepository.save(housekeeper);
     }
 
+    /**
+     * Reconcile trạng thái nhân viên với các task hiện có, bao gồm dữ liệu
+     * được tạo trực tiếp bằng SQL hoặc tồn tại trước khi logic đồng bộ được thêm.
+     */
+    @Scheduled(fixedRate = 60000, initialDelay = 1000)
+    @Transactional
+    public void reconcileHousekeeperWorkStatuses() {
+        for (User housekeeper : userRepository.findActiveHousekeepers()) {
+            syncHousekeeperWorkStatus(housekeeper, null);
+        }
+    }
+
 
     private void changeRoomStatus(Room room, RoomStatus newStatus, User changedBy,
                                   HouseKeepingTask task, String reason, ProcessTrigger processName) {
@@ -451,7 +472,7 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.room.notfound", null, locale)));
 
-        // Tìm housekeeper có ít task nhất (round-robin by workload)
+        // Chọn ngẫu nhiên một housekeeper ACTIVE + AVAILABLE.
         if (taskRepository.existsByRoom_IdAndTaskStatusIn(roomId, List.of(TaskStatus.PENDING, TaskStatus.IN_PROGRESS))) {
             log.info("[AUTO-ASSIGN] Room {} already has active housekeeping task. Skip auto-create.",
                     room.getRoomNumber());

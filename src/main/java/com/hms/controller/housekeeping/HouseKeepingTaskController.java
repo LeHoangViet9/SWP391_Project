@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Locale;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/api/v1/housekeeping-tasks")
@@ -46,6 +48,8 @@ public class HouseKeepingTaskController {
             @RequestParam(required = false) Long assignedToId,
             @RequestParam(required = false) Long assignedById,
             @RequestParam(required = false) Long roomId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(defaultValue = "ID") SortField sortBy,
@@ -65,7 +69,7 @@ public class HouseKeepingTaskController {
         ApiResponse<Page<HouseKeepingTaskResponse>> response = ApiResponse.<Page<HouseKeepingTaskResponse>>builder()
                 .success(true)
                 .message(message)
-                .data(taskService.searchTasks(status, assignedToId, assignedById, roomId, page, size,sortBy,direction))
+                .data(taskService.searchTasks(status, assignedToId, assignedById, roomId, fromDate, toDate, page, size,sortBy,direction))
                 .status(HttpStatus.OK)
                 .build();
 

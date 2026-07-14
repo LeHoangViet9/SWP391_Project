@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { getAuditLogs } from '../services/auditLogService';
 import { useLocale } from '../context/LocaleContext';
+import DataTable from './shared/DataTable';
 import Toast from './shared/Toast';
 
 const STATUS_OPTIONS = [
@@ -189,6 +190,34 @@ export default function AuditLogManager() {
     </label>
   );
 
+  const tableColumns = [
+    'ID',
+    translate('table.time'),
+    translate('table.action'),
+    translate('table.status'),
+    translate('table.actor'),
+    translate('table.message'),
+  ];
+
+  const tableRows = logs.map((log) => (
+    <tr key={log.id} className="transition hover:bg-slate-50/70">
+      <td className="whitespace-nowrap px-4 py-4 font-bold text-slate-800">#{log.id}</td>
+      <td className="whitespace-nowrap px-4 py-4 text-slate-600">{formatTime(log.createdAt)}</td>
+      <td className="px-4 py-4">
+        <div className="text-xs font-bold text-slate-800">{log.actionLabel || log.action}</div>
+        <div className="mt-1 text-[11px] font-semibold uppercase text-slate-400">
+          {getModuleLabel(log.module, log.moduleLabel)}
+        </div>
+      </td>
+      <td className="px-4 py-4">{renderStatus(log)}</td>
+      <td className="px-4 py-4">
+        <div className="font-semibold text-slate-800">{log.actorUsername || '-'}</div>
+        <div className="mt-1 text-xs text-slate-400">{log.actorRole || log.actorEmail || '-'}</div>
+      </td>
+      <td className="px-4 py-4">{renderMessageSummary(log)}</td>
+    </tr>
+  ));
+
   return (
     <div className="space-y-5">
       <Toast type={toast.type} message={toast.message} onClose={closeToast} />
@@ -303,80 +332,15 @@ export default function AuditLogManager() {
         </div>
       </form>
 
-      <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
-        <div className="overflow-x-auto">
-          <table className="min-w-[980px] w-full text-sm">
-            <thead className="border-b border-stone-200 bg-white text-[11px] uppercase tracking-wide text-slate-400">
-              <tr>
-                <th className="px-4 py-3 text-left font-bold">ID</th>
-                <th className="px-4 py-3 text-left font-bold">{translate('table.time')}</th>
-                <th className="px-4 py-3 text-left font-bold">{translate('table.action')}</th>
-                <th className="px-4 py-3 text-left font-bold">{translate('table.status')}</th>
-                <th className="px-4 py-3 text-left font-bold">{translate('table.actor')}</th>
-                <th className="px-4 py-3 text-left font-bold">{translate('table.message')}</th>
-
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-14 text-center text-slate-400">
-                    <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-[#bfa15f] border-t-transparent" />
-                    {translate('loading')}
-                  </td>
-                </tr>
-              ) : logs.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-4 py-14 text-center text-slate-400">
-                    {translate('empty.noLogs')}
-                  </td>
-                </tr>
-              ) : logs.map((log) => (
-                <tr key={log.id} className="transition hover:bg-slate-50/70">
-                  <td className="whitespace-nowrap px-4 py-4 font-bold text-slate-800">#{log.id}</td>
-                  <td className="whitespace-nowrap px-4 py-4 text-slate-600">{formatTime(log.createdAt)}</td>
-                  <td className="px-4 py-4">
-                    <div className="text-xs font-bold text-slate-800">{log.actionLabel || log.action}</div>
-                    <div className="mt-1 text-[11px] font-semibold uppercase text-slate-400">
-                      {getModuleLabel(log.module, log.moduleLabel)}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">{renderStatus(log)}</td>
-                  <td className="px-4 py-4">
-                    <div className="font-semibold text-slate-800">{log.actorUsername || '-'}</div>
-                    <div className="mt-1 text-xs text-slate-400">{log.actorRole || log.actorEmail || '-'}</div>
-                  </td>
-                  <td className="px-4 py-4">{renderMessageSummary(log)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-col gap-3 border-t border-stone-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-          <span>
-            {translate('pagination.page')} <strong>{page + 1}</strong> / {Math.max(totalPages, 1)}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage((current) => Math.max(current - 1, 0))}
-              disabled={page === 0}
-              className="h-9 rounded-lg border border-stone-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {translate('pagination.previous')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage((current) => Math.min(current + 1, Math.max(totalPages - 1, 0)))}
-              disabled={page >= totalPages - 1}
-              className="h-9 rounded-lg border border-stone-200 bg-white px-3 text-sm font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {translate('pagination.next')}
-            </button>
-          </div>
-        </div>
-      </div>
+      <DataTable
+        columns={tableColumns}
+        rows={tableRows}
+        loading={loading}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        emptyText={translate('empty.noLogs')}
+      />
     </div>
   );
 }
