@@ -4,7 +4,7 @@ import {
     Plus, Search, RefreshCw, Trash2, Pencil, Eye,
     AlertTriangle, ChevronLeft, ChevronRight, X, Check,
     Clock, CheckCircle2, XCircle, Loader2, History,
-    BedDouble, User, SortAsc, SortDesc,
+    BedDouble, User, CalendarDays,
     LayoutGrid, TableIcon, Wrench, ClipboardList,
     Minus, FileText, Loader,
 } from 'lucide-react';
@@ -16,8 +16,23 @@ import { useAuth } from '../context/AuthContext';
 import { usePermission } from '../hooks/usePermission';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TASK_STATUSES = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
-const SORT_FIELDS = ['ID', 'ROOM_ID', 'ASSIGNED_TO_ID', 'STATUS', 'CREATED_AT'];
 const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
+
+const getLocalDateString = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getDateRange = (mode, value) => {
+    if (mode === 'month') {
+        const [year, month] = value.split('-').map(Number);
+        const lastDay = new Date(year, month, 0).getDate();
+        return { fromDate: `${value}-01`, toDate: `${value}-${String(lastDay).padStart(2, '0')}` };
+    }
+    return { fromDate: value, toDate: value };
+};
 const STATUS_CONFIG = {
     PENDING: { label: 'Chờ xử lý', labelEn: 'Pending', color: 'bg-red-100 text-red-700 border-red-200', dot: 'bg-red-500', icon: Clock },
     IN_PROGRESS: { label: 'Đang làm', labelEn: 'In Progress', color: 'bg-amber-100 text-amber-700 border-amber-200', dot: 'bg-amber-500', icon: Loader2 },
@@ -663,15 +678,14 @@ export default function HousekeepingManager({ readOnly = false }) {
     });
     const [page, setPage] = useState(0);
     const [pageSize, setPageSize] = useState(10);
-    const [sortBy, setSortBy] = useState('ID');
-    const [direction, setDirection] = useState('ASC');
+    const [dateMode, setDateMode] = useState('day');
+    const [selectedDate, setSelectedDate] = useState(getLocalDateString());
     // ── State: Modals ────────────────────────────────────────────────────────
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showDetailDrawer, setShowDetailDrawer] = useState(false);
     const [showIssueModal, setShowIssueModal] = useState(false);
-    const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [showMinibarModal, setShowMinibarModal] = useState(false);
     const [minibarTask, setMinibarTask] = useState(null);
     const [reportRoomId, setReportRoomId] = useState(null);
@@ -698,10 +712,11 @@ export default function HousekeepingManager({ readOnly = false }) {
         try {
             const params = {
                 ...filters,
+                ...getDateRange(dateMode, selectedDate),
                 page,
                 size: pageSize,
-                sortBy,
-                direction,
+                sortBy: 'CREATED_AT',
+                direction: 'DESC',
             };
             const res = await housekeepingService.searchTasks(params, locale);
             const pageData = res?.data;
@@ -713,7 +728,7 @@ export default function HousekeepingManager({ readOnly = false }) {
         } finally {
             setLoading(false);
         }
-    }, [filters, page, pageSize, sortBy, direction, locale]);
+    }, [filters, page, pageSize, dateMode, selectedDate, locale]);
     // ── Fetch Housekeepers (for dropdown) ────────────────────────────────────
     const fetchHousekeepers = useCallback(async () => {
         try {
@@ -840,10 +855,6 @@ export default function HousekeepingManager({ readOnly = false }) {
     };
     const openDelete = (task) => { setSelectedTask(task); setShowDeleteModal(true); };
     const openDetail = (task) => { setSelectedTask(task); setShowDetailDrawer(true); };
-    const toggleSort = (field) => {
-        if (sortBy === field) setDirection(d => d === 'ASC' ? 'DESC' : 'ASC');
-        else { setSortBy(field); setDirection('ASC'); }
-    };
     // ── Kanban data ──────────────────────────────────────────────────────────
     const kanbanGroups = TASK_STATUSES.reduce((acc, s) => {
         acc[s] = tasks.filter(t => t.status === s);
@@ -891,9 +902,6 @@ export default function HousekeepingManager({ readOnly = false }) {
                     loading={actionLoading}
                 />
             )}
-            {showHistoryModal && (
-                <RoomHistoryModal onClose={() => setShowHistoryModal(false)} />
-            )}
             {showMinibarModal && minibarTask && (
                 <MinibarReportMiniModal
                     task={minibarTask}
@@ -910,12 +918,6 @@ export default function HousekeepingManager({ readOnly = false }) {
                 </div>
                 {(hasPermission('HOUSEKEEPING_VIEW') || hasPermission('HOUSEKEEPING_UPDATE') || (hasPermission('HOUSEKEEPING_CREATE') && !readOnly)) && (
                     <div className="flex flex-wrap gap-2">
-                        {hasPermission('HOUSEKEEPING_VIEW') && (
-                            <button onClick={() => setShowHistoryModal(true)}
-                                className="flex items-center gap-2 px-3.5 py-2 border border-stone-200 rounded-lg text-sm font-semibold text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors bg-white">
-                                <History size={16} /> Lịch sử phòng
-                            </button>
-                        )}
                         {hasPermission('HOUSEKEEPING_UPDATE') && (
                             <button onClick={() => setShowIssueModal(true)}
                                 className="flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors bg-white">
@@ -1008,16 +1010,29 @@ export default function HousekeepingManager({ readOnly = false }) {
                         <TableIcon size={15} /> Bảng
                     </button>
                 </div>
-                <div className="flex items-center gap-2">
-                    <label className="text-xs text-slate-400 font-medium">Sắp xếp:</label>
-                    <select value={sortBy} onChange={e => setSortBy(e.target.value)}
-                        className="border border-stone-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#bfa15f]">
-                        {SORT_FIELDS.map(f => <option key={f} value={f}>{f}</option>)}
+                <div className="flex items-center gap-2 flex-wrap">
+                    <CalendarDays size={16} className="text-[#bfa15f]" />
+                    <label className="text-xs text-slate-400 font-medium">Xem công việc:</label>
+                    <select
+                        value={dateMode}
+                        onChange={e => {
+                            const mode = e.target.value;
+                            setDateMode(mode);
+                            setSelectedDate(mode === 'month' ? selectedDate.slice(0, 7) : getLocalDateString());
+                            setPage(0);
+                        }}
+                        className="border border-stone-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#bfa15f]"
+                    >
+                        <option value="day">Theo ngày</option>
+                        <option value="month">Theo tháng</option>
                     </select>
-                    <button onClick={() => setDirection(d => d === 'ASC' ? 'DESC' : 'ASC')}
-                        className="p-1.5 border border-stone-200 rounded-lg hover:border-[#bfa15f] transition-colors text-slate-500">
-                        {direction === 'ASC' ? <SortAsc size={15} /> : <SortDesc size={15} />}
-                    </button>
+                    <input
+                        type={dateMode === 'month' ? 'month' : 'date'}
+                        value={selectedDate}
+                        onChange={e => { setSelectedDate(e.target.value); setPage(0); }}
+                        className="border border-stone-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#bfa15f]"
+                        aria-label={dateMode === 'month' ? 'Chọn tháng' : 'Chọn ngày'}
+                    />
                     <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(0); }}
                         className="border border-stone-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#bfa15f]">
                         {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={n}>{n} / trang</option>)}

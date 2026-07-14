@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     CheckCircle2, Clock, Loader2, XCircle, RefreshCw,
     BedDouble, ClipboardList, ChevronDown, ChevronUp,
     AlertTriangle, Wrench, Check, X, Loader, Minus, Plus, FileText,
+    Calendar, ChevronLeft, ChevronRight, CalendarDays,
 } from 'lucide-react';
 import Toast from './shared/Toast';
 import { housekeepingService } from '../services/housekeepingService';
@@ -299,15 +300,130 @@ function TaskCard({ task, onUpdateStatus, onDenyTask, updating, onReportIssue, o
     );
 }
 
+// ─── Date Helpers ─────────────────────────────────────────────────────────────
+function isSameDay(date1, date2) {
+    if (!date1 || !date2) return false;
+    return date1.getFullYear() === date2.getFullYear()
+        && date1.getMonth() === date2.getMonth()
+        && date1.getDate() === date2.getDate();
+}
+
+function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
+function toDateInputValue(date) {
+    if (!date) return '';
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function formatDateLabel(date) {
+    if (!date) return 'Tất cả ngày';
+    const today = new Date();
+    if (isSameDay(date, today)) return 'Hôm nay';
+    if (isSameDay(date, addDays(today, -1))) return 'Hôm qua';
+    if (isSameDay(date, addDays(today, 1))) return 'Ngày mai';
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+// ─── Date Navigation Bar ──────────────────────────────────────────────────────
+function DateNavigationBar({ selectedDate, onSelectDate }) {
+    const today = new Date();
+    const isToday = selectedDate && isSameDay(selectedDate, today);
+    const isAll = selectedDate === null;
+
+    const quickDates = [
+        { label: 'Hôm qua', date: addDays(today, -1), icon: ChevronLeft },
+        { label: 'Hôm nay', date: today, icon: CalendarDays, isToday: true },
+        { label: 'Ngày mai', date: addDays(today, 1), icon: ChevronRight },
+    ];
+
+    return (
+        <div className="mt-4 space-y-2">
+            {/* Quick date buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+                {quickDates.map(({ label, date, icon: Icon, isToday: isTodayBtn }) => {
+                    const isActive = selectedDate && isSameDay(selectedDate, date);
+                    return (
+                        <button
+                            key={label}
+                            onClick={() => onSelectDate(date)}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                                isActive
+                                    ? 'bg-[#bfa15f] text-white shadow-lg shadow-[#bfa15f]/30'
+                                    : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                            }`}
+                        >
+                            <Icon size={14} />
+                            {label}
+                        </button>
+                    );
+                })}
+
+                {/* All button */}
+                <button
+                    onClick={() => onSelectDate(null)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                        isAll
+                            ? 'bg-[#bfa15f] text-white shadow-lg shadow-[#bfa15f]/30'
+                            : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                    }`}
+                >
+                    <Calendar size={14} />
+                    Tất cả
+                </button>
+
+                {/* Date picker */}
+                <div className="relative ml-auto">
+                    <input
+                        type="date"
+                        value={selectedDate ? toDateInputValue(selectedDate) : ''}
+                        onChange={(e) => {
+                            if (e.target.value) {
+                                const [y, m, d] = e.target.value.split('-').map(Number);
+                                onSelectDate(new Date(y, m - 1, d));
+                            } else {
+                                onSelectDate(null);
+                            }
+                        }}
+                        className="bg-white/10 text-white text-xs font-semibold border border-white/20 rounded-xl px-3 py-2 outline-none focus:border-[#bfa15f] transition-colors cursor-pointer [color-scheme:dark]"
+                    />
+                </div>
+            </div>
+
+            {/* Current selection label */}
+            <div className="flex items-center gap-2 text-xs text-white/40 font-medium">
+                <CalendarDays size={12} />
+                <span>
+                    Đang xem: <span className="text-[#bfa15f] font-bold">{formatDateLabel(selectedDate)}</span>
+                    {selectedDate && (
+                        <span className="ml-1">({selectedDate.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })})</span>
+                    )}
+                </span>
+            </div>
+        </div>
+    );
+}
+
 // ─── Empty State ──────────────────────────────────────────────────────────────
-function EmptyState() {
+function EmptyState({ selectedDate }) {
+    const label = selectedDate ? formatDateLabel(selectedDate) : null;
     return (
         <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
             <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
                 <CheckCircle2 size={40} className="text-emerald-500" />
             </div>
             <h3 className="font-bold text-slate-800 text-lg mb-1">Không có tác vụ nào!</h3>
-            <p className="text-slate-500 text-sm">Bạn đã hoàn thành tất cả công việc hôm nay 🎉</p>
+            <p className="text-slate-500 text-sm">
+                {label
+                    ? `Không có công việc cho ${label.toLowerCase()} 📋`
+                    : 'Bạn đã hoàn thành tất cả công việc 🎉'}
+            </p>
         </div>
     );
 }
@@ -333,7 +449,8 @@ export default function HousekeeperTaskBoard() {
     const { user } = useAuth();
     const { locale } = useLocale();
 
-    const [tasks, setTasks] = useState([]);
+    const [allTasks, setAllTasks] = useState([]); // all uncompleted tasks from API
+    const [tasks, setTasks] = useState([]); // filtered tasks for display
     const [loading, setLoading] = useState(false);
     const [updating, setUpdating] = useState(null); // id of task being updated
     const [actionLoading, setActionLoading] = useState(false);
@@ -341,6 +458,7 @@ export default function HousekeeperTaskBoard() {
     const [filterStatus, setFilterStatus] = useState(''); // '' = all uncompleted
     const [reportRoomId, setReportRoomId] = useState(null); // null | roomId
     const [minibarTask, setMinibarTask] = useState(null); // null | task
+    const [selectedDate, setSelectedDate] = useState(new Date()); // null = show all, Date = filter by day
 
     const notify = (msg, type = 'success') => setToast({ type, message: msg });
 
@@ -358,6 +476,27 @@ export default function HousekeeperTaskBoard() {
         createdAt: t.createdAt || t.createAt || t.created_at || '',
     });
 
+    // ── Filter tasks by date and status ──────────────────────────────────────
+    const applyFilters = useCallback((tasksToFilter, date, status) => {
+        let filtered = tasksToFilter;
+
+        // Date filter
+        if (date) {
+            filtered = filtered.filter(t => {
+                if (!t.createdAt) return false;
+                const taskDate = new Date(t.createdAt);
+                return isSameDay(taskDate, date);
+            });
+        }
+
+        // Status filter
+        if (status) {
+            filtered = filtered.filter(t => t.status === status);
+        }
+
+        return filtered;
+    }, []);
+
     // ── Fetch my uncompleted tasks ───────────────────────────────────────────
     const fetchMyTasks = useCallback(async () => {
         if (!user?.id) return;
@@ -365,16 +504,23 @@ export default function HousekeeperTaskBoard() {
         try {
             const res = await housekeepingService.getUncompletedByUser(user.id, locale);
             const all = (res?.data || []).map(normalizeTask);
-            // local filter by status if selected
-            setTasks(filterStatus ? all.filter(t => t.status === filterStatus) : all);
+            setAllTasks(all);
+            setTasks(applyFilters(all, selectedDate, filterStatus));
         } catch (err) {
             notify(err?.message || 'Không thể tải danh sách công việc', 'error');
         } finally {
             setLoading(false);
         }
-    }, [user?.id, locale, filterStatus]);
+    }, [user?.id, locale, selectedDate, filterStatus, applyFilters]);
 
     useEffect(() => { fetchMyTasks(); }, [fetchMyTasks]);
+
+    // ── Re-filter when date or status changes (without re-fetching) ─────────
+    useEffect(() => {
+        if (allTasks.length > 0) {
+            setTasks(applyFilters(allTasks, selectedDate, filterStatus));
+        }
+    }, [selectedDate, filterStatus, allTasks, applyFilters]);
 
     // ── Update task status inline ────────────────────────────────────────────
     const handleUpdateStatus = async (taskId, newStatus) => {
@@ -453,10 +599,15 @@ export default function HousekeeperTaskBoard() {
     };
 
     // ── Counts for filter tabs ───────────────────────────────────────────────
+    // ── Counts based on date-filtered tasks (ignore status filter for counts) ──
+    const dateFilteredTasks = useMemo(() => {
+        return applyFilters(allTasks, selectedDate, '');
+    }, [allTasks, selectedDate, applyFilters]);
+
     const counts = {
-        '': tasks.length,
-        PENDING: tasks.filter(t => t.status === 'PENDING').length,
-        IN_PROGRESS: tasks.filter(t => t.status === 'IN_PROGRESS').length,
+        '': dateFilteredTasks.length,
+        PENDING: dateFilteredTasks.filter(t => t.status === 'PENDING').length,
+        IN_PROGRESS: dateFilteredTasks.filter(t => t.status === 'IN_PROGRESS').length,
     };
 
     // ── Render ───────────────────────────────────────────────────────────────
@@ -505,6 +656,12 @@ export default function HousekeeperTaskBoard() {
                     </button>
                 </div>
 
+                {/* ── Date Navigation ──────────────────────────────────────── */}
+                <DateNavigationBar
+                    selectedDate={selectedDate}
+                    onSelectDate={setSelectedDate}
+                />
+
                 {/* Progress summary */}
                 <div className="mt-5 grid grid-cols-3 gap-3">
                     {[
@@ -533,7 +690,7 @@ export default function HousekeeperTaskBoard() {
                     </>
                 ) : tasks.length === 0 ? (
                     <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
-                        <EmptyState />
+                        <EmptyState selectedDate={selectedDate} />
                     </div>
                 ) : (
                     tasks.map(task => (
