@@ -23,7 +23,9 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
                         "(:useStatuses = false OR t.taskStatus IN :statuses) AND " +
                         "(:assignedToId IS NULL OR t.assignedTo.id = :assignedToId) AND " +
                         "(:assignedById IS NULL OR t.assignedBy.id = :assignedById) AND " +
-                        "(:roomId IS NULL OR t.room.id = :roomId)")
+                        "(:roomId IS NULL OR t.room.id = :roomId) AND " +
+                        "t.createdAt >= :fromDate AND " +
+                        "t.createdAt < :toDate")
         Page<HouseKeepingTask> searchTasks(
                         @Param("status") TaskStatus status,
                         @Param("statuses") List<TaskStatus> statuses,
@@ -31,6 +33,8 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
                         @Param("assignedToId") Long assignedToId,
                         @Param("assignedById") Long assignedById,
                         @Param("roomId") Long roomId,
+                        @Param("fromDate") java.time.LocalDateTime fromDate,
+                        @Param("toDate") java.time.LocalDateTime toDate,
                         Pageable pageable);
 
         List<HouseKeepingTask> findByRoom_IdAndTaskStatus(Long roomId, TaskStatus status);

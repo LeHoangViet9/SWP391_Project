@@ -11,6 +11,7 @@ import com.hms.dto.housekeeping.response.RoomStateHistoryResponse;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.time.LocalDate;
 
 public interface IHouseKeepingTaskService {
 
@@ -24,7 +25,7 @@ public interface IHouseKeepingTaskService {
     void deleteTask(Long id);
 
     // Tìm kiếm tổng hợp
-    Page<HouseKeepingTaskResponse> searchTasks(TaskStatus status, Long assignedToId, Long assignedById, Long roomId, Integer page, Integer size, SortField sortBy,
+    Page<HouseKeepingTaskResponse> searchTasks(TaskStatus status, Long assignedToId, Long assignedById, Long roomId, LocalDate fromDate, LocalDate toDate, Integer page, Integer size, SortField sortBy,
                                                SortDirection direction);
 
     // Additional queries
