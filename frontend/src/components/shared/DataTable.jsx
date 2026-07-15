@@ -26,7 +26,22 @@ export default function DataTable({
   const { t } = useLocale();
   const defaultEmptyText = emptyText || t('common.noData') || 'Không có dữ liệu.';
   const loadingText = t('common.loading') || 'Đang tải...';
-
+  const getPageNumbers = () => {
+    if (totalPages <= 7) {
+      const pageNumbers = [];
+      for (let i = 0; i < totalPages; i++) {
+        pageNumbers.push(i);
+      }
+      return pageNumbers;
+    }
+    if (page <= 3) {
+      return [0, 1, 2, 3, 4, '...', totalPages - 1];
+    }
+    if (page >= totalPages - 4) {
+      return [0, '...', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1];
+    }
+    return [0, '...', page - 1, page, page + 1, '...', totalPages - 1];
+  };
   return (
     <div>
       <div className="overflow-x-auto border border-stone-200 rounded-lg">
@@ -63,7 +78,7 @@ export default function DataTable({
 
       {/* Pagination */}
       {totalPages > 1 && onPageChange && (
-        <div className="flex items-center justify-between mt-3 text-sm text-slate-600">
+        <div className="flex items-center justify-center gap-4 mt-3 text-sm text-slate-600">
           <span>
             {t('common.page') || 'Trang'} <strong>{page + 1}</strong> / {totalPages}
           </span>
@@ -75,6 +90,29 @@ export default function DataTable({
             >
               <ChevronLeft size={16} />
             </button>
+            {getPageNumbers().map((item, index) =>
+                item === '...' ? (
+                    <span
+                        key={`ellipsis-${index}`}
+                        className="px-2"
+                    >
+                ...
+              </span>
+                ) : (
+                    <button
+                        key={item}
+                        onClick={() => onPageChange(item)}
+                        className={`px-3 py-1 border rounded transition ${
+                            page === item
+                                ? 'bg-[#bfa15f] border-[#bfa15f] text-white'
+                                : 'hover:bg-stone-100'
+                        }`}
+                    >
+                      {item + 1}
+                    </button>
+                )
+            )}
+
             <button
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages - 1}

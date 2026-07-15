@@ -55,4 +55,14 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
         boolean existsByAssignedTo_IdAndTaskStatus(Long userId, TaskStatus status);
 
         List<HouseKeepingTask> findByTaskStatusInAndCreatedAtBefore(List<TaskStatus> statuses, java.time.LocalDateTime dateTime);
+
+        // Tìm các task đang chờ kiểm phòng (checkout inspection) chưa hoàn thành.
+        // Dùng cho scheduled job theo dõi timeout 5 phút và 10 phút.
+        @Query("SELECT t FROM HouseKeepingTask t " +
+                "JOIN FETCH t.room " +
+                "JOIN FETCH t.assignedTo " +
+                "JOIN FETCH t.assignedBy " +
+                "WHERE t.checkoutInspectionRequestedAt IS NOT NULL " +
+                "AND t.taskStatus IN :statuses")
+        List<HouseKeepingTask> findPendingCheckoutInspectionTasks(@Param("statuses") List<TaskStatus> statuses);
 }
