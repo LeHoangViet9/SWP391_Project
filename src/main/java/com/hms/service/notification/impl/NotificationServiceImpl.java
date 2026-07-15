@@ -93,4 +93,13 @@ public class NotificationServiceImpl implements NotificationService {
             notify(recipient, title, message, targetUrl);
         }
     }
+
+    @Override
+    @Transactional
+    public void notifyManagers(String title, String message, String targetUrl) {
+        List<User> managers = userRepository.findByRole_RoleNameIgnoreCaseAndAccountStatus("MANAGER", AccountStatus.ACTIVE);
+        for (User manager : managers) {
+            notify(manager, title, message, targetUrl);
+        }
+    }
 }

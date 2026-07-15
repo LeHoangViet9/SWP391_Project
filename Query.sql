@@ -65,6 +65,17 @@ ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_current_state_c
 ALTER TABLE customer_feedback ALTER COLUMN deleted SET DEFAULT FALSE;
 
 -- =============================================================================
+-- THÊM CỘT TIMEOUT KIỂM PHÒNG CHECKOUT CHO HOUSEKEEPING_TASK
+-- Dùng cho tính năng: lễ tân yêu cầu kiểm phòng → 5p nhắc housekeeper → 10p cảnh báo manager
+-- =============================================================================
+ALTER TABLE housekeeping_task
+    ADD COLUMN IF NOT EXISTS checkout_inspection_requested_at TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS manager_alert_sent_at TIMESTAMP;
+
+
+
+-- =============================================================================
 -- 4. CHÈN DỮ LIỆU DANH MỤC CƠ BẢN (ROLES & PERMISSIONS)
 -- =============================================================================
 INSERT INTO roles (role_name) VALUES
