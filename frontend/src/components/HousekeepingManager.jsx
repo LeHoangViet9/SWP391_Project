@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    Plus, Search, RefreshCw, Trash2, Pencil, Eye,
-    AlertTriangle, ChevronLeft, ChevronRight, X, Check,
+    Plus, Search, Trash2, Pencil, Eye,
+    AlertTriangle, X, Check,
     Clock, CheckCircle2, XCircle, Loader2, History,
     BedDouble, User, CalendarDays,
     LayoutGrid, TableIcon, Wrench, ClipboardList,
     Minus, FileText, Loader,
 } from 'lucide-react';
 import Toast from './shared/Toast';
+import DataTable from './shared/DataTable';
 import { housekeepingService } from '../services/housekeepingService';
 import { useLocale } from '../context/LocaleContext';
 import { getUsers } from '../services/userService';
@@ -865,6 +866,47 @@ export default function HousekeepingManager({ readOnly = false }) {
         status: s,
         count: tasks.filter(t => t.status === s).length,
     }));
+    const tableColumns = ['ID', 'Phòng', 'Nhân viên', 'Người giao', 'Trạng thái', 'Ngày tạo', 'Thao tác'];
+    const tableRows = tasks.map(task => (
+        <tr key={task.id} className="hover:bg-stone-50 transition-colors">
+            <td className="px-4 py-3 font-mono text-sm font-bold text-[#bfa15f]">#{task.id}</td>
+            <td className="px-4 py-3">
+                <div className="flex items-center gap-2">
+                    <BedDouble size={15} className="text-[#bfa15f] shrink-0" />
+                    <span className="text-sm font-semibold text-slate-800">{task.roomNumber || `ID: ${task.roomId}`}</span>
+                </div>
+            </td>
+            <td className="px-4 py-3 text-sm text-slate-600">
+                <div className="font-semibold text-slate-700">{task.assignedToName || `#${task.assignedToId}`}</div>
+                <div className="mt-1"><WorkStatusBadge status={task.assignedToWorkStatus} /></div>
+            </td>
+            <td className="px-4 py-3 text-sm text-slate-500">{task.assignedByName || `#${task.assignedById}`}</td>
+            <td className="px-4 py-3"><StatusBadge status={task.status} locale={locale} /></td>
+            <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">
+                {task.createdAt ? new Date(task.createdAt).toLocaleDateString('vi-VN') : '—'}
+            </td>
+            <td className="px-4 py-3">
+                <div className="flex items-center gap-1">
+                    <button onClick={() => openDetail(task)}
+                        className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-[#bfa15f]" title="Xem chi tiết">
+                        <Eye size={15} />
+                    </button>
+                    {!readOnly && (
+                        <>
+                            <button onClick={() => openEdit(task)}
+                                className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-amber-600" title="Chỉnh sửa">
+                                <Pencil size={15} />
+                            </button>
+                            <button onClick={() => openDelete(task)}
+                                className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-slate-400 hover:text-red-600" title="Xóa">
+                                <Trash2 size={15} />
+                            </button>
+                        </>
+                    )}
+                </div>
+            </td>
+        </tr>
+    ));
     return (
         <div className="space-y-5">
             <Toast type={toast.type} message={toast.message} onClose={() => setToast(p => ({ ...p, message: '' }))} />
@@ -934,7 +976,7 @@ export default function HousekeepingManager({ readOnly = false }) {
                 )}
             </div>
             {/* ── Stats Summary ───────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="hidden grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {stats.map(({ status, count }) => {
                     const cfg = STATUS_CONFIG[status];
                     return (
@@ -984,7 +1026,7 @@ export default function HousekeepingManager({ readOnly = false }) {
                             <input type="number" value={filters.roomId} onChange={e => handleFilterChange('roomId', e.target.value)}
                                 placeholder="ID phòng..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
                         </div>
-                        <div className="flex gap-2 shrink-0">
+                        <div className="flex gap-2 shrink-0 [&>button:last-child]:hidden">
                             <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors">
                                 <Search size={15} /> Lọc
                             </button>
@@ -992,7 +1034,7 @@ export default function HousekeepingManager({ readOnly = false }) {
                                 <X size={15} />
                             </button>
                             <button type="button" onClick={fetchTasks} className="px-3 py-2 border border-stone-200 rounded-lg text-slate-500 hover:bg-stone-50 transition-colors">
-                                <RefreshCw size={15} />
+                                {/* refresh button removed */}
                             </button>
                         </div>
                     </form>
@@ -1060,7 +1102,7 @@ export default function HousekeepingManager({ readOnly = false }) {
                 )
             )}
             {/* ── Table View ───────────────────────────────────────────────────────── */}
-            {viewMode === 'table' && (
+            {viewMode === 'legacy-table' && (
                 <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -1160,6 +1202,17 @@ export default function HousekeepingManager({ readOnly = false }) {
                         </div>
                     )}
                 </div>
+            )}
+            {viewMode === 'table' && (
+                <DataTable
+                    columns={tableColumns}
+                    rows={tableRows}
+                    loading={loading}
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                    emptyText="Không có tác vụ nào"
+                />
             )}
         </div>
     );
