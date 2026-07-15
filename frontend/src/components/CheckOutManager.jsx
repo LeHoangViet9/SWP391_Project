@@ -40,7 +40,31 @@ export default function CheckOutManager({ preferredRoom = null }) {
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   const notify = (message, type = 'success') => setToast({ message, type });
-  
+
+  // Timer: đếm thời gian kể từ khi yêu cầu kiểm phòng (inspectionRequestedAt từ API)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    if (stage !== 'WAITING_FOR_INSPECTION' || !bill?.inspectionRequestedAt) {
+      setElapsedSeconds(0);
+      return;
+    }
+    const requestedAt = new Date(bill.inspectionRequestedAt);
+    const update = () => {
+      const diff = Math.floor((Date.now() - requestedAt.getTime()) / 1000);
+      setElapsedSeconds(Math.max(0, diff));
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [stage, bill?.inspectionRequestedAt]);
+
+  const formatElapsed = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -252,6 +276,41 @@ export default function CheckOutManager({ preferredRoom = null }) {
         {stage === 'WAITING_FOR_INSPECTION' && (
           <div className="space-y-4">
             <h4 className="text-sm font-bold text-slate-800 border-b pb-2">1. Chờ nhân viên buồng phòng báo cáo</h4>
+
+            {/* Đồng hồ đếm thời gian */}
+            <div className="flex items-center justify-center gap-4 rounded-xl border border-stone-200 bg-stone-50 py-3 px-4">
+              <span className="text-xs text-slate-500 font-medium">Thời gian chờ:</span>
+              <span className={`font-mono text-2xl font-bold ${
+                elapsedSeconds >= 600 ? 'text-red-600' :
+                elapsedSeconds >= 300 ? 'text-amber-500' :
+                'text-slate-700'
+              }`}>
+                {formatElapsed(elapsedSeconds)}
+              </span>
+              {elapsedSeconds >= 600 && <span className="text-xs font-bold text-red-600 animate-pulse">🚨 QUÁ HẠN</span>}
+              {elapsedSeconds >= 300 && elapsedSeconds < 600 && <span className="text-xs font-bold text-amber-500">⚠️ Chậm trễ</span>}
+            </div>
+
+            {/* Badge cảnh báo theo mốc thời gian */}
+            {elapsedSeconds >= 600 && (
+              <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+                <span className="text-xl">🚨</span>
+                <div>
+                  <p className="font-bold text-red-700 text-sm">Quá 10 phút — Manager đã được thông báo!</p>
+                  <p className="text-xs text-red-600 mt-0.5">Hệ thống đã tự động gửi cảnh báo cho quản lý về tình huống trễ kiểm phòng này.</p>
+                </div>
+              </div>
+            )}
+            {elapsedSeconds >= 300 && elapsedSeconds < 600 && (
+              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <span className="text-xl">⏰</span>
+                <div>
+                  <p className="font-bold text-amber-700 text-sm">Quá 5 phút — Hệ thống đã nhắc lại nhân viên!</p>
+                  <p className="text-xs text-amber-600 mt-0.5">Nếu sau 10 phút vẫn chưa có báo cáo, quản lý sẽ được thông báo tự động.</p>
+                </div>
+              </div>
+            )}
+
             <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-6 text-center space-y-4">
               <RefreshCw size={48} className="mx-auto text-amber-500 animate-spin" />
               <p className="font-semibold text-amber-800 text-base">Đang chờ nhân viên dọn phòng kê khai minibar...</p>
@@ -268,6 +327,7 @@ export default function CheckOutManager({ preferredRoom = null }) {
             </div>
           </div>
         )}
+
 
         {stage === 'PAYMENT' && (
           <div className="space-y-4">

@@ -15,4 +15,7 @@ public interface NotificationService {
     NotificationResponse markAsRead(String email, Long notificationId);
 
     void notifyReceptionistsAndManagers(String title, String message, String targetUrl);
+
+    // Chỉ gửi thông báo cho MANAGER — dùng cho cảnh báo timeout kiểm phòng.
+    void notifyManagers(String title, String message, String targetUrl);
 }

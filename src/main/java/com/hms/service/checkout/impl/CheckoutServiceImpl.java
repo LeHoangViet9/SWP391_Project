@@ -15,6 +15,7 @@ import com.hms.repository.auth.UserRepository;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.booking.InvoiceRepository;
 import com.hms.repository.hotel.RoomRepository;
+import com.hms.repository.housekeeping.HouseKeepingTaskRepository;
 import com.hms.repository.housekeeping.RoomStateHistoryRepository;
 import com.hms.service.checkout.CheckoutService;
 import com.hms.service.housekeeping.IHouseKeepingTaskService;
@@ -43,6 +44,7 @@ public class CheckoutServiceImpl implements CheckoutService {
     private final MessageSource messageSource;
     private final IHouseKeepingTaskService housekeepingTaskService;
     private final NotificationService notificationService;
+    private final HouseKeepingTaskRepository houseKeepingTaskRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -333,6 +335,20 @@ public class CheckoutServiceImpl implements CheckoutService {
             finalRoomStatus = rooms.isEmpty() ? null : rooms.get(0).getRoomStatus();
         }
 
+        // Lấy thời điểm lễ tân bấm "Yêu cầu kiểm phòng" từ task housekeeping gần nhất có flag checkoutInspectionRequestedAt.
+        LocalDateTime inspectionRequestedAt = null;
+        if (!rooms.isEmpty()) {
+            inspectionRequestedAt = houseKeepingTaskRepository
+                    .findPendingCheckoutInspectionTasks(
+                            List.of(TaskStatus.PENDING, TaskStatus.IN_PROGRESS))
+                    .stream()
+                    .filter(t -> rooms.stream().anyMatch(r -> r.getId().equals(t.getRoom().getId())))
+                    .map(t -> t.getCheckoutInspectionRequestedAt())
+                    .filter(dt -> dt != null)
+                    .findFirst()
+                    .orElse(null);
+        }
+
         return CheckoutResponseDTO.builder()
                 .bookingId(booking.getId()).invoiceId(roomInvoice.getId())
                 .customerName(booking.getCustomer() != null ? booking.getCustomer().getFullName() : "N/A")
@@ -344,6 +360,8 @@ public class CheckoutServiceImpl implements CheckoutService {
                 .roomStatus(finalRoomStatus)
                 .minibarChecked(surchargeInvoice != null)
                 .chargeNote(surchargeInvoice != null ? surchargeInvoice.getNote() : null)
-                .checkoutTime(booking.getActualCheckOutTime()).build();
+                .checkoutTime(booking.getActualCheckOutTime())
+                .inspectionRequestedAt(inspectionRequestedAt)
+                .build();
     }
 }
