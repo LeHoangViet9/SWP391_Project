@@ -13,7 +13,7 @@ CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON customer_feedback (created
 TRUNCATE TABLE
     room_state_history, room_img, equipment_images,
     repair_requests, equipments, invoices, bookings, customers,
-    room, room_type, user_permissions, role_permissions, permission, users, roles, customer_feedback
+    room, room_type, customer_feedback
     RESTART IDENTITY CASCADE;
 
 -- =============================================================================
@@ -79,7 +79,8 @@ ALTER TABLE housekeeping_task
 -- 4. CHÈN DỮ LIỆU DANH MỤC CƠ BẢN (ROLES & PERMISSIONS)
 -- =============================================================================
 INSERT INTO roles (role_name) VALUES
-    ('ADMIN'), ('MANAGER'), ('CUSTOMER'), ('RECEPTIONIST'), ('MAINTENANCE'), ('HOUSEKEEPER');
+    ('ADMIN'), ('MANAGER'), ('CUSTOMER'), ('RECEPTIONIST'), ('MAINTENANCE'), ('HOUSEKEEPER')
+ON CONFLICT (role_name) DO NOTHING;
 
 INSERT INTO permission (name) VALUES
     ('USER_VIEW'), ('USER_CREATE'), ('USER_UPDATE'), ('USER_DELETE'), ('USER_AUTHORIZE'),
@@ -94,16 +95,18 @@ INSERT INTO permission (name) VALUES
     ('FEEDBACK_VIEW'), ('FEEDBACK_CREATE'), ('FEEDBACK_UPDATE'), ('FEEDBACK_DELETE'),
     ('FEEDBACK_VIEW_OWN'), ('FEEDBACK_UPDATE_OWN'), ('FEEDBACK_DELETE_OWN'),
     ('INVOICE_VIEW'), ('INVOICE_CREATE'), ('INVOICE_UPDATE'), ('INVOICE_DELETE'),
-    ('DASHBOARD_VIEW')
+    ('DASHBOARD_VIEW'), ('AUDIT_LOG_VIEW')
 ON CONFLICT (name) DO NOTHING;
 
 -- Phân quyền cho từng Role
 INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id FROM roles r, permission p WHERE r.role_name = 'ADMIN';
+SELECT r.id, p.id FROM roles r, permission p WHERE r.role_name = 'ADMIN'
+ON CONFLICT DO NOTHING;
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permission p
-WHERE r.role_name = 'MANAGER' AND p.name NOT IN ('BOOKING_VIEW_OWN', 'USER_AUTHORIZE');
+WHERE r.role_name = 'MANAGER' AND p.name NOT IN ('BOOKING_VIEW_OWN', 'USER_AUTHORIZE')
+ON CONFLICT DO NOTHING;
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permission p
@@ -112,28 +115,32 @@ WHERE r.role_name = 'RECEPTIONIST' AND p.name IN (
     'BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_UPDATE', 'CHECKIN_VIEW', 'CHECKOUT_VIEW',
     'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE',
     'FEEDBACK_VIEW', 'EQUIPMENT_VIEW'
-);
+)
+ON CONFLICT DO NOTHING;
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permission p
 WHERE r.role_name = 'HOUSEKEEPER' AND p.name IN (
     'ROOM_VIEW', 'ROOM_UPDATE', 'HOUSEKEEPING_VIEW', 'HOUSEKEEPING_CREATE', 'HOUSEKEEPING_UPDATE',
     'EQUIPMENT_VIEW', 'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE'
-);
+)
+ON CONFLICT DO NOTHING;
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permission p
 WHERE r.role_name = 'MAINTENANCE' AND p.name IN (
     'ROOM_VIEW', 'EQUIPMENT_VIEW', 'EQUIPMENT_CREATE', 'EQUIPMENT_UPDATE',
     'MAINTENANCE_VIEW', 'MAINTENANCE_CREATE', 'MAINTENANCE_UPDATE', 'MAINTENANCE_DELETE'
-);
+)
+ON CONFLICT DO NOTHING;
 
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permission p
 WHERE r.role_name = 'CUSTOMER' AND p.name IN (
     'BOOKING_VIEW_OWN', 'ROOM_TYPE_VIEW', 'FEEDBACK_CREATE', 'FEEDBACK_VIEW_OWN',
     'FEEDBACK_UPDATE_OWN', 'FEEDBACK_DELETE_OWN', 'INVOICE_VIEW'
-);
+)
+ON CONFLICT DO NOTHING;
 
 -- =============================================================================
 -- 5. CHÈN DỮ LIỆU TÀI KHOẢN & KHÁCH HÀNG (USERS & CUSTOMERS)
@@ -158,7 +165,8 @@ INSERT INTO users (full_name, email, phone, password, account_status, created_at
     ('Alice Smith', 'alice.smith@gmail.com', '0908999000', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
     ('Phạm Minh Hùng', 'hung.pham@gmail.com', '0902111333', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
     ('Vũ Thị Lan', 'lan.vu@gmail.com', '0902444555', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3),
-    ('Đỗ Quốc Anh', 'anh.do@gmail.com', '0902777888', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3);
+    ('Đỗ Quốc Anh', 'anh.do@gmail.com', '0902777888', '$2a$10$gudryckPzFK9Q79A71wkEehI75h5zGaNfczdfcKp3cMCIFrjY9ph.', 'ACTIVE', NOW(), 3)
+ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO customers (full_name, email, phone, id_type, id_number_card, nationality, created_at, status) VALUES
     ('Trần Văn An', 'customer1@gmail.com', '0908111222', 'CCCD', '001095001234', 'Việt Nam', NOW(), 'ACTIVE'),

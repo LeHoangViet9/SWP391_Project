@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Filter,
-  RefreshCw,
   Search,
   ShieldCheck,
   X,
@@ -76,7 +75,7 @@ export default function AuditLogManager() {
   const pageStats = useMemo(() => {
     const success = logs.filter((log) => log.status === 'SUCCESS').length;
     const failed = logs.filter((log) => log.status === 'FAILED').length;
-    return { success, failed, total: logs.length };
+    return { success, failed };
   }, [logs]);
 
   const activeFilterCount = useMemo(() => (
@@ -242,30 +241,21 @@ export default function AuditLogManager() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:w-[360px]">
-          <StatTile label={translate('stats.thisPage')} value={pageStats.total} tone="slate" />
+        <div className="grid grid-cols-2 gap-2 sm:w-[240px]">
           <StatTile label={translate('stats.success')} value={pageStats.success} tone="green" />
           <StatTile label={translate('stats.failed')} value={pageStats.failed} tone="red" />
         </div>
       </div>
 
       <form onSubmit={handleSearch} className="rounded-xl border border-stone-200 bg-slate-50/70 p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3 flex items-center gap-3">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
             <Filter size={16} className="text-[#bfa15f]" />
             {translate('filters.title')}
           </div>
-          <button
-            type="button"
-            onClick={() => loadLogs()}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 text-xs font-bold text-slate-600 hover:bg-stone-50"
-          >
-            <RefreshCw size={13} />
-            {translate('actions.reload')}
-          </button>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-3 xl:grid-cols-8">
           <label className="min-w-0 space-y-1">
             <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{translate('filters.action')}</span>
             <input
@@ -311,9 +301,7 @@ export default function AuditLogManager() {
               className="h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#bfa15f] focus:ring-2 focus:ring-[#bfa15f]/15"
             />
           </label>
-        </div>
-
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <div className="flex flex-wrap items-end justify-start gap-2 xl:col-span-2">
           <button
             type="button"
             onClick={handleResetFilters}
@@ -329,6 +317,7 @@ export default function AuditLogManager() {
             <Search size={15} />
             {translate('actions.apply')}
           </button>
+          </div>
         </div>
       </form>
 

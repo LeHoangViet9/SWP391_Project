@@ -98,8 +98,6 @@ export const MENU_CONFIG = [
     permissions: ['USER_VIEW'],
     group: 'system',
   },
-
-  // ── Nhóm: Phòng Ốc ───────────────────────────────────────────────
   {
     key: 'audit-logs',
     label: 'Audit Log',
@@ -110,6 +108,7 @@ export const MENU_CONFIG = [
     roles: ['ADMIN', 'MANAGER'],
     group: 'system',
   },
+  // ── Nhóm: Phòng Ốc ───────────────────────────────────────────────
   {
     key: 'room-types',
     label: 'Loại Phòng',
