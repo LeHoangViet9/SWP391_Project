@@ -31,11 +31,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.Duration;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -122,6 +124,18 @@ class CartHoldIntegrationTest {
         assertEquals(RoomStatus.AVAILABLE, roomRepository.findById(room.getId()).orElseThrow().getRoomStatus());
         assertEquals(CartHoldStatus.CANCELLED,
                 cartHoldRepository.findByHoldToken(token).orElseThrow().getStatus());
+    }
+
+    @Test
+    void newCartHoldExpiresAfterFiveMinutes() throws Exception {
+        LocalDateTime before = LocalDateTime.now();
+        String response = createHold();
+        LocalDateTime expiresAt = LocalDateTime.parse(
+                objectMapper.readTree(response).path("data").path("expiresAt").asText());
+
+        long seconds = Duration.between(before, expiresAt).getSeconds();
+        assertTrue(seconds >= 4 * 60 + 50 && seconds <= 5 * 60 + 10,
+                "Cart hold should expire in approximately five minutes, actual seconds: " + seconds);
     }
 
     @Test

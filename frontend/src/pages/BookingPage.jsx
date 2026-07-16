@@ -35,6 +35,7 @@ const getLocalDateString = (dateObj = new Date()) => {
 const today = () => getLocalDateString();
 const CART_STORAGE_KEY = 'hms_booking_cart';
 const CART_HOLD_TOKEN_KEY = 'hms_booking_cart_hold_token';
+const BOOKING_HOLD_MINUTES = 5;
 
 function loadBookingCart() {
   try {
@@ -181,7 +182,7 @@ function BookingContent() {
   const [bookingResult, setBookingResult] = useState(null);
   const [failureModalOpen, setFailureModalOpen] = useState(false);
   const [failureMessage, setFailureMessage] = useState('');
-  const [remainingSeconds, setRemainingSeconds] = useState(30 * 60);
+  const [remainingSeconds, setRemainingSeconds] = useState(BOOKING_HOLD_MINUTES * 60);
   const [guestCounts, setGuestCounts] = useState([{ adults: 1, children: 0, infants: 0 }]);
   const [cartItems, setCartItems] = useState(loadBookingCart);
   const [cartHoldToken, setCartHoldToken] = useState(loadCartHoldToken);
@@ -1215,7 +1216,7 @@ function BookingContent() {
                 {locale === 'vi' ? '+ Đặt thêm loại phòng khác' : '+ Add another room type'}
               </Link>
             )}
-            <p className="mt-3 text-center text-xs text-slate-500">{locale === 'vi' ? 'Phòng được giữ 30 phút sau khi thêm vào giỏ.' : 'Rooms are held for 30 minutes after being added to the cart.'}</p>
+            <p className="mt-3 text-center text-xs text-slate-500">{locale === 'vi' ? `Phòng được giữ ${BOOKING_HOLD_MINUTES} phút sau khi thêm vào giỏ.` : `Rooms are held for ${BOOKING_HOLD_MINUTES} minutes after being added to the cart.`}</p>
           </aside>
         )}
         </div>

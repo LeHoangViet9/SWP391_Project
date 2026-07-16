@@ -15,6 +15,7 @@ const DEMO_BANK = {
     accountNumber: '123456789',
     accountName: 'KHACH SAN HMS',
 };
+const BOOKING_HOLD_MINUTES = 5;
 
 function formatPrice(price, locale) {
     return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
@@ -107,7 +108,7 @@ export default function InvoicePage() {
     const [simulationError, setSimulationError] = useState('');
     const [simulationSucceeded, setSimulationSucceeded] = useState(false);
     const [now, setNow] = useState(() => Date.now());
-    const [fallbackPaymentExpiry] = useState(() => Date.now() + (30 * 60 * 1000));
+    const [fallbackPaymentExpiry] = useState(() => Date.now() + (BOOKING_HOLD_MINUTES * 60 * 1000));
 
     useEffect(() => {
         if (!bookingId && !isCombinedInvoice) return;
@@ -152,7 +153,7 @@ export default function InvoicePage() {
     const cashIsInsufficient = paymentMethod === 'CASH' && cashReceived !== '' && parsedCashReceived < grandTotal;
     const transferContent = invoice?.paymentContent || `HMS ${batchBookingIds.join('-') || bookingId}`;
     const fallbackExpiry = invoice?.createdAt
-        ? new Date(invoice.createdAt).getTime() + (30 * 60 * 1000)
+        ? new Date(invoice.createdAt).getTime() + (BOOKING_HOLD_MINUTES * 60 * 1000)
         : fallbackPaymentExpiry;
     const paymentExpiry = invoice?.holdExpiresAt ? new Date(invoice.holdExpiresAt).getTime() : fallbackExpiry;
     const paymentSecondsLeft = Math.max(0, Math.ceil((paymentExpiry - now) / 1000));
