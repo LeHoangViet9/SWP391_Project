@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,11 +51,11 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
                         "WHERE t.id = :id")
         Optional<HouseKeepingTask> findByIdWithDetails(@Param("id") Long id);
 
-        long countByAssignedTo_IdAndCreatedAtBetween(Long userId, java.time.LocalDateTime start, java.time.LocalDateTime end);
+        long countByAssignedTo_IdAndCreatedAtBetween(Long userId, LocalDateTime start, LocalDateTime end);
 
         boolean existsByAssignedTo_IdAndTaskStatus(Long userId, TaskStatus status);
 
-        List<HouseKeepingTask> findByTaskStatusInAndCreatedAtBefore(List<TaskStatus> statuses, java.time.LocalDateTime dateTime);
+        List<HouseKeepingTask> findByTaskStatusInAndCreatedAtBefore(List<TaskStatus> statuses, LocalDateTime dateTime);
 
         // Tìm các task đang chờ kiểm phòng (checkout inspection) chưa hoàn thành.
         // Dùng cho scheduled job theo dõi timeout 5 phút và 10 phút.

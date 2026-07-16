@@ -15,10 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.access.prepost.PreAuthorize;
 
-import java.util.List;
 import java.util.Locale;
 
 @RestController
@@ -70,11 +68,9 @@ public class RoomController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ROOM_CREATE')")
-    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(
-            @RequestParam(value = "imageRoom", required = false) List<MultipartFile> file,
-            @ModelAttribute @Valid RoomRequest roomRequest) {
+    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestBody @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomResponse created = roomService.createRoom(roomRequest,file);
+        RoomResponse created = roomService.createRoom(roomRequest);
         String message = messageSource.getMessage("success.room.create", null, locale);
 
         ApiResponse<RoomResponse> response = ApiResponse.<RoomResponse>builder()
@@ -90,11 +86,10 @@ public class RoomController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROOM_UPDATE')")
     public ResponseEntity<ApiResponse<RoomResponse>> updateRoom(
-            @RequestParam(value = "imageRoom", required = false) List<MultipartFile> file,
             @PathVariable Long id,
-            @ModelAttribute @Valid RoomRequest roomRequest) {
+            @RequestBody @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomResponse updated = roomService.updateRoom(id, roomRequest,file);
+        RoomResponse updated = roomService.updateRoom(id, roomRequest);
         String message = messageSource.getMessage("success.room.update", null, locale);
 
         ApiResponse<RoomResponse> response = ApiResponse.<RoomResponse>builder()

@@ -12,28 +12,30 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface RoomTypeMapper {
 
+    @Mapping(target = "images", ignore = true)
+    RoomType toEntity(RoomTypeRequest request);
+
     @Mapping(target = "imageUrl", expression = "java(getFirstImageUrl(roomType))")
     @Mapping(target = "imageUrls", expression = "java(getAllImageUrls(roomType))")
     RoomTypeResponse toResponse(RoomType roomType);
 
-    RoomType toEntity(RoomTypeRequest request);
-
+    @Mapping(target = "images", ignore = true)
     void updateRoomTypeFromRequest(RoomTypeRequest request, @MappingTarget RoomType roomType);
 
     List<RoomTypeResponse> toResponseList(List<RoomType> roomType);
 
     default String getFirstImageUrl(RoomType roomType) {
-        if (roomType.getRoomTypeImages() == null || roomType.getRoomTypeImages().isEmpty()) {
+        if (roomType.getImages() == null || roomType.getImages().isEmpty()) {
             return null;
         }
-        return roomType.getRoomTypeImages().get(0).getImageUrl();
+        return roomType.getImages().get(0).getImageUrl();
     }
 
     default List<String> getAllImageUrls(RoomType roomType) {
-        if (roomType.getRoomTypeImages() == null || roomType.getRoomTypeImages().isEmpty()) {
-            return java.util.Collections.emptyList();
+        if (roomType.getImages() == null || roomType.getImages().isEmpty()) {
+            return List.of();
         }
-        return roomType.getRoomTypeImages().stream()
+        return roomType.getImages().stream()
                 .map(RoomTypeImage::getImageUrl)
                 .toList();
     }

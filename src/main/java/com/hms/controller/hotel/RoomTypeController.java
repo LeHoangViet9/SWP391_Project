@@ -17,11 +17,8 @@ import com.hms.common.enums.SortField;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.dto.ApiResponse;
 import com.hms.service.hotel.IRoomTypeService;
-import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
-
-import java.util.List;
 
 
 @RestController
@@ -77,16 +74,14 @@ public class RoomTypeController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('ROOM_TYPE_CREATE')")
-    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomType(@RequestBody @Valid RoomTypeRequest roomTypeRequest) {
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomTypeJson(@RequestBody @Valid RoomTypeRequest roomTypeRequest) {
         return createRoomTypeResponse(roomTypeService.createRoomType(roomTypeRequest));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('ROOM_TYPE_CREATE')")
-    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomTypeWithImages(
-            @ModelAttribute @Valid RoomTypeRequest roomTypeRequest,
-            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
-        return createRoomTypeResponse(roomTypeService.createRoomType(roomTypeRequest, images));
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomTypeMultipart(@ModelAttribute @Valid RoomTypeRequest roomTypeRequest) {
+        return createRoomTypeResponse(roomTypeService.createRoomType(roomTypeRequest));
     }
 
     private ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomTypeResponse(RoomTypeResponse created) {
@@ -103,17 +98,14 @@ public class RoomTypeController {
 
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('ROOM_TYPE_UPDATE')")
-    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomType(@PathVariable Long id, @RequestBody @Valid RoomTypeRequest roomTypeRequest) {
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomTypeJson(@PathVariable Long id, @RequestBody @Valid RoomTypeRequest roomTypeRequest) {
         return updateRoomTypeResponse(roomTypeService.updateRoomType(id, roomTypeRequest));
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('ROOM_TYPE_UPDATE')")
-    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomTypeWithImages(
-            @PathVariable Long id,
-            @ModelAttribute @Valid RoomTypeRequest roomTypeRequest,
-            @RequestParam(value = "images", required = false) List<MultipartFile> images) {
-        return updateRoomTypeResponse(roomTypeService.updateRoomType(id, roomTypeRequest, images));
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomTypeMultipart(@PathVariable Long id, @ModelAttribute @Valid RoomTypeRequest roomTypeRequest) {
+        return updateRoomTypeResponse(roomTypeService.updateRoomType(id, roomTypeRequest));
     }
 
     private ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomTypeResponse(RoomTypeResponse updated) {

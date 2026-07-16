@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ImagePlus, Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
-import { apiFetch } from '../services/api';
+import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
+import { apiFetch, apiFormData } from '../services/api';
 import DataTable from './shared/DataTable';
 import { useLocale } from '../context/LocaleContext';
 import { usePermission } from '../hooks/usePermission';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
-import { createRoomType, updateRoomType } from '../services/roomTypeService';
 
 const EMPTY = { typeName: '', description: '', basePrice: '', maxGuests: '' };
+
+function getImageUrls(item) {
+  if (Array.isArray(item?.imageUrls) && item.imageUrls.length > 0) return item.imageUrls;
+  return item?.imageUrl ? [item.imageUrl] : [];
+}
 
 export default function RoomTypeManager({ readOnly = false }) {
   const { locale, t } = useLocale();
@@ -28,19 +32,20 @@ export default function RoomTypeManager({ readOnly = false }) {
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY);
-  const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
+  const [existingImageUrls, setExistingImageUrls] = useState([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (imageFiles.length === 0) {
-      setImagePreviews([]);
-      return undefined;
+    if (!files || files.length === 0) {
+      setPreviews([]);
+      return;
     }
-    const urls = imageFiles.map((file) => URL.createObjectURL(file));
-    setImagePreviews(urls);
-    return () => urls.forEach((url) => URL.revokeObjectURL(url));
-  }, [imageFiles]);
+    const objectUrls = files.map(file => URL.createObjectURL(file));
+    setPreviews(objectUrls);
+    return () => objectUrls.forEach(url => URL.revokeObjectURL(url));
+  }, [files]);
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -75,18 +80,17 @@ export default function RoomTypeManager({ readOnly = false }) {
 
   const openCreate = () => {
     setForm(EMPTY);
-    setImageFiles([]);
+    setFiles([]);
+    setExistingImageUrls([]);
     setModal({ open: true, editing: null });
   };
   const openEdit = (item) => {
     setForm({ typeName: item.typeName, description: item.description || '', basePrice: item.basePrice, maxGuests: item.maxGuests });
-    setImageFiles([]);
+    setFiles([]);
+    setExistingImageUrls(getImageUrls(item));
     setModal({ open: true, editing: item });
   };
-  const closeModal = () => {
-    setModal({ open: false, editing: null });
-    setImageFiles([]);
-  };
+  const closeModal = () => setModal({ open: false, editing: null });
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -121,13 +125,21 @@ export default function RoomTypeManager({ readOnly = false }) {
       return;
     }
 
-    const payload = { typeName: name, description: form.description, basePrice, maxGuests };
+    const formData = new FormData();
+    formData.append('typeName', name);
+    formData.append('description', form.description || '');
+    formData.append('basePrice', String(basePrice));
+    formData.append('maxGuests', String(maxGuests));
+    formData.append('imageSyncRequested', 'true');
+    existingImageUrls.forEach(url => formData.append('existingImageUrls', url));
+    files.forEach(file => formData.append('images', file));
+
     try {
       if (modal.editing) {
-        const res = await updateRoomType(modal.editing.id, payload, imageFiles, locale);
+        const res = await apiFormData(`/room-types/${modal.editing.id}`, formData, locale, 'PUT');
         notify(res?.message || t('roomType.toast.updateSuccess'));
       } else {
-        const res = await createRoomType(payload, imageFiles, locale);
+        const res = await apiFormData('/room-types', formData, locale, 'POST');
         notify(res?.message || t('roomType.toast.addSuccess'));
       }
       closeModal();
@@ -137,11 +149,6 @@ export default function RoomTypeManager({ readOnly = false }) {
     } finally {
       setSaving(false);
     }
-  };
-
-  const imageUrlsFor = (item) => {
-    if (Array.isArray(item.imageUrls) && item.imageUrls.length > 0) return item.imageUrls;
-    return item.imageUrl ? [item.imageUrl] : [];
   };
 
   const handleDelete = async (item) => {
@@ -165,20 +172,20 @@ export default function RoomTypeManager({ readOnly = false }) {
       </td>
       <td className="px-4 py-3 text-center">{item.maxGuests}</td>
       <td className="px-4 py-3">
-        {imageUrlsFor(item).length > 0 ? (
-          <div className="flex max-w-[140px] flex-wrap gap-1">
-            {imageUrlsFor(item).map((imageUrl, index) => (
+        {getImageUrls(item).length > 0 ? (
+          <div className="flex flex-wrap gap-1 max-w-[140px]">
+            {getImageUrls(item).map((img, idx) => (
               <img
-                key={`${item.id}-${index}`}
-                src={imageUrl}
-                alt={`${item.typeName} ${index + 1}`}
-                className="h-10 w-12 cursor-pointer rounded border object-cover hover:scale-105"
-                onClick={() => window.open(imageUrl, '_blank', 'noopener,noreferrer')}
+                key={idx}
+                src={img}
+                alt={`room-type-${idx}`}
+                className="w-9 h-9 object-cover rounded border hover:scale-110 transition-transform cursor-pointer"
+                onClick={() => window.open(img, '_blank')}
               />
             ))}
           </div>
         ) : (
-          <span className="text-xs text-slate-400">Chưa có ảnh</span>
+          <span className="text-xs text-slate-400">{t('room.noImage') || 'Chưa có ảnh'}</span>
         )}
       </td>
       {!isReadOnly && (
@@ -192,7 +199,7 @@ export default function RoomTypeManager({ readOnly = false }) {
     </tr>
   ));
 
-  const cols = [t('roomType.columns.id'), t('roomType.columns.name'), t('roomType.columns.description'), t('roomType.columns.basePrice'), t('roomType.columns.maxGuests'), 'Ảnh', ...(!isReadOnly ? [t('roomType.columns.actions')] : [])];
+  const cols = [t('roomType.columns.id'), t('roomType.columns.name'), t('roomType.columns.description'), t('roomType.columns.basePrice'), t('roomType.columns.maxGuests'), locale === 'vi' ? 'Hình ảnh' : 'Images', ...(!isReadOnly ? [t('roomType.columns.actions')] : [])];
 
   return (
     <div>
@@ -262,33 +269,60 @@ export default function RoomTypeManager({ readOnly = false }) {
             </div>
           </div>
           <div>
-            <label className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-slate-600">
-              <ImagePlus size={14} /> Ảnh loại phòng
+            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
+              {locale === 'vi' ? 'Hình ảnh loại phòng' : 'Room type images'}
             </label>
             <input
               type="file"
-              multiple
               accept="image/*"
-              onChange={(event) => setImageFiles(Array.from(event.target.files || []))}
-              className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+              multiple
+              onChange={e => setFiles(Array.from(e.target.files || []))}
+              className="w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:border-0 file:bg-[#bfa15f] file:text-white file:rounded file:text-xs file:cursor-pointer mb-2"
             />
-            {imagePreviews.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {imagePreviews.map((url, index) => (
-                  <img key={url} src={url} alt={`Ảnh mới ${index + 1}`} className="h-16 w-20 rounded border object-cover" />
-                ))}
+
+            {existingImageUrls.length > 0 && (
+              <div className="mb-3">
+                <span className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                  {locale === 'vi' ? 'Ảnh hiện tại' : 'Current images'}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {existingImageUrls.map((url, idx) => (
+                    <div key={url} className="relative group w-14 h-14 rounded border overflow-hidden">
+                      <img src={url} alt={`current-${idx}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setExistingImageUrls(prev => prev.filter(item => item !== url))}
+                        className="absolute inset-0 bg-black bg-opacity-55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            {modal.editing && imagePreviews.length === 0 && imageUrlsFor(modal.editing).length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {imageUrlsFor(modal.editing).map((url, index) => (
-                  <img key={url} src={url} alt={`Ảnh hiện tại ${index + 1}`} className="h-16 w-20 rounded border object-cover" />
-                ))}
+
+            {previews.length > 0 && (
+              <div>
+                <span className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                  {locale === 'vi' ? 'Ảnh mới' : 'New images'}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {previews.map((url, idx) => (
+                    <div key={url} className="relative group w-14 h-14 rounded border overflow-hidden">
+                      <img src={url} alt={`preview-${idx}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute inset-0 bg-black bg-opacity-55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            <p className="mt-1 text-xs text-slate-400">
-              Chọn nhiều ảnh. Ảnh mới sẽ được thêm vào album của loại phòng.
-            </p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('roomType.modal.description')}</label>

@@ -1,18 +1,14 @@
 package com.hms.entity.hotel;
 
-import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.hms.common.enums.AccountStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name="room_type")
@@ -38,7 +34,5 @@ public class RoomType {
 
     @Builder.Default
     @OneToMany(mappedBy = "roomType", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private List<RoomTypeImage> roomTypeImages = new ArrayList<>();
+    private List<RoomTypeImage> images = new ArrayList<>();
 }

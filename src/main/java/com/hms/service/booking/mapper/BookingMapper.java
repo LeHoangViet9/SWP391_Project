@@ -40,6 +40,12 @@ public interface BookingMapper {
     @Mapping(target = "roomIds", expression = "java(booking.getRooms().stream().map(room -> room.getId()).toList())")
     @Mapping(target = "roomNumbers", expression = "java(booking.getRooms().stream().map(room -> room.getRoomNumber()).toList())")
     @Mapping(source = "guestAllocations", target = "roomGuests")
+    @Mapping(target = "guestFullName", expression = "java(booking.getGuestFullName() != null ? booking.getGuestFullName() : (booking.getCustomer() != null ? booking.getCustomer().getFullName() : null))")
+    @Mapping(target = "guestEmail", expression = "java(booking.getGuestEmail() != null ? booking.getGuestEmail() : (booking.getCustomer() != null ? booking.getCustomer().getEmail() : null))")
+    @Mapping(target = "guestPhone", expression = "java(booking.getGuestPhone() != null ? booking.getGuestPhone() : (booking.getCustomer() != null ? booking.getCustomer().getPhone() : null))")
+    @Mapping(target = "guestIdType", expression = "java(booking.getGuestIdType() != null ? booking.getGuestIdType() : (booking.getCustomer() != null && booking.getCustomer().getIdType() != null ? booking.getCustomer().getIdType().name() : null))")
+    @Mapping(target = "guestIdNumberCard", expression = "java(booking.getGuestIdNumberCard() != null ? booking.getGuestIdNumberCard() : (booking.getCustomer() != null ? booking.getCustomer().getIdNumberCard() : null))")
+    @Mapping(target = "guestNationality", expression = "java(booking.getGuestNationality() != null ? booking.getGuestNationality() : (booking.getCustomer() != null ? booking.getCustomer().getNationality() : null))")
     BookingResponse toResponse(Booking booking);
 
     @Mapping(target = "id", ignore = true)

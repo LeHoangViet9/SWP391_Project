@@ -5,9 +5,6 @@ import com.hms.common.enums.SortField;
 import com.hms.dto.roomtype.response.RoomTypeResponse;
 import com.hms.dto.roomtype.request.RoomTypeRequest;
 import org.springframework.data.domain.Page;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 public interface IRoomTypeService {
 
@@ -23,14 +20,8 @@ public interface IRoomTypeService {
 
     RoomTypeResponse createRoomType(RoomTypeRequest roomType);
 
-    RoomTypeResponse createRoomType(RoomTypeRequest roomType, List<MultipartFile> images);
-
     RoomTypeResponse updateRoomType(Long id,
                                     RoomTypeRequest roomType);
-
-    RoomTypeResponse updateRoomType(Long id,
-                                    RoomTypeRequest roomType,
-                                    List<MultipartFile> images);
     void deleteRoomTypeByID(Long id);
 
 }

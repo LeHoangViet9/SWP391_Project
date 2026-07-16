@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, RefreshCw, Map as MapIcon, BedDouble, Layers3 } from 'lucide-react';
+﻿import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
 import {
   getAllRooms,
   getRoomTypes,
@@ -26,23 +26,11 @@ const STATUS_COLORS = {
   INACTIVE: 'bg-stone-100 text-stone-700 border border-stone-300',
 };
 
-const MAP_STATUS_STYLES = {
-  AVAILABLE: 'border-emerald-400 bg-emerald-100 text-emerald-800',
-  READY: 'border-cyan-400 bg-cyan-100 text-cyan-800',
-  RESERVED: 'border-amber-400 bg-amber-100 text-amber-800',
-  OCCUPIED: 'border-red-400 bg-red-100 text-red-800',
-  CLEANING: 'border-violet-400 bg-violet-100 text-violet-800',
-  DIRTY: 'border-orange-400 bg-orange-100 text-orange-800',
-  MAINTENANCE: 'border-slate-500 bg-slate-200 text-slate-800',
-  CHECKOUT_PENDING: 'border-pink-400 bg-pink-100 text-pink-800',
-  INACTIVE: 'border-stone-300 bg-stone-100 text-stone-500',
-};
-
 const STATUS_LABELS = {
   vi: {
-    AVAILABLE: 'Phòng trống', READY: 'Sẵn sàng', RESERVED: 'Đã đặt', OCCUPIED: 'Đang ở',
-    CLEANING: 'Đang dọn', DIRTY: 'Chờ dọn', MAINTENANCE: 'Bảo trì',
-    CHECKOUT_PENDING: 'Chờ trả phòng', INACTIVE: 'Ngừng hoạt động',
+    AVAILABLE: 'PhÃ²ng trá»‘ng', READY: 'Sáºµn sÃ ng', RESERVED: 'ÄÃ£ Ä‘áº·t', OCCUPIED: 'Äang á»Ÿ',
+    CLEANING: 'Äang dá»n', DIRTY: 'Chá» dá»n', MAINTENANCE: 'Báº£o trÃ¬',
+    CHECKOUT_PENDING: 'Chá» tráº£ phÃ²ng', INACTIVE: 'Ngá»«ng hoáº¡t Ä‘á»™ng',
   },
   en: {
     AVAILABLE: 'Available', READY: 'Ready', RESERVED: 'Reserved', OCCUPIED: 'Occupied',
@@ -82,9 +70,6 @@ export default function RoomManager({ readOnly = false }) {
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [mapOpen, setMapOpen] = useState(false);
-  const [mapLoading, setMapLoading] = useState(false);
-  const [mapRooms, setMapRooms] = useState([]);
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -145,31 +130,6 @@ export default function RoomManager({ readOnly = false }) {
 
   const closeModal = () => setModal({ open: false, editing: null });
 
-  const openRoomMap = async () => {
-    setMapOpen(true);
-    setMapLoading(true);
-    try {
-      const res = await getAllRooms({ page: 0, size: 1000 }, locale);
-      setMapRooms(res?.data?.content ?? []);
-    } catch (e) {
-      notify(e.message || (locale === 'vi' ? 'Không thể tải bản đồ phòng.' : 'Could not load room map.'), 'error');
-      setMapOpen(false);
-    } finally {
-      setMapLoading(false);
-    }
-  };
-
-  const roomsByFloor = useMemo(() => {
-    const grouped = mapRooms.reduce((result, room) => {
-      const floor = Number(room.floorNumber || 0);
-      if (!result[floor]) result[floor] = [];
-      result[floor].push(room);
-      return result;
-    }, {});
-    return Object.entries(grouped)
-        .sort(([floorA], [floorB]) => Number(floorA) - Number(floorB))
-        .map(([floor, rooms]) => [floor, rooms.sort((a, b) => String(a.roomNumber).localeCompare(String(b.roomNumber), undefined, { numeric: true }))]);
-  }, [mapRooms]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -183,10 +143,10 @@ export default function RoomManager({ readOnly = false }) {
     setSaving(true);
     try {
       if (modal.editing) {
-        await updateRoom(modal.editing.id, payload, [], locale);
+        await updateRoom(modal.editing.id, payload, locale);
         notify(t('room.toast.updateSuccess'));
       } else {
-        await createRoom(payload, [], locale);
+        await createRoom(payload, locale);
         notify(t('room.toast.addSuccess'));
       }
       closeModal();
@@ -241,7 +201,7 @@ export default function RoomManager({ readOnly = false }) {
                     onChange={e => handleStatusChange(item, e.target.value)}
                     className={`text-xs font-semibold px-2 py-1 rounded-full border border-stone-200 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
                 >
-                  {Object.keys(STATUS_LABELS[locale] || {}).map(s => {
+                  {Array.from(new Set([status, 'AVAILABLE', 'INACTIVE'])).map(s => {
                     const label = STATUS_LABELS[locale]?.[s] || s;
                     return <option key={s} value={s}>{label}</option>;
                   })}
@@ -251,10 +211,10 @@ export default function RoomManager({ readOnly = false }) {
           {!isReadOnly && (
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3 justify-center">
-                  <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}>
+                  <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chá»‰nh sá»­a' : 'Edit'}>
                     <Edit2 size={15} />
                   </button>
-                  <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'Xóa' : 'Delete'}>
+                  <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'XÃ³a' : 'Delete'}>
                     <Trash2 size={15} />
                   </button>
                 </div>
@@ -281,11 +241,11 @@ export default function RoomManager({ readOnly = false }) {
                 }}
                 className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700"
             >
-              <option value="roomNumber">{t('room.searchOptions.roomNumber') || 'Số phòng'}</option>
-              <option value="id">{t('room.searchOptions.id') || 'Mã (ID)'}</option>
-              <option value="roomTypeId">{t('room.searchOptions.roomTypeId') || 'Loại phòng'}</option>
-              <option value="floor">{t('room.searchOptions.floor') || 'Tầng'}</option>
-              <option value="status">{t('room.searchOptions.status') || 'Trạng thái'}</option>
+              <option value="roomNumber">{t('room.searchOptions.roomNumber') || 'Sá»‘ phÃ²ng'}</option>
+              <option value="id">{t('room.searchOptions.id') || 'MÃ£ (ID)'}</option>
+              <option value="roomTypeId">{t('room.searchOptions.roomTypeId') || 'Loáº¡i phÃ²ng'}</option>
+              <option value="floor">{t('room.searchOptions.floor') || 'Táº§ng'}</option>
+              <option value="status">{t('room.searchOptions.status') || 'Tráº¡ng thÃ¡i'}</option>
             </select>
 
             {searchOpt === 'roomTypeId' ? (
@@ -297,7 +257,7 @@ export default function RoomManager({ readOnly = false }) {
                     }}
                     className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700 max-w-xs flex-1"
                 >
-                  <option value="">{t('room.modal.selectType') || 'Chọn loại phòng'}</option>
+                  <option value="">{t('room.modal.selectType') || 'Chá»n loáº¡i phÃ²ng'}</option>
                   {roomTypes.map(rt => (
                       <option key={rt.id} value={rt.id}>{rt.typeName}</option>
                   ))}
@@ -311,9 +271,9 @@ export default function RoomManager({ readOnly = false }) {
                     }}
                     className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700 max-w-xs flex-1"
                 >
-                  <option value="">{t('booking.filters.all') || 'Tất cả'}</option>
-                  <option value="AVAILABLE">{t('room.status.available') || 'Sẵn sàng'}</option>
-                  <option value="MAINTENANCE">{t('room.status.maintenance') || 'Đang sửa chữa'}</option>
+                  <option value="">{t('booking.filters.all') || 'Táº¥t cáº£'}</option>
+                  <option value="AVAILABLE">{t('room.status.available') || 'Sáºµn sÃ ng'}</option>
+                  <option value="MAINTENANCE">{t('room.status.maintenance') || 'Äang sá»­a chá»¯a'}</option>
                 </select>
             ) : (
                 <div className="relative flex-1 max-w-xs">
@@ -324,9 +284,9 @@ export default function RoomManager({ readOnly = false }) {
                       onChange={e => setSearch(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && fetchData(0)}
                       placeholder={
-                        searchOpt === 'id' ? (t('room.placeholders.id') || 'Nhập mã ID...') :
-                            searchOpt === 'floor' ? (t('room.placeholders.floor') || 'Nhập số tầng...') :
-                                (t('room.placeholders.roomNumber') || t('room.searchPlaceholder') || 'Nhập số phòng...')
+                        searchOpt === 'id' ? (t('room.placeholders.id') || 'Nháº­p mÃ£ ID...') :
+                            searchOpt === 'floor' ? (t('room.placeholders.floor') || 'Nháº­p sá»‘ táº§ng...') :
+                                (t('room.placeholders.roomNumber') || t('room.searchPlaceholder') || 'Nháº­p sá»‘ phÃ²ng...')
                       }
                       className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
                   />
@@ -337,9 +297,6 @@ export default function RoomManager({ readOnly = false }) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={openRoomMap} className="flex items-center gap-2 rounded border border-[#bfa15f] bg-white px-4 py-2 text-sm font-semibold text-[#9b7d3f] shadow-sm hover:bg-[#bfa15f]/10">
-              <MapIcon size={16} /> {locale === 'vi' ? 'Xem bản đồ phòng' : 'Room map'}
-            </button>
             {!isReadOnly && (
                 <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
                   <Plus size={16} /> {t('room.addBtn')}
@@ -350,79 +307,6 @@ export default function RoomManager({ readOnly = false }) {
 
         <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
 
-        <Modal
-            open={mapOpen}
-            title={locale === 'vi' ? 'Bản đồ trạng thái phòng' : 'Room status map'}
-            onClose={() => setMapOpen(false)}
-            size="2xl"
-        >
-          {mapLoading ? (
-              <div className="flex items-center justify-center gap-3 py-20 text-slate-500">
-                <RefreshCw size={22} className="animate-spin text-[#bfa15f]" />
-                {locale === 'vi' ? 'Đang tải sơ đồ phòng...' : 'Loading room map...'}
-              </div>
-          ) : roomsByFloor.length === 0 ? (
-              <div className="py-16 text-center text-slate-500">
-                <BedDouble size={42} className="mx-auto mb-3 text-stone-300" />
-                {locale === 'vi' ? 'Chưa có dữ liệu phòng.' : 'No rooms found.'}
-              </div>
-          ) : (
-              <div className="space-y-8">
-                <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
-                    {locale === 'vi' ? 'Chú thích trạng thái' : 'Status legend'}
-                  </p>
-                  <div className="flex flex-wrap gap-2.5">
-                    {Object.entries(MAP_STATUS_STYLES).map(([status, styles]) => (
-                        <span key={status} className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${styles}`}>
-                          <span className="h-2.5 w-2.5 rounded-sm bg-current opacity-70" />
-                          {STATUS_LABELS[locale === 'vi' ? 'vi' : 'en'][status]}
-                        </span>
-                    ))}
-                  </div>
-                </div>
-
-                {roomsByFloor.map(([floor, rooms]) => (
-                    <section key={floor} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-                      <div className="flex items-center justify-between bg-slate-800 px-5 py-3 text-white">
-                        <h4 className="flex items-center gap-2 font-bold">
-                          <Layers3 size={18} className="text-[#d4b46a]" />
-                          {locale === 'vi' ? `Tầng ${floor}` : `Floor ${floor}`}
-                        </h4>
-                        <span className="text-xs text-slate-300">{rooms.length} {locale === 'vi' ? 'phòng' : 'rooms'}</span>
-                      </div>
-                      <div className="bg-slate-50 p-5">
-                        <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">
-                          <span className="h-px flex-1 bg-stone-300" />
-                          {locale === 'vi' ? 'Hành lang' : 'Corridor'}
-                          <span className="h-px flex-1 bg-stone-300" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                          {rooms.map((room) => {
-                            const status = getRoomStatus(room);
-                            const styles = MAP_STATUS_STYLES[status] || MAP_STATUS_STYLES.INACTIVE;
-                            return (
-                                <div
-                                    key={room.id}
-                                    className={`group relative min-h-24 rounded-xl border-2 p-3 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${styles}`}
-                                    title={`${room.roomNumber} · ${STATUS_LABELS[locale === 'vi' ? 'vi' : 'en'][status] || status}`}
-                                >
-                                  <BedDouble size={22} className="mx-auto mb-1.5 opacity-80" />
-                                  <p className="text-base font-black">{room.roomNumber}</p>
-                                  <p className="mt-0.5 truncate text-[10px] font-semibold opacity-75">
-                                    {room.roomTypeName || room.roomType?.typeName || '-'}
-                                  </p>
-                                  <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-current shadow-sm" />
-                                </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </section>
-                ))}
-              </div>
-          )}
-        </Modal>
 
         <Modal open={modal.open} title={modal.editing ? t('room.modal.editTitle') : t('room.modal.addTitle')} onClose={closeModal}>
           <form onSubmit={handleSave} className="space-y-4">

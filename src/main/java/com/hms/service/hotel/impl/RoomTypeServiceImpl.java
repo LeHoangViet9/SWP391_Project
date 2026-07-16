@@ -2,6 +2,9 @@ package com.hms.service.hotel.impl;
 
 import java.util.Locale;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.hms.common.enums.AccountStatus; // 🛠️ Đảm bảo import enum trạng thái của dự án bạn
 import com.hms.common.enums.SortDirection;
@@ -30,9 +33,9 @@ import com.hms.entity.hotel.RoomType;
 import com.hms.entity.hotel.RoomTypeImage;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.hotel.IRoomTypeService;
-import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -86,12 +89,6 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     @Override
     @Transactional
     public RoomTypeResponse createRoomType(RoomTypeRequest request) {
-        return createRoomType(request, List.of());
-    }
-
-    @Override
-    @Transactional
-    public RoomTypeResponse createRoomType(RoomTypeRequest request, List<MultipartFile> images) {
         Locale locale = LocaleContextHolder.getLocale();
 
         if (roomTypeRepository.existsByTypeNameAndStatus(request.getTypeName(), AccountStatus.ACTIVE)) {
@@ -100,7 +97,8 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
         RoomType roomType = roomTypeMapper.toEntity(request);
         roomType.setStatus(AccountStatus.ACTIVE);
-        appendImages(roomType, images);
+        roomType.setImages(new ArrayList<>());
+        appendImages(roomType, request.getImages());
 
         RoomType saved = roomTypeRepository.save(roomType);
         RoomTypeResponse response = roomTypeMapper.toResponse(saved);
@@ -110,12 +108,6 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     @Override
     @Transactional
     public RoomTypeResponse updateRoomType(Long id, RoomTypeRequest request) {
-        return updateRoomType(id, request, List.of());
-    }
-
-    @Override
-    @Transactional
-    public RoomTypeResponse updateRoomType(Long id, RoomTypeRequest request, List<MultipartFile> images) {
         Locale locale = LocaleContextHolder.getLocale();
 
         RoomType roomType = roomTypeRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
@@ -129,30 +121,14 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
         }
 
         roomTypeMapper.updateRoomTypeFromRequest(request, roomType);
-        appendImages(roomType, images);
+        if (Boolean.TRUE.equals(request.getImageSyncRequested())) {
+            syncExistingImages(roomType, request.getExistingImageUrls());
+        }
+        appendImages(roomType, request.getImages());
+
         RoomType updated = roomTypeRepository.save(roomType);
         RoomTypeResponse response = roomTypeMapper.toResponse(updated);
         return populateRatingStats(response);
-    }
-
-    private void appendImages(RoomType roomType, List<MultipartFile> images) {
-        if (images == null || images.isEmpty()) {
-            return;
-        }
-
-        for (MultipartFile image : images) {
-            if (image == null || image.isEmpty()) {
-                continue;
-            }
-            if (image.getContentType() == null || !image.getContentType().startsWith("image/")) {
-                throw new ConflictException("Only image files can be uploaded for a room type");
-            }
-            roomType.getRoomTypeImages().add(RoomTypeImage.builder()
-                    .roomType(roomType)
-                    .imageUrl(localFileUtils.uploadFile(image))
-                    .description("Ảnh loại phòng")
-                    .build());
-        }
     }
 
     @Override
@@ -196,5 +172,35 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
             response.setReviewCount(0L);
         }
         return response;
+    }
+
+    private void appendImages(RoomType roomType, List<MultipartFile> images) {
+        if (images == null || images.isEmpty()) {
+            return;
+        }
+        if (roomType.getImages() == null) {
+            roomType.setImages(new ArrayList<>());
+        }
+        for (MultipartFile image : images) {
+            if (image == null || image.isEmpty()) {
+                continue;
+            }
+            String imageUrl = localFileUtils.uploadFile(image, "roomtypes");
+            roomType.getImages().add(RoomTypeImage.builder()
+                    .roomType(roomType)
+                    .imageUrl(imageUrl)
+                    .build());
+        }
+    }
+
+    private void syncExistingImages(RoomType roomType, List<String> existingImageUrls) {
+        if (roomType.getImages() == null) {
+            roomType.setImages(new ArrayList<>());
+            return;
+        }
+        Set<String> retainedUrls = existingImageUrls == null
+                ? Set.of()
+                : new HashSet<>(existingImageUrls);
+        roomType.getImages().removeIf(image -> !retainedUrls.contains(image.getImageUrl()));
     }
 }
