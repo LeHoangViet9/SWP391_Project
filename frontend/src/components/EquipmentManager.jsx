@@ -513,9 +513,18 @@ export default function EquipmentManager() {
                   type="file"
                   multiple
                   accept="image/*"
-                  onChange={(event) =>
-                      setImageFiles(Array.from(event.target.files || []))
-                  }
+                  onChange={(event) => {
+                    const files = Array.from(event.target.files || []);
+                    const allowedExtensions = /(\.jpg|\.jpeg|\.png|\.webp|\.gif)$/i;
+                    const invalidFiles = files.filter(file => !allowedExtensions.test(file.name));
+                    if (invalidFiles.length > 0) {
+                      notify('Định dạng file không hợp lệ. Chỉ chấp nhận: .jpg, .jpeg, .png, .webp, .gif', 'error');
+                      event.target.value = ''; // Reset input
+                      setImageFiles([]);
+                      return;
+                    }
+                    setImageFiles(files);
+                  }}
                   className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
               />
 
