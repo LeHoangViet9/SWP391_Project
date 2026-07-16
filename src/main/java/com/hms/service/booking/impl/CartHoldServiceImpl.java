@@ -81,6 +81,7 @@ public class CartHoldServiceImpl implements CartHoldService {
     public CartHoldResponse updateHold(String holdToken, CartHoldRequest request) {
         CartHold hold = findLocked(holdToken);
         ensureActive(hold);
+        hold.setExpiresAt(LocalDateTime.now().plusMinutes(holdMinutes));
         releaseRooms(hold);
         hold.replaceItems(List.of());
         cartHoldRepository.saveAndFlush(hold);

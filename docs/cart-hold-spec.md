@@ -22,6 +22,8 @@ opaque random token is the client's capability to access its own hold.
 
 - A hold lasts `app.booking.hold-minutes` and cannot reserve overlapping rooms
   already held by another active cart or booking.
+- Updating an active cart hold replaces its items and refreshes the expiry to
+  `app.booking.hold-minutes` from the update time.
 - Updating a cart replaces all previous items in one transaction. A conflict
   rolls back the update and leaves the previous hold unchanged.
 - Expired and cancelled holds release only their own rooms.

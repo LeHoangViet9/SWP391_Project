@@ -35,7 +35,7 @@ const getLocalDateString = (dateObj = new Date()) => {
 const today = () => getLocalDateString();
 const CART_STORAGE_KEY = 'hms_booking_cart';
 const CART_HOLD_TOKEN_KEY = 'hms_booking_cart_hold_token';
-const BOOKING_HOLD_MINUTES = 1;
+const BOOKING_HOLD_MINUTES = 1  ;
 
 function loadBookingCart() {
   try {
@@ -321,11 +321,15 @@ function BookingContent() {
         })));
         setHoldExpiresAt(res.data.expiresAt || null);
       })
-      .catch(() => {
+      .catch((err) => {
         if (!mounted || requestVersion !== cartMutationVersion.current) return;
         localStorage.removeItem(CART_HOLD_TOKEN_KEY);
         setCartHoldToken('');
         setHoldExpiresAt(null);
+        if (err?.status === 404 || err?.status === 409) {
+          localStorage.removeItem(CART_STORAGE_KEY);
+          setCartItems([]);
+        }
         setStep(1);
         setError(locale === 'vi'
           ? 'Phòng trong giỏ chưa còn được giữ. Vui lòng bấm tiếp tục để giữ lại.'
@@ -354,8 +358,10 @@ function BookingContent() {
           // The scheduler will release an already-expired hold if this request fails.
         }
         localStorage.removeItem(CART_HOLD_TOKEN_KEY);
+        localStorage.removeItem(CART_STORAGE_KEY);
         setCartHoldToken('');
         setHoldExpiresAt(null);
+        setCartItems([]);
         setStep(1);
         setError(locale === 'vi' ? 'Thời gian giữ phòng đã hết. Vui lòng chọn lại.' : 'The room hold expired. Please select again.');
       };

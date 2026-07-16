@@ -152,16 +152,26 @@ class CartHoldIntegrationTest {
     void updatingCartHoldReplacesItemsWithoutChangingTheHoldToken() throws Exception {
         String response = createHold();
         String token = objectMapper.readTree(response).path("data").path("holdToken").asText();
+        LocalDateTime initialExpiresAt = LocalDateTime.parse(
+                objectMapper.readTree(response).path("data").path("expiresAt").asText());
         LocalDateTime checkIn = LocalDateTime.now().plusDays(4);
         LocalDateTime checkOut = LocalDateTime.now().plusDays(5);
+        LocalDateTime beforeUpdate = LocalDateTime.now();
 
-        mockMvc.perform(put("/api/v1/cart-holds/" + token)
+        String updatedResponse = mockMvc.perform(put("/api/v1/cart-holds/" + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(holdRequest(checkIn, checkOut))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.holdToken", is(token)))
                 .andExpect(jsonPath("$.data.items", hasSize(1)))
-                .andExpect(jsonPath("$.data.items[0].checkInDate", startsWith(checkIn.toString().substring(0, 16))));
+                .andExpect(jsonPath("$.data.items[0].checkInDate", startsWith(checkIn.toString().substring(0, 16))))
+                .andReturn().getResponse().getContentAsString();
+
+        LocalDateTime updatedExpiresAt = LocalDateTime.parse(
+                objectMapper.readTree(updatedResponse).path("data").path("expiresAt").asText());
+        assertTrue(updatedExpiresAt.isAfter(initialExpiresAt));
+        assertTrue(updatedExpiresAt.isAfter(beforeUpdate.plusSeconds(45)),
+                "Updating a cart hold should refresh its expiry to approximately one minute from the update");
 
         assertEquals(RoomStatus.RESERVED, roomRepository.findById(room.getId()).orElseThrow().getRoomStatus());
     }
