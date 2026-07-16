@@ -4,6 +4,7 @@ import com.hms.common.enums.*;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
+import com.hms.dto.checkout.request.CheckoutRequestDTO;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskRequest;
 import com.hms.dto.housekeeping.request.HouseKeepingTaskUpdateRequest;
 import com.hms.dto.housekeeping.request.MinibarReportRequest;
@@ -33,6 +34,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -472,10 +475,16 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.room.notfound", null, locale)));
 
-        // Chọn ngẫu nhiên một housekeeper ACTIVE + AVAILABLE.
-        if (taskRepository.existsByRoom_IdAndTaskStatusIn(roomId, List.of(TaskStatus.PENDING, TaskStatus.IN_PROGRESS))) {
-            log.info("[AUTO-ASSIGN] Room {} already has active housekeeping task. Skip auto-create.",
-                    room.getRoomNumber());
+        // Nếu đã có task dọn phòng đang chờ/đang làm, ta cập nhật checkoutInspectionRequestedAt cho nó để bắt đầu đếm giờ
+        List<HouseKeepingTask> existingTasks = taskRepository.findByRoom_IdAndTaskStatus(roomId, TaskStatus.PENDING);
+        if (existingTasks.isEmpty()) {
+            existingTasks = taskRepository.findByRoom_IdAndTaskStatus(roomId, TaskStatus.IN_PROGRESS);
+        }
+        if (!existingTasks.isEmpty()) {
+            HouseKeepingTask existing = existingTasks.get(0);
+            existing.setCheckoutInspectionRequestedAt(LocalDateTime.now());
+            taskRepository.save(existing);
+            log.info("[AUTO-ASSIGN] Room {} already has active housekeeping task. Updated checkoutInspectionRequestedAt.", room.getRoomNumber());
             return;
         }
 
@@ -506,6 +515,7 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                 .assignedBy(assignedBy)
                 .taskStatus(TaskStatus.PENDING)
                 .notes(notes)
+                .checkoutInspectionRequestedAt(LocalDateTime.now())
                 .build();
 
         HouseKeepingTask saved = taskRepository.save(task);
@@ -607,11 +617,11 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         com.hms.entity.booking.Booking booking = bookingRepository.findActiveBookingByRoomId(room.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng đang hoạt động cho phòng này"));
 
-        java.math.BigDecimal waterCost = java.math.BigDecimal.valueOf(request.getWater()).multiply(java.math.BigDecimal.valueOf(10000));
-        java.math.BigDecimal colaCost = java.math.BigDecimal.valueOf(request.getCola()).multiply(java.math.BigDecimal.valueOf(20000));
-        java.math.BigDecimal beerCost = java.math.BigDecimal.valueOf(request.getBeer()).multiply(java.math.BigDecimal.valueOf(35000));
-        java.math.BigDecimal snackCost = java.math.BigDecimal.valueOf(request.getSnack()).multiply(java.math.BigDecimal.valueOf(15000));
-        java.math.BigDecimal total = waterCost.add(colaCost).add(beerCost).add(snackCost);
+        BigDecimal waterCost = BigDecimal.valueOf(request.getWater()).multiply(BigDecimal.valueOf(10000));
+        BigDecimal colaCost = BigDecimal.valueOf(request.getCola()).multiply(BigDecimal.valueOf(20000));
+        BigDecimal beerCost = BigDecimal.valueOf(request.getBeer()).multiply(BigDecimal.valueOf(35000));
+        BigDecimal snackCost = BigDecimal.valueOf(request.getSnack()).multiply(BigDecimal.valueOf(15000));
+        BigDecimal total = waterCost.add(colaCost).add(beerCost).add(snackCost);
 
         List<String> items = new java.util.ArrayList<>();
         if (request.getWater() > 0) items.add(request.getWater() + " Nước suối Aquafina");
@@ -620,7 +630,7 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         if (request.getSnack() > 0) items.add(request.getSnack() + " Snack khoai tây");
         String note = String.join(", ", items);
 
-        com.hms.dto.checkout.request.CheckoutRequestDTO checkoutRequest = new com.hms.dto.checkout.request.CheckoutRequestDTO();
+        CheckoutRequestDTO checkoutRequest = new CheckoutRequestDTO();
         checkoutRequest.setBookingId(booking.getId());
         checkoutRequest.setAdditionalCharges(total);
         Locale locale = LocaleContextHolder.getLocale();

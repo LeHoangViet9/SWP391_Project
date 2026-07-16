@@ -201,7 +201,7 @@ export default function RoomManager({ readOnly = false }) {
                     onChange={e => handleStatusChange(item, e.target.value)}
                     className={`text-xs font-semibold px-2 py-1 rounded-full border border-stone-200 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
                 >
-                  {Object.keys(STATUS_LABELS[locale] || {}).map(s => {
+                  {Array.from(new Set([status, 'AVAILABLE', 'INACTIVE'])).map(s => {
                     const label = STATUS_LABELS[locale]?.[s] || s;
                     return <option key={s} value={s}>{label}</option>;
                   })}
