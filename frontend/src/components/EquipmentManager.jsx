@@ -76,6 +76,7 @@ export default function EquipmentManager() {
 
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
+  const [confirmId, setConfirmId] = useState(null);
 
   // SỬA: dùng mảng ảnh thay vì 1 file
   const [imageFiles, setImageFiles] = useState([]);
@@ -237,20 +238,14 @@ export default function EquipmentManager() {
       return;
     }
 
-    const confirmMessage =
-        t('equipment.toast.deleteConfirm', { name: item.equipmentName })?.replace('{name}', item.equipmentName) ||
-        `Bạn có chắc muốn xóa ${item.equipmentName}?`;
-
-    if (!window.confirm(confirmMessage)) return;
-
     try {
       await equipmentService.delete(item.id, locale);
       notify(t('equipment.toast.deleteSuccess') || 'Xóa thiết bị thành công');
+      setConfirmId(null);
       fetchData(page);
       fetchSuggestions();
     } catch (error) {
       console.error(error);
-
       notify(
           getErrorMessage(
               error,
@@ -331,25 +326,45 @@ export default function EquipmentManager() {
           <td className="px-4 py-3">
             <div className="flex items-center gap-3">
               {canManage && (
+                confirmId === item.id ? (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item)}
+                      className="text-[10px] px-2 py-0.5 bg-red-500 text-white rounded hover:bg-red-600 font-semibold"
+                      title="Xác nhận xóa"
+                    >
+                      Xác nhận
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmId(null)}
+                      className="text-[10px] px-2 py-0.5 border border-stone-300 rounded hover:bg-stone-100 text-slate-600"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                ) : (
                   <>
                     <button
-                        type="button"
-                        onClick={() => openEdit(item)}
-                        className="text-blue-500 hover:text-blue-700"
-                        title="Sửa thiết bị"
+                      type="button"
+                      onClick={() => openEdit(item)}
+                      className="text-blue-500 hover:text-blue-700"
+                      title="Sửa thiết bị"
                     >
                       <Edit2 size={15} />
                     </button>
 
                     <button
-                        type="button"
-                        onClick={() => handleDelete(item)}
-                        className="text-red-500 hover:text-red-700"
-                        title="Xóa thiết bị"
+                      type="button"
+                      onClick={() => setConfirmId(item.id)}
+                      className="text-red-500 hover:text-red-700"
+                      title="Xóa thiết bị"
                     >
                       <Trash2 size={15} />
                     </button>
                   </>
+                )
               )}
             </div>
           </td>

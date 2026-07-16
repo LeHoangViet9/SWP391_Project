@@ -72,6 +72,7 @@ export default function MaintenanceManager({ readOnly = false }) {
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_CREATE);
+  const [confirmId, setConfirmId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // id đang xử lý accept/deny
 
@@ -361,10 +362,10 @@ export default function MaintenanceManager({ readOnly = false }) {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(t('maintenance.toast.deleteConfirm', { id: item.id }).replace('{id}', item.id))) return;
     try {
       await maintenanceService.delete(item.id);
       notify(t('maintenance.toast.deleteSuccess'));
+      setConfirmId(null);
       fetchData();
     } catch (e) {
       notify(e.status === 403 ? t('maintenance.toast.forbiddenDelete') : e.message, 'error');
@@ -478,8 +479,28 @@ export default function MaintenanceManager({ readOnly = false }) {
                   </button>
                 </>
               )}
-              {canUpdate && <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa"><Edit2 size={15} /></button>}
-              {canDelete && <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa"><Trash2 size={15} /></button>}
+              {canUpdate && confirmId !== item.id && <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa"><Edit2 size={15} /></button>}
+              {canDelete && (
+                confirmId === item.id ? (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleDelete(item)}
+                      className="text-[10px] px-2 py-0.5 bg-red-500 text-white rounded hover:bg-red-600 font-semibold"
+                      title="Xác nhận xóa"
+                    >
+                      Xác nhận
+                    </button>
+                    <button
+                      onClick={() => setConfirmId(null)}
+                      className="text-[10px] px-2 py-0.5 border border-stone-300 rounded hover:bg-stone-100 text-slate-600"
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmId(item.id)} className="text-red-500 hover:text-red-700" title="Xóa"><Trash2 size={15} /></button>
+                )
+              )}
             </div>
           </td>
         )}
