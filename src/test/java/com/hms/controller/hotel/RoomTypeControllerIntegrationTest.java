@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hms.common.enums.AccountStatus; // 🛠️ Import enum trạng thái hệ thống của bạn
 import jakarta.servlet.http.Cookie;
 import com.hms.dto.roomtype.request.RoomTypeRequest;
+import com.hms.entity.hotel.Room;
 import com.hms.entity.hotel.RoomType;
+import com.hms.common.enums.RoomStatus;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.repository.booking.InvoiceRepository;
 import com.hms.repository.booking.BookingRepository;
@@ -101,6 +103,21 @@ public class RoomTypeControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success", is(true)))
                 .andExpect(jsonPath("$.data.content", hasSize(2)));
+    }
+
+    @Test
+    void getAllRoomType_IncludesActiveRoomCount() throws Exception {
+        roomRepository.save(Room.builder()
+                .roomNumber("101")
+                .roomType(testRoomType1)
+                .roomStatus(RoomStatus.AVAILABLE)
+                .floorNumber(1)
+                .build());
+
+        mockMvc.perform(get("/api/v1/room-types")
+                        .locale(Locale.ENGLISH))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[0].totalRooms", is(1)));
     }
 
     @Test

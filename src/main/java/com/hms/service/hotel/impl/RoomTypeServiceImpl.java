@@ -178,6 +178,9 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
     private RoomTypeResponse populateRatingStats(RoomTypeResponse response) {
         if (response == null) return null;
+        response.setTotalRooms(roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
+                response.getId(),
+                List.of(RoomStatus.INACTIVE, RoomStatus.MAINTENANCE)));
         List<Object[]> stats = customerFeedbackRepository.getRatingStatsByRoomTypeId(response.getId());
         if (stats != null && !stats.isEmpty() && stats.get(0) != null) {
             Object[] row = stats.get(0);
