@@ -2,6 +2,7 @@ package com.hms.service.booking.impl;
 
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.enums.BookingStatus;
+import com.hms.common.enums.CartHoldStatus;
 import com.hms.common.enums.IdType;
 import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
@@ -20,6 +21,8 @@ import com.hms.dto.booking.response.BookingResponse;
 import com.hms.dto.checkin.response.AvailableRoomResponseDTO;
 import com.hms.entity.auth.User;
 import com.hms.entity.booking.Booking;
+import com.hms.entity.booking.CartHold;
+import com.hms.entity.booking.CartHoldItem;
 import com.hms.entity.booking.Invoice;
 import com.hms.entity.booking.RoomGuestAllocation;
 import com.hms.entity.customer.Customer;
@@ -27,6 +30,8 @@ import com.hms.entity.hotel.Room;
 import com.hms.entity.hotel.RoomType;
 import com.hms.repository.auth.UserRepository;
 import com.hms.repository.booking.BookingRepository;
+import com.hms.repository.booking.CartHoldItemRepository;
+import com.hms.repository.booking.CartHoldRepository;
 import com.hms.repository.booking.InvoiceRepository;
 import com.hms.repository.customer.CustomerFeedbackRepository;
 import com.hms.repository.customer.CustomerRepository;
@@ -58,6 +63,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -65,6 +71,8 @@ import java.time.temporal.ChronoUnit;
 public class BookingServiceImpl implements BookingService {
 
     private static final String CCCD_PATTERN = "\\d{12}";
+    private static final Pattern GUEST_PHONE_PATTERN = Pattern.compile("^(0|\\+84)(3|5|7|8|9)[0-9]{8}$");
+    private static final Pattern GUEST_EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
     private static final List<BookingStatus> ROOM_HOLDING_STATUSES = List.of(
             BookingStatus.PENDING_PAYMENT,
@@ -95,6 +103,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private final BookingRepository bookingRepository;
+    private final CartHoldRepository cartHoldRepository;
+    private final CartHoldItemRepository cartHoldItemRepository;
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
     private final RoomTypeRepository roomTypeRepository;
@@ -165,12 +175,16 @@ public class BookingServiceImpl implements BookingService {
                         messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
         boolean receptionistBooking = isReceptionistRequest();
+        CartHoldItem heldItem = null;
         List<Room> selectedRooms;
         if (receptionistBooking) {
             validateRoomAvailability(request, null, locale);
             selectedRooms = List.of();
+        } else if (request.getCartHoldItemId() != null) {
+            heldItem = findHeldItem(request, roomType, locale);
+            selectedRooms = new ArrayList<>(heldItem.getRooms());
         } else {
-            selectedRooms = selectAndLockRooms(request, roomType, locale);
+            selectedRooms = selectAndLockRooms(request, roomType, locale, null);
         }
 
         BigDecimal totalPrice = calculateTotalPrice(roomType, request);
@@ -183,7 +197,9 @@ public class BookingServiceImpl implements BookingService {
         booking.setBookingStatus(BookingStatus.PENDING_PAYMENT);
         booking.setHoldExpiresAt(receptionistBooking
                 ? null
-                : LocalDateTime.now().plusMinutes(cartHoldMinutes));
+                : heldItem != null
+                        ? heldItem.getCartHold().getExpiresAt()
+                        : LocalDateTime.now().plusMinutes(cartHoldMinutes));
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
         booking.setGuestAllocations(buildGuestAllocations(request, roomType, locale));
@@ -205,6 +221,10 @@ public class BookingServiceImpl implements BookingService {
                 .build();
         invoiceRepository.save(invoice);
         saved.setInvoice(invoice);
+        if (heldItem != null) {
+            heldItem.setConverted(true);
+            cartHoldItemRepository.save(heldItem);
+        }
 
         return mapToResponse(saved);
     }
@@ -236,21 +256,28 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.roomtype.notfound", null, locale)));
 
-        validateRoomAvailability(request, id, locale);
-
         List<Room> oldRooms = getAssignedRooms(booking);
         if (!oldRooms.isEmpty()) {
             oldRooms.forEach(room -> room.setRoomStatus(RoomStatus.AVAILABLE));
             roomRepository.saveAll(oldRooms);
         }
-        booking.setRoom(null);
-        booking.setRooms(new ArrayList<>());
+
+        boolean receptionistBooking = isReceptionistRequest();
+        List<Room> selectedRooms;
+        if (receptionistBooking) {
+            validateRoomAvailability(request, id, locale);
+            selectedRooms = List.of();
+        } else {
+            selectedRooms = selectAndLockRooms(request, roomType, locale, id);
+        }
 
         BigDecimal totalPrice = calculateTotalPrice(roomType, request);
 
         bookingMapper.updateBookingFromRequest(request, booking);
         booking.setCustomer(customer);
         booking.setRoomType(roomType);
+        booking.setRoom(receptionistBooking ? null : selectedRooms.get(0));
+        booking.setRooms(receptionistBooking ? new ArrayList<>() : selectedRooms);
         booking.setPricePerNight(BigDecimal.valueOf(roomType.getBasePrice()));
         booking.setTotalPrice(totalPrice);
         booking.setGuestAllocations(buildGuestAllocations(request, roomType, locale));
@@ -570,6 +597,7 @@ public class BookingServiceImpl implements BookingService {
         validateRequiredGuestInfo(request.getGuestFullName(), "booking.guest.fullname.required", locale);
         validateRequiredGuestInfo(request.getGuestPhone(), "booking.guest.phone.required", locale);
         validateRequiredGuestInfo(request.getGuestIdNumberCard(), "booking.guest.id.required", locale);
+        validateGuestContactInfo(request, locale);
         validateCccd(request.getGuestIdType(), request.getGuestIdNumberCard(), "booking.guest.cccd.invalid", locale);
 
         if (customer.getIdType() == IdType.CCCD
@@ -589,6 +617,18 @@ public class BookingServiceImpl implements BookingService {
     private void validateRequiredGuestInfo(String value, String messageKey, Locale locale) {
         if (trimToNull(value) == null) {
             throw new BadRequestException(messageSource.getMessage(messageKey, null, locale));
+        }
+    }
+
+    private void validateGuestContactInfo(BookingRequest request, Locale locale) {
+        if (!GUEST_PHONE_PATTERN.matcher(request.getGuestPhone().trim()).matches()) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "booking.guest.phone.invalid", null, locale));
+        }
+        if (trimToNull(request.getGuestEmail()) != null
+                && !GUEST_EMAIL_PATTERN.matcher(request.getGuestEmail().trim()).matches()) {
+            throw new BadRequestException(messageSource.getMessage(
+                    "booking.guest.email.invalid", null, locale));
         }
     }
 
@@ -626,7 +666,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         long assignableRoomCount = roomRepository.findRoomsAvailableForCart(
-                roomTypeId, checkInDate, checkOutDate, ROOM_HOLDING_STATUSES).size();
+                roomTypeId, checkInDate, checkOutDate, ROOM_HOLDING_STATUSES, null, null).size();
         long totalActiveRoomCount = roomRepository.countByRoomTypeIdAndRoomStatusNotIn(
                 roomTypeId, List.of(RoomStatus.INACTIVE, RoomStatus.MAINTENANCE));
         long bookedQuantity = bookingRepository.sumBookedQuantityByRoomTypeAndDateRange(
@@ -655,7 +695,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         return roomRepository.findRoomsAvailableForCart(
-                roomTypeId, checkInDate, checkOutDate, ROOM_HOLDING_STATUSES)
+                roomTypeId, checkInDate, checkOutDate, ROOM_HOLDING_STATUSES, null, null)
                 .stream()
                 .map(room -> AvailableRoomResponseDTO.builder()
                         .id(room.getId())
@@ -667,10 +707,12 @@ public class BookingServiceImpl implements BookingService {
                 .toList();
     }
 
-    private List<Room> selectAndLockRooms(BookingRequest request, RoomType roomType, Locale locale) {
+    private List<Room> selectAndLockRooms(
+            BookingRequest request, RoomType roomType, Locale locale, Long excludedBookingId) {
         int quantity = request.getQuantity();
         List<Room> candidates = roomRepository.findRoomsAvailableForCart(
-                roomType.getId(), request.getCheckInDate(), request.getCheckOutDate(), ROOM_HOLDING_STATUSES);
+                roomType.getId(), request.getCheckInDate(), request.getCheckOutDate(), ROOM_HOLDING_STATUSES,
+                excludedBookingId, null);
         if (candidates.size() < quantity) {
             throw new ConflictException(messageSource.getMessage(
                     "error.booking.not.enough.rooms", new Object[] { quantity, candidates.size() }, locale));
@@ -687,7 +729,7 @@ public class BookingServiceImpl implements BookingService {
                 continue;
             }
             if (!bookingRepository.existsConflict(room.getId(), request.getCheckOutDate(),
-                    request.getCheckInDate(), null, ROOM_HOLDING_STATUSES)) {
+                    request.getCheckInDate(), excludedBookingId, ROOM_HOLDING_STATUSES)) {
                 selected.add(room);
             }
         }
@@ -695,7 +737,49 @@ public class BookingServiceImpl implements BookingService {
             throw new ConflictException(messageSource.getMessage(
                     "error.booking.not.enough.rooms", new Object[] { quantity, selected.size() }, locale));
         }
+
+        selected.forEach(room -> room.setRoomStatus(RoomStatus.RESERVED));
+        roomRepository.saveAll(selected);
         return selected;
+    }
+
+    private CartHoldItem findHeldItem(BookingRequest request, RoomType roomType, Locale locale) {
+        if (request.getCartHoldToken() == null || request.getCartHoldToken().isBlank()) {
+            throw new ConflictException(messageSource.getMessage("error.cart.hold.items.changed", null, locale));
+        }
+        CartHold hold = cartHoldRepository.findByHoldTokenWithLock(request.getCartHoldToken())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.cart.hold.notfound", null, locale)));
+        if (hold.getStatus() != CartHoldStatus.ACTIVE
+                || hold.getExpiresAt() == null
+                || !hold.getExpiresAt().isAfter(LocalDateTime.now())) {
+            throw new ConflictException(messageSource.getMessage("error.cart.hold.expired", null, locale));
+        }
+
+        CartHoldItem heldItem = hold.getItems().stream()
+                .filter(item -> item.getId().equals(request.getCartHoldItemId()))
+                .findFirst()
+                .orElseThrow(() -> new ConflictException(
+                        messageSource.getMessage("error.cart.hold.items.changed", null, locale)));
+        if (Boolean.TRUE.equals(heldItem.getConverted())
+                || !heldItem.getRoomType().getId().equals(roomType.getId())
+                || !heldItem.getQuantity().equals(request.getQuantity())
+                || !heldItem.getCheckInDate().equals(request.getCheckInDate())
+                || !heldItem.getCheckOutDate().equals(request.getCheckOutDate())
+                || heldItem.getRooms().size() != request.getQuantity()) {
+            throw new ConflictException(messageSource.getMessage("error.cart.hold.items.changed", null, locale));
+        }
+
+        List<Room> lockedRooms = new ArrayList<>();
+        for (Room heldRoom : heldItem.getRooms()) {
+            Room room = roomRepository.findByIdWithPessimisticWrite(heldRoom.getId()).orElse(null);
+            if (room == null || room.getRoomStatus() != RoomStatus.RESERVED) {
+                throw new ConflictException(messageSource.getMessage("error.cart.hold.items.changed", null, locale));
+            }
+            lockedRooms.add(room);
+        }
+        heldItem.setRooms(lockedRooms);
+        return heldItem;
     }
 
     private List<Room> getAssignedRooms(Booking booking) {

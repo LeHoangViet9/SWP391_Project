@@ -142,6 +142,75 @@ public class BookingControllerIntegrationTest {
     }
 
     @Test
+    void createBooking_SameTimeAndSameRoomType_RejectsSecondBooking() throws Exception {
+        BookingRequest firstRequest = createBookingRequest();
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(firstRequest)))
+                .andExpect(status().isCreated());
+
+        BookingRequest overlappingRequest = createBookingRequest();
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(overlappingRequest)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    void createBooking_SameTimeWithAnotherAvailableRoom_AllowsSecondBooking() throws Exception {
+        Room secondRoom = roomRepository.save(Room.builder()
+                .roomNumber("TEST-102-SAME-TIME")
+                .floorNumber(1)
+                .roomType(testRoomType)
+                .roomStatus(RoomStatus.AVAILABLE)
+                .description("Second room for same-time booking")
+                .build());
+
+        BookingRequest firstRequest = createBookingRequest();
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(firstRequest)))
+                .andExpect(status().isCreated());
+
+        BookingRequest secondRequest = createBookingRequest();
+        mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(secondRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.roomIds", hasSize(1)));
+
+        assertEquals(RoomStatus.RESERVED, roomRepository.findById(testRoom.getId()).orElseThrow().getRoomStatus());
+        assertEquals(RoomStatus.RESERVED, roomRepository.findById(secondRoom.getId()).orElseThrow().getRoomStatus());
+    }
+
+    @Test
+    void updateBooking_DateChange_ReassignsPhysicalRoom() throws Exception {
+        BookingRequest createRequest = createBookingRequest();
+        String createResponse = mockMvc.perform(post("/api/v1/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Long bookingId = objectMapper.readTree(createResponse).path("data").path("id").asLong();
+
+        BookingRequest updateRequest = createBookingRequest();
+        updateRequest.setCheckInDate(LocalDateTime.now().plusDays(8));
+        updateRequest.setCheckOutDate(LocalDateTime.now().plusDays(10));
+
+        mockMvc.perform(put("/api/v1/bookings/" + bookingId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.roomId", is(testRoom.getId().intValue())))
+                .andExpect(jsonPath("$.data.roomIds", hasSize(1)));
+
+        assertEquals(RoomStatus.RESERVED, roomRepository.findById(testRoom.getId()).orElseThrow().getRoomStatus());
+    }
+
+    @Test
     void testBookingLifecycleFlow_Success() throws Exception {
         // --- 1. Thêm một phòng cụ thể vào giỏ (status = PENDING_PAYMENT) ---
         BookingRequest createReq = new BookingRequest();
@@ -301,8 +370,8 @@ public class BookingControllerIntegrationTest {
         request.setCustomerId(testCustomer.getId());
         request.setRoomTypeId(testRoomType.getId());
         request.setRoomId(testRoom.getId());
-        // Set check-in date to today, but 1 hour ago (check-in time has passed)
-        request.setCheckInDate(LocalDateTime.now().minusHours(1));
+        // Set check-in date to today, but a few minutes ago (check-in time has passed)
+        request.setCheckInDate(LocalDateTime.now().minusMinutes(1));
         request.setCheckOutDate(LocalDateTime.now().plusDays(2));
         request.setQuantity(1);
 

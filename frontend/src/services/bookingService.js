@@ -37,6 +37,40 @@ export async function createBooking(payload, locale = 'vi') {
   }, locale);
 }
 
+/** POST /api/v1/cart-holds */
+export async function createCartHold(payload, locale = 'vi') {
+  return apiFetch('/cart-holds', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
+/** PUT /api/v1/cart-holds/{holdToken} */
+export async function updateCartHold(holdToken, payload, locale = 'vi') {
+  return apiFetch(`/cart-holds/${encodeURIComponent(holdToken)}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
+/** GET /api/v1/cart-holds/{holdToken} */
+export async function getCartHold(holdToken, locale = 'vi') {
+  return apiFetch(`/cart-holds/${encodeURIComponent(holdToken)}`, {}, locale);
+}
+
+/** DELETE /api/v1/cart-holds/{holdToken} */
+export async function deleteCartHold(holdToken, locale = 'vi') {
+  return apiFetch(`/cart-holds/${encodeURIComponent(holdToken)}`, { method: 'DELETE' }, locale);
+}
+
+/** POST /api/v1/cart-holds/{holdToken}/checkout */
+export async function checkoutCartHold(holdToken, payload, locale = 'vi') {
+  return apiFetch(`/cart-holds/${encodeURIComponent(holdToken)}/checkout`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }, locale);
+}
+
 /** GET /api/v1/bookings/check-availability */
 export async function checkAvailability(params, locale = 'vi') {
   return apiFetch(`/bookings/check-availability${buildQuery(params)}`, {}, locale);

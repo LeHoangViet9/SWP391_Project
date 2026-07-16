@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, RefreshCw, CheckCircle, LogOut, Filter, Calendar, Search, AlertTriangle, LogIn, AlertOctagon } from 'lucide-react';
+import { Plus, Edit2, RefreshCw, Search, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getAllBookings, createBooking, updateBooking, deleteBooking, searchBookings, updateBookingStatus, assignRoom } from '../services/bookingService';
+import { getAllBookings, createBooking, updateBooking, searchBookings, updateBookingStatus } from '../services/bookingService';
 import { createCustomer } from '../services/customerService';
 import { apiFetch } from '../services/api';
 import { useLocale } from '../context/LocaleContext';
@@ -59,14 +59,10 @@ export default function BookingManager({ readOnly = false }) {
   const canView = hasAnyPermission(['BOOKING_VIEW', 'BOOKING_VIEW_OWN']);
   const canCreate = hasPermission('BOOKING_CREATE');
   const canUpdate = hasPermission('BOOKING_UPDATE');
-  const canDelete = hasPermission('BOOKING_DELETE');
   
   const isReceptionistOrAbove = canUpdate || canCreate;
 
-  const [subTab, setSubTab] = useState('overview');
   const [items, setItems] = useState([]);
-  const [todayCheckIns, setTodayCheckIns] = useState([]);
-  const [todayCheckOuts, setTodayCheckOuts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -84,55 +80,32 @@ export default function BookingManager({ readOnly = false }) {
   // Payment modal state (receptionist)
   const [paymentModal, setPaymentModal] = useState({ open: false, booking: null });
 
-  // Confirmation modal state (Check-in, Hủy đơn, Xóa đơn, Check-out)
+  // Confirmation modal state for booking cancellation.
   const [confirmModal, setConfirmModal] = useState({
     open: false,
-    type: null, // 'CHECK_IN' | 'CANCEL' | 'DELETE' | 'CHECK_OUT'
+    type: null,
     booking: null,
     reason: 'Khách thay đổi kế hoạch',
   });
 
-  const openCheckInConfirm = (item) => setConfirmModal({ open: true, type: 'CHECK_IN', booking: item, reason: '' });
   const openCancelConfirm = (item) => setConfirmModal({ open: true, type: 'CANCEL', booking: item, reason: 'Khách thay đổi kế hoạch' });
-  const openDeleteConfirm = (item) => {
-    if (!canDelete) return notify(t('booking.toast.forbiddenDelete'), 'error');
-    setConfirmModal({ open: true, type: 'DELETE', booking: item, reason: '' });
-  };
-  const openCheckOutConfirm = (item) => setConfirmModal({ open: true, type: 'CHECK_OUT', booking: item, reason: '' });
-
   const handleExecuteConfirm = async () => {
     const { type, booking } = confirmModal;
     if (!booking) return;
     setSaving(true);
     try {
-      if (type === 'CHECK_IN') {
-        await updateBookingStatus(booking.id, { status: 'CHECKED_IN' });
-        notify(locale === 'vi' ? `Check-in thành công đơn đặt phòng #${booking.id}` : `Check-in successful for booking #${booking.id}`);
-      } else if (type === 'CANCEL') {
+      if (type === 'CANCEL') {
         await updateBookingStatus(booking.id, { status: 'CANCELLED' });
         notify(locale === 'vi' ? `Hủy thành công đơn đặt phòng #${booking.id}` : `Cancelled booking #${booking.id} successfully`);
-      } else if (type === 'CHECK_OUT') {
-        await updateBookingStatus(booking.id, { status: 'CHECKED_OUT' });
-        notify(locale === 'vi' ? `Check-out thành công đơn đặt phòng #${booking.id}` : `Check-out successful for booking #${booking.id}`);
-      } else if (type === 'DELETE') {
-        await deleteBooking(booking.id);
-        notify(locale === 'vi' ? `Xóa thành công đơn đặt phòng #${booking.id}` : `Deleted booking #${booking.id} successfully`);
       }
       setConfirmModal({ open: false, type: null, booking: null, reason: 'Khách thay đổi kế hoạch' });
-      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
+      fetchData(page);
     } catch (err) {
       notify(err.message || (locale === 'vi' ? 'Lỗi thao tác, vui lòng thử lại' : 'Action failed, please try again'), 'error');
     } finally {
       setSaving(false);
     }
   };
-
-  // States cho tác vụ gán phòng vật lý
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [assignTargetBooking, setAssignTargetBooking] = useState(null);
-  const [assignRoomId, setAssignRoomId] = useState('');
-  const [availableRooms, setAvailableRooms] = useState([]);
-  const [loadingAvailableRooms, setLoadingAvailableRooms] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCustomerId, setFilterCustomerId] = useState('');
@@ -228,7 +201,8 @@ export default function BookingManager({ readOnly = false }) {
     try {
       const params = { page: p, size: 10 };
       let res;
-      if (subTab === 'search') {
+      const hasServerFilters = filterStatus || filterCustomerId || filterRoomTypeId || filterRoomId;
+      if (hasServerFilters) {
         res = await searchBookings({
           ...params,
           status: filterStatus || undefined,
@@ -246,39 +220,11 @@ export default function BookingManager({ readOnly = false }) {
     } finally {
       setLoading(false);
     }
-  }, [subTab, filterStatus, filterCustomerId, filterRoomTypeId, filterRoomId, page]);
-
-  const fetchTodayData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-
-      const checkInRes = await apiFetch(`/bookings/check-in?start=${localDateTime(start)}&end=${localDateTime(end)}&page=0&size=50`);
-      setTodayCheckIns(checkInRes?.data?.content ?? []);
-
-      const checkOutRes = await apiFetch(`/bookings/check-out?start=${localDateTime(start)}&end=${localDateTime(end)}&page=0&size=50`);
-      setTodayCheckOuts(checkOutRes?.data?.content ?? []);
-    } catch (e) {
-      try {
-        const res = await getAllBookings({ page: 0, size: 100 });
-        const list = res?.data?.content ?? [];
-        const todayStr = new Date().toDateString();
-        setTodayCheckIns(list.filter(b => new Date(b.checkInDate).toDateString() === todayStr && getBookingStatus(b) === 'CONFIRMED'));
-        setTodayCheckOuts(list.filter(b => new Date(b.checkOutDate).toDateString() === todayStr && getBookingStatus(b) === 'CHECKED_IN'));
-      } catch (err) {
-        notify(err.message, 'error');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  }, [filterStatus, filterCustomerId, filterRoomTypeId, filterRoomId, page]);
 
   useEffect(() => {
-    if (subTab === 'overview') fetchTodayData();
-    else fetchData(page);
-  }, [subTab, page, fetchData, fetchTodayData]);
+    fetchData(page);
+  }, [page, fetchData]);
 
   useEffect(() => {
     apiFetch('/customers?size=200&status=ACTIVE').then(r => setCustomers(r?.data?.content ?? [])).catch(() => {});
@@ -355,7 +301,7 @@ export default function BookingManager({ readOnly = false }) {
         notify(t('booking.toast.addSuccess'));
       }
       closeModal();
-      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
+      fetchData(page);
     } catch (err) {
       const errMsg = err.message || '';
       const newErrors = {};
@@ -375,63 +321,6 @@ export default function BookingManager({ readOnly = false }) {
       }
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleDelete = async (item) => {
-    if (!canDelete) return notify(t('booking.toast.forbiddenDelete'), 'error');
-    if (!window.confirm(t('booking.toast.deleteConfirm', { id: item.id }).replace('{id}', item.id))) return;
-    try {
-      await deleteBooking(item.id);
-      notify(t('booking.toast.deleteSuccess'));
-      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
-    } catch (e) {
-      notify(e.status === 403 ? t('booking.toast.forbiddenDelete') : e.message, 'error');
-    }
-  };
-
-  const openAssignRoom = async (item) => {
-    setAssignTargetBooking(item);
-    setAssignRoomId('');
-    setAvailableRooms([]);
-    setAssignModalOpen(true);
-    setLoadingAvailableRooms(true);
-    try {
-      const targetRoomTypeId = item.roomTypeId || item.roomType?.id;
-      const res = await apiFetch(`/rooms?roomTypeId=${targetRoomTypeId}&status=AVAILABLE&size=200`);
-      setAvailableRooms(res?.data?.content ?? []);
-    } catch (err) {
-      notify(err.message || 'Lỗi tải danh sách phòng khả dụng', 'error');
-    } finally {
-      setLoadingAvailableRooms(false);
-    }
-  };
-
-  const handleAssignRoomSubmit = async (e) => {
-    e.preventDefault();
-    if (!assignRoomId) return notify('Vui lòng chọn phòng', 'error');
-    setSaving(true);
-    try {
-      await assignRoom(assignTargetBooking.id, { roomId: Number(assignRoomId) });
-      notify('Gán phòng thành công!');
-      setAssignModalOpen(false);
-      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
-    } catch (err) {
-      notify(err.message || 'Lỗi gán phòng', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleUpdateStatus = async (item, newStatus) => {
-    const statusText = t(`booking.status.${newStatus}`) || newStatus;
-    if (!window.confirm(t('booking.toast.statusConfirm', { status: statusText }).replace('{status}', statusText))) return;
-    try {
-      await updateBookingStatus(item.id, { status: newStatus });
-      notify(t('booking.toast.statusSuccess') || 'Cập nhật trạng thái thành công!');
-      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
-    } catch (err) {
-      notify(err.message || t('booking.toast.loadError'), 'error');
     }
   };
 
@@ -514,7 +403,7 @@ export default function BookingManager({ readOnly = false }) {
                     onClick={() => setPaymentModal({ open: true, booking: item })}
                     className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-bold transition-colors shadow-sm"
                   >
-                    💳 Thanh toán
+                    Thanh toán
                   </button>
                   <button
                     onClick={() => openCancelConfirm(item)}
@@ -526,21 +415,6 @@ export default function BookingManager({ readOnly = false }) {
               )}
               {status === 'CONFIRMED' && (
                 <>
-                  {!item.roomId ? (
-                    <button
-                      onClick={() => openAssignRoom(item)}
-                      className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-2 py-1 rounded text-xs font-bold transition-colors"
-                    >
-                      Gán phòng
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => openCheckInConfirm(item)}
-                      className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2 py-1 rounded text-xs font-bold transition-colors"
-                    >
-                      Check-in
-                    </button>
-                  )}
                   <button
                     onClick={() => openCancelConfirm(item)}
                     className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold transition-colors"
@@ -549,24 +423,9 @@ export default function BookingManager({ readOnly = false }) {
                   </button>
                 </>
               )}
-              {status === 'CHECKED_IN' && (
-                <button
-                  onClick={() => openCheckOutConfirm(item)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1 rounded text-xs font-bold transition-colors"
-                >
-                  Check-out
-                </button>
-              )}
-              {['CHECKED_OUT', 'CANCELLED', 'NO_SHOW'].includes(status) && (
-                <span className="text-xs text-slate-400 font-medium italic">Không có tác vụ</span>
-              )}
-            </div>
-          </td>
-        )}
-        {!readOnly && isReceptionistOrAbove && (
-          <td className="px-4 py-3">
-            <div className="flex items-center gap-3">
-              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa"><Edit2 size={15} /></button>
+              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700 p-1" title="Chỉnh sửa">
+                <Edit2 size={15} />
+              </button>
             </div>
           </td>
         )}
@@ -583,65 +442,25 @@ export default function BookingManager({ readOnly = false }) {
     t('booking.columns.checkOut'),
     t('booking.columns.status'),
     t('booking.columns.totalPrice'),
-    ...(!readOnly && isReceptionistOrAbove ? ['Quy trình nhanh', t('booking.columns.actions')] : [])
+    ...(!readOnly && isReceptionistOrAbove ? [t('booking.columns.actions')] : [])
   ];
 
   return (
     <div>
       <Toast type={toast.type} message={toast.message} onClose={closeToast} />
 
-      <div className="flex border-b border-stone-200 mb-6 gap-6">
-        <button onClick={() => setSubTab('overview')} className={`pb-3 text-sm font-bold flex items-center gap-1.5 transition-colors ${subTab === 'overview' ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]' : 'text-slate-500 hover:text-slate-800'}`}>
-          <Calendar size={16} /> {t('booking.tabs.today')}
-        </button>
-        <button onClick={() => setSubTab('search')} className={`pb-3 text-sm font-bold flex items-center gap-1.5 transition-colors ${subTab === 'search' ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]' : 'text-slate-500 hover:text-slate-800'}`}>
-          <Filter size={16} /> {t('booking.tabs.filter')}
-        </button>
-        <button onClick={() => setSubTab('all')} className={`pb-3 text-sm font-bold flex items-center gap-1.5 transition-colors ${subTab === 'all' ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]' : 'text-slate-500 hover:text-slate-800'}`}>
-          {t('booking.tabs.all')}
-        </button>
-      </div>
-
-      {subTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white border rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-              <CheckCircle size={18} className="text-emerald-500" /> {t('booking.overview.checkInToday', { count: todayCheckIns.length }).replace('{count}', todayCheckIns.length)}
-            </h3>
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-              {todayCheckIns.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">{t('booking.overview.noCheckIn')}</p>
-              ) : todayCheckIns.map(item => (
-                <div key={item.id} className="p-3 bg-stone-50 rounded border hover:shadow-sm transition-shadow">
-                  <p className="text-sm font-semibold">{item.customerName || `${t('booking.filters.customer')} #${item.customerId}`}</p>
-                  <p className="text-xs text-slate-500">{item.roomTypeName} - SL: <span className="font-bold">{item.quantity}</span></p>
-                  <p className="text-xs text-slate-400">{formatDate(item.checkInDate)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white border rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-              <LogOut size={18} className="text-blue-500" /> {t('booking.overview.checkOutToday', { count: todayCheckOuts.length }).replace('{count}', todayCheckOuts.length)}
-            </h3>
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-              {todayCheckOuts.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">{t('booking.overview.noCheckOut')}</p>
-              ) : todayCheckOuts.map(item => (
-                <div key={item.id} className="p-3 bg-stone-50 rounded border hover:shadow-sm transition-shadow">
-                  <p className="text-sm font-semibold">{item.customerName || `${t('booking.filters.customer')} #${item.customerId}`}</p>
-                  <p className="text-xs text-slate-500">{item.roomTypeName} - SL: <span className="font-bold">{item.quantity}</span></p>
-                  <p className="text-xs text-slate-400">{formatDate(item.checkOutDate)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <button onClick={() => fetchData(0)} className="p-2 border rounded hover:bg-stone-100" title={isVi ? 'Làm mới' : 'Refresh'}>
+            <RefreshCw size={14} />
+          </button>
+          {!readOnly && isReceptionistOrAbove && (
+            <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
+              <Plus size={16} /> {t('booking.modal.save')}
+            </button>
+          )}
         </div>
-      )}
 
-      {subTab === 'search' && (
-        <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-stone-50 rounded-xl border border-stone-200 shadow-xs">
             {/* Từ khóa tìm kiếm */}
             <div className="lg:col-span-2">
@@ -714,27 +533,12 @@ export default function BookingManager({ readOnly = false }) {
           </div>
 
           <div className="flex justify-end gap-3">
-            <button onClick={() => { setFilterStatus(''); setFilterCustomerId(''); setFilterRoomTypeId(''); setFilterRoomId(''); setSearchKeyword(''); setFilterStartDate(''); setFilterEndDate(''); }} className="px-4 py-2 border rounded-lg text-sm hover:bg-stone-100 font-semibold">{t('booking.filters.clear')}</button>
+            <button onClick={() => { setFilterStatus(''); setFilterCustomerId(''); setFilterRoomTypeId(''); setFilterRoomId(''); setSearchKeyword(''); setFilterStartDate(''); setFilterEndDate(''); setPage(0); }} className="px-4 py-2 border rounded-lg text-sm hover:bg-stone-100 font-semibold">{t('booking.filters.clear')}</button>
             <button onClick={() => fetchData(0)} className="px-5 py-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded-lg text-sm font-semibold shadow">{t('booking.filters.search')}</button>
           </div>
 
           <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
-        </div>
-      )}
-
-      {subTab === 'all' && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <button onClick={() => fetchData(0)} className="p-2 border rounded hover:bg-stone-100"><RefreshCw size={14} /></button>
-            {!readOnly && isReceptionistOrAbove && (
-              <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
-                <Plus size={16} /> {t('booking.modal.save')}
-              </button>
-            )}
-          </div>
-          <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
-        </div>
-      )}
+      </div>
 
       <Modal open={modal.open} title={modal.editing ? t('booking.modal.editTitle') : t('booking.modal.addTitle')} onClose={closeModal} size="lg">
         <form onSubmit={handleSave} className="space-y-4">
@@ -1038,72 +842,6 @@ export default function BookingManager({ readOnly = false }) {
         </form>
       </Modal>
 
-      {/* Modal gán phòng vật lý */}
-      <Modal
-        open={assignModalOpen}
-        title={`Gán phòng vật lý - Đơn #${assignTargetBooking?.id}`}
-        onClose={() => setAssignModalOpen(false)}
-        size="md"
-      >
-        <form onSubmit={handleAssignRoomSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-              Loại phòng yêu cầu
-            </label>
-            <input
-              type="text"
-              readOnly
-              value={assignTargetBooking?.roomTypeName || ''}
-              className="w-full border border-stone-200 rounded px-3 py-2 text-sm bg-stone-50 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-              Chọn phòng vật lý khả dụng *
-            </label>
-            {loadingAvailableRooms ? (
-              <div className="text-sm text-slate-500 py-2">Đang tải phòng trống...</div>
-            ) : availableRooms.length === 0 ? (
-              <div className="text-sm text-red-500 py-2 font-bold">
-                Không có phòng trống nào thuộc loại phòng này!
-              </div>
-            ) : (
-              <select
-                required
-                value={assignRoomId}
-                onChange={(e) => setAssignRoomId(e.target.value)}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white"
-              >
-                <option value="">-- Chọn phòng vật lý --</option>
-                {availableRooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    Phòng {r.roomNumber} (Tầng {r.floorNumber})
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setAssignModalOpen(false)}
-              className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={saving || availableRooms.length === 0}
-              className="px-5 py-2 text-sm bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded font-semibold shadow disabled:opacity-60"
-            >
-              {saving ? 'Đang gán...' : 'Xác nhận gán phòng'}
-            </button>
-          </div>
-        </form>
-      </Modal>
-
       {/* Receptionist Payment Modal */}
       <ReceptionistPaymentModal
         open={paymentModal.open}
@@ -1111,40 +849,21 @@ export default function BookingManager({ readOnly = false }) {
         onClose={() => setPaymentModal({ open: false, booking: null })}
         onSuccess={() => {
           notify(locale === 'vi' ? 'Thanh toán thành công! Đơn đã chuyển sang chờ check-in.' : 'Payment successful! Booking moved to pending check-in.');
-          if (subTab === 'overview') fetchTodayData(); else fetchData(page);
+          fetchData(page);
         }}
       />
 
-      {/* Action Confirmation Modal (Check-in, Hủy đơn, Xóa đơn, Check-out) */}
+      {/* Action Confirmation Modal (Hủy đơn) */}
       <Modal
         open={confirmModal.open}
         title={
-          confirmModal.type === 'CHECK_IN'
-            ? `Xác Nhận Check-In Đơn #${confirmModal.booking?.id}`
-            : confirmModal.type === 'CANCEL'
-            ? `Xác Nhận Hủy Đơn Đặt Phòng #${confirmModal.booking?.id}`
-            : confirmModal.type === 'DELETE'
-            ? `Xác Nhận Xóa Đơn Đặt Phòng #${confirmModal.booking?.id}`
-            : `Xác Nhận Check-Out Đơn #${confirmModal.booking?.id}`
+          `Xác Nhận Hủy Đơn Đặt Phòng #${confirmModal.booking?.id}`
         }
         onClose={() => setConfirmModal({ open: false, type: null, booking: null, reason: 'Khách thay đổi kế hoạch' })}
         size="md"
       >
         {confirmModal.booking && (
           <div className="space-y-4">
-            {/* Context Warning Box */}
-            {confirmModal.type === 'CHECK_IN' && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
-                <LogIn className="w-6 h-6 text-blue-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-bold text-blue-900">Tiến hành nhận phòng cho khách</h4>
-                  <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-                    Khách hàng sẽ được ghi nhận đã nhận phòng {confirmModal.booking.roomNumber ? `#${confirmModal.booking.roomNumber}` : 'đã gán'}. Thời gian check-in thực tế sẽ được lưu lại.
-                  </p>
-                </div>
-              </div>
-            )}
-
             {confirmModal.type === 'CANCEL' && (
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
                 <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
@@ -1152,30 +871,6 @@ export default function BookingManager({ readOnly = false }) {
                   <h4 className="text-sm font-bold text-amber-900">Xác nhận hủy đơn đặt phòng?</h4>
                   <p className="text-xs text-amber-800 mt-1 leading-relaxed">
                     Đơn đặt phòng sẽ chuyển sang trạng thái <strong>ĐÃ HỦY</strong> và phòng sẽ ngay lập tức được giải phóng trên hệ thống.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {confirmModal.type === 'DELETE' && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                <AlertOctagon className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-bold text-red-900">Cảnh báo: Xóa vĩnh viễn đơn đặt phòng</h4>
-                  <p className="text-xs text-red-700 mt-1 leading-relaxed">
-                    Bạn có chắc chắn muốn xóa đơn đặt phòng này khỏi hệ thống? Dữ liệu đơn sau khi xóa sẽ không thể khôi phục.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {confirmModal.type === 'CHECK_OUT' && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
-                <LogOut className="w-6 h-6 text-slate-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-bold text-slate-800">Thủ tục trả phòng & Check-out</h4>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                    Xác nhận khách trả phòng. Phòng sẽ được giải phóng và chuyển sang trạng thái dọn dẹp (DIRTY).
                   </p>
                 </div>
               </div>
@@ -1255,27 +950,17 @@ export default function BookingManager({ readOnly = false }) {
                 onClick={handleExecuteConfirm}
                 disabled={saving}
                 className={`px-5 py-2 text-xs font-bold text-white rounded-lg shadow transition-all flex items-center gap-1.5 ${
-                  confirmModal.type === 'CHECK_IN'
-                    ? 'bg-blue-600 hover:bg-blue-700'
-                    : confirmModal.type === 'CANCEL'
+                  confirmModal.type === 'CANCEL'
                     ? 'bg-amber-600 hover:bg-amber-700'
-                    : confirmModal.type === 'DELETE'
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-slate-700 hover:bg-slate-800'
+                    : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
                 {saving ? (
                   <>
                     <RefreshCw size={14} className="animate-spin" /> Đang xử lý...
                   </>
-                ) : confirmModal.type === 'CHECK_IN' ? (
-                  'Xác Nhận Check-In'
-                ) : confirmModal.type === 'CANCEL' ? (
-                  'Xác Nhận Hủy Đơn'
-                ) : confirmModal.type === 'DELETE' ? (
-                  'Xác Nhận Xóa Đơn'
                 ) : (
-                  'Xác Nhận Check-Out'
+                  'Xác Nhận Hủy Đơn'
                 )}
               </button>
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Calendar, Users, Building2, CreditCard, CheckCircle, ArrowLeft, ShoppingCart, Clock, X,
@@ -9,7 +9,13 @@ import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 import { roomTypes as mockRoomTypes } from '../data/mockData';
 import { apiFetch } from '../services/api';
-import { createBooking } from '../services/bookingService';
+import {
+  createCartHold,
+  updateCartHold,
+  getCartHold,
+  deleteCartHold,
+  checkoutCartHold,
+} from '../services/bookingService';
 import { getCombinedInvoice } from '../services/invoiceService';
 import {
   getStoredCustomerId,
@@ -28,6 +34,7 @@ const getLocalDateString = (dateObj = new Date()) => {
 
 const today = () => getLocalDateString();
 const CART_STORAGE_KEY = 'hms_booking_cart';
+const CART_HOLD_TOKEN_KEY = 'hms_booking_cart_hold_token';
 
 function loadBookingCart() {
   try {
@@ -35,6 +42,14 @@ function loadBookingCart() {
     return Array.isArray(stored) ? stored : [];
   } catch {
     return [];
+  }
+}
+
+function loadCartHoldToken() {
+  try {
+    return localStorage.getItem(CART_HOLD_TOKEN_KEY) || '';
+  } catch {
+    return '';
   }
 }
 
@@ -165,6 +180,9 @@ function BookingContent() {
   const [remainingSeconds, setRemainingSeconds] = useState(30 * 60);
   const [guestCounts, setGuestCounts] = useState([{ adults: 1, children: 0, infants: 0 }]);
   const [cartItems, setCartItems] = useState(loadBookingCart);
+  const [cartHoldToken, setCartHoldToken] = useState(loadCartHoldToken);
+  const [holdExpiresAt, setHoldExpiresAt] = useState(null);
+  const cartMutationVersion = useRef(0);
   const [bookingResults, setBookingResults] = useState([]);
   const [combinedInvoiceTotal, setCombinedInvoiceTotal] = useState(0);
 
@@ -208,7 +226,7 @@ function BookingContent() {
           setRoomType({
             ...rt,
             basePrice: Number(rt.basePrice),
-            imageUrl: mock?.imageUrl || mockRoomTypes[0].imageUrl,
+            imageUrl: rt.imageUrl || rt.imageUrls?.[0] || mock?.imageUrl || mockRoomTypes[0].imageUrl,
             amenities: mock?.amenities || [],
           });
         }
@@ -270,15 +288,80 @@ function BookingContent() {
   }, [cartItems]);
 
   useEffect(() => {
-    if (!bookingResult?.holdExpiresAt) return undefined;
+    if (!cartHoldToken) return undefined;
+    let mounted = true;
+    const requestVersion = cartMutationVersion.current;
+    getCartHold(cartHoldToken, locale)
+      .then((res) => {
+        if (!mounted || requestVersion !== cartMutationVersion.current || !res?.data) return;
+        const serverItems = res.data.items || [];
+        setCartItems((current) => serverItems.map((serverItem, index) => ({
+          ...(current[index] || {}),
+          key: createCartKey(
+            serverItem.roomTypeId,
+            serverItem.checkInDate?.split('T')[0],
+            serverItem.checkOutDate?.split('T')[0],
+          ),
+          holdItemId: serverItem.id,
+          roomTypeId: serverItem.roomTypeId,
+          roomTypeName: serverItem.roomTypeName,
+          pricePerNight: Number(serverItem.pricePerNight || current[index]?.pricePerNight || 0),
+          checkIn: serverItem.checkInDate?.split('T')[0],
+          checkOut: serverItem.checkOutDate?.split('T')[0],
+          quantity: serverItem.quantity,
+          guestCounts: current[index]?.guestCounts || Array.from(
+            { length: serverItem.quantity },
+            () => ({ adults: 1, children: 0, infants: 0 }),
+          ),
+        })));
+        setHoldExpiresAt(res.data.expiresAt || null);
+      })
+      .catch(() => {
+        if (!mounted || requestVersion !== cartMutationVersion.current) return;
+        localStorage.removeItem(CART_HOLD_TOKEN_KEY);
+        localStorage.removeItem(CART_STORAGE_KEY);
+        setCartHoldToken('');
+        setHoldExpiresAt(null);
+        setCartItems([]);
+      });
+    return () => { mounted = false; };
+  }, [cartHoldToken, locale]);
+
+  useEffect(() => {
+    const expiry = holdExpiresAt || bookingResult?.holdExpiresAt;
+    if (!expiry) return undefined;
+    let expirationHandled = false;
     const updateCountdown = () => setRemainingSeconds(Math.max(
       0,
-      Math.floor((new Date(bookingResult.holdExpiresAt).getTime() - Date.now()) / 1000),
+      Math.floor((new Date(expiry).getTime() - Date.now()) / 1000),
     ));
     updateCountdown();
     const timer = window.setInterval(updateCountdown, 1000);
+    if (cartHoldToken) {
+      const checkExpiration = async () => {
+        if (expirationHandled || new Date(expiry).getTime() > Date.now()) return;
+        expirationHandled = true;
+        try {
+          await deleteCartHold(cartHoldToken, locale);
+        } catch {
+          // The scheduler will release an already-expired hold if this request fails.
+        }
+        localStorage.removeItem(CART_HOLD_TOKEN_KEY);
+        localStorage.removeItem(CART_STORAGE_KEY);
+        setCartHoldToken('');
+        setHoldExpiresAt(null);
+        setCartItems([]);
+        setError(locale === 'vi' ? 'Thời gian giữ phòng đã hết. Vui lòng chọn lại.' : 'The room hold expired. Please select again.');
+      };
+      const expirationTimer = window.setInterval(checkExpiration, 1000);
+      checkExpiration();
+      return () => {
+        window.clearInterval(timer);
+        window.clearInterval(expirationTimer);
+      };
+    }
     return () => window.clearInterval(timer);
-  }, [bookingResult]);
+  }, [holdExpiresAt, bookingResult, cartHoldToken, locale]);
 
   useEffect(() => {
     if (!user || isReceptionist) return;
@@ -430,6 +513,59 @@ function BookingContent() {
     throw new Error(locale === 'vi' ? 'Không thể xác định thông tin khách hàng' : 'Could not resolve customer profile');
   };
 
+  const syncCartHold = async (nextItems) => {
+    cartMutationVersion.current += 1;
+    setLoading(true);
+    try {
+      if (nextItems.length === 0) {
+        if (cartHoldToken) await deleteCartHold(cartHoldToken, locale);
+        localStorage.removeItem(CART_HOLD_TOKEN_KEY);
+        setCartHoldToken('');
+        setHoldExpiresAt(null);
+        setCartItems([]);
+        return null;
+      }
+
+      const payload = {
+        items: nextItems.map((item) => ({
+          roomTypeId: Number(item.roomTypeId),
+          checkInDate: toCheckIn(item.checkIn),
+          checkOutDate: toCheckOut(item.checkOut),
+          quantity: Number(item.quantity),
+        })),
+      };
+      const response = cartHoldToken
+        ? await updateCartHold(cartHoldToken, payload, locale)
+        : await createCartHold(payload, locale);
+      const hold = response?.data;
+      if (!hold?.holdToken) throw new Error(locale === 'vi' ? 'Không thể giữ phòng.' : 'Could not hold rooms.');
+
+      const serverItems = hold.items || [];
+      const mappedItems = nextItems.map((item, index) => ({
+        ...item,
+        holdItemId: serverItems[index]?.id,
+      }));
+      setCartItems(mappedItems);
+      setCartHoldToken(hold.holdToken);
+      setHoldExpiresAt(hold.expiresAt || null);
+      localStorage.setItem(CART_HOLD_TOKEN_KEY, hold.holdToken);
+      return hold;
+    } catch (err) {
+      setError(err.message || (locale === 'vi' ? 'Không thể giữ phòng trong giỏ hàng.' : 'Could not hold the cart rooms.'));
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveCartItem = async (itemKey) => {
+    try {
+      await syncCartHold(cartItems.filter((item) => item.key !== itemKey));
+    } catch {
+      // syncCartHold already shows the server error beside the cart.
+    }
+  };
+
   const handleSubmit = async () => {
     setError('');
     if (cartItems.length === 0) {
@@ -460,31 +596,32 @@ function BookingContent() {
       }));
       return;
     }
+    if (!cartHoldToken || cartItems.some((item) => !item.holdItemId)) {
+      setError(locale === 'vi' ? 'Giỏ phòng chưa được giữ trên máy chủ. Vui lòng thêm lại phòng.' : 'The cart is not held on the server. Please add the rooms again.');
+      return;
+    }
+
     setLoading(true);
-    const completedKeys = [];
     try {
       const customerId = await ensureCustomerId();
-      const createdBookings = [];
-      for (const item of cartItems) {
-        const payload = {
-          customerId,
-          roomTypeId: Number(item.roomTypeId),
-          checkInDate: toCheckIn(item.checkIn),
-          checkOutDate: toCheckOut(item.checkOut),
-          quantity: item.quantity,
+      const checkoutPayload = {
+        customerId,
+        bookingForOther,
+        guestFullName: bookingForOther ? stayGuestForm.fullName : customerForm.fullName,
+        guestEmail: bookingForOther ? stayGuestForm.email : customerForm.email,
+        guestPhone: bookingForOther ? stayGuestForm.phone : customerForm.phone,
+        guestIdType: bookingForOther ? stayGuestForm.idType : customerForm.idType,
+        guestIdNumberCard: bookingForOther ? stayGuestForm.idNumberCard : customerForm.idNumberCard,
+        guestNationality: bookingForOther ? stayGuestForm.nationality : customerForm.nationality,
+        items: cartItems.map((item) => ({
+          holdItemId: item.holdItemId,
           roomGuests: item.guestCounts,
-          bookingForOther,
-          guestFullName: bookingForOther ? stayGuestForm.fullName : customerForm.fullName,
-          guestEmail: bookingForOther ? stayGuestForm.email : customerForm.email,
-          guestPhone: bookingForOther ? stayGuestForm.phone : customerForm.phone,
-          guestIdType: bookingForOther ? stayGuestForm.idType : customerForm.idType,
-          guestIdNumberCard: bookingForOther ? stayGuestForm.idNumberCard : customerForm.idNumberCard,
-          guestNationality: bookingForOther ? stayGuestForm.nationality : customerForm.nationality,
-        };
-        const res = await createBooking(payload, locale);
-        createdBookings.push(res.data);
-        completedKeys.push(item.key);
-      }
+        })),
+      };
+      const checkoutResponse = await checkoutCartHold(cartHoldToken, checkoutPayload, locale);
+      const createdBookings = checkoutResponse?.data?.bookings || [];
+      if (createdBookings.length === 0) throw new Error(locale === 'vi' ? 'Không tạo được booking.' : 'No booking was created.');
+
       const createdBookingIds = createdBookings.map((created) => created.id);
       const fallbackTotal = createdBookings.reduce((total, created) => total + Number(created.totalPrice || 0), 0);
       try {
@@ -496,6 +633,10 @@ function BookingContent() {
       setBookingResults(createdBookings);
       setBookingResult(createdBookings[0]);
       setCartItems([]);
+      setCartHoldToken('');
+      setHoldExpiresAt(null);
+      localStorage.removeItem(CART_HOLD_TOKEN_KEY);
+      localStorage.removeItem(CART_STORAGE_KEY);
       if (isReceptionist) {
         const bookingQuery = createdBookingIds.map((id) => `bookingIds=${encodeURIComponent(id)}`).join('&');
         navigate(`/invoice/batch?${bookingQuery}&receptionistPayment=true`);
@@ -503,44 +644,31 @@ function BookingContent() {
       }
       setStep(3);
     } catch (err) {
-      if (completedKeys.length > 0) {
-        setCartItems((current) => current.filter((item) => !completedKeys.includes(item.key)));
-      }
-      const backendErrors = err.data?.data;
-      let mappedErrors = {};
-      if (backendErrors && typeof backendErrors === 'object' && !Array.isArray(backendErrors)) {
-        mappedErrors = Object.fromEntries(Object.entries(backendErrors)
-          .map(([field, message]) => [`customer.${field}`, message]));
-      }
       const baseMessage = err.message || t('bookingPage.submitFailed');
-      if (isReceptionist && Object.keys(mappedErrors).length === 0) {
-        const normalizedMessage = baseMessage.toLocaleLowerCase('vi');
-        if (normalizedMessage.includes('email')) mappedErrors['customer.email'] = baseMessage;
-        else if (normalizedMessage.includes('điện thoại') || normalizedMessage.includes('phone')) mappedErrors['customer.phone'] = baseMessage;
-        else if (normalizedMessage.includes('cccd') || normalizedMessage.includes('giấy tờ') || normalizedMessage.includes('id card')) mappedErrors['customer.idNumberCard'] = baseMessage;
-      }
+      const backendErrors = err.data?.data;
+      const customerFields = new Set(['fullName', 'email', 'phone', 'idType', 'idNumberCard', 'nationality']);
+      const mappedErrors = backendErrors && typeof backendErrors === 'object' && !Array.isArray(backendErrors)
+        ? Object.fromEntries(Object.entries(backendErrors)
+          .filter(([field]) => customerFields.has(field))
+          .map(([field, message]) => [`customer.${field}`, message]))
+        : {};
       if (Object.keys(mappedErrors).length > 0) {
         setServerFieldErrors(mappedErrors);
         setTouchedFields((current) => ({
           ...current,
           ...Object.fromEntries(Object.keys(mappedErrors).map((field) => [field, true])),
         }));
-        if (completedKeys.length === 0) return;
+        return;
       }
-      const msg = completedKeys.length > 0
-        ? (locale === 'vi'
-          ? `${completedKeys.length} đơn đã tạo thành công. Các phòng còn lại vẫn được giữ trong giỏ. ${baseMessage}`
-          : `${completedKeys.length} booking(s) were created. Remaining rooms are still in your cart. ${baseMessage}`)
-        : baseMessage;
-      setFailureMessage(msg);
+      setFailureMessage(baseMessage);
       setFailureModalOpen(true);
-      setError(msg);
+      setError(baseMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelectRoom = () => {
+  const handleSelectRoom = async () => {
     setError('');
     const invalidSelectionFields = Object.keys(selectionErrors);
     if (invalidSelectionFields.length > 0) {
@@ -564,23 +692,35 @@ function BookingContent() {
       quantity: booking.quantity,
       guestCounts: guestCounts.map((guests) => ({ ...guests })),
     };
-    setCartItems((current) => [
-      ...current.filter((item) => item.key !== currentCartKey),
+    const nextItems = [
+      ...cartItems.filter((item) => item.key !== currentCartKey),
       nextItem,
-    ]);
+    ];
+    try {
+      await syncCartHold(nextItems);
+    } catch {
+      // syncCartHold already shows the server error beside the cart.
+    }
   };
 
-  const handleCartAction = () => {
+  const handleCartAction = async () => {
     setError('');
     if (step === 1) {
       if (cartItems.length === 0) {
         setError(locale === 'vi' ? 'Vui lòng chọn phòng và thêm vào giỏ trước.' : 'Please select a room and add it to the cart first.');
         return;
       }
+      if (!cartHoldToken || cartItems.some((item) => !item.holdItemId)) {
+        try {
+          await syncCartHold(cartItems);
+        } catch {
+          return;
+        }
+      }
       setStep(2);
       return;
     }
-    if (step === 2) handleSubmit();
+    if (step === 2) await handleSubmit();
   };
 
   if (!roomType) {
@@ -782,10 +922,12 @@ function BookingContent() {
             <button
               type="button"
               onClick={handleSelectRoom}
-              disabled={currentSelectionInCart || checkingAvailability || availableRoomsCount === null || availableRoomsCount === 0 || booking.quantity > availableRoomsCount}
+              disabled={currentSelectionInCart || loading || checkingAvailability || availableRoomsCount === null || availableRoomsCount === 0 || booking.quantity > availableRoomsCount}
               className="w-full btn-gold py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {checkingAvailability
+              {loading
+                ? (locale === 'vi' ? 'Đang giữ phòng...' : 'Holding rooms...')
+                : checkingAvailability
                 ? (locale === 'vi' ? 'Đang kiểm tra phòng trống...' : 'Checking availability...')
                 : currentSelectionInCart
                   ? (locale === 'vi' ? 'Đã thêm vào giỏ' : 'Added to cart')
@@ -1024,7 +1166,7 @@ function BookingContent() {
                     {step === 1 && (
                       <button
                         type="button"
-                        onClick={() => setCartItems((current) => current.filter((cartItem) => cartItem.key !== item.key))}
+                        onClick={() => handleRemoveCartItem(item.key)}
                         className="text-slate-400 transition-colors hover:text-red-500"
                         title={locale === 'vi' ? 'Xóa khỏi giỏ' : 'Remove from cart'}
                       >
@@ -1060,7 +1202,7 @@ function BookingContent() {
                 {locale === 'vi' ? '+ Đặt thêm loại phòng khác' : '+ Add another room type'}
               </Link>
             )}
-            <p className="mt-3 text-center text-xs text-slate-500">{locale === 'vi' ? 'Phòng sẽ được giữ 30 phút sau khi đặt.' : 'The room will be held for 30 minutes after booking.'}</p>
+            <p className="mt-3 text-center text-xs text-slate-500">{locale === 'vi' ? 'Phòng được giữ 30 phút sau khi thêm vào giỏ.' : 'Rooms are held for 30 minutes after being added to the cart.'}</p>
           </aside>
         )}
         </div>

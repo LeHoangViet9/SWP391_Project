@@ -27,6 +27,12 @@ function formatPrice(price, locale) {
   }).format(price);
 }
 
+function isRoomUnavailable(room) {
+  return room.availabilityError === true
+    || Number(room.totalRooms ?? 0) <= 0
+    || Number(room.availableCount ?? 0) <= 0;
+}
+
 export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkOut = '' }) {
   const { t, locale } = useLocale();
   const navigate = useNavigate();
@@ -39,7 +45,8 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
         if (res?.data?.content?.length) {
           const apiRooms = await Promise.all(
             res.data.content.map(async (rt) => {
-              let availableCount = rt.totalRooms ?? 1;
+              let availableCount = Number(rt.totalRooms ?? 0);
+              let availabilityError = false;
               if (checkIn && checkOut) {
                 try {
                   const checkRes = await checkAvailability(
@@ -50,19 +57,22 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                     },
                     locale
                   );
-                  if (checkRes?.data != null) {
-                    availableCount = Number(checkRes.data);
+                  const parsedCount = Number(checkRes?.data);
+                  if (Number.isFinite(parsedCount)) {
+                    availableCount = Math.max(0, Math.floor(parsedCount));
+                  } else {
+                    availabilityError = true;
                   }
                 } catch (e) {
-                  /* ignore error, fallback to totalRooms */
+                  availabilityError = true;
                 }
               }
               return {
                 ...rt,
                 availableCount,
+                availabilityError,
                 basePrice: Number(rt.basePrice),
-                imageUrl:
-                  mockRoomTypes.find((m) => m.id === rt.id)?.imageUrl || mockRoomTypes[0].imageUrl,
+                imageUrl: rt.imageUrl || rt.imageUrls?.[0] || mockRoomTypes.find((m) => m.id === rt.id)?.imageUrl || mockRoomTypes[0].imageUrl,
                 amenities:
                   mockRoomTypes.find((m) => m.id === rt.id)?.amenities || ['Wifi', 'Điều hòa'],
               };
@@ -86,12 +96,7 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
   const filteredRooms = (() => {
     let list = rooms;
     if (guestFilter <= 0) return list;
-    const validCapacities = list
-      .map((r) => r.maxGuests)
-      .filter((cap) => cap >= guestFilter);
-    if (validCapacities.length === 0) return [];
-    const minCap = Math.min(...validCapacities);
-    return list.filter((r) => r.maxGuests === minCap);
+    return list.filter((room) => Number(room.maxGuests) === guestFilter);
   })();
 
   return (
@@ -118,7 +123,7 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
             {filteredRooms.map((room) => {
-              const isSoldOut = room.totalRooms === 0 || room.availableCount === 0;
+              const availabilityUnavailable = isRoomUnavailable(room);
 
               return (
                 <article
@@ -134,10 +139,12 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                     <div className="absolute top-4 left-4 bg-[#bfa15f] text-white text-xs font-semibold px-3 py-1 uppercase tracking-wider">
                       {room.status === 'ACTIVE' ? '5★' : room.status}
                     </div>
-                    {isSoldOut && (
+                    {availabilityUnavailable && (
                       <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                         <span className="bg-red-600 text-white font-bold text-sm px-4 py-2 uppercase tracking-widest rounded-sm">
-                          {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
+                          {room.availabilityError
+                            ? (locale === 'vi' ? 'Không thể kiểm tra' : 'Availability unavailable')
+                            : (locale === 'vi' ? 'Hết phòng' : 'Sold Out')}
                         </span>
                       </div>
                     )}
@@ -204,12 +211,14 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                         >
                           {t('rooms.viewDetail')}
                         </button>
-                        {isSoldOut ? (
+                        {availabilityUnavailable ? (
                           <button
                             disabled
                             className="px-4 py-2 text-sm bg-stone-300 text-stone-500 cursor-not-allowed rounded font-medium"
                           >
-                            {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
+                            {room.availabilityError
+                              ? (locale === 'vi' ? 'Không thể kiểm tra' : 'Unavailable')
+                              : (locale === 'vi' ? 'Hết phòng' : 'Sold Out')}
                           </button>
                         ) : (
                           <button
@@ -342,12 +351,14 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                 >
                   {locale === 'vi' ? 'Đóng' : 'Close'}
                 </button>
-                {selectedRoom.totalRooms === 0 || selectedRoom.availableCount === 0 ? (
+                {isRoomUnavailable(selectedRoom) ? (
                   <button
                     disabled
                     className="px-6 py-2.5 text-xs bg-stone-300 text-stone-500 cursor-not-allowed font-medium rounded-sm uppercase tracking-wider"
                   >
-                    {locale === 'vi' ? 'Hết phòng' : 'Sold Out'}
+                    {selectedRoom.availabilityError
+                      ? (locale === 'vi' ? 'Không thể kiểm tra' : 'Unavailable')
+                      : (locale === 'vi' ? 'Hết phòng' : 'Sold Out')}
                   </button>
                 ) : (
                   <button

@@ -223,7 +223,14 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/room-types/**").permitAll()
 
                         // 4. Kiểm tra phòng trống — công khai (khách chưa đăng nhập cũng cần)
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/bookings/check-availability").permitAll()
+                        .requestMatchers(
+                                org.springframework.http.HttpMethod.GET,
+                                "/api/v1/bookings/check-availability",
+                                "/api/v1/bookings/available-rooms"
+                        ).permitAll()
+
+                        // Cart holds use an opaque browser token and support guest checkout.
+                        .requestMatchers("/api/v1/cart-holds/**").permitAll()
 
                         // 5. Đánh giá công khai trên trang chủ
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/feedbacks/public/**").permitAll()

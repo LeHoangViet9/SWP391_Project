@@ -30,6 +30,7 @@ public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEnv
                  Statement stmt = conn.createStatement()) {
 
                 cleanupLegacyUsers(stmt);
+                syncLegacyUserNameConstraint(stmt);
                 syncInvoiceConstraints(stmt);
                 syncBookingStatusConstraint(stmt);
                 syncWorkStatusConstraint(stmt);
@@ -50,6 +51,19 @@ public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEnv
             }
         } catch (Exception e) {
             log.debug("[PreHibernate] Legacy user cleanup skipped: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Older databases still have a retired user_name column that is not mapped
+     * by the current User entity. It must accept NULL for current seed users.
+     */
+    private void syncLegacyUserNameConstraint(Statement stmt) {
+        try {
+            stmt.execute("ALTER TABLE users ALTER COLUMN user_name DROP NOT NULL");
+            log.info("[PreHibernate] Legacy users.user_name column made nullable");
+        } catch (Exception e) {
+            log.debug("[PreHibernate] Legacy user_name constraint sync skipped: {}", e.getMessage());
         }
     }
 

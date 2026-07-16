@@ -70,7 +70,9 @@ public class RoomController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ROOM_CREATE')")
-    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(@RequestParam("imageRoom")List<MultipartFile> file, @ModelAttribute @Valid RoomRequest roomRequest) {
+    public ResponseEntity<ApiResponse<RoomResponse>> createRoom(
+            @RequestParam(value = "imageRoom", required = false) List<MultipartFile> file,
+            @ModelAttribute @Valid RoomRequest roomRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomResponse created = roomService.createRoom(roomRequest,file);
         String message = messageSource.getMessage("success.room.create", null, locale);
