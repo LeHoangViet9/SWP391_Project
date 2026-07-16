@@ -79,7 +79,7 @@ public class BookingServiceImpl implements BookingService {
             BookingStatus.CONFIRMED,
             BookingStatus.CHECKED_IN);
 
-    @Value("${app.booking.hold-minutes:5}")
+    @Value("${app.booking.hold-minutes:1}")
     private long cartHoldMinutes;
 
     private static final Map<BookingStatus, Set<BookingStatus>> VALID_TRANSITIONS = new java.util.EnumMap<>(

@@ -2,7 +2,7 @@
 
 ## Objective
 
-Keep every room in a customer's cart reserved on the server for 5 minutes,
+Keep every room in a customer's cart reserved on the server for 1 minute,
 including before guest details and payment are submitted.
 
 ## Contract

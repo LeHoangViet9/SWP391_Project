@@ -60,7 +60,7 @@ public class CartHoldServiceImpl implements CartHoldService {
     private final BookingService bookingService;
     private final MessageSource messageSource;
 
-    @Value("${app.booking.hold-minutes:5}")
+    @Value("${app.booking.hold-minutes:1}")
     private long holdMinutes;
 
     @Override

@@ -127,15 +127,15 @@ class CartHoldIntegrationTest {
     }
 
     @Test
-    void newCartHoldExpiresAfterFiveMinutes() throws Exception {
+    void newCartHoldExpiresAfterOneMinute() throws Exception {
         LocalDateTime before = LocalDateTime.now();
         String response = createHold();
         LocalDateTime expiresAt = LocalDateTime.parse(
                 objectMapper.readTree(response).path("data").path("expiresAt").asText());
 
         long seconds = Duration.between(before, expiresAt).getSeconds();
-        assertTrue(seconds >= 4 * 60 + 50 && seconds <= 5 * 60 + 10,
-                "Cart hold should expire in approximately five minutes, actual seconds: " + seconds);
+        assertTrue(seconds >= 60 - 10 && seconds <= 60 + 10,
+                "Cart hold should expire in approximately one minute, actual seconds: " + seconds);
     }
 
     @Test
