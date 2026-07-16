@@ -17,7 +17,6 @@ import { useAuth } from '../context/AuthContext';
 import { usePermission } from '../hooks/usePermission';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TASK_STATUSES = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
-const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
 const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
@@ -120,16 +119,10 @@ const TaskDetailDrawer = ({
     onReportIssue,
     locale,
     readOnly = false,
+    canExecuteTasks = false,
     actionLoading = false
 }) => {
     if (!task) return null;
-
-    const nextActions = {
-        PENDING: { label: 'Nhận việc', labelEn: 'Accept', nextStatus: 'IN_PROGRESS', btnClass: 'bg-amber-500 hover:bg-amber-600 text-white' },
-        IN_PROGRESS: { label: 'Hoàn thành', labelEn: 'Complete', nextStatus: 'COMPLETED', btnClass: 'bg-emerald-500 hover:bg-emerald-600 text-white' }
-    };
-
-    const nextAction = nextActions[task.status];
 
     return (
         <div className="fixed inset-0 z-[60] flex">
@@ -186,16 +179,16 @@ const TaskDetailDrawer = ({
                         </div>
                     )}
 
-                    {readOnly && (
+                    {canExecuteTasks && (
                         <div className="pt-4 border-t border-stone-100 space-y-3">
-                            {nextAction && (
+                            {(task.status === 'PENDING' || task.status === 'IN_PROGRESS') && (
                                 <button
-                                    onClick={() => onUpdateStatus(task.id, nextAction.nextStatus)}
+                                    onClick={() => onUpdateStatus(task.id, task.status === 'PENDING' ? 'IN_PROGRESS' : 'COMPLETED')}
                                     disabled={actionLoading}
-                                    className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 ${nextAction.btnClass}`}
+                                    className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 ${task.status === 'PENDING' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'} text-white`}
                                 >
                                     {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                                    {locale === 'en' ? nextAction.labelEn : nextAction.label}
+                                    {task.status === 'PENDING' ? 'Nhận việc' : 'Hoàn thành'}
                                 </button>
                             )}
 
@@ -205,7 +198,7 @@ const TaskDetailDrawer = ({
                                     disabled={actionLoading}
                                     className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
                                 >
-                                    <X size={16} /> {locale === 'en' ? 'Cancel' : 'Hủy việc'}
+                                    <X size={16} /> Hủy việc
                                 </button>
                             )}
 
@@ -226,6 +219,7 @@ const TaskDetailDrawer = ({
                             </button>
                         </div>
                     )}
+
                 </div>
                 {!readOnly && (
                     <div className="p-6 border-t border-stone-100">
@@ -656,7 +650,7 @@ const KanbanColumn = ({ status, tasks, onView, locale, readOnly = false }) => {
     );
 };
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function HousekeepingManager({ readOnly = false }) {
+export default function HousekeepingManager({ readOnly = false, canExecuteTasks = false }) {
     const { user } = useAuth();
     const { locale } = useLocale();
     const { hasPermission } = usePermission();
@@ -741,12 +735,6 @@ export default function HousekeepingManager({ readOnly = false }) {
     }, [locale]);
     useEffect(() => { fetchTasks(); }, [fetchTasks]);
     useEffect(() => { fetchHousekeepers(); }, [fetchHousekeepers]);
-
-    useEffect(() => {
-        if (readOnly && user?.id) {
-            setFilters(prev => ({ ...prev, assignedToId: user.id }));
-        }
-    }, [readOnly, user?.id]);
 
     // ── Filter change resets page ────────────────────────────────────────────
     const handleFilterChange = (key, value) => {
@@ -933,6 +921,7 @@ export default function HousekeepingManager({ readOnly = false }) {
                     onReportIssue={(roomId) => { setReportRoomId(roomId); setShowIssueModal(true); }}
                     locale={locale}
                     readOnly={readOnly}
+                    canExecuteTasks={canExecuteTasks}
                     actionLoading={actionLoading}
                 />
             )}
@@ -958,9 +947,9 @@ export default function HousekeepingManager({ readOnly = false }) {
                     <h2 className="text-lg font-bold text-slate-800">Quản lý Tác vụ Buồng phòng</h2>
                     <p className="text-sm text-slate-500 mt-0.5">Tổng cộng <span className="font-bold text-[#bfa15f]">{totalElements}</span> tác vụ</p>
                 </div>
-                {(hasPermission('HOUSEKEEPING_VIEW') || hasPermission('HOUSEKEEPING_UPDATE') || (hasPermission('HOUSEKEEPING_CREATE') && !readOnly)) && (
+                {(hasPermission('HOUSEKEEPING_VIEW') || (canExecuteTasks && hasPermission('HOUSEKEEPING_UPDATE')) || (hasPermission('HOUSEKEEPING_CREATE') && !readOnly)) && (
                     <div className="flex flex-wrap gap-2">
-                        {hasPermission('HOUSEKEEPING_UPDATE') && (
+                        {canExecuteTasks && hasPermission('HOUSEKEEPING_UPDATE') && (
                             <button onClick={() => setShowIssueModal(true)}
                                 className="flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors bg-white">
                                 <Wrench size={16} /> Báo cáo sự cố
@@ -1075,10 +1064,6 @@ export default function HousekeepingManager({ readOnly = false }) {
                         className="border border-stone-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#bfa15f]"
                         aria-label={dateMode === 'month' ? 'Chọn tháng' : 'Chọn ngày'}
                     />
-                    <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(0); }}
-                        className="border border-stone-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#bfa15f]">
-                        {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={n}>{n} / trang</option>)}
-                    </select>
                 </div>
             </div>
             {/* ── Kanban View ──────────────────────────────────────────────────────── */}

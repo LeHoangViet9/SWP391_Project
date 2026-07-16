@@ -75,6 +75,9 @@ function ContentPage({ routeKey }) {
   if (routeKey === 'housekeeping') {
     if (user?.roleName === 'HOUSEKEEPER') {
       Component = HousekeepingManager;
+      componentProps = { readOnly: true, canExecuteTasks: true };
+    } else if (user?.roleName === 'RECEPTIONIST') {
+      Component = HousekeepingManager;
       componentProps = { readOnly: true };
     } else if (user?.roleName === 'ADMIN' || user?.roleName === 'MANAGER') {
       Component = HousekeepingManager;
