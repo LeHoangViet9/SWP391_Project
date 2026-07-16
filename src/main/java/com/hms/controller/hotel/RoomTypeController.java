@@ -73,7 +73,7 @@ public class RoomTypeController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ROOM_TYPE_CREATE')")
-    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomType(@RequestBody @Valid RoomTypeRequest roomTypeRequest) {
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomType(@ModelAttribute @Valid RoomTypeRequest roomTypeRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomTypeResponse created = roomTypeService.createRoomType(roomTypeRequest);
         String message = messageSource.getMessage("success.roomtype.create", null, locale);
@@ -88,7 +88,7 @@ public class RoomTypeController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ROOM_TYPE_UPDATE')")
-    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomType(@PathVariable Long id, @RequestBody @Valid RoomTypeRequest roomTypeRequest) {
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomType(@PathVariable Long id, @ModelAttribute @Valid RoomTypeRequest roomTypeRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         RoomTypeResponse updated = roomTypeService.updateRoomType(id, roomTypeRequest);
         String message = messageSource.getMessage("success.roomtype.update", null, locale);

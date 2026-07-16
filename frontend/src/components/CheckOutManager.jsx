@@ -10,6 +10,24 @@ import Toast from './shared/Toast';
 const money = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0));
 const dateTime = value => value ? new Date(value).toLocaleString('vi-VN') : '-';
 
+const statusConfig = {
+  CHECKED_IN: { label: 'Đang lưu trú', className: 'bg-blue-50 text-blue-700 border-blue-100' },
+  CHECKED_OUT: { label: 'Đã trả phòng', className: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+  CONFIRMED: { label: 'Chờ check-in', className: 'bg-amber-50 text-amber-700 border-amber-100' },
+  PENDING_PAYMENT: { label: 'Chờ thanh toán', className: 'bg-orange-50 text-orange-700 border-orange-100' },
+  CANCELLED: { label: 'Đã hủy', className: 'bg-red-50 text-red-700 border-red-100' },
+  NO_SHOW: { label: 'Không đến', className: 'bg-slate-100 text-slate-600 border-slate-200' },
+};
+
+function getStatusBadge(status) {
+  const cfg = statusConfig[status] || { label: status || '-', className: 'bg-slate-50 text-slate-600 border-slate-100' };
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${cfg.className}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
 const MINIBAR_ITEMS = [
   { id: 'water', name: 'Nước suối Aquafina', price: 10000 },
   { id: 'cola', name: 'Coca-Cola / Pepsi', price: 20000 },
@@ -197,13 +215,14 @@ export default function CheckOutManager({ preferredRoom = null }) {
     finally { setSaving(false); }
   }
 
-  const columns = ['Mã đơn', 'Khách hàng', 'Phòng', 'Ngày trả dự kiến', 'Tiền phòng', ''];
+  const columns = ['Mã đơn', 'Khách hàng', 'Phòng', 'Ngày trả dự kiến', 'Tiền phòng', 'Trạng thái', ''];
   const tableRows = rows.map(row => <tr key={row.id}>
     <td className="px-4 py-3 font-bold">#{row.id}</td>
     <td className="px-4 py-3">{row.guestFullName || row.customerName || '-'}</td>
     <td className="px-4 py-3">{row.roomNumber || '-'}</td>
     <td className="px-4 py-3">{dateTime(row.checkOutDate)}</td>
     <td className="px-4 py-3">{money(row.totalPrice)}</td>
+    <td className="px-4 py-3">{getStatusBadge(row.bookingStatus || row.status)}</td>
     <td className="px-4 py-3 text-right"><button disabled={!canProcess} onClick={() => openCheckout(row)} className="rounded bg-[#bfa15f] px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Xử lý check-out</button></td>
   </tr>);
 

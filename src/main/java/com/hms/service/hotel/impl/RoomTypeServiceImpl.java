@@ -2,12 +2,16 @@ package com.hms.service.hotel.impl;
 
 import java.util.Locale;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.hms.common.enums.AccountStatus; // 🛠️ Đảm bảo import enum trạng thái của dự án bạn
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
+import com.hms.common.utils.LocalFileUtils;
 import com.hms.common.utils.PageableUtils;
 import com.hms.service.hotel.mapper.RoomTypeMapper;
 import org.springframework.context.MessageSource;
@@ -26,10 +30,12 @@ import com.hms.repository.customer.CustomerFeedbackRepository;
 import com.hms.dto.roomtype.response.RoomTypeResponse;
 import com.hms.dto.roomtype.request.RoomTypeRequest;
 import com.hms.entity.hotel.RoomType;
+import com.hms.entity.hotel.RoomTypeImage;
 import com.hms.repository.hotel.RoomTypeRepository;
 import com.hms.service.hotel.IRoomTypeService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +48,7 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
     private final RoomRepository roomRepository;
     private final BookingRepository bookingRepository;
     private final CustomerFeedbackRepository customerFeedbackRepository;
+    private final LocalFileUtils localFileUtils;
 
     @Override
     @Transactional(readOnly = true)
@@ -90,6 +97,8 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
 
         RoomType roomType = roomTypeMapper.toEntity(request);
         roomType.setStatus(AccountStatus.ACTIVE);
+        roomType.setImages(new ArrayList<>());
+        appendImages(roomType, request.getImages());
 
         RoomType saved = roomTypeRepository.save(roomType);
         RoomTypeResponse response = roomTypeMapper.toResponse(saved);
@@ -112,6 +121,11 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
         }
 
         roomTypeMapper.updateRoomTypeFromRequest(request, roomType);
+        if (Boolean.TRUE.equals(request.getImageSyncRequested())) {
+            syncExistingImages(roomType, request.getExistingImageUrls());
+        }
+        appendImages(roomType, request.getImages());
+
         RoomType updated = roomTypeRepository.save(roomType);
         RoomTypeResponse response = roomTypeMapper.toResponse(updated);
         return populateRatingStats(response);
@@ -155,5 +169,35 @@ public class RoomTypeServiceImpl implements IRoomTypeService {
             response.setReviewCount(0L);
         }
         return response;
+    }
+
+    private void appendImages(RoomType roomType, List<MultipartFile> images) {
+        if (images == null || images.isEmpty()) {
+            return;
+        }
+        if (roomType.getImages() == null) {
+            roomType.setImages(new ArrayList<>());
+        }
+        for (MultipartFile image : images) {
+            if (image == null || image.isEmpty()) {
+                continue;
+            }
+            String imageUrl = localFileUtils.uploadFile(image, "roomtypes");
+            roomType.getImages().add(RoomTypeImage.builder()
+                    .roomType(roomType)
+                    .imageUrl(imageUrl)
+                    .build());
+        }
+    }
+
+    private void syncExistingImages(RoomType roomType, List<String> existingImageUrls) {
+        if (roomType.getImages() == null) {
+            roomType.setImages(new ArrayList<>());
+            return;
+        }
+        Set<String> retainedUrls = existingImageUrls == null
+                ? Set.of()
+                : new HashSet<>(existingImageUrls);
+        roomType.getImages().removeIf(image -> !retainedUrls.contains(image.getImageUrl()));
     }
 }
