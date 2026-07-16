@@ -85,6 +85,10 @@ function nightsBetween(checkIn, checkOut) {
   return diff > 0 ? diff : 1;
 }
 
+function formatHoldCountdown(seconds) {
+  return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
 function validateGuestForms(customer, stayGuest, bookingForOther, locale) {
   const isVi = locale === 'vi';
   const errors = {};
@@ -319,10 +323,12 @@ function BookingContent() {
       .catch(() => {
         if (!mounted || requestVersion !== cartMutationVersion.current) return;
         localStorage.removeItem(CART_HOLD_TOKEN_KEY);
-        localStorage.removeItem(CART_STORAGE_KEY);
         setCartHoldToken('');
         setHoldExpiresAt(null);
-        setCartItems([]);
+        setStep(1);
+        setError(locale === 'vi'
+          ? 'Phòng trong giỏ chưa còn được giữ. Vui lòng bấm tiếp tục để giữ lại.'
+          : 'The rooms in your cart are no longer held. Continue to hold them again.');
       });
     return () => { mounted = false; };
   }, [cartHoldToken, locale]);
@@ -347,10 +353,9 @@ function BookingContent() {
           // The scheduler will release an already-expired hold if this request fails.
         }
         localStorage.removeItem(CART_HOLD_TOKEN_KEY);
-        localStorage.removeItem(CART_STORAGE_KEY);
         setCartHoldToken('');
         setHoldExpiresAt(null);
-        setCartItems([]);
+        setStep(1);
         setError(locale === 'vi' ? 'Thời gian giữ phòng đã hết. Vui lòng chọn lại.' : 'The room hold expired. Please select again.');
       };
       const expirationTimer = window.setInterval(checkExpiration, 1000);
@@ -1187,6 +1192,14 @@ function BookingContent() {
               <span>{locale === 'vi' ? 'Tổng cộng' : 'Total'}</span>
               <span className="text-[#f2a900]">{formatPrice(cartTotal, locale)}</span>
             </div>
+            {cartItems.length > 0 && (
+              <div className={`mt-3 flex items-center justify-center gap-2 rounded border px-3 py-2 text-xs font-semibold ${cartHoldToken && remainingSeconds <= 60 ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+                <Clock size={15} />
+                {cartHoldToken && holdExpiresAt
+                  ? `${locale === 'vi' ? 'Đang giữ phòng' : 'Rooms held'} ${formatHoldCountdown(remainingSeconds)}`
+                  : (locale === 'vi' ? 'Chưa giữ phòng trên máy chủ' : 'Rooms are not held on the server')}
+              </div>
+            )}
             <button
               type="button"
               onClick={handleCartAction}
