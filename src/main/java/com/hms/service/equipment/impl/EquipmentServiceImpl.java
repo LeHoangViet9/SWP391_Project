@@ -253,7 +253,9 @@ public class EquipmentServiceImpl implements EquipmentService {
         Equipment equipment = findActiveEquipment(equipmentId, locale);
 
         if (images == null || images.isEmpty()) {
-            throw new ConflictException("Image files are required");
+            throw new ConflictException(
+                    messageSource.getMessage("error.equipment.image.required", null, locale)
+            );
         }
 
         // THAY ĐỔI: Tắt cờ isPrimary (ảnh chính) ở các ảnh cũ
@@ -298,6 +300,14 @@ public class EquipmentServiceImpl implements EquipmentService {
                     extension = ".jpg";
                 }
 
+                // KIỂM TRA ĐỊNH DẠNG FILE ẢNH HỢP LỆ
+                List<String> allowedExtensions = List.of(".jpg", ".jpeg", ".png", ".webp", ".gif");
+                if (!allowedExtensions.contains(extension.toLowerCase())) {
+                    throw new ConflictException(
+                            messageSource.getMessage("error.equipment.image.invalid_extension", new Object[]{allowedExtensions}, locale)
+                    );
+                }
+
                 // THAY ĐỔI (Cách 2): Đặt tên file gọn gàng theo mã thiết bị và short UUID
                 String fileName = equipment.getEquipmentCode().toLowerCase() + "_" 
                         + UUID.randomUUID().toString().substring(0, 8) + extension;
@@ -324,13 +334,17 @@ public class EquipmentServiceImpl implements EquipmentService {
             }
 
             if (result.isEmpty()) {
-                throw new ConflictException("Image files are required");
+                throw new ConflictException(
+                        messageSource.getMessage("error.equipment.image.required", null, locale)
+                );
             }
 
             return result;
 
         } catch (IOException ex) {
-            throw new ConflictException("Could not save equipment images");
+            throw new ConflictException(
+                    messageSource.getMessage("error.equipment.image.save_failed", null, locale)
+            );
         }
     }
 
