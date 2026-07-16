@@ -78,7 +78,7 @@ export default function DataTable({
 
       {/* Pagination */}
       {totalPages > 1 && onPageChange && (
-        <div className="flex items-center justify-center gap-4 mt-3 text-sm text-slate-600">
+        <div className="flex items-center justify-between gap-4 mt-3 text-sm text-slate-600">
           <span>
             {t('common.page') || 'Trang'} <strong>{page + 1}</strong> / {totalPages}
           </span>

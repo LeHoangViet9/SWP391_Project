@@ -20,8 +20,9 @@ export async function getCleaningRooms(params = {}, locale = 'vi') {
 }
 
 /**
- * PATCH /api/v1/housekeeping/rooms/{id}/status?status=CLEANING|READY|AVAILABLE
- * Cập nhật trạng thái phòng trong luồng dọn phòng
+ * PATCH /api/v1/housekeeping/rooms/{id}/status?status=MAINTENANCE
+ * Chỉ dùng cho thao tác thủ công báo phòng bảo trì.
+ * Trạng thái housekeeping được hệ thống cập nhật theo task.
  */
 export async function updateRoomCleaningStatus(roomId, status, locale = 'vi') {
   return apiFetch(`/housekeeping/rooms/${roomId}/status?status=${status}`, { method: 'PATCH' }, locale);

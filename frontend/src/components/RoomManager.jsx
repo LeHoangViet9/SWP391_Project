@@ -256,17 +256,25 @@ export default function RoomManager({ readOnly = false }) {
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-stone-100 text-stone-600'}`}>
               {displayStatus}
             </span>
-            ) : (
+            ) : status === 'MAINTENANCE' ? (
                 <select
                     value={status}
                     onChange={e => handleStatusChange(item, e.target.value)}
                     className={`text-xs font-semibold px-2 py-1 rounded-full border border-stone-200 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
                 >
-                  {Object.keys(STATUS_LABELS[locale] || {}).map(s => {
-                    const label = STATUS_LABELS[locale]?.[s] || s;
-                    return <option key={s} value={s}>{label}</option>;
-                  })}
+                  <option value="MAINTENANCE">
+                    {STATUS_LABELS[locale]?.MAINTENANCE || 'MAINTENANCE'}
+                  </option>
                 </select>
+            ) : (
+                <span
+                    className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-stone-100 text-stone-600'}`}
+                    title={locale === 'vi'
+                        ? 'Trạng thái này được hệ thống tự động cập nhật'
+                        : 'This status is updated automatically by the system'}
+                >
+                  {displayStatus}
+                </span>
             )}
           </td>
           <td className="px-4 py-3">

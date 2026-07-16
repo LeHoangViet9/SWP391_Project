@@ -10,11 +10,11 @@ CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON customer_feedback (created
 -- =============================================================================
 -- 2. DỌN SẠCH DỮ LIỆU & RESET ID TỰ TĂNG
 -- =============================================================================
-TRUNCATE TABLE
-    room_state_history, room_img, equipment_images,
-    repair_requests, equipments, invoices, bookings, customers,
-    room, room_type, user_permissions, role_permissions, permission, users, roles, customer_feedback
-    RESTART IDENTITY CASCADE;
+-- TRUNCATE TABLE
+--     room_state_history, room_img, equipment_images,
+--     repair_requests, equipments, invoices, bookings, customers,
+--     room, room_type, user_permissions, role_permissions, permission, users, roles, customer_feedback
+--     RESTART IDENTITY CASCADE;
 
 -- =============================================================================
 -- 3. CẬP NHẬT RÀNG BUỘC (CONSTRAINTS) ĐỒNG BỘ VỚI JAVA ENUM

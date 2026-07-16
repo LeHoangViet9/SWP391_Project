@@ -207,6 +207,24 @@ public class RoomController {
             @RequestParam RoomStatus status) {
 
         Locale locale = LocaleContextHolder.getLocale();
+
+        // Các trạng thái vận hành được hệ thống cập nhật theo booking,
+        // check-in/check-out và housekeeping task. Chỉ cho phép xét tay
+        // trạng thái MAINTENANCE từ màn hình quản lý phòng.
+        if (status != RoomStatus.MAINTENANCE) {
+            ApiResponse<Void> response = ApiResponse.<Void>builder()
+                    .success(false)
+                    .message(messageSource.getMessage(
+                            "error.room.status.manual.forbidden",
+                            null,
+                            "Chỉ được cập nhật thủ công trạng thái MAINTENANCE. Các trạng thái khác do hệ thống tự động xử lý.",
+                            locale))
+                    .status(HttpStatus.BAD_REQUEST)
+                    .build();
+
+            return ResponseEntity.badRequest().body(response);
+        }
+
         roomService.updateRoomStatus(id, status);
         String message = messageSource.getMessage("success.room.updatestatus", null, locale);
 

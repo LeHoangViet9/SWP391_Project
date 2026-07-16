@@ -233,9 +233,9 @@ public class RoomServiceImpl implements IRoomService {
     public void updateRoomStatus(Long roomId, RoomStatus status) {
         Locale locale = LocaleContextHolder.getLocale();
         // Chặn việc đặt INACTIVE qua API status — INACTIVE chỉ dành cho soft delete (deleteRoomByID)
-        if (status == RoomStatus.INACTIVE) {
+        if (status != RoomStatus.MAINTENANCE) {
             throw new BadRequestException(
-                    messageSource.getMessage("error.room.status.inactive.forbidden", null,
+                    messageSource.getMessage("error.room.status.manual.forbidden", null,
                             "Không thể đặt trạng thái INACTIVE trực tiếp. Hãy dùng chức năng xóa phòng.", locale));
         }
         Room room = roomRepository.findById(roomId)

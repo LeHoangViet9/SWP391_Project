@@ -65,10 +65,13 @@ public class HousekeepingController {
 
         Locale locale = LocaleContextHolder.getLocale();
 
-        if (status != RoomStatus.CLEANING && status != RoomStatus.READY && status != RoomStatus.AVAILABLE) {
+        // Các trạng thái housekeeping được hệ thống cập nhật theo task.
+        // API xét tay chỉ cho phép báo phòng bảo trì.
+        if (status != RoomStatus.MAINTENANCE) {
             return ResponseEntity.badRequest().body(ApiResponse.<Void>builder()
                     .success(false)
-                    .message(messageSource.getMessage("error.housekeeping.invalid.status", null, "Invalid housekeeping status transition.", locale))
+                    .message(messageSource.getMessage("error.room.status.manual.forbidden", null,
+                            "Chỉ được cập nhật thủ công trạng thái MAINTENANCE. Các trạng thái khác do hệ thống tự động xử lý.", locale))
                     .status(HttpStatus.BAD_REQUEST)
                     .build());
         }
