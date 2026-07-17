@@ -20,6 +20,7 @@ import com.hms.repository.housekeeping.RoomStateHistoryRepository;
 import com.hms.service.housekeeping.IHouseKeepingTaskService;
 import com.hms.service.housekeeping.mapper.HouseKeepingTaskMapper;
 import com.hms.service.email.EmailService;
+import com.hms.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -47,6 +48,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     private final MessageSource messageSource;
     private final PageableUtils pageableUtils;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -116,6 +118,7 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
         // Gửi email thông báo cho housekeeper được gán task
         sendTaskNotification(assignedTo, room.getRoomNumber(), request.getNotes());
+        sendInAppTaskNotification(assignedTo, room.getRoomNumber(), request.getNotes());
 
         return taskMapper.toResponse(saved);
     }
@@ -143,8 +146,6 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         validateTaskTransition(oldStatus, newStatus);
 
         task.setTaskStatus(newStatus);
-
-        task.setTaskStatus(newStatus);
         updateBusinessTimestamps(task, request, newStatus);
 
         HouseKeepingTask updated = taskRepository.save(task);
@@ -152,6 +153,9 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         // Cập nhật trạng thái phòng dựa trên trạng thái task mới
         updateRoomStatusByTaskStatus(updated, newStatus);
         syncHousekeeperWorkStatus(updated.getAssignedTo(), newStatus);
+        if (newStatus == TaskStatus.CANCELLED) {
+            reassignCancelledTask(updated);
+        }
 
         return taskMapper.toResponse(updated);
     }
@@ -439,6 +443,44 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
         // Gửi email thông báo cho housekeeper
         sendTaskNotification(assignedHousekeeper, room.getRoomNumber(), notes);
+        sendInAppTaskNotification(assignedHousekeeper, room.getRoomNumber(), notes);
+    }
+
+    private void reassignCancelledTask(HouseKeepingTask cancelledTask) {
+        if (cancelledTask.getRoom() == null) {
+            return;
+        }
+
+        User previousAssignee = cancelledTask.getAssignedTo();
+        Long excludedUserId = previousAssignee == null ? null : previousAssignee.getId();
+        List<User> candidates = userRepository.findHousekeepersOrderByTaskCountAscExcluding(excludedUserId);
+
+        if (candidates.isEmpty()) {
+            log.warn("[AUTO-REASSIGN] No AVAILABLE replacement housekeeper found for cancelled task #{} in room {}.",
+                    cancelledTask.getId(), cancelledTask.getRoom().getRoomNumber());
+            return;
+        }
+
+        User newAssignee = candidates.get(0);
+        User assignedBy = cancelledTask.getAssignedBy() != null
+                ? cancelledTask.getAssignedBy()
+                : newAssignee;
+        String notes = "Reassigned after cancellation - Room " + cancelledTask.getRoom().getRoomNumber();
+
+        HouseKeepingTask reassignedTask = taskRepository.save(HouseKeepingTask.builder()
+                .room(cancelledTask.getRoom())
+                .assignedTo(newAssignee)
+                .assignedBy(assignedBy)
+                .taskStatus(TaskStatus.PENDING)
+                .notes(notes)
+                .build());
+
+        log.info("[AUTO-REASSIGN] Created replacement cleaning task #{} for room {} -> assigned to {} (ID: {})",
+                reassignedTask.getId(), cancelledTask.getRoom().getRoomNumber(),
+                newAssignee.getFullName(), newAssignee.getId());
+
+        sendTaskNotification(newAssignee, cancelledTask.getRoom().getRoomNumber(), notes);
+        sendInAppTaskNotification(newAssignee, cancelledTask.getRoom().getRoomNumber(), notes);
     }
 
     /**
@@ -455,6 +497,22 @@ public class HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         } catch (Exception e) {
             log.warn("[NOTIFICATION] Failed to send task assignment email to {} : {}",
                     housekeeper.getEmail(), e.getMessage());
+        }
+    }
+
+    private void sendInAppTaskNotification(User housekeeper, String roomNumber, String notes) {
+        try {
+            notificationService.notify(
+                    housekeeper,
+                    "Bạn có nhiệm vụ buồng phòng mới",
+                    "Phòng " + roomNumber + " vừa được gán cho bạn."
+                            + (notes == null || notes.isBlank() ? "" : " Ghi chú: " + notes),
+                    "/dashboard/housekeeping"
+            );
+        } catch (Exception e) {
+            log.warn("[NOTIFICATION] Failed to create in-app task notification for {} : {}",
+                    housekeeper != null ? housekeeper.getEmail() : null,
+                    e.getMessage());
         }
     }
 

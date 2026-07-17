@@ -13,6 +13,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Tạo tài khoản test khi khởi động (chỉ nếu email chưa tồn tại).
@@ -45,10 +46,22 @@ public class UserDataInitializer implements ApplicationRunner {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        try {
+            log.info("========== Updating room_state_history check constraints ==========");
+            jdbcTemplate.execute("ALTER TABLE room_state_history DROP CONSTRAINT IF EXISTS room_state_history_triggered_by_process_check");
+            jdbcTemplate.execute("ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_triggered_by_process_check " +
+                    "CHECK (triggered_by_process IN ('TASK_CLEANING', 'TASK_IN_PROGRESS', 'TASK_COMPLETION', " +
+                    "'TASK_CANCELLATION', 'TASK_SKIPPED', 'TASK_MAINTENANCE', 'CHECKIN', 'CHECKOUT'))");
+            log.info("Successfully updated room_state_history check constraints!");
+        } catch (Exception e) {
+            log.error("Failed to update check constraints: ", e);
+        }
+
         log.info("========== HMS TEST ACCOUNTS (plain passwords) ==========");
         for (TestUser tu : TEST_USERS) {
             if (userRepository.existsUserByEmail(tu.email())) {

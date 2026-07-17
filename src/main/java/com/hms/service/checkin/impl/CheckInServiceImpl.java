@@ -89,23 +89,31 @@ public class CheckInServiceImpl implements CheckInService {
         // 3. Assign Room
         Long selectedRoomId = request.getRoomId();
         if (selectedRoomId == null) {
-            // Find an available room of the same type avoiding overlap
-            List<Room> availableRooms = roomRepository.findAvailableRoomsForCheckIn(
-                    booking.getRoomType().getId(),
-                    booking.getCheckInDate(),
-                    booking.getCheckOutDate()
-            );
-
-            if (availableRooms.isEmpty()) {
-                throw new ConflictException(
-                        messageSource.getMessage(
-                                "error.checkin.no.available.rooms",
-                                new Object[]{booking.getRoomType().getTypeName()},
-                                locale
-                        )
+            if (booking.getRoom() != null) {
+                selectedRoomId = booking.getRoom().getId();
+            } else if (booking.getRooms() != null && !booking.getRooms().isEmpty()) {
+                selectedRoomId = booking.getRooms().get(0).getId();
+            } else {
+                // Find an available room of the same type avoiding overlap
+                List<Room> availableRooms = roomRepository.findAvailableRoomsForCheckIn(
+                        booking.getRoomType().getId(),
+                        booking.getCheckInDate(),
+                        booking.getCheckOutDate(),
+                        -1L,
+                        booking.getId()
                 );
+
+                if (availableRooms.isEmpty()) {
+                    throw new ConflictException(
+                            messageSource.getMessage(
+                                    "error.checkin.no.available.rooms",
+                                    new Object[]{booking.getRoomType().getTypeName()},
+                                    locale
+                            )
+                    );
+                }
+                selectedRoomId = availableRooms.get(0).getId();
             }
-            selectedRoomId = availableRooms.get(0).getId();
         }
 
         // 4. Lock and Double Check
@@ -154,9 +162,21 @@ public class CheckInServiceImpl implements CheckInService {
         // Gán phòng đơn (Single Room) cho trường hợp booking lưu ở thực thể Room
         booking.setRoom(assignedRoom);
 
-        // Nếu hệ thống quản lý danh sách phòng (Multi-room), ta bổ sung phòng được gán vào list
-        if (booking.getRooms() != null && !booking.getRooms().contains(assignedRoom)) {
-            booking.getRooms().add(assignedRoom);
+        // Nếu hệ thống quản lý danh sách phòng (Multi-room), ta bổ sung phòng được gán vào list tránh lỗi Unmodifiable List
+        if (booking.getRooms() == null) {
+            booking.setRooms(new java.util.ArrayList<>(List.of(assignedRoom)));
+        } else {
+            try {
+                if (!booking.getRooms().contains(assignedRoom)) {
+                    booking.getRooms().add(assignedRoom);
+                }
+            } catch (UnsupportedOperationException e) {
+                List<Room> mutableRooms = new java.util.ArrayList<>(booking.getRooms());
+                if (!mutableRooms.contains(assignedRoom)) {
+                    mutableRooms.add(assignedRoom);
+                }
+                booking.setRooms(mutableRooms);
+            }
         }
 
         // Xác định danh sách phòng cần chuyển trạng thái sang OCCUPIED
@@ -226,10 +246,13 @@ public class CheckInServiceImpl implements CheckInService {
                         )
                 ));
 
+        Long reservedRoomId = booking.getRoom() != null ? booking.getRoom().getId() : -1L;
         return roomRepository.findAvailableRoomsForCheckIn(
                         booking.getRoomType().getId(),
                         booking.getCheckInDate(),
-                        booking.getCheckOutDate()
+                        booking.getCheckOutDate(),
+                        reservedRoomId,
+                        booking.getId()
                 )
                 .stream()
                 .map(room -> AvailableRoomResponseDTO.builder()

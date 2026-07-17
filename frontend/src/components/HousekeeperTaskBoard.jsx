@@ -16,7 +16,7 @@ const STATUS_CONFIG = {
         bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700',
         badge: 'bg-red-100 text-red-700', dot: 'bg-red-500',
         icon: Clock,
-        nextStatus: 'IN_PROGRESS', nextLabel: 'Bắt đầu làm', nextLabelEn: 'Start',
+        nextStatus: 'IN_PROGRESS', nextLabel: 'Nhận việc', nextLabelEn: 'Accept',
         nextBtnClass: 'bg-amber-500 hover:bg-amber-600 text-white',
     },
     IN_PROGRESS: {
@@ -127,16 +127,27 @@ function TaskCard({ task, onUpdateStatus, updating, onReportIssue, locale }) {
 
                 {/* Quick action button */}
                 {cfg.nextStatus && (
-                    <button
-                        onClick={() => onUpdateStatus(task.id, cfg.nextStatus)}
-                        disabled={updating === task.id}
-                        className={`w-full mt-4 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 ${cfg.nextBtnClass}`}
-                    >
-                        {updating === task.id
-                            ? <><Loader size={16} className="animate-spin" /> Đang cập nhật...</>
-                            : <><Check size={16} /> {locale === 'en' ? cfg.nextLabelEn : cfg.nextLabel}</>
-                        }
-                    </button>
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button
+                            onClick={() => onUpdateStatus(task.id, cfg.nextStatus)}
+                            disabled={updating === task.id}
+                            className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 ${cfg.nextBtnClass}`}
+                        >
+                            {updating === task.id
+                                ? <><Loader size={16} className="animate-spin" /> Đang cập nhật...</>
+                                : <><Check size={16} /> {locale === 'en' ? cfg.nextLabelEn : cfg.nextLabel}</>
+                            }
+                        </button>
+                        {(task.status === 'PENDING' || task.status === 'IN_PROGRESS') && (
+                            <button
+                                onClick={() => onUpdateStatus(task.id, 'CANCELLED')}
+                                disabled={updating === task.id}
+                                className="py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
+                            >
+                                <X size={16} /> {locale === 'en' ? 'Cancel' : 'Hủy việc'}
+                            </button>
+                        )}
+                    </div>
                 )}
                 {task.status === 'COMPLETED' && (
                     <div className="flex items-center justify-center gap-2 mt-4 py-3 bg-emerald-100 rounded-xl text-emerald-700 font-bold text-sm">
@@ -288,7 +299,12 @@ export default function HousekeeperTaskBoard() {
     const handleReportIssue = async (roomId, payload) => {
         setActionLoading(true);
         try {
-            const res = await housekeepingService.reportRoomIssue(roomId, payload, locale);
+            const res = await housekeepingService.reportRoomIssue(roomId, {
+                reason: payload.issueDescription,
+                issueDescription: payload.issueDescription,
+                severity: payload.severity,
+                reportedById: user?.id,
+            }, locale);
             notify(res?.message || 'Đã gửi báo cáo sự cố!');
             setReportRoomId(null);
         } catch (err) {

@@ -1,20 +1,29 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.postgresql:postgresql:42.7.5'
+    }
+}
+
 import java.sql.DriverManager
 import java.sql.Statement
 
-// Gradle task để clean NULL user_name trước khi Hibernate DDL chạy
+// Gradle task để clean NULL user_name và sửa check constraint của room_state_history trước khi Hibernate DDL chạy
 task fixNullUserName {
     doLast {
         def url = "jdbc:postgresql://localhost:5432/hms_db"
         def user = "postgres"
         def pass = "1"
         
-        println "=== Connecting to DB to fix NULL user_name ==="
-        
+        println "=== Connecting to DB to fix constraints and columns ==="
+        DriverManager.registerDriver(new org.postgresql.Driver())
         def conn = DriverManager.getConnection(url, user, pass)
         try {
             Statement stmt = conn.createStatement()
             
-            // Check current state
+            // 1. Dọn dẹp records users bị lỗi null username
             def rs = stmt.executeQuery("SELECT COUNT(*) FROM users WHERE user_name IS NULL OR user_name = ''")
             rs.next()
             int nullCount = rs.getInt(1)
@@ -26,16 +35,18 @@ task fixNullUserName {
                 println "Deleted ${deleted} NULL user_name row(s)"
             }
             
-            // Check if UNIQUE constraint exists, if not verify column exists
-            rs = stmt.executeQuery("""
-                SELECT COUNT(*) FROM information_schema.columns 
-                WHERE table_name = 'users' AND column_name = 'user_name'
+            // 2. Cập nhật check constraint cho room_state_history để cho phép CHECKIN và CHECKOUT
+            stmt.executeUpdate("ALTER TABLE room_state_history DROP CONSTRAINT IF EXISTS room_state_history_triggered_by_process_check")
+            stmt.executeUpdate("""
+                ALTER TABLE room_state_history ADD CONSTRAINT room_state_history_triggered_by_process_check 
+                CHECK (triggered_by_process IN (
+                    'TASK_CLEANING', 'TASK_IN_PROGRESS', 'TASK_COMPLETION', 
+                    'TASK_CANCELLATION', 'TASK_SKIPPED', 'TASK_MAINTENANCE', 
+                    'CHECKIN', 'CHECKOUT'
+                ))
             """)
-            rs.next()
-            boolean colExists = rs.getInt(1) > 0
-            rs.close()
+            println "Updated check constraint room_state_history_triggered_by_process_check successfully!"
             
-            println "Column user_name exists: ${colExists}"
             println "=== Fix complete! Now run bootRun ==="
             
         } finally {

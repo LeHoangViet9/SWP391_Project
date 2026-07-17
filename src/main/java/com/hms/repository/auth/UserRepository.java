@@ -12,7 +12,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.List;
 
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
@@ -85,6 +84,19 @@ public interface UserRepository extends JpaRepository<User,Long> {
      * Tìm housekeeper ACTIVE có ít task PENDING/IN_PROGRESS nhất (round-robin by workload).
      * Dùng cho auto-assign task khi checkout.
      */
+    @Query("""
+            SELECT u FROM User u
+            LEFT JOIN HouseKeepingTask t ON t.assignedTo.id = u.id
+                AND t.taskStatus IN ('PENDING', 'IN_PROGRESS')
+            WHERE UPPER(u.role.roleName) = 'HOUSEKEEPER'
+                AND u.accountStatus = com.hms.common.enums.AccountStatus.ACTIVE
+                AND u.workStatus = com.hms.common.enums.StaffWorkStatus.AVAILABLE
+                AND (:excludedUserId IS NULL OR u.id <> :excludedUserId)
+            GROUP BY u
+            ORDER BY COUNT(t) ASC
+            """)
+    List<User> findHousekeepersOrderByTaskCountAscExcluding(@Param("excludedUserId") Long excludedUserId);
+
     @Query("""
             SELECT u FROM User u
             LEFT JOIN HouseKeepingTask t ON t.assignedTo.id = u.id

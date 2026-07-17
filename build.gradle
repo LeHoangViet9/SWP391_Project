@@ -67,3 +67,6 @@ tasks.named('test') {
 tasks.withType(JavaCompile) {
     options.compilerArgs << "-parameters"
 }
+
+apply from: 'dbfix.gradle'
+

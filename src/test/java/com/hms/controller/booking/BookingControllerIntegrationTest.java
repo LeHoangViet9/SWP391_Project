@@ -43,7 +43,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "BOOKING_CREATE",
         "BOOKING_UPDATE",
         "BOOKING_DELETE",
-        "INVOICE_UPDATE"
+        "INVOICE_UPDATE",
+        "INVOICE_VIEW"
 })
 public class BookingControllerIntegrationTest {
 

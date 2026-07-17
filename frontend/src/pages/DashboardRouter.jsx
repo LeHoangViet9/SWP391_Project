@@ -27,6 +27,7 @@ import AssignEquipmentToRoom from '../components/AssignEquipmentToRoom';
 import MaintenanceManager from '../components/MaintenanceManager';
 import HousekeepingBoard from '../components/HousekeepingBoard';
 import HousekeepingManager from '../components/HousekeepingManager';
+import HousekeeperTaskBoard from '../components/HousekeeperTaskBoard';
 import CustomerBookingHistory from '../components/CustomerBookingHistory';
 import AccountInfo from '../components/AccountInfo';
 import ChangePassword from '../components/ChangePassword';
@@ -75,8 +76,7 @@ function ContentPage({ routeKey }) {
   let componentProps = {};
   if (routeKey === 'housekeeping') {
     if (user?.roleName === 'HOUSEKEEPER') {
-      Component = HousekeepingManager;
-      componentProps = { readOnly: true };
+      Component = HousekeeperTaskBoard;
     } else if (user?.roleName === 'ADMIN' || user?.roleName === 'MANAGER') {
       Component = HousekeepingManager;
     }
