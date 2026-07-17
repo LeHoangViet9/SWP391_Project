@@ -23,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -126,8 +128,8 @@ class BookingChecklistIntegrationTest {
                         .content(objectMapper.writeValueAsString(pastRequest)))
                 .andExpect(status().isConflict());
 
-        BookingRequest equalDatesRequest = bookingRequest(LocalDateTime.now().plusDays(2),
-                LocalDateTime.now().plusDays(2));
+        LocalDateTime equalDate = LocalDateTime.now().plusDays(2);
+        BookingRequest equalDatesRequest = bookingRequest(equalDate, equalDate);
         mockMvc.perform(post("/api/v1/bookings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(equalDatesRequest)))
@@ -249,6 +251,31 @@ class BookingChecklistIntegrationTest {
     }
 
     @Test
+    @WithMockUser(authorities = { "INVOICE_VIEW" })
+    void invoiceViewerCannotCancelAnotherCustomersBooking() {
+        Booking booking = bookingRepository.save(Booking.builder()
+                .customer(customer)
+                .roomType(roomType)
+                .room(room)
+                .quantity(1)
+                .pricePerNight(java.math.BigDecimal.valueOf(500000))
+                .checkInDate(LocalDateTime.now().plusDays(2))
+                .checkOutDate(LocalDateTime.now().plusDays(3))
+                .bookingStatus(BookingStatus.PENDING_PAYMENT)
+                .holdExpiresAt(LocalDateTime.now().plusMinutes(1))
+                .totalPrice(java.math.BigDecimal.valueOf(500000))
+                .build());
+
+        org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request =
+                delete("/api/v1/bookings/" + booking.getId());
+        try {
+            mockMvc.perform(request).andExpect(status().isForbidden());
+        } catch (Exception exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
+    @Test
     void changingBookingQuantityReservesAllRequestedRooms() throws Exception {
         Room secondRoom = roomRepository.save(Room.builder()
                 .roomNumber("CHECKLIST-102")
@@ -297,6 +324,32 @@ class BookingChecklistIntegrationTest {
                         .param("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content", hasSize(0)));
+    }
+
+    @Test
+    void bookingHistoryRepositoryAppliesKeywordStatusAndDateFilters() throws Exception {
+        LocalDateTime firstCheckIn = LocalDateTime.now().plusDays(2);
+        LocalDateTime secondCheckIn = LocalDateTime.now().plusDays(4);
+
+        createBooking(bookingRequest(firstCheckIn, firstCheckIn.plusDays(1)));
+        Long secondId = objectMapper.readTree(createBooking(bookingRequest(
+                secondCheckIn, secondCheckIn.plusDays(1)))).path("data").path("id").asLong();
+
+        Booking secondBooking = bookingRepository.findById(secondId).orElseThrow();
+        secondBooking.setBookingStatus(BookingStatus.CONFIRMED);
+        bookingRepository.save(secondBooking);
+
+        Page<Booking> result = bookingRepository.searchHistoryByCustomerId(
+                customer.getId(),
+                String.valueOf(secondId),
+                BookingStatus.CONFIRMED,
+                secondCheckIn.toLocalDate().atStartOfDay(),
+                secondCheckIn.toLocalDate().plusDays(1).atStartOfDay(),
+                PageRequest.of(0, 10));
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(secondId, result.getContent().get(0).getId());
+        assertEquals(BookingStatus.CONFIRMED, result.getContent().get(0).getBookingStatus());
     }
 
     private String createBooking(BookingRequest request) throws Exception {

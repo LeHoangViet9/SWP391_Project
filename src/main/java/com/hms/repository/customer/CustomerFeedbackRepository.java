@@ -26,10 +26,10 @@ public interface CustomerFeedbackRepository extends JpaRepository<CustomerFeedba
     boolean existsByBookingId(Long bookingId);
 
     @EntityGraph(attributePaths = { "customer", "booking", "booking.roomType" })
-    List<CustomerFeedback> findTop5ByStatusAndRatingGreaterThanEqualOrderByCreatedAtDesc(FeedbackStatus status, int rating);
+    List<CustomerFeedback> findByStatusOrderByCreatedAtDesc(FeedbackStatus status);
 
     @EntityGraph(attributePaths = { "customer", "booking", "booking.roomType" })
-    List<CustomerFeedback> findByStatusOrderByCreatedAtDesc(FeedbackStatus status);
+    List<CustomerFeedback> findTop5ByStatusAndRatingGreaterThanEqualOrderByCreatedAtDesc(FeedbackStatus status, int rating);
 
     @EntityGraph(attributePaths = { "customer", "booking", "booking.roomType" })
     List<CustomerFeedback> findAllByOrderByCreatedAtDesc();

@@ -44,6 +44,24 @@ public class InvoiceAccessService {
         return bookingId != null && canAccessBookings(List.of(bookingId), authentication);
     }
 
+    /**
+     * Ownership check for self-service booking actions. Unlike invoice viewing,
+     * INVOICE_VIEW must not grant access to every customer's booking.
+     */
+    public boolean canAccessOwnBooking(Long bookingId, Authentication authentication) {
+        if (!isAuthenticated(authentication) || bookingId == null || authentication.getName() == null) {
+            return false;
+        }
+        String authName = authentication.getName();
+        return bookingRepository.findById(bookingId)
+                .map(booking -> booking.getCustomer() != null
+                        && ((booking.getCustomer().getEmail() != null
+                                && booking.getCustomer().getEmail().equalsIgnoreCase(authName))
+                                || (booking.getCustomer().getPhone() != null
+                                        && booking.getCustomer().getPhone().equalsIgnoreCase(authName))))
+                .orElse(false);
+    }
+
     @Transactional(readOnly = true)
     public boolean canAccessInvoice(Long invoiceId, Authentication authentication) {
         if (!isAuthenticated(authentication) || invoiceId == null)

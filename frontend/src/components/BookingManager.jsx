@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, RefreshCw, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Eye, RefreshCw, Search, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getAllBookings, createBooking, updateBooking, searchBookings, updateBookingStatus } from '../services/bookingService';
 import { createCustomer } from '../services/customerService';
@@ -71,6 +71,7 @@ export default function BookingManager({ readOnly = false }) {
   const [totalPages, setTotalPages] = useState(1);
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
+  const [viewBooking, setViewBooking] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
@@ -240,15 +241,17 @@ export default function BookingManager({ readOnly = false }) {
     setModal({ open: true, editing: null });
   };
 
+  const openView = (item) => setViewBooking(item);
+
   const openEdit = (item) => {
     if (!canUpdate) return notify(t('booking.toast.forbiddenEdit'), 'error');
     setForm({
-      fullName: item.customer?.fullName || item.customerName || '',
-      email: item.customer?.email || '',
-      phone: item.customer?.phone || '',
-      idType: item.customer?.idType || '',
-      idNumberCard: item.customer?.idNumberCard || '',
-      nationality: item.customer?.nationality || '',
+      fullName: item.guestFullName || item.customer?.fullName || item.customerName || '',
+      email: item.guestEmail || item.customer?.email || item.customerEmail || '',
+      phone: item.guestPhone || item.customer?.phone || item.customerPhone || '',
+      idType: item.guestIdType || item.customer?.idType || '',
+      idNumberCard: item.guestIdNumberCard || item.customer?.idNumberCard || '',
+      nationality: item.guestNationality || item.customer?.nationality || '',
       roomTypeId: item.roomTypeId || item.roomType?.id || '',
       checkInDate: toInputDateTime(item.checkInDate),
       checkOutDate: toInputDateTime(item.checkOutDate),
@@ -260,6 +263,7 @@ export default function BookingManager({ readOnly = false }) {
   };
 
   const closeModal = () => setModal({ open: false, editing: null });
+  const closeViewModal = () => setViewBooking(null);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -397,6 +401,9 @@ export default function BookingManager({ readOnly = false }) {
         {!readOnly && isReceptionistOrAbove && (
           <td className="px-4 py-3">
             <div className="flex flex-wrap items-center gap-1.5">
+              <button onClick={() => openView(item)} className="text-slate-500 hover:text-slate-800 p-1" title="Xem chi tiết" aria-label="Xem chi tiết">
+                <Eye size={15} />
+              </button>
               {status === 'PENDING_PAYMENT' && (
                 <>
                   <button
@@ -423,9 +430,11 @@ export default function BookingManager({ readOnly = false }) {
                   </button>
                 </>
               )}
-              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700 p-1" title="Chỉnh sửa">
-                <Edit2 size={15} />
-              </button>
+              {['PENDING_PAYMENT', 'CONFIRMED'].includes(status) && (
+                <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700 p-1" title="Chỉnh sửa">
+                  <Edit2 size={15} />
+                </button>
+              )}
             </div>
           </td>
         )}
@@ -451,9 +460,6 @@ export default function BookingManager({ readOnly = false }) {
 
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <button onClick={() => fetchData(0)} className="p-2 border rounded hover:bg-stone-100" title={isVi ? 'Làm mới' : 'Refresh'}>
-            <RefreshCw size={14} />
-          </button>
           {!readOnly && isReceptionistOrAbove && (
             <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
               <Plus size={16} /> {t('booking.modal.save')}
@@ -840,6 +846,55 @@ export default function BookingManager({ readOnly = false }) {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={Boolean(viewBooking)}
+        title={viewBooking ? `Chi tiết booking #${viewBooking.id}` : 'Chi tiết booking'}
+        onClose={closeViewModal}
+        size="md"
+      >
+        {viewBooking && (
+          <div className="space-y-5 text-sm">
+            <section>
+              <h3 className="mb-3 border-b border-stone-200 pb-2 font-bold text-slate-800">Thông tin khách hàng</h3>
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                <div><p className="text-xs text-slate-500">Họ và tên</p><p className="font-semibold">{viewBooking.guestFullName || viewBooking.customer?.fullName || viewBooking.customerName || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Số điện thoại</p><p className="font-semibold">{viewBooking.guestPhone || viewBooking.customer?.phone || viewBooking.customerPhone || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Email</p><p className="break-words font-semibold">{viewBooking.guestEmail || viewBooking.customer?.email || viewBooking.customerEmail || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Quốc tịch</p><p className="font-semibold">{viewBooking.guestNationality || viewBooking.customer?.nationality || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Loại giấy tờ</p><p className="font-semibold">{viewBooking.guestIdType || viewBooking.customer?.idType || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Số giấy tờ</p><p className="font-semibold">{viewBooking.guestIdNumberCard || viewBooking.customer?.idNumberCard || '-'}</p></div>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="mb-3 border-b border-stone-200 pb-2 font-bold text-slate-800">Thông tin đặt phòng</h3>
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                <div><p className="text-xs text-slate-500">Loại phòng</p><p className="font-semibold">{viewBooking.roomTypeName || viewBooking.roomType?.typeName || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Phòng</p><p className="font-semibold">{viewBooking.roomNumbers?.join(', ') || viewBooking.roomNumber || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Số lượng</p><p className="font-semibold">{viewBooking.quantity || 0}</p></div>
+                <div><p className="text-xs text-slate-500">Trạng thái</p>{renderStatusBadge(getBookingStatus(viewBooking))}</div>
+                <div><p className="text-xs text-slate-500">Check-in</p><p className="font-semibold">{formatDate(viewBooking.checkInDate)}</p></div>
+                <div><p className="text-xs text-slate-500">Check-out</p><p className="font-semibold">{formatDate(viewBooking.checkOutDate)}</p></div>
+              </div>
+              <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3">
+                <span className="font-bold text-slate-700">Tổng tiền</span>
+                <span className="font-bold text-[#bfa15f]">
+                  {viewBooking.totalPrice != null
+                    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(viewBooking.totalPrice)
+                    : '-'}
+                </span>
+              </div>
+            </section>
+
+            <div className="flex justify-end border-t border-stone-200 pt-3">
+              <button type="button" onClick={closeViewModal} className="rounded border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50">
+                Đóng
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Receptionist Payment Modal */}

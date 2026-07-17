@@ -21,6 +21,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.List;
@@ -90,12 +91,17 @@ public class BookingController {
         @PreAuthorize("hasAuthority('BOOKING_VIEW_OWN') or hasAuthority('BOOKING_VIEW')")
         public ResponseEntity<ApiResponse<Page<BookingResponse>>> getMyBookingHistory(
                         @AuthenticationPrincipal String email,
+                        @RequestParam(required = false) String keyword,
+                        @RequestParam(required = false) BookingStatus status,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
                         @RequestParam(required = false) Integer page,
                         @RequestParam(required = false) Integer size) {
 
                 Locale locale = LocaleContextHolder.getLocale();
 
-                Page<BookingResponse> data = bookingService.getMyBookingHistory(email, page, size);
+                Page<BookingResponse> data = bookingService.getMyBookingHistory(email, keyword, status, startDate, endDate,
+                                page, size);
 
                 ApiResponse<Page<BookingResponse>> response = ApiResponse.<Page<BookingResponse>>builder()
                                 .success(true)
@@ -219,7 +225,7 @@ public class BookingController {
         }
 
         @DeleteMapping("/{id}")
-        @PreAuthorize("hasAuthority('BOOKING_DELETE') or @invoiceAccessService.canAccessBooking(#id, authentication)")
+        @PreAuthorize("hasAuthority('BOOKING_DELETE') or @invoiceAccessService.canAccessOwnBooking(#id, authentication)")
         public ResponseEntity<ApiResponse<Void>> deleteBooking(
                         @PathVariable Long id) {
 

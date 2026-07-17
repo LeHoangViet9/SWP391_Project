@@ -15,7 +15,7 @@ const DEMO_BANK = {
     accountNumber: '123456789',
     accountName: 'KHACH SAN HMS',
 };
-const BOOKING_HOLD_MINUTES = 1;
+const BOOKING_HOLD_MINUTES = 30;
 
 function formatPrice(price, locale) {
     return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {

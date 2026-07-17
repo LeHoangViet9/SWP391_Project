@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.EnumSet;
 import java.util.stream.Collectors;
 import java.util.LinkedHashMap;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -71,6 +72,8 @@ import java.util.regex.Pattern;
 public class BookingServiceImpl implements BookingService {
 
     private static final String CCCD_PATTERN = "\\d{12}";
+    private static final LocalDateTime HISTORY_MIN_DATE = LocalDateTime.of(1900, 1, 1, 0, 0);
+    private static final LocalDateTime HISTORY_MAX_DATE = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
     private static final Pattern GUEST_PHONE_PATTERN = Pattern.compile("^(0|\\+84)(3|5|7|8|9)[0-9]{8}$");
     private static final Pattern GUEST_EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
@@ -235,7 +238,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponse updateBooking(Long id, BookingRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        Booking booking = bookingRepository.findById(id)
+        Booking booking = bookingRepository.findByIdWithPessimisticWrite(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, locale)));
         Map<String, Object> before = bookingAuditSnapshot(booking);
@@ -300,7 +303,7 @@ public class BookingServiceImpl implements BookingService {
     public void deleteBooking(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        Booking booking = bookingRepository.findById(id)
+        Booking booking = bookingRepository.findByIdWithPessimisticWrite(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, "Không tìm thấy đơn đặt phòng!",
                                 locale)));
@@ -360,7 +363,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BookingResponse> getMyBookingHistory(String email, Integer page, Integer size) {
+    public Page<BookingResponse> getMyBookingHistory(String email, String keyword, BookingStatus status,
+            LocalDate startDate, LocalDate endDate, Integer page, Integer size) {
         Locale locale = LocaleContextHolder.getLocale();
         Pageable pageable = pageableUtils.createPageable(page, size, "checkInDate", SortDirection.DESC);
 
@@ -370,8 +374,22 @@ public class BookingServiceImpl implements BookingService {
 
         return customerRepository.findActiveByEmailOrPhone(user.getEmail(), user.getPhone(), AccountStatus.ACTIVE)
                 .map(customer -> mapPageToResponse(
-                        bookingRepository.findHistoryByCustomerId(customer.getId(), pageable)))
+                        bookingRepository.searchHistoryByCustomerId(
+                                customer.getId(),
+                                normalizeKeyword(keyword),
+                                status,
+                                startDate == null ? HISTORY_MIN_DATE : startDate.atStartOfDay(),
+                                endDate == null ? HISTORY_MAX_DATE : endDate.plusDays(1).atStartOfDay(),
+                                pageable)))
                 .orElseGet(() -> Page.empty(pageable));
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String normalized = keyword.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 
     @Override
@@ -396,7 +414,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponse updateBookingStatus(Long id, BookingStatusRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        Booking booking = bookingRepository.findById(id)
+        Booking booking = bookingRepository.findByIdWithPessimisticWrite(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, locale)));
         Map<String, Object> before = bookingAuditSnapshot(booking);
@@ -476,7 +494,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponse assignRoom(Long bookingId, BookingRoomAssignRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        Booking booking = bookingRepository.findById(bookingId)
+        Booking booking = bookingRepository.findByIdWithPessimisticWrite(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.booking.notfound", null, locale)));
         Map<String, Object> before = bookingAuditSnapshot(booking);
@@ -488,7 +506,7 @@ public class BookingServiceImpl implements BookingService {
                     "error.booking.assign.room.not.confirmed", null, locale));
         }
 
-        Room room = roomRepository.findById(request.getRoomId())
+        Room room = roomRepository.findByIdWithPessimisticWrite(request.getRoomId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.room.notfound", null, locale)));
 

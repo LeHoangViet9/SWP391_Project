@@ -213,6 +213,16 @@ export default function FeedbackManager() {
             <option value="Cleanliness" className="bg-[#112240] text-white">{isVi ? 'Sạch sẽ' : 'Cleanliness'}</option>
             <option value="Staff" className="bg-[#112240] text-white">{isVi ? 'Nhân viên' : 'Staff'}</option>
           </select>
+
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-white focus:border-[#bfa15f] outline-none transition-all cursor-pointer"
+          >
+            <option value="" className="bg-[#112240] text-white">{isVi ? 'Tất cả trạng thái' : 'All statuses'}</option>
+            <option value="PENDING" className="bg-[#112240] text-white">{isVi ? 'Chờ xử lý' : 'Pending'}</option>
+            <option value="REVIEWED" className="bg-[#112240] text-white">{isVi ? 'Đã phản hồi' : 'Reviewed'}</option>
+          </select>
         </div>
 
         <div className="flex gap-2 flex-wrap items-center">

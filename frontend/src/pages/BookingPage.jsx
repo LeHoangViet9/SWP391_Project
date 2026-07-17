@@ -35,7 +35,7 @@ const getLocalDateString = (dateObj = new Date()) => {
 const today = () => getLocalDateString();
 const CART_STORAGE_KEY = 'hms_booking_cart';
 const CART_HOLD_TOKEN_KEY = 'hms_booking_cart_hold_token';
-const BOOKING_HOLD_MINUTES = 1  ;
+const BOOKING_HOLD_MINUTES = 30;
 
 function loadBookingCart() {
   try {

@@ -68,6 +68,7 @@ export default function CustomerBookingHistory() {
 
   // Search & Filter states
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -92,12 +93,24 @@ export default function CustomerBookingHistory() {
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
 
+  useEffect(() => {
+    const timerId = window.setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
+    return () => window.clearTimeout(timerId);
+  }, [searchTerm]);
+
   const fetchData = useCallback(async (nextPage = page) => {
     setLoading(true);
     setError('');
     try {
       const [bookingsRes, feedbacksRes] = await Promise.all([
-        getMyBookingHistory({ page: nextPage, size: 10 }, locale),
+        getMyBookingHistory({
+          keyword: debouncedSearchTerm.trim() || undefined,
+          status: statusFilter || undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          page: nextPage,
+          size: 10,
+        }, locale),
         getMyFeedbacks(locale).catch(err => {
           console.error("Error loading customer feedbacks:", err);
           return { data: [] };
@@ -114,7 +127,11 @@ export default function CustomerBookingHistory() {
     } finally {
       setLoading(false);
     }
-  }, [page, locale, t]);
+  }, [page, locale, t, debouncedSearchTerm, statusFilter, startDate, endDate]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearchTerm, statusFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchData(page);
@@ -249,43 +266,7 @@ export default function CustomerBookingHistory() {
     isVi ? 'Đánh giá / Hành động' : 'Feedback / Action',
   ];
 
-function getIsoDateString(value) {
-  if (!value) return '';
-  if (typeof value === 'string') return value.substring(0, 10);
-  if (Array.isArray(value)) {
-    const [y, m, d] = value;
-    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  }
-  try {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) {
-      return date.toISOString().substring(0, 10);
-    }
-  } catch (e) {}
-  return String(value).substring(0, 10);
-}
-
-  const filteredItems = items.filter((item) => {
-    const query = searchTerm.trim().toLowerCase();
-    const matchesSearch =
-      !query ||
-      String(item.id).toLowerCase().includes(query) ||
-      (item.roomTypeName && item.roomTypeName.toLowerCase().includes(query));
-    const matchesStatus = !statusFilter || (item.bookingStatus || item.status) === statusFilter;
-
-    const matchesDate = (() => {
-      if (!startDate && !endDate) return true;
-      const dateStr = getIsoDateString(item.checkInDate);
-      if (!dateStr) return true;
-      if (startDate && dateStr < startDate) return false;
-      if (endDate && dateStr > endDate) return false;
-      return true;
-    })();
-
-    return matchesSearch && matchesStatus && matchesDate;
-  });
-
-  const rows = filteredItems.map((item) => {
+  const rows = items.map((item) => {
     const status = item.bookingStatus || item.status || 'PENDING_PAYMENT';
     const isPendingPayment = status === 'PENDING_PAYMENT';
     const remainingSeconds = isPendingPayment
@@ -295,7 +276,8 @@ function getIsoDateString(value) {
     const fb = feedbacks.find(f => f.bookingId === item.id);
     const showReviewBtn = status === 'CHECKED_OUT' && !fb;
     const hasFeedback = status === 'CHECKED_OUT' && !!fb;
-    const canCancel = status === 'PENDING_PAYMENT' || status === 'PENDING_CHECK_IN' || status === 'CONFIRMED';
+    // Customers may cancel only unpaid holds; confirmed bookings require staff refund handling.
+    const canCancel = status === 'PENDING_PAYMENT';
     return (
       <tr key={item.id} className="hover:bg-stone-50">
         <td className="px-4 py-3 font-mono text-xs font-bold">#{item.id}</td>
