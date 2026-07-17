@@ -24,6 +24,7 @@ export default function FeedbackManager() {
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [replyTarget, setReplyTarget] = useState(null);
   const [replyText, setReplyText] = useState('');
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [stats, setStats] = useState({
     averageRating: 0.0,
     totalReviews: 0,
@@ -95,13 +96,14 @@ export default function FeedbackManager() {
   };
 
   const handleDeleteFeedback = async (id) => {
-    if (!window.confirm(isVi ? 'Bạn có chắc chắn muốn xóa phản hồi này?' : 'Are you sure you want to delete this feedback?')) return;
     try {
       await deleteFeedback(id, locale);
       notify(isVi ? 'Đã xóa đánh giá!' : 'Feedback deleted!');
       fetchFeedbacks();
     } catch (err) {
       notify(err.message || (isVi ? 'Không thể xóa đánh giá' : 'Failed to delete feedback'), 'error');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -283,13 +285,30 @@ export default function FeedbackManager() {
                     ))}
                   </div>
                   {canDelete && (
-                    <button
-                      onClick={() => handleDeleteFeedback(item.id)}
-                      className="p-1.5 rounded-lg border border-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-all"
-                      title={isVi ? 'Xóa đánh giá' : 'Delete Feedback'}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    deleteConfirmId === item.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleDeleteFeedback(item.id)}
+                          className="px-2 py-1 text-xs font-bold rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all"
+                        >
+                          {isVi ? 'Xác nhận' : 'Confirm'}
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="px-2 py-1 text-xs font-bold rounded-lg bg-white/10 text-white/70 hover:bg-white/20 transition-all"
+                        >
+                          {isVi ? 'Hủy' : 'Cancel'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirmId(item.id)}
+                        className="p-1.5 rounded-lg border border-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-all"
+                        title={isVi ? 'Xóa đánh giá' : 'Delete Feedback'}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )
                   )}
                 </div>
               </div>

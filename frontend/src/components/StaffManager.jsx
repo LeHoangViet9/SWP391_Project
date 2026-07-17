@@ -63,6 +63,7 @@ export default function StaffManager() {
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -176,13 +177,14 @@ export default function StaffManager() {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(t('staff.toast.deleteConfirm', { name: item.fullName }).replace('{name}', item.fullName))) return;
     try {
       await deleteUser(item.id);
       notify(t('staff.toast.deleteSuccess'));
       fetchData(page);
     } catch (err) {
       notify(err.message || t('staff.toast.loadError'), 'error');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -223,9 +225,20 @@ export default function StaffManager() {
             </button>
           )}
           {canDelete && (
-            <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa">
-              <Trash2 size={15} />
-            </button>
+            deleteConfirmId === item.id ? (
+              <div className="flex items-center gap-2">
+                <button onClick={() => handleDelete(item)} className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium hover:bg-red-600 transition-colors">
+                  {t('booking.filters.search') ? 'Xác nhận' : 'Confirm'}
+                </button>
+                <button onClick={() => setDeleteConfirmId(null)} className="border border-stone-300 bg-white px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-stone-100 transition-colors">
+                  {t('booking.filters.clear') ? 'Hủy' : 'Cancel'}
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title="Xóa">
+                <Trash2 size={15} />
+              </button>
+            )
           )}
         </div>
       </td>

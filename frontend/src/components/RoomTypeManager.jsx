@@ -29,6 +29,7 @@ export default function RoomTypeManager({ readOnly = false }) {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [searchOpt, setSearchOpt] = useState('typeName');
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY);
@@ -152,13 +153,14 @@ export default function RoomTypeManager({ readOnly = false }) {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Xóa loại phòng "${item.typeName}"?`)) return;
     try {
       const res = await apiFetch(`/room-types/${item.id}`, { method: 'DELETE' });
       notify(res?.message || 'Đã xóa!');
       fetchData(page);
     } catch (e) {
       notify(e.status === 403 ? '403 Forbidden — Bạn không có quyền xóa!' : e.message, 'error');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -190,10 +192,21 @@ export default function RoomTypeManager({ readOnly = false }) {
       </td>
       {!isReadOnly && (
         <td className="px-4 py-3">
-          <div className="flex items-center gap-3 justify-center">
-            <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700"><Edit2 size={15} /></button>
-            <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700"><Trash2 size={15} /></button>
-          </div>
+          {deleteConfirmId === item.id ? (
+            <div className="flex items-center gap-2 justify-center">
+              <button onClick={() => handleDelete(item)} className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium hover:bg-red-600 transition-colors">
+                {locale === 'vi' ? 'Xác nhận' : 'Confirm'}
+              </button>
+              <button onClick={() => setDeleteConfirmId(null)} className="border border-stone-300 bg-white px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-stone-100 transition-colors">
+                {locale === 'vi' ? 'Hủy' : 'Cancel'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 justify-center">
+              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}><Edit2 size={15} /></button>
+              <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'Xóa' : 'Delete'}><Trash2 size={15} /></button>
+            </div>
+          )}
         </td>
       )}
     </tr>

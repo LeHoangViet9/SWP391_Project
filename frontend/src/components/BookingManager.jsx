@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, RefreshCw, CheckCircle, LogOut, Filter, Calendar } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { getAllBookings, createBooking, updateBooking, deleteBooking, searchBookings, updateBookingStatus, assignRoom } from '../services/bookingService';
 import { createCustomer } from '../services/customerService';
 import { apiFetch } from '../services/api';
@@ -76,6 +75,7 @@ export default function BookingManager({ readOnly = false }) {
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const [formErrors, setFormErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
@@ -333,13 +333,14 @@ export default function BookingManager({ readOnly = false }) {
 
   const handleDelete = async (item) => {
     if (!canDelete) return notify(t('booking.toast.forbiddenDelete'), 'error');
-    if (!window.confirm(t('booking.toast.deleteConfirm', { id: item.id }).replace('{id}', item.id))) return;
     try {
       await deleteBooking(item.id);
       notify(t('booking.toast.deleteSuccess'));
       if (subTab === 'overview') fetchTodayData(); else fetchData(page);
     } catch (e) {
       notify(e.status === 403 ? t('booking.toast.forbiddenDelete') : e.message, 'error');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -480,7 +481,18 @@ export default function BookingManager({ readOnly = false }) {
           <td className="px-4 py-3">
             <div className="flex items-center gap-3">
               <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa"><Edit2 size={15} /></button>
-              <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa"><Trash2 size={15} /></button>
+              {deleteConfirmId === item.id ? (
+                <div className="flex items-center gap-2">
+                  <button onClick={() => handleDelete(item)} className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium hover:bg-red-600 transition-colors">
+                    {t('booking.filters.search') ? 'Xác nhận' : 'Confirm'}
+                  </button>
+                  <button onClick={() => setDeleteConfirmId(null)} className="border border-stone-300 bg-white px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-stone-100 transition-colors">
+                    {t('booking.filters.clear') ? 'Hủy' : 'Cancel'}
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title="Xóa"><Trash2 size={15} /></button>
+              )}
             </div>
           </td>
         )}
