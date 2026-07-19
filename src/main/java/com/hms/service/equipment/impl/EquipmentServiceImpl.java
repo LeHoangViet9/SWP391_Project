@@ -87,10 +87,7 @@ public class EquipmentServiceImpl implements EquipmentService {
     public EquipmentResponse createEquipment(EquipmentCreateDTO equipmentDTO) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        if (equipmentRepository.existsByEquipmentCodeAndStatus(
-                equipmentDTO.getEquipmentCode(),
-                EquipmentStatus.ACTIVE
-        )) {
+        if (equipmentRepository.existsByEquipmentCodeIgnoreCase(equipmentDTO.getEquipmentCode())) {
             throw new ConflictException(
                     messageSource.getMessage(
                             "error.equipment.code.existed",
@@ -114,12 +111,8 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         Equipment equipment = findActiveEquipment(id, locale);
 
-        if (!equipment.getEquipmentCode().equals(dto.getEquipmentCode())
-                && equipmentRepository.existsByEquipmentCodeAndIdNotAndStatus(
-                dto.getEquipmentCode(),
-                id,
-                EquipmentStatus.ACTIVE
-        )) {
+        if (!equipment.getEquipmentCode().equalsIgnoreCase(dto.getEquipmentCode())
+                && equipmentRepository.existsByEquipmentCodeIgnoreCaseAndIdNot(dto.getEquipmentCode(), id)) {
             throw new ConflictException(
                     messageSource.getMessage(
                             "error.equipment.code.existed",
@@ -309,7 +302,7 @@ public class EquipmentServiceImpl implements EquipmentService {
                 }
 
                 // THAY ĐỔI (Cách 2): Đặt tên file gọn gàng theo mã thiết bị và short UUID
-                String fileName = equipment.getEquipmentCode().toLowerCase() + "_" 
+                String fileName = equipment.getEquipmentCode().toLowerCase() + "_"
                         + UUID.randomUUID().toString().substring(0, 8) + extension;
 
                 Path targetPath = uploadPath.resolve(fileName).normalize();
@@ -374,6 +367,14 @@ public class EquipmentServiceImpl implements EquipmentService {
                                 locale
                         )
                 ));
+
+        if (dtos == null || dtos.isEmpty()) {
+            throw new ConflictException("At least one equipment assignment is required");
+        }
+        long distinctEquipmentIds = dtos.stream().map(BulkAssignEquipmentDTO::getEquipmentId).distinct().count();
+        if (distinctEquipmentIds != dtos.size()) {
+            throw new ConflictException("Each equipment can appear only once in a bulk assignment");
+        }
 
         List<RoomEquipmentResponse> result = new java.util.ArrayList<>();
 

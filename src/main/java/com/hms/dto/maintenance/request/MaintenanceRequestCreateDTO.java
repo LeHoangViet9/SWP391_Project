@@ -14,7 +14,7 @@ public class MaintenanceRequestCreateDTO {
 
         private Long equipmentId;
 
-        @NotNull(message = "{maintenance.reportedBy.notnull}")
+        // The server always derives this value from the authenticated user.
         private Long reportedBy;
 
         @NotBlank(message = "{maintenance.issueTitle.notblank}")

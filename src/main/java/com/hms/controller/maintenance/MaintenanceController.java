@@ -143,13 +143,12 @@ public class MaintenanceController {
     @PostMapping("/{id}/accept")
     @PreAuthorize("hasAuthority('MAINTENANCE_UPDATE')")
     public ApiResponse<MaintenanceResponse> acceptRequest(
-            @PathVariable Long id,
-            @RequestParam Long userId
+            @PathVariable Long id
     ) {
         Locale locale = LocaleContextHolder.getLocale();
         return ApiResponse.success(
                 messageSource.getMessage("maintenance.update.success", null, locale),
-                maintenanceService.acceptRequest(id, userId)
+                maintenanceService.acceptRequest(id)
         );
     }
 
@@ -162,13 +161,12 @@ public class MaintenanceController {
     @PreAuthorize("hasAuthority('MAINTENANCE_UPDATE')")
     public ApiResponse<MaintenanceResponse> denyRequest(
             @PathVariable Long id,
-            @RequestParam Long userId,
             @RequestParam(required = false) String reason
     ) {
         Locale locale = LocaleContextHolder.getLocale();
         return ApiResponse.success(
                 messageSource.getMessage("maintenance.update.success", null, locale),
-                maintenanceService.denyRequest(id, userId, reason)
+                maintenanceService.denyRequest(id, reason)
         );
     }
-}
+}
