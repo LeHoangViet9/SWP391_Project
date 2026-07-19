@@ -42,7 +42,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
                 "ROOM_TYPE_VIEW", "ROOM_TYPE_CREATE", "ROOM_TYPE_UPDATE", "ROOM_TYPE_DELETE",
 
                 // Customer permissions
-                "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE", "CUSTOMER_DELETE","CUSTOMER_EXPORT",
+                "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_UPDATE", "CUSTOMER_DELETE",
 
                 // Booking permissions
                 "BOOKING_VIEW", "BOOKING_CREATE", "BOOKING_UPDATE", "BOOKING_DELETE", "BOOKING_VIEW_OWN",
@@ -83,6 +83,22 @@ public class PermissionDataInitializer implements ApplicationRunner {
             });
         }
 
+        // 1.5. Xóa các permissions rác không còn sử dụng
+        List<String> orphanPerms = Arrays.asList("INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE", "CHECKIN_PROCESS", "CUSTOMER_EXPORT");
+        for (String permName : orphanPerms) {
+            permissionRepository.findByName(permName).ifPresent(perm -> {
+                List<Role> allRoles = roleRepository.findAll();
+                for (Role role : allRoles) {
+                    if (role.getPermissions().contains(perm)) {
+                        role.getPermissions().remove(perm);
+                        roleRepository.save(role);
+                    }
+                }
+                permissionRepository.delete(perm);
+                log.info("Deleted orphan permission: {}", permName);
+            });
+        }
+
         // 2. Gán permissions cho từng role
         assignPermissionsToAdmin();
         assignPermissionsToManager();
@@ -111,10 +127,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
 
         Set<Permission> targetPerms = new HashSet<>();
         for (String permName : requiredPermNames) {
-            Permission perm = permissionRepository.findByName(permName).orElse(null);
-            if (perm != null) {
-                targetPerms.add(perm);
-            }
+            permissionRepository.findByName(permName).ifPresent(targetPerms::add);
         }
 
         role.setPermissions(targetPerms);

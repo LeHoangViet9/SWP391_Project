@@ -1,5 +1,6 @@
 package com.hms.common.config;
 
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
@@ -17,7 +18,7 @@ import java.sql.Statement;
 public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEvent> {
 
     @Override
-    public void onApplicationEvent(ApplicationEvent event) {
+    public void onApplicationEvent(@NonNull ApplicationEvent event) {
         if (event instanceof ApplicationEnvironmentPreparedEvent environmentPreparedEvent) {
             syncBeforeHibernate(environmentPreparedEvent);
         } else if (event instanceof ApplicationReadyEvent readyEvent) {
@@ -64,11 +65,6 @@ public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEve
             log.debug("[PreHibernate] Legacy user cleanup skipped: {}", e.getMessage());
         }
     }
-
-    /**
-     * Older databases still have a retired user_name column that is not mapped
-     * by the current User entity. It must accept NULL for current seed users.
-     */
     private void syncLegacyUserNameConstraint(Statement stmt) {
         try {
             stmt.execute("ALTER TABLE users ALTER COLUMN user_name DROP NOT NULL");
