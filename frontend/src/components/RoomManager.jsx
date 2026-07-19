@@ -6,7 +6,6 @@ import {
   createRoom,
   updateRoom,
   deleteRoom,
-  updateRoomStatus,
 } from '../services/roomService';
 import DataTable from './shared/DataTable';
 import { useLocale } from '../context/LocaleContext';
@@ -68,9 +67,7 @@ export default function RoomManager({ readOnly = false }) {
   const canCreate = hasPermission('ROOM_CREATE');
   const canUpdate = hasPermission('ROOM_UPDATE');
   const canDelete = hasPermission('ROOM_DELETE');
-
-  // Override readOnly if user has write permissions
-  const isReadOnly = readOnly || (!canCreate && !canUpdate && !canDelete);
+  const showActions = !readOnly && (canUpdate || canDelete);
   const [items, setItems] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -183,18 +180,9 @@ export default function RoomManager({ readOnly = false }) {
     }
   };
 
-  const handleStatusChange = async (item, newStatus) => {
-    try {
-      await updateRoomStatus(item.id, newStatus, locale);
-      notify(t('room.toast.statusSuccess'));
-      fetchData(page);
-    } catch (e) {
-      notify(e.status === 403 ? t('room.toast.forbidden') : e.message, 'error');
-    }
-  };
-
   const rows = items.map(item => {
     const status = getRoomStatus(item);
+    const isInactive = status === 'INACTIVE';
     const displayStatus = STATUS_LABELS[locale]?.[status] || status;
     return (
         <tr key={item.id} className="hover:bg-stone-50">
@@ -205,29 +193,16 @@ export default function RoomManager({ readOnly = false }) {
           </td>
           <td className="px-4 py-3 text-center">{item.floorNumber}</td>
           <td className="px-4 py-3">
-            {isReadOnly ? (
-                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-stone-100 text-stone-600'}`}>
+            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-stone-100 text-stone-600'}`}>
               {displayStatus}
             </span>
-            ) : (
-                <select
-                    value={status}
-                    onChange={e => handleStatusChange(item, e.target.value)}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full border border-stone-200 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
-                >
-                  {Array.from(new Set([status, 'AVAILABLE', 'INACTIVE'])).map(s => {
-                    const label = STATUS_LABELS[locale]?.[s] || s;
-                    return <option key={s} value={s}>{label}</option>;
-                  })}
-                </select>
-            )}
           </td>
-          {!isReadOnly && (
+          {showActions && (
               <td className="px-4 py-3">
                 {deleteConfirmId === item.id ? (
                   <div className="flex items-center gap-2 justify-center">
                     <button onClick={() => handleDelete(item)} className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium hover:bg-red-600 transition-colors">
-                      {locale === 'vi' ? 'Xác nhận' : 'Confirm'}
+                      {locale === 'vi' ? 'Ngừng hoạt động' : 'Deactivate'}
                     </button>
                     <button onClick={() => setDeleteConfirmId(null)} className="border border-stone-300 bg-white px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-stone-100 transition-colors">
                       {locale === 'vi' ? 'Hủy' : 'Cancel'}
@@ -235,12 +210,16 @@ export default function RoomManager({ readOnly = false }) {
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 justify-center">
-                    <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}>
-                      <Edit2 size={15} />
-                    </button>
-                    <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'Xóa' : 'Delete'}>
-                      <Trash2 size={15} />
-                    </button>
+                    {canUpdate && !isInactive && (
+                      <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}>
+                        <Edit2 size={15} />
+                      </button>
+                    )}
+                    {canDelete && !isInactive && (
+                      <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'Ngừng hoạt động' : 'Deactivate'}>
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </div>
                 )}
               </td>
@@ -249,7 +228,7 @@ export default function RoomManager({ readOnly = false }) {
     );
   });
 
-  const cols = [t('room.columns.id'), t('room.columns.roomNumber'), t('room.columns.roomType'), t('room.columns.floor'), t('room.columns.status'), ...(!isReadOnly ? [t('room.columns.actions')] : [])];
+  const cols = [t('room.columns.id'), t('room.columns.roomNumber'), t('room.columns.roomType'), t('room.columns.floor'), t('room.columns.status'), ...(showActions ? [t('room.columns.actions')] : [])];
 
   return (
       <div>
@@ -322,7 +301,7 @@ export default function RoomManager({ readOnly = false }) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            {!isReadOnly && (
+            {!readOnly && canCreate && (
                 <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
                   <Plus size={16} /> {t('room.addBtn')}
                 </button>

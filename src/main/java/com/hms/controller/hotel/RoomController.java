@@ -197,23 +197,5 @@ public class RoomController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAuthority('ROOM_UPDATE')")
-    public ResponseEntity<ApiResponse<Void>> updateRoomStatus(
-            @PathVariable Long id,
-            @RequestParam RoomStatus status) {
-
-        Locale locale = LocaleContextHolder.getLocale();
-        roomService.updateRoomStatus(id, status);
-        String message = messageSource.getMessage("success.room.updatestatus", null, locale);
-
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(true)
-                .message(message)
-                .status(HttpStatus.OK)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
 }
 

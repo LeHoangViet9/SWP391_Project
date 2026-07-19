@@ -142,6 +142,8 @@ public class RoomServiceImpl implements IRoomService {
                         messageSource.getMessage("error.room.notfound", null, locale)));
 
         Map<String, Object> before = roomAuditSnapshot(room);
+        // Soft delete: retain the room and its history, while excluding it
+        // from availability and operational workflows by marking it inactive.
         room.setRoomStatus(RoomStatus.INACTIVE);
         Room deleted = roomRepository.save(room);
         auditLogService.logSuccess(

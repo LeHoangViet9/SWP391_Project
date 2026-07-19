@@ -51,10 +51,6 @@ export async function getAvailableRooms(params = {}, locale = 'vi') {
   return apiFetch(`/rooms/available${buildQuery(params)}`, {}, locale);
 }
 
-export async function updateRoomStatus(id, status, locale = 'vi') {
-  return apiFetch(`/rooms/${id}/status?status=${status}`, { method: 'PATCH' }, locale);
-}
-
 export async function getRoomTypes(params = {}, locale = 'vi') {
   return apiFetch(`/room-types${buildQuery(params)}`, {}, locale);
 }

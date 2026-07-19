@@ -60,8 +60,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
             SELECT r
             FROM Room r
             LEFT JOIN r.roomType rt
-            WHERE r.roomStatus <> com.hms.common.enums.RoomStatus.INACTIVE
-            AND (
+            WHERE (
                 CAST(:keyword AS string) IS NULL
                 OR LOWER(r.roomNumber) LIKE LOWER(CAST(:keyword AS string))
                 OR LOWER(rt.typeName) LIKE LOWER(CAST(:keyword AS string))
