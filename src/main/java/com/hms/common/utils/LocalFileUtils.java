@@ -20,32 +20,41 @@ public class LocalFileUtils {
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
-    /**
-     * Lưu file ảnh vào thư mục local và trả về URL có thể truy cập từ frontend.
-     */
     public String uploadFile(MultipartFile file) {
+        return uploadFile(file, null);
+    }
+
+    public String uploadFile(MultipartFile file, String subDirectory) {
         try {
-            // Tạo thư mục nếu chưa tồn tại
             Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+            String normalizedSubDirectory = "";
+
+            if (subDirectory != null && !subDirectory.isBlank()) {
+                normalizedSubDirectory = subDirectory
+                        .replace("\\", "/")
+                        .replaceAll("^/+", "")
+                        .replaceAll("/+$", "");
+                uploadPath = uploadPath.resolve(normalizedSubDirectory).normalize();
+            }
+
             Files.createDirectories(uploadPath);
 
-            // Tạo tên file duy nhất để tránh trùng lặp
             String originalFilename = file.getOriginalFilename();
             String extension = "";
             if (originalFilename != null && originalFilename.contains(".")) {
                 extension = originalFilename.substring(originalFilename.lastIndexOf("."));
             }
-            String uniqueFilename = UUID.randomUUID().toString() + extension;
 
-            // Lưu file vào thư mục
+            String uniqueFilename = UUID.randomUUID() + extension;
             Path targetLocation = uploadPath.resolve(uniqueFilename);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
-            // Trả về URL có thể truy cập từ frontend
-            return baseUrl + "/uploads/" + uniqueFilename;
-
+            String urlPath = normalizedSubDirectory.isEmpty()
+                    ? uniqueFilename
+                    : normalizedSubDirectory + "/" + uniqueFilename;
+            return baseUrl + "/uploads/" + urlPath;
         } catch (IOException e) {
-            throw new RuntimeException("Không thể lưu file ảnh: " + e.getMessage());
+            throw new RuntimeException("Cannot save image file: " + e.getMessage());
         }
     }
 }

@@ -6,6 +6,7 @@ import com.hms.common.enums.PaymentStatus;
 import com.hms.entity.booking.Booking;
 import com.hms.repository.booking.BookingRepository;
 import com.hms.repository.hotel.RoomRepository;
+import com.hms.service.booking.CartHoldService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,6 +23,7 @@ public class BookingHoldScheduler {
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
+    private final CartHoldService cartHoldService;
 
     @Scheduled(fixedDelayString = "${app.booking.hold-cleanup-ms:30000}")
     @Transactional
@@ -52,5 +54,6 @@ public class BookingHoldScheduler {
             bookingRepository.save(booking);
             log.info("Cancelled expired room hold for booking {}", booking.getId());
         }
+        cartHoldService.expireHolds();
     }
 }

@@ -9,6 +9,7 @@ import com.hms.dto.booking.request.BookingStatusRequest;
 import com.hms.dto.booking.response.BookingResponse;
 import org.springframework.data.domain.Page;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import com.hms.dto.checkin.response.AvailableRoomResponseDTO;
@@ -27,7 +28,8 @@ public interface BookingService {
 
     Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size);
 
-    Page<BookingResponse> getMyBookingHistory(String email, Integer page, Integer size);
+    Page<BookingResponse> getMyBookingHistory(String email, String keyword, BookingStatus status,
+                                              LocalDate startDate, LocalDate endDate, Integer page, Integer size);
 
     Page<BookingResponse> getBookingsByCheckInDateBetween(LocalDateTime start, LocalDateTime end, Integer page, Integer size);
 

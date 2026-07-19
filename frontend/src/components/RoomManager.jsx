@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Search, RefreshCw, Map as MapIcon, BedDouble, Layers3 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
 import {
   getAllRooms,
   getRoomTypes,
@@ -26,28 +26,28 @@ const STATUS_COLORS = {
   INACTIVE: 'bg-stone-100 text-stone-700 border border-stone-300',
 };
 
-const MAP_STATUS_STYLES = {
-  AVAILABLE: 'border-emerald-400 bg-emerald-100 text-emerald-800',
-  READY: 'border-cyan-400 bg-cyan-100 text-cyan-800',
-  RESERVED: 'border-amber-400 bg-amber-100 text-amber-800',
-  OCCUPIED: 'border-red-400 bg-red-100 text-red-800',
-  CLEANING: 'border-violet-400 bg-violet-100 text-violet-800',
-  DIRTY: 'border-orange-400 bg-orange-100 text-orange-800',
-  MAINTENANCE: 'border-slate-500 bg-slate-200 text-slate-800',
-  CHECKOUT_PENDING: 'border-pink-400 bg-pink-100 text-pink-800',
-  INACTIVE: 'border-stone-300 bg-stone-100 text-stone-500',
-};
-
 const STATUS_LABELS = {
   vi: {
-    AVAILABLE: 'Phòng trống', READY: 'Sẵn sàng', RESERVED: 'Đã đặt', OCCUPIED: 'Đang ở',
-    CLEANING: 'Đang dọn', DIRTY: 'Chờ dọn', MAINTENANCE: 'Bảo trì',
-    CHECKOUT_PENDING: 'Chờ trả phòng', INACTIVE: 'Ngừng hoạt động',
+    AVAILABLE: 'Phòng trống',
+    READY: 'Sẵn sàng',
+    RESERVED: 'Đã đặt',
+    OCCUPIED: 'Đang ở',
+    CLEANING: 'Đang dọn',
+    DIRTY: 'Chờ dọn',
+    MAINTENANCE: 'Bảo trì',
+    CHECKOUT_PENDING: 'Chờ trả phòng',
+    INACTIVE: 'Ngừng hoạt động',
   },
   en: {
-    AVAILABLE: 'Available', READY: 'Ready', RESERVED: 'Reserved', OCCUPIED: 'Occupied',
-    CLEANING: 'Cleaning', DIRTY: 'Dirty', MAINTENANCE: 'Maintenance',
-    CHECKOUT_PENDING: 'Checkout pending', INACTIVE: 'Inactive',
+    AVAILABLE: 'Available',
+    READY: 'Ready',
+    RESERVED: 'Reserved',
+    OCCUPIED: 'Occupied',
+    CLEANING: 'Cleaning',
+    DIRTY: 'Dirty',
+    MAINTENANCE: 'Maintenance',
+    CHECKOUT_PENDING: 'Checkout pending',
+    INACTIVE: 'Inactive',
   },
 };
 
@@ -81,28 +81,8 @@ export default function RoomManager({ readOnly = false }) {
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY_FORM);
-  const [files, setFiles] = useState([]);
-  const [previews, setPreviews] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [mapOpen, setMapOpen] = useState(false);
-  const [mapLoading, setMapLoading] = useState(false);
-  const [mapRooms, setMapRooms] = useState([]);
-
-  useEffect(() => {
-    if (!files || files.length === 0) {
-      setPreviews([]);
-      return;
-    }
-    const objectUrls = files.map(f => URL.createObjectURL(f));
-    setPreviews(objectUrls);
-    return () => objectUrls.forEach(url => URL.revokeObjectURL(url));
-  }, [files]);
-
-  const handleFileChange = (e) => {
-    if (e.target.files) {
-      setFiles(Array.from(e.target.files));
-    }
-  };
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -149,7 +129,6 @@ export default function RoomManager({ readOnly = false }) {
 
   const openCreate = () => {
     setForm(EMPTY_FORM);
-    setFiles([]);
     setModal({ open: true, editing: null });
   };
 
@@ -159,41 +138,14 @@ export default function RoomManager({ readOnly = false }) {
       floorNumber: item.floorNumber || '',
       description: item.description || '',
     });
-    setFiles([]);
     setModal({ open: true, editing: item });
   };
 
   const closeModal = () => setModal({ open: false, editing: null });
 
-  const openRoomMap = async () => {
-    setMapOpen(true);
-    setMapLoading(true);
-    try {
-      const res = await getAllRooms({ page: 0, size: 1000 }, locale);
-      setMapRooms(res?.data?.content ?? []);
-    } catch (e) {
-      notify(e.message || (locale === 'vi' ? 'Không thể tải bản đồ phòng.' : 'Could not load room map.'), 'error');
-      setMapOpen(false);
-    } finally {
-      setMapLoading(false);
-    }
-  };
-
-  const roomsByFloor = useMemo(() => {
-    const grouped = mapRooms.reduce((result, room) => {
-      const floor = Number(room.floorNumber || 0);
-      if (!result[floor]) result[floor] = [];
-      result[floor].push(room);
-      return result;
-    }, {});
-    return Object.entries(grouped)
-        .sort(([floorA], [floorB]) => Number(floorA) - Number(floorB))
-        .map(([floor, rooms]) => [floor, rooms.sort((a, b) => String(a.roomNumber).localeCompare(String(b.roomNumber), undefined, { numeric: true }))]);
-  }, [mapRooms]);
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!modal.editing && files.length === 0) return notify(t('room.toast.imageRequired'), 'warning');
 
     const payload = {
       roomTypeId: Number(form.roomTypeId),
@@ -204,10 +156,10 @@ export default function RoomManager({ readOnly = false }) {
     setSaving(true);
     try {
       if (modal.editing) {
-        await updateRoom(modal.editing.id, payload, files, locale);
+        await updateRoom(modal.editing.id, payload, locale);
         notify(t('room.toast.updateSuccess'));
       } else {
-        await createRoom(payload, files, locale);
+        await createRoom(payload, locale);
         notify(t('room.toast.addSuccess'));
       }
       closeModal();
@@ -220,13 +172,14 @@ export default function RoomManager({ readOnly = false }) {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(t('room.toast.deleteConfirm').replace('{roomNumber}', item.roomNumber))) return;
     try {
       await deleteRoom(item.id, locale);
       notify(t('room.toast.deleteSuccess'));
       fetchData(page);
     } catch (e) {
       notify(e.status === 403 ? t('room.toast.forbiddenDelete') : e.message, 'error');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -262,49 +215,41 @@ export default function RoomManager({ readOnly = false }) {
                     onChange={e => handleStatusChange(item, e.target.value)}
                     className={`text-xs font-semibold px-2 py-1 rounded-full border border-stone-200 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
                 >
-                  {Object.keys(STATUS_LABELS[locale] || {}).map(s => {
+                  {Array.from(new Set([status, 'AVAILABLE', 'INACTIVE'])).map(s => {
                     const label = STATUS_LABELS[locale]?.[s] || s;
                     return <option key={s} value={s}>{label}</option>;
                   })}
                 </select>
             )}
           </td>
-          <td className="px-4 py-3">
-            {item.imageRooms && item.imageRooms.length > 0 ? (
-                <div className="flex flex-wrap gap-1 max-w-[120px]">
-                  {item.imageRooms.map((img, idx) => (
-                      <img
-                          key={idx}
-                          src={img}
-                          alt={`room-${idx}`}
-                          className="w-8 h-8 object-cover rounded border hover:scale-110 transition-transform cursor-pointer"
-                          onClick={() => window.open(img, '_blank')}
-                      />
-                  ))}
-                </div>
-            ) : item.imageRoom ? (
-                <img src={item.imageRoom} alt="room" className="w-12 h-10 object-cover rounded border cursor-pointer" onClick={() => window.open(item.imageRoom, '_blank')} />
-            ) : (
-                <span className="text-xs text-slate-400">{t('room.noImage')}</span>
-            )}
-          </td>
           {!isReadOnly && (
               <td className="px-4 py-3">
-                <div className="flex items-center gap-3 justify-center">
-                  <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}>
-                    <Edit2 size={15} />
-                  </button>
-                  <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'Xóa' : 'Delete'}>
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+                {deleteConfirmId === item.id ? (
+                  <div className="flex items-center gap-2 justify-center">
+                    <button onClick={() => handleDelete(item)} className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium hover:bg-red-600 transition-colors">
+                      {locale === 'vi' ? 'Xác nhận' : 'Confirm'}
+                    </button>
+                    <button onClick={() => setDeleteConfirmId(null)} className="border border-stone-300 bg-white px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-stone-100 transition-colors">
+                      {locale === 'vi' ? 'Hủy' : 'Cancel'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 justify-center">
+                    <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}>
+                      <Edit2 size={15} />
+                    </button>
+                    <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'Xóa' : 'Delete'}>
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                )}
               </td>
           )}
         </tr>
     );
   });
 
-  const cols = [t('room.columns.id'), t('room.columns.roomNumber'), t('room.columns.roomType'), t('room.columns.floor'), t('room.columns.status'), t('room.columns.image'), ...(!isReadOnly ? [t('room.columns.actions')] : [])];
+  const cols = [t('room.columns.id'), t('room.columns.roomNumber'), t('room.columns.roomType'), t('room.columns.floor'), t('room.columns.status'), ...(!isReadOnly ? [t('room.columns.actions')] : [])];
 
   return (
       <div>
@@ -377,9 +322,6 @@ export default function RoomManager({ readOnly = false }) {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={openRoomMap} className="flex items-center gap-2 rounded border border-[#bfa15f] bg-white px-4 py-2 text-sm font-semibold text-[#9b7d3f] shadow-sm hover:bg-[#bfa15f]/10">
-              <MapIcon size={16} /> {locale === 'vi' ? 'Xem bản đồ phòng' : 'Room map'}
-            </button>
             {!isReadOnly && (
                 <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
                   <Plus size={16} /> {t('room.addBtn')}
@@ -390,79 +332,6 @@ export default function RoomManager({ readOnly = false }) {
 
         <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
 
-        <Modal
-            open={mapOpen}
-            title={locale === 'vi' ? 'Bản đồ trạng thái phòng' : 'Room status map'}
-            onClose={() => setMapOpen(false)}
-            size="2xl"
-        >
-          {mapLoading ? (
-              <div className="flex items-center justify-center gap-3 py-20 text-slate-500">
-                <RefreshCw size={22} className="animate-spin text-[#bfa15f]" />
-                {locale === 'vi' ? 'Đang tải sơ đồ phòng...' : 'Loading room map...'}
-              </div>
-          ) : roomsByFloor.length === 0 ? (
-              <div className="py-16 text-center text-slate-500">
-                <BedDouble size={42} className="mx-auto mb-3 text-stone-300" />
-                {locale === 'vi' ? 'Chưa có dữ liệu phòng.' : 'No rooms found.'}
-              </div>
-          ) : (
-              <div className="space-y-8">
-                <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
-                    {locale === 'vi' ? 'Chú thích trạng thái' : 'Status legend'}
-                  </p>
-                  <div className="flex flex-wrap gap-2.5">
-                    {Object.entries(MAP_STATUS_STYLES).map(([status, styles]) => (
-                        <span key={status} className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${styles}`}>
-                          <span className="h-2.5 w-2.5 rounded-sm bg-current opacity-70" />
-                          {STATUS_LABELS[locale === 'vi' ? 'vi' : 'en'][status]}
-                        </span>
-                    ))}
-                  </div>
-                </div>
-
-                {roomsByFloor.map(([floor, rooms]) => (
-                    <section key={floor} className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-                      <div className="flex items-center justify-between bg-slate-800 px-5 py-3 text-white">
-                        <h4 className="flex items-center gap-2 font-bold">
-                          <Layers3 size={18} className="text-[#d4b46a]" />
-                          {locale === 'vi' ? `Tầng ${floor}` : `Floor ${floor}`}
-                        </h4>
-                        <span className="text-xs text-slate-300">{rooms.length} {locale === 'vi' ? 'phòng' : 'rooms'}</span>
-                      </div>
-                      <div className="bg-slate-50 p-5">
-                        <div className="mb-5 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">
-                          <span className="h-px flex-1 bg-stone-300" />
-                          {locale === 'vi' ? 'Hành lang' : 'Corridor'}
-                          <span className="h-px flex-1 bg-stone-300" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                          {rooms.map((room) => {
-                            const status = getRoomStatus(room);
-                            const styles = MAP_STATUS_STYLES[status] || MAP_STATUS_STYLES.INACTIVE;
-                            return (
-                                <div
-                                    key={room.id}
-                                    className={`group relative min-h-24 rounded-xl border-2 p-3 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${styles}`}
-                                    title={`${room.roomNumber} · ${STATUS_LABELS[locale === 'vi' ? 'vi' : 'en'][status] || status}`}
-                                >
-                                  <BedDouble size={22} className="mx-auto mb-1.5 opacity-80" />
-                                  <p className="text-base font-black">{room.roomNumber}</p>
-                                  <p className="mt-0.5 truncate text-[10px] font-semibold opacity-75">
-                                    {room.roomTypeName || room.roomType?.typeName || '-'}
-                                  </p>
-                                  <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-current shadow-sm" />
-                                </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </section>
-                ))}
-              </div>
-          )}
-        </Modal>
 
         <Modal open={modal.open} title={modal.editing ? t('room.modal.editTitle') : t('room.modal.addTitle')} onClose={closeModal}>
           <form onSubmit={handleSave} className="space-y-4">
@@ -480,45 +349,6 @@ export default function RoomManager({ readOnly = false }) {
                   {roomTypes.map(rt => <option key={rt.id} value={rt.id}>{rt.typeName}</option>)}
                 </select>
               </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-                {modal.editing ? t('room.modal.imageNew') : t('room.modal.imageReq')}
-              </label>
-              <input type="file" accept="image/*" multiple required={!modal.editing} onChange={handleFileChange}
-                     className="w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:border-0 file:bg-[#bfa15f] file:text-white file:rounded file:text-xs file:cursor-pointer mb-2" />
-              
-              {previews.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {previews.map((url, idx) => (
-                        <div key={idx} className="relative group w-12 h-12 rounded border overflow-hidden">
-                          <img src={url} alt="preview" className="w-full h-full object-cover" />
-                          <button
-                              type="button"
-                              onClick={() => {
-                                setFiles(prev => prev.filter((_, i) => i !== idx));
-                              }}
-                              className="absolute inset-0 bg-black bg-opacity-50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold"
-                          >
-                            X
-                          </button>
-                        </div>
-                    ))}
-                  </div>
-              )}
-
-              {modal.editing && modal.editing.imageRooms && modal.editing.imageRooms.length > 0 && (
-                  <div className="mt-3">
-                    <span className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
-                      {locale === 'vi' ? 'Ảnh hiện tại:' : 'Current Images:'}
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {modal.editing.imageRooms.map((img, idx) => (
-                          <img key={idx} src={img} alt="current" className="w-12 h-12 object-cover rounded border" />
-                      ))}
-                    </div>
-                  </div>
-              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('room.modal.description')}</label>

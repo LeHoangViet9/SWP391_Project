@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactPaginate from 'react-paginate';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
 
@@ -26,22 +27,7 @@ export default function DataTable({
   const { t } = useLocale();
   const defaultEmptyText = emptyText || t('common.noData') || 'Không có dữ liệu.';
   const loadingText = t('common.loading') || 'Đang tải...';
-  const getPageNumbers = () => {
-    if (totalPages <= 7) {
-      const pageNumbers = [];
-      for (let i = 0; i < totalPages; i++) {
-        pageNumbers.push(i);
-      }
-      return pageNumbers;
-    }
-    if (page <= 3) {
-      return [0, 1, 2, 3, 4, '...', totalPages - 1];
-    }
-    if (page >= totalPages - 4) {
-      return [0, '...', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1];
-    }
-    return [0, '...', page - 1, page, page + 1, '...', totalPages - 1];
-  };
+
   return (
     <div>
       <div className="overflow-x-auto border border-stone-200 rounded-lg">
@@ -78,50 +64,28 @@ export default function DataTable({
 
       {/* Pagination */}
       {totalPages > 1 && onPageChange && (
-        <div className="flex items-center justify-between mt-3 text-sm text-slate-600">
-          <span>
-            {t('common.page') || 'Trang'} <strong>{page + 1}</strong> / {totalPages}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => onPageChange(page - 1)}
-              disabled={page === 0}
-              className="p-1.5 border rounded hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            {getPageNumbers().map((item, index) =>
-                item === '...' ? (
-                    <span
-                        key={`ellipsis-${index}`}
-                        className="px-2"
-                    >
-                ...
-              </span>
-                ) : (
-                    <button
-                        key={item}
-                        onClick={() => onPageChange(item)}
-                        className={`px-3 py-1 border rounded transition ${
-                            page === item
-                                ? 'bg-[#bfa15f] border-[#bfa15f] text-white'
-                                : 'hover:bg-stone-100'
-                        }`}
-                    >
-                      {item + 1}
-                    </button>
-                )
-            )}
-
-            <button
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= totalPages - 1}
-              className="p-1.5 border rounded hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
+        <ReactPaginate
+          pageCount={totalPages}
+          forcePage={page}
+          onPageChange={({ selected }) => onPageChange(selected)}
+          marginPagesDisplayed={1}
+          pageRangeDisplayed={3}
+          previousLabel={<ChevronLeft size={16} />}
+          nextLabel={<ChevronRight size={16} />}
+          breakLabel="…"
+          containerClassName="flex items-center justify-center mt-4 gap-1 text-sm select-none"
+          pageClassName=""
+          pageLinkClassName="min-w-[32px] h-8 px-2 flex items-center justify-center border border-stone-200 rounded font-medium text-slate-600 hover:bg-stone-100 transition-colors"
+          activeClassName=""
+          activeLinkClassName="!bg-[#bfa15f] !border-[#bfa15f] !text-white shadow-sm"
+          previousClassName=""
+          previousLinkClassName="p-1.5 border border-stone-200 rounded hover:bg-stone-100 disabled:opacity-40 transition-colors flex items-center"
+          nextClassName=""
+          nextLinkClassName="p-1.5 border border-stone-200 rounded hover:bg-stone-100 disabled:opacity-40 transition-colors flex items-center"
+          breakClassName=""
+          breakLinkClassName="px-2 py-1 text-slate-400"
+          disabledLinkClassName="opacity-40 cursor-not-allowed pointer-events-none"
+        />
       )}
     </div>
   );

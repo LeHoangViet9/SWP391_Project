@@ -833,6 +833,60 @@ public class CustomerFeedbackControllerIntegrationTest {
                                 .andExpect(jsonPath("$.data.averageRating", is(4.5)))
                                 .andExpect(jsonPath("$.data.ratingDistribution.5", is(1)))
                                 .andExpect(jsonPath("$.data.ratingDistribution.4", is(1)))
-                                .andExpect(jsonPath("$.data.ratingDistribution.3", is(0)));
+                .andExpect(jsonPath("$.data.ratingDistribution.3", is(0)));
+        }
+
+        @Test
+        void publicFeedbackEndpointsExposeOnlyReviewedFeedback() throws Exception {
+                CustomerFeedback pending = CustomerFeedback.builder()
+                                .booking(testBooking)
+                                .customer(testCustomer)
+                                .rating(1)
+                                .category("Room")
+                                .comment("Pending review must stay private")
+                                .status(FeedbackStatus.PENDING)
+                                .build();
+                customerFeedbackRepository.save(pending);
+
+                Booking reviewedBooking = bookingRepository.save(Booking.builder()
+                                .customer(otherCustomer)
+                                .roomType(testRoomType)
+                                .pricePerNight(new BigDecimal("600000"))
+                                .quantity(1)
+                                .checkInDate(LocalDateTime.now().minusDays(8))
+                                .checkOutDate(LocalDateTime.now().minusDays(6))
+                                .bookingStatus(BookingStatus.CHECKED_OUT)
+                                .totalPrice(new BigDecimal("1200000"))
+                                .build());
+                CustomerFeedback reviewed = CustomerFeedback.builder()
+                                .booking(reviewedBooking)
+                                .customer(otherCustomer)
+                                .rating(5)
+                                .category("Service")
+                                .comment("Published review")
+                                .status(FeedbackStatus.REVIEWED)
+                                .reply("Thank you")
+                                .build();
+                customerFeedbackRepository.save(reviewed);
+
+                mockMvc.perform(get("/api/v1/feedbacks/public")
+                                .locale(Locale.ENGLISH))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data", hasSize(1)))
+                                .andExpect(jsonPath("$.data[0].comment", is("Published review")))
+                                .andExpect(jsonPath("$.data[0].status", is("REVIEWED")));
+
+                mockMvc.perform(get("/api/v1/feedbacks/public/search")
+                                .param("keyword", "review")
+                                .locale(Locale.ENGLISH))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.content", hasSize(1)))
+                                .andExpect(jsonPath("$.data.content[0].comment", is("Published review")));
+
+                mockMvc.perform(get("/api/v1/feedbacks/public/stats")
+                                .locale(Locale.ENGLISH))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data.totalReviews", is(1)))
+                                .andExpect(jsonPath("$.data.averageRating", is(5.0)));
         }
 }

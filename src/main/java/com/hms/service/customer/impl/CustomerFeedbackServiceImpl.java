@@ -58,7 +58,9 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.feedback.customer.notfound", null, locale)));
 
-        Booking booking = bookingRepository.findById(request.getBookingId())
+        // Serialize submissions for the same booking before checking the one-review rule.
+        // This keeps two concurrent requests from both passing existsByBookingId().
+        Booking booking = bookingRepository.findByIdWithPessimisticWrite(request.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.feedback.booking.notfound", null, locale)));
 
@@ -209,7 +211,7 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
 
     @Override
     public List<CustomerFeedbackResponse> getPublicFeedbacks() {
-        return customerFeedbackRepository.findAllByOrderByCreatedAtDesc()
+        return customerFeedbackRepository.findByStatusOrderByCreatedAtDesc(FeedbackStatus.REVIEWED)
                 .stream()
                 .map(customerFeedbackMapper::toResponse)
                 .toList();
@@ -220,12 +222,12 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
         Pageable pageable = pageableUtils.createPageable(page, size, "createdAt", SortDirection.DESC);
 
         return customerFeedbackRepository
-                .searchFeedback(keyword, null, rating, category, pageable)
+                .searchFeedback(keyword, FeedbackStatus.REVIEWED, rating, category, pageable)
                 .map(customerFeedbackMapper::toResponse);
     }
 
     @Override
     public FeedbackStatsResponse getPublicFeedbackStats(String keyword, String category) {
-        return getFeedbackStats(keyword, null, category);
+        return getFeedbackStats(keyword, FeedbackStatus.REVIEWED, category);
     }
 }

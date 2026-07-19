@@ -1,7 +1,9 @@
 package com.hms.common.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 
 import java.sql.Connection;
@@ -12,10 +14,18 @@ import java.sql.Statement;
  * Runs compatibility SQL before Hibernate DDL update.
  */
 @Slf4j
-public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEnvironmentPreparedEvent> {
+public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEvent> {
 
     @Override
-    public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
+    public void onApplicationEvent(ApplicationEvent event) {
+        if (event instanceof ApplicationEnvironmentPreparedEvent environmentPreparedEvent) {
+            syncBeforeHibernate(environmentPreparedEvent);
+        } else if (event instanceof ApplicationReadyEvent readyEvent) {
+            syncFeedbackConstraintAfterHibernate(readyEvent);
+        }
+    }
+
+    private void syncBeforeHibernate(ApplicationEnvironmentPreparedEvent event) {
         String url = event.getEnvironment().getProperty("spring.datasource.url");
         String username = event.getEnvironment().getProperty("spring.datasource.username");
         String password = event.getEnvironment().getProperty("spring.datasource.password");
@@ -30,7 +40,9 @@ public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEnv
                  Statement stmt = conn.createStatement()) {
 
                 cleanupLegacyUsers(stmt);
+                syncLegacyUserNameConstraint(stmt);
                 syncInvoiceConstraints(stmt);
+                syncFeedbackConstraints(stmt);
                 syncBookingStatusConstraint(stmt);
                 syncWorkStatusConstraint(stmt);
             }
@@ -50,6 +62,19 @@ public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEnv
             }
         } catch (Exception e) {
             log.debug("[PreHibernate] Legacy user cleanup skipped: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Older databases still have a retired user_name column that is not mapped
+     * by the current User entity. It must accept NULL for current seed users.
+     */
+    private void syncLegacyUserNameConstraint(Statement stmt) {
+        try {
+            stmt.execute("ALTER TABLE users ALTER COLUMN user_name DROP NOT NULL");
+            log.info("[PreHibernate] Legacy users.user_name column made nullable");
+        } catch (Exception e) {
+            log.debug("[PreHibernate] Legacy user_name constraint sync skipped: {}", e.getMessage());
         }
     }
 
@@ -109,6 +134,35 @@ public class PreHibernateDbCleanup implements ApplicationListener<ApplicationEnv
             log.info("[PreHibernate] Booking status check constraint synchronized");
         } catch (Exception e) {
             log.debug("[PreHibernate] Booking status constraint cleanup skipped: {}", e.getMessage());
+        }
+    }
+
+    private void syncFeedbackConstraintAfterHibernate(ApplicationReadyEvent event) {
+        String url = event.getApplicationContext().getEnvironment().getProperty("spring.datasource.url");
+        String username = event.getApplicationContext().getEnvironment().getProperty("spring.datasource.username");
+        String password = event.getApplicationContext().getEnvironment().getProperty("spring.datasource.password");
+        if (url == null) {
+            return;
+        }
+
+        try (Connection conn = DriverManager.getConnection(url, username, password);
+             Statement stmt = conn.createStatement()) {
+            syncFeedbackConstraints(stmt);
+        } catch (Exception e) {
+            log.debug("[PreHibernate] Post-start feedback constraint sync skipped: {}", e.getMessage());
+        }
+    }
+
+    private void syncFeedbackConstraints(Statement stmt) {
+        try {
+            stmt.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_feedback_booking
+                    ON customer_feedback (booking_id)
+                    WHERE deleted = false
+                    """);
+            log.info("[PreHibernate] Feedback uniqueness constraint synchronized");
+        } catch (Exception e) {
+            log.debug("[PreHibernate] Feedback constraint sync skipped: {}", e.getMessage());
         }
     }
 

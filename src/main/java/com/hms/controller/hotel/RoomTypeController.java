@@ -10,6 +10,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.hms.common.enums.SortField;
@@ -71,11 +72,20 @@ public class RoomTypeController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('ROOM_TYPE_CREATE')")
-    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomType(@RequestBody @Valid RoomTypeRequest roomTypeRequest) {
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomTypeJson(@RequestBody @Valid RoomTypeRequest roomTypeRequest) {
+        return createRoomTypeResponse(roomTypeService.createRoomType(roomTypeRequest));
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('ROOM_TYPE_CREATE')")
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomTypeMultipart(@ModelAttribute @Valid RoomTypeRequest roomTypeRequest) {
+        return createRoomTypeResponse(roomTypeService.createRoomType(roomTypeRequest));
+    }
+
+    private ResponseEntity<ApiResponse<RoomTypeResponse>> createRoomTypeResponse(RoomTypeResponse created) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomTypeResponse created = roomTypeService.createRoomType(roomTypeRequest);
         String message = messageSource.getMessage("success.roomtype.create", null, locale);
         ApiResponse<RoomTypeResponse> response = ApiResponse.<RoomTypeResponse>builder()
                 .success(true)
@@ -86,11 +96,20 @@ public class RoomTypeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('ROOM_TYPE_UPDATE')")
-    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomType(@PathVariable Long id, @RequestBody @Valid RoomTypeRequest roomTypeRequest) {
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomTypeJson(@PathVariable Long id, @RequestBody @Valid RoomTypeRequest roomTypeRequest) {
+        return updateRoomTypeResponse(roomTypeService.updateRoomType(id, roomTypeRequest));
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('ROOM_TYPE_UPDATE')")
+    public ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomTypeMultipart(@PathVariable Long id, @ModelAttribute @Valid RoomTypeRequest roomTypeRequest) {
+        return updateRoomTypeResponse(roomTypeService.updateRoomType(id, roomTypeRequest));
+    }
+
+    private ResponseEntity<ApiResponse<RoomTypeResponse>> updateRoomTypeResponse(RoomTypeResponse updated) {
         Locale locale = LocaleContextHolder.getLocale();
-        RoomTypeResponse updated = roomTypeService.updateRoomType(id, roomTypeRequest);
         String message = messageSource.getMessage("success.roomtype.update", null, locale);
         ApiResponse<RoomTypeResponse> response = ApiResponse.<RoomTypeResponse>builder()
                 .success(true)

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, RefreshCw, Star, MessageSquare, Trash2, Edit3, Clock, CreditCard } from 'lucide-react';
+import { CalendarDays, RefreshCw, Star, MessageSquare, Trash2, Edit3, Clock, CreditCard, AlertTriangle, Search, Filter } from 'lucide-react';
 import DataTable from './shared/DataTable';
+import Modal from './shared/Modal';
 import { useLocale } from '../context/LocaleContext';
 import { deleteBooking, getMyBookingHistory } from '../services/bookingService';
 import { createFeedback, getMyFeedbacks, updateMyFeedback, deleteMyFeedback } from '../services/feedbackService';
@@ -65,10 +66,24 @@ export default function CustomerBookingHistory() {
   const [error, setError] = useState('');
   const [now, setNow] = useState(() => Date.now());
 
+  // Search & Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   // Feedback states
   const [reviewTarget, setReviewTarget] = useState(null);
   const [editFeedbackTarget, setEditFeedbackTarget] = useState(null);
   const [viewReplyTarget, setViewReplyTarget] = useState(null);
+
+  // Cancellation Modal states
+  const [cancelModalTarget, setCancelModalTarget] = useState(null);
+  const [cancelReason, setCancelReason] = useState('Thay đổi kế hoạch du lịch');
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+
   const [rating, setRating] = useState(5);
   const [category, setCategory] = useState('Room');
   const [comment, setComment] = useState('');
@@ -78,12 +93,24 @@ export default function CustomerBookingHistory() {
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
 
+  useEffect(() => {
+    const timerId = window.setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
+    return () => window.clearTimeout(timerId);
+  }, [searchTerm]);
+
   const fetchData = useCallback(async (nextPage = page) => {
     setLoading(true);
     setError('');
     try {
       const [bookingsRes, feedbacksRes] = await Promise.all([
-        getMyBookingHistory({ page: nextPage, size: 10 }, locale),
+        getMyBookingHistory({
+          keyword: debouncedSearchTerm.trim() || undefined,
+          status: statusFilter || undefined,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          page: nextPage,
+          size: 10,
+        }, locale),
         getMyFeedbacks(locale).catch(err => {
           console.error("Error loading customer feedbacks:", err);
           return { data: [] };
@@ -100,7 +127,11 @@ export default function CustomerBookingHistory() {
     } finally {
       setLoading(false);
     }
-  }, [page, locale, t]);
+  }, [page, locale, t, debouncedSearchTerm, statusFilter, startDate, endDate]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearchTerm, statusFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchData(page);
@@ -164,18 +195,19 @@ export default function CustomerBookingHistory() {
     }
   };
 
-  const handleDeleteFeedback = async (feedbackId) => {
-    const confirmed = window.confirm(
-      isVi 
-        ? "Bạn có chắc chắn muốn xóa đánh giá này không? Hành động này không thể hoàn tác." 
-        : "Are you sure you want to delete this feedback? This action cannot be undone."
-    );
-    if (!confirmed) return;
+  const [deleteFeedbackId, setDeleteFeedbackId] = useState(null);
 
+  const handleDeleteFeedback = (feedbackId) => {
+    setDeleteFeedbackId(feedbackId);
+  };
+
+  const confirmDeleteFeedback = async () => {
+    if (!deleteFeedbackId) return;
     setLoading(true);
     try {
-      await deleteMyFeedback(feedbackId, locale);
+      await deleteMyFeedback(deleteFeedbackId, locale);
       notify(isVi ? 'Xóa đánh giá thành công!' : 'Feedback deleted successfully!');
+      setDeleteFeedbackId(null);
       fetchData(page);
     } catch (err) {
       notify(err.message || (isVi ? 'Không thể xóa đánh giá' : 'Failed to delete feedback'), 'error');
@@ -184,23 +216,28 @@ export default function CustomerBookingHistory() {
     }
   };
 
-  const handleCancelBooking = async (booking) => {
-    const confirmed = window.confirm(
-      isVi
-        ? `Bạn có chắc muốn hủy đơn #${booking.id}? Phòng sẽ được trả lại để khách khác có thể đặt.`
-        : `Cancel booking #${booking.id}? Its rooms will become available to other guests.`
-    );
-    if (!confirmed) return;
+  const handleCancelBooking = (booking) => {
+    setCancelModalTarget(booking);
+    setCancelReason(isVi ? 'Thay đổi kế hoạch du lịch' : 'Trip plan changed');
+    setCancelError('');
+  };
 
-    setLoading(true);
+  const confirmCancelBooking = async () => {
+    if (!cancelModalTarget) return;
+
+    setCancelling(true);
+    setCancelError('');
     try {
-      await deleteBooking(booking.id, locale);
-      notify(isVi ? 'Hủy đơn đặt phòng thành công.' : 'Booking cancelled successfully.');
+      await deleteBooking(cancelModalTarget.id, locale);
+      notify(isVi ? `Đã hủy thành công đơn đặt phòng #${cancelModalTarget.id}.` : `Successfully cancelled booking #${cancelModalTarget.id}.`);
+      setCancelModalTarget(null);
       await fetchData(page);
     } catch (err) {
-      notify(err.message || (isVi ? 'Không thể hủy đơn đặt phòng.' : 'Could not cancel booking.'), 'error');
+      const errMsg = err.message || (isVi ? 'Không thể hủy đơn đặt phòng.' : 'Could not cancel booking.');
+      setCancelError(errMsg);
+      notify(errMsg, 'error');
     } finally {
-      setLoading(false);
+      setCancelling(false);
     }
   };
 
@@ -239,7 +276,8 @@ export default function CustomerBookingHistory() {
     const fb = feedbacks.find(f => f.bookingId === item.id);
     const showReviewBtn = status === 'CHECKED_OUT' && !fb;
     const hasFeedback = status === 'CHECKED_OUT' && !!fb;
-    const canCancel = status === 'PENDING_PAYMENT' || status === 'PENDING_CHECK_IN' || status === 'CONFIRMED';
+    // Customers may cancel only unpaid holds; confirmed bookings require staff refund handling.
+    const canCancel = status === 'PENDING_PAYMENT';
     return (
       <tr key={item.id} className="hover:bg-stone-50">
         <td className="px-4 py-3 font-mono text-xs font-bold">#{item.id}</td>
@@ -368,6 +406,76 @@ export default function CustomerBookingHistory() {
           {error}
         </div>
       )}
+
+      {/* thanh Tìm Kiếm & Lọc Trạng Thái & Ngày Tháng */}
+      <div className="flex flex-col gap-3 rounded-xl border border-stone-200 bg-white p-3.5 shadow-xs lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={isVi ? 'Tìm kiếm theo Mã đơn (#ID) hoặc Tên loại phòng...' : 'Search by Booking #ID or Room Type name...'}
+            className="w-full rounded-lg border border-stone-200 pl-9 pr-3 py-2 text-xs font-medium text-slate-700 outline-none transition-all focus:border-[#bfa15f] focus:ring-1 focus:ring-[#bfa15f]"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Bộ lọc Ngày Nhận Phòng */}
+          <div className="flex items-center gap-1.5 border border-stone-200 rounded-lg px-2.5 py-1.5 bg-stone-50 text-xs">
+            <CalendarDays size={14} className="text-[#bfa15f] shrink-0" />
+            <span className="text-[11px] font-semibold text-slate-500">{isVi ? 'Từ:' : 'From:'}</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="bg-transparent text-slate-700 font-semibold outline-none cursor-pointer text-xs"
+            />
+            <span className="text-[11px] font-semibold text-slate-500 ml-1">{isVi ? 'Đến:' : 'To:'}</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="bg-transparent text-slate-700 font-semibold outline-none cursor-pointer text-xs"
+            />
+            {(startDate || endDate) && (
+              <button
+                type="button"
+                onClick={() => { setStartDate(''); setEndDate(''); }}
+                className="ml-1 text-xs text-red-500 hover:text-red-700 font-bold"
+                title={isVi ? 'Xóa lọc ngày' : 'Clear dates'}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Bộ lọc Trạng Thái */}
+          <div className="flex items-center gap-1.5">
+            <Filter size={14} className="text-[#bfa15f] shrink-0" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition-all focus:border-[#bfa15f] cursor-pointer"
+            >
+              <option value="">{isVi ? 'Tất cả trạng thái' : 'All Statuses'}</option>
+              <option value="PENDING_PAYMENT">{isVi ? 'Chờ thanh toán' : 'Pending Payment'}</option>
+              <option value="CONFIRMED">{isVi ? 'Đã xác nhận' : 'Confirmed'}</option>
+              <option value="CHECKED_IN">{isVi ? 'Đã nhận phòng' : 'Checked In'}</option>
+              <option value="CHECKED_OUT">{isVi ? 'Đã trả phòng' : 'Checked Out'}</option>
+              <option value="CANCELLED">{isVi ? 'Đã hủy' : 'Cancelled'}</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
       <DataTable
         columns={columns}
@@ -606,6 +714,134 @@ export default function CustomerBookingHistory() {
           </div>
         </div>
       )}
+
+      {/* Modal Hủy Đặt Phòng của Khách Hàng */}
+      <Modal
+        open={!!cancelModalTarget}
+        title={isVi ? `Xác nhận hủy đơn đặt phòng #${cancelModalTarget?.id}` : `Confirm Cancel Booking #${cancelModalTarget?.id}`}
+        onClose={() => setCancelModalTarget(null)}
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3.5 bg-red-50 border border-red-200 rounded-xl">
+            <div className="p-2 bg-red-100 text-red-600 rounded-lg shrink-0 mt-0.5">
+              <AlertTriangle size={20} />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-red-800">
+                {isVi ? 'Cảnh báo hủy phòng' : 'Cancellation Warning'}
+              </h4>
+              <p className="text-xs text-red-700 mt-0.5 leading-relaxed">
+                {isVi
+                  ? 'Khi hoàn tất hủy đơn, các phòng đã chọn sẽ tự động được trả lại hệ thống và khách hàng khác có thể đặt ngay lập tức. Thao tác này không thể hoàn tác.'
+                  : 'Once cancelled, selected rooms will be released immediately for other guests. This action cannot be undone.'}
+              </p>
+            </div>
+          </div>
+
+          {cancelError && (
+            <div className="p-3 bg-red-100 border border-red-300 text-red-700 text-xs font-semibold rounded-xl flex items-center gap-2">
+              <AlertTriangle size={16} className="shrink-0" />
+              <span>{cancelError}</span>
+            </div>
+          )}
+
+          {cancelModalTarget && (
+            <div className="p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-2 text-xs">
+              <div className="flex justify-between items-center text-slate-700 font-medium">
+                <span className="text-slate-500">{isVi ? 'Hạng phòng:' : 'Room Type:'}</span>
+                <span className="font-bold">{cancelModalTarget.roomTypeName || '-'}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-700 font-medium">
+                <span className="text-slate-500">{isVi ? 'Thời gian lưu trú:' : 'Stay Period:'}</span>
+                <span>{formatDateTime(cancelModalTarget.checkInDate, locale)} - {formatDateTime(cancelModalTarget.checkOutDate, locale)}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-700 font-medium border-t border-stone-200 pt-2">
+                <span className="text-slate-500">{isVi ? 'Tổng tiền đơn phòng:' : 'Total Amount:'}</span>
+                <span className="font-bold text-[#bfa15f] text-sm">{formatMoney(cancelModalTarget.totalPrice, locale)}</span>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">
+              {isVi ? 'Vui lòng chọn lý do hủy đơn *' : 'Select Cancellation Reason *'}
+            </label>
+            <select
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white focus:border-red-400 outline-none"
+            >
+              <option value="Thay đổi kế hoạch du lịch">{isVi ? 'Thay đổi kế hoạch du lịch' : 'Change of travel plans'}</option>
+              <option value="Tìm được lựa chọn chỗ ở khác">{isVi ? 'Tìm được lựa chọn chỗ ở khác' : 'Found alternative accommodation'}</option>
+              <option value="Lý do cá nhân đột xuất">{isVi ? 'Lý do cá nhân đột xuất' : 'Personal emergency'}</option>
+              <option value="Khác">{isVi ? 'Lý do khác' : 'Other reason'}</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-stone-200">
+            <button
+              type="button"
+              onClick={() => setCancelModalTarget(null)}
+              className="px-4 py-2 border border-stone-300 rounded-lg text-xs font-bold text-slate-600 hover:bg-stone-100 transition-colors"
+            >
+              {isVi ? 'Giữ lại đơn' : 'Keep Booking'}
+            </button>
+            <button
+              type="button"
+              onClick={confirmCancelBooking}
+              disabled={cancelling}
+              className="flex items-center gap-1.5 px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-md transition-all disabled:opacity-50"
+            >
+              <Trash2 size={14} />
+              <span>{cancelling ? (isVi ? 'Đang hủy...' : 'Cancelling...') : (isVi ? 'Xác nhận hủy đơn' : 'Confirm Cancel')}</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Xác nhận xóa đánh giá */}
+      <Modal isOpen={!!deleteFeedbackId} onClose={() => setDeleteFeedbackId(null)}>
+        <div className="p-6 space-y-4 max-w-md">
+          <div className="flex items-center gap-3 text-red-600 border-b border-stone-200 pb-3">
+            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 shrink-0">
+              <Trash2 size={20} />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-lg text-slate-800">
+                {isVi ? 'Xóa đánh giá của bạn' : 'Delete Your Review'}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {isVi ? 'Hành động này không thể hoàn tác' : 'This action cannot be undone'}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-sm text-slate-600 leading-relaxed">
+            {isVi 
+              ? 'Bạn có chắc chắn muốn xóa bài đánh giá chất lượng dịch vụ này không? Đánh giá của bạn sẽ được ẩn (xóa mềm) khỏi giao diện hiển thị.' 
+              : 'Are you sure you want to delete this service review? Your review will be hidden (soft deleted) from public view.'}
+          </p>
+
+          <div className="flex justify-end gap-3 pt-3 border-t border-stone-200">
+            <button
+              type="button"
+              onClick={() => setDeleteFeedbackId(null)}
+              className="px-4 py-2 border border-stone-300 rounded-lg text-xs font-bold text-slate-600 hover:bg-stone-100 transition-colors"
+            >
+              {isVi ? 'Hủy bỏ' : 'Cancel'}
+            </button>
+            <button
+              type="button"
+              onClick={confirmDeleteFeedback}
+              className="flex items-center gap-1.5 px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-md transition-all"
+            >
+              <Trash2 size={14} />
+              <span>{isVi ? 'Xác nhận xóa' : 'Delete Review'}</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -39,11 +39,7 @@ public class Booking {
 
     @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "booking_rooms",
-            joinColumns = @JoinColumn(name = "booking_id"),
-            inverseJoinColumns = @JoinColumn(name = "room_id")
-    )
+    @JoinTable(name = "booking_rooms", joinColumns = @JoinColumn(name = "booking_id"), inverseJoinColumns = @JoinColumn(name = "room_id"))
     private List<Room> rooms = new ArrayList<>();
 
     @Builder.Default
@@ -118,7 +114,8 @@ public class Booking {
     private List<Invoice> invoices = new ArrayList<>();
 
     public Invoice getInvoice() {
-        if (invoices == null) return null;
+        if (invoices == null)
+            return null;
         return invoices.stream()
                 .filter(inv -> inv.getInvoiceType() == InvoiceType.ROOM)
                 .findFirst()

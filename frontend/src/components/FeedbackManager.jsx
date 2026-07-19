@@ -94,11 +94,18 @@ export default function FeedbackManager() {
     }
   };
 
-  const handleDeleteFeedback = async (id) => {
-    if (!window.confirm(isVi ? 'Bạn có chắc chắn muốn xóa phản hồi này?' : 'Are you sure you want to delete this feedback?')) return;
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const handleOpenDelete = (item) => {
+    setDeleteTarget(item);
+  };
+
+  const confirmDeleteFeedback = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteFeedback(id, locale);
-      notify(isVi ? 'Đã xóa đánh giá!' : 'Feedback deleted!');
+      await deleteFeedback(deleteTarget.id, locale);
+      notify(isVi ? 'Đã xóa đánh giá thành công!' : 'Feedback deleted successfully!');
+      setDeleteTarget(null);
       fetchFeedbacks();
     } catch (err) {
       notify(err.message || (isVi ? 'Không thể xóa đánh giá' : 'Failed to delete feedback'), 'error');
@@ -206,6 +213,16 @@ export default function FeedbackManager() {
             <option value="Cleanliness" className="bg-[#112240] text-white">{isVi ? 'Sạch sẽ' : 'Cleanliness'}</option>
             <option value="Staff" className="bg-[#112240] text-white">{isVi ? 'Nhân viên' : 'Staff'}</option>
           </select>
+
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-white focus:border-[#bfa15f] outline-none transition-all cursor-pointer"
+          >
+            <option value="" className="bg-[#112240] text-white">{isVi ? 'Tất cả trạng thái' : 'All statuses'}</option>
+            <option value="PENDING" className="bg-[#112240] text-white">{isVi ? 'Chờ xử lý' : 'Pending'}</option>
+            <option value="REVIEWED" className="bg-[#112240] text-white">{isVi ? 'Đã phản hồi' : 'Reviewed'}</option>
+          </select>
         </div>
 
         <div className="flex gap-2 flex-wrap items-center">
@@ -284,7 +301,7 @@ export default function FeedbackManager() {
                   </div>
                   {canDelete && (
                     <button
-                      onClick={() => handleDeleteFeedback(item.id)}
+                      onClick={() => handleOpenDelete(item)}
                       className="p-1.5 rounded-lg border border-red-500/20 text-red-400 hover:text-red-300 hover:bg-red-500/5 transition-all"
                       title={isVi ? 'Xóa đánh giá' : 'Delete Feedback'}
                     >
@@ -412,6 +429,61 @@ export default function FeedbackManager() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Feedback Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
+          <div className="relative bg-[#112240] border border-red-500/30 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  {isVi ? 'Xác nhận xóa đánh giá' : 'Confirm Delete Feedback'}
+                </h3>
+                <p className="text-xs text-white/50">
+                  {isVi ? 'Hành động này không thể hoàn tác' : 'This action cannot be undone'}
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/5 rounded-xl p-3.5 space-y-1">
+              <p className="text-xs font-semibold text-white/80">
+                {isVi ? `Đánh giá từ: ${deleteTarget.customerName}` : `Review by: ${deleteTarget.customerName}`}
+              </p>
+              <p className="text-xs text-white/60 italic line-clamp-2">
+                "{deleteTarget.comment}"
+              </p>
+            </div>
+
+            <p className="text-xs text-white/70 leading-relaxed">
+              {isVi
+                ? 'Đánh giá này sẽ được lưu trữ ẩn (xóa mềm) và không còn hiển thị với người dùng trên hệ thống.'
+                : 'This feedback will be archived (soft deleted) and hidden from active views.'}
+            </p>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 text-xs border border-white/10 rounded-xl text-white/70 hover:bg-white/5 font-semibold transition-all"
+              >
+                {isVi ? 'Hủy bỏ' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteFeedback}
+                className="flex items-center gap-1.5 px-5 py-2 text-xs bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl shadow-lg shadow-red-600/20 transition-all"
+              >
+                <Trash2 size={14} />
+                {isVi ? 'Xóa đánh giá' : 'Delete Review'}
+              </button>
+            </div>
           </div>
         </div>
       )}

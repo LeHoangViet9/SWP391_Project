@@ -111,14 +111,27 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("""
             SELECT r FROM Room r
             WHERE r.roomType.id = :roomTypeId
-            AND r.roomStatus IN (com.hms.common.enums.RoomStatus.AVAILABLE,
-                                 com.hms.common.enums.RoomStatus.READY)
+            AND r.roomStatus NOT IN (com.hms.common.enums.RoomStatus.INACTIVE,
+                                     com.hms.common.enums.RoomStatus.MAINTENANCE)
             AND NOT EXISTS (
                 SELECT b FROM Booking b
-                WHERE b.room.id = r.id
+                LEFT JOIN b.rooms br
+                WHERE (b.room.id = r.id OR br.id = r.id)
                 AND b.bookingStatus IN :statuses
+                AND (:excludedBookingId IS NULL OR b.id <> :excludedBookingId)
                 AND b.checkInDate < :checkOutDate
                 AND b.checkOutDate > :checkInDate
+            )
+            AND NOT EXISTS (
+                SELECT holdItem FROM CartHoldItem holdItem
+                JOIN holdItem.cartHold hold
+                JOIN holdItem.rooms heldRoom
+                WHERE heldRoom.id = r.id
+                AND hold.status = com.hms.common.enums.CartHoldStatus.ACTIVE
+                AND hold.expiresAt > CURRENT_TIMESTAMP
+                AND (:excludedCartHoldId IS NULL OR hold.id <> :excludedCartHoldId)
+                AND holdItem.checkInDate < :checkOutDate
+                AND holdItem.checkOutDate > :checkInDate
             )
             ORDER BY r.floorNumber, r.roomNumber
             """)
@@ -126,5 +139,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
             @Param("roomTypeId") Long roomTypeId,
             @Param("checkInDate") LocalDateTime checkInDate,
             @Param("checkOutDate") LocalDateTime checkOutDate,
-            @Param("statuses") Collection<com.hms.common.enums.BookingStatus> statuses);
+            @Param("statuses") Collection<com.hms.common.enums.BookingStatus> statuses,
+            @Param("excludedBookingId") Long excludedBookingId,
+            @Param("excludedCartHoldId") Long excludedCartHoldId);
 }

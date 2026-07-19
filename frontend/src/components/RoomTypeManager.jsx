@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Trash2, Search, RefreshCw } from 'lucide-react';
-import { apiFetch } from '../services/api';
+import { apiFetch, apiFormData } from '../services/api';
 import DataTable from './shared/DataTable';
 import { useLocale } from '../context/LocaleContext';
 import { usePermission } from '../hooks/usePermission';
@@ -8,6 +8,11 @@ import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
 const EMPTY = { typeName: '', description: '', basePrice: '', maxGuests: '' };
+
+function getImageUrls(item) {
+  if (Array.isArray(item?.imageUrls) && item.imageUrls.length > 0) return item.imageUrls;
+  return item?.imageUrl ? [item.imageUrl] : [];
+}
 
 export default function RoomTypeManager({ readOnly = false }) {
   const { locale, t } = useLocale();
@@ -24,10 +29,24 @@ export default function RoomTypeManager({ readOnly = false }) {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [searchOpt, setSearchOpt] = useState('typeName');
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
   const [form, setForm] = useState(EMPTY);
+  const [files, setFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
+  const [existingImageUrls, setExistingImageUrls] = useState([]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!files || files.length === 0) {
+      setPreviews([]);
+      return;
+    }
+    const objectUrls = files.map(file => URL.createObjectURL(file));
+    setPreviews(objectUrls);
+    return () => objectUrls.forEach(url => URL.revokeObjectURL(url));
+  }, [files]);
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -60,9 +79,16 @@ export default function RoomTypeManager({ readOnly = false }) {
 
   useEffect(() => { fetchData(page); }, [page]);
 
-  const openCreate = () => { setForm(EMPTY); setModal({ open: true, editing: null }); };
+  const openCreate = () => {
+    setForm(EMPTY);
+    setFiles([]);
+    setExistingImageUrls([]);
+    setModal({ open: true, editing: null });
+  };
   const openEdit = (item) => {
     setForm({ typeName: item.typeName, description: item.description || '', basePrice: item.basePrice, maxGuests: item.maxGuests });
+    setFiles([]);
+    setExistingImageUrls(getImageUrls(item));
     setModal({ open: true, editing: item });
   };
   const closeModal = () => setModal({ open: false, editing: null });
@@ -100,13 +126,21 @@ export default function RoomTypeManager({ readOnly = false }) {
       return;
     }
 
-    const payload = { typeName: name, description: form.description, basePrice, maxGuests };
+    const formData = new FormData();
+    formData.append('typeName', name);
+    formData.append('description', form.description || '');
+    formData.append('basePrice', String(basePrice));
+    formData.append('maxGuests', String(maxGuests));
+    formData.append('imageSyncRequested', 'true');
+    existingImageUrls.forEach(url => formData.append('existingImageUrls', url));
+    files.forEach(file => formData.append('images', file));
+
     try {
       if (modal.editing) {
-        const res = await apiFetch(`/room-types/${modal.editing.id}`, { method: 'PUT', body: JSON.stringify(payload) }, locale);
+        const res = await apiFormData(`/room-types/${modal.editing.id}`, formData, locale, 'PUT');
         notify(res?.message || t('roomType.toast.updateSuccess'));
       } else {
-        const res = await apiFetch('/room-types', { method: 'POST', body: JSON.stringify(payload) }, locale);
+        const res = await apiFormData('/room-types', formData, locale, 'POST');
         notify(res?.message || t('roomType.toast.addSuccess'));
       }
       closeModal();
@@ -119,13 +153,14 @@ export default function RoomTypeManager({ readOnly = false }) {
   };
 
   const handleDelete = async (item) => {
-    if (!window.confirm(`Xóa loại phòng "${item.typeName}"?`)) return;
     try {
       const res = await apiFetch(`/room-types/${item.id}`, { method: 'DELETE' });
       notify(res?.message || 'Đã xóa!');
       fetchData(page);
     } catch (e) {
       notify(e.status === 403 ? '403 Forbidden — Bạn không có quyền xóa!' : e.message, 'error');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -138,18 +173,46 @@ export default function RoomTypeManager({ readOnly = false }) {
         {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.basePrice)}
       </td>
       <td className="px-4 py-3 text-center">{item.maxGuests}</td>
+      <td className="px-4 py-3">
+        {getImageUrls(item).length > 0 ? (
+          <div className="flex flex-wrap gap-1 max-w-[140px]">
+            {getImageUrls(item).map((img, idx) => (
+              <img
+                key={idx}
+                src={img}
+                alt={`room-type-${idx}`}
+                className="w-9 h-9 object-cover rounded border hover:scale-110 transition-transform cursor-pointer"
+                onClick={() => window.open(img, '_blank')}
+              />
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs text-slate-400">{t('room.noImage') || 'Chưa có ảnh'}</span>
+        )}
+      </td>
       {!isReadOnly && (
         <td className="px-4 py-3">
-          <div className="flex items-center gap-3 justify-center">
-            <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700"><Edit2 size={15} /></button>
-            <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700"><Trash2 size={15} /></button>
-          </div>
+          {deleteConfirmId === item.id ? (
+            <div className="flex items-center gap-2 justify-center">
+              <button onClick={() => handleDelete(item)} className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium hover:bg-red-600 transition-colors">
+                {locale === 'vi' ? 'Xác nhận' : 'Confirm'}
+              </button>
+              <button onClick={() => setDeleteConfirmId(null)} className="border border-stone-300 bg-white px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-stone-100 transition-colors">
+                {locale === 'vi' ? 'Hủy' : 'Cancel'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 justify-center">
+              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}><Edit2 size={15} /></button>
+              <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'Xóa' : 'Delete'}><Trash2 size={15} /></button>
+            </div>
+          )}
         </td>
       )}
     </tr>
   ));
 
-  const cols = [t('roomType.columns.id'), t('roomType.columns.name'), t('roomType.columns.description'), t('roomType.columns.basePrice'), t('roomType.columns.maxGuests'), ...(!isReadOnly ? [t('roomType.columns.actions')] : [])];
+  const cols = [t('roomType.columns.id'), t('roomType.columns.name'), t('roomType.columns.description'), t('roomType.columns.basePrice'), t('roomType.columns.maxGuests'), locale === 'vi' ? 'Hình ảnh' : 'Images', ...(!isReadOnly ? [t('roomType.columns.actions')] : [])];
 
   return (
     <div>
@@ -217,6 +280,62 @@ export default function RoomTypeManager({ readOnly = false }) {
               <input required type="number" min="1" max="20" value={form.maxGuests} onChange={e => setForm(f => ({ ...f, maxGuests: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder="2" />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
+              {locale === 'vi' ? 'Hình ảnh loại phòng' : 'Room type images'}
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={e => setFiles(Array.from(e.target.files || []))}
+              className="w-full text-sm text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:border-0 file:bg-[#bfa15f] file:text-white file:rounded file:text-xs file:cursor-pointer mb-2"
+            />
+
+            {existingImageUrls.length > 0 && (
+              <div className="mb-3">
+                <span className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                  {locale === 'vi' ? 'Ảnh hiện tại' : 'Current images'}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {existingImageUrls.map((url, idx) => (
+                    <div key={url} className="relative group w-14 h-14 rounded border overflow-hidden">
+                      <img src={url} alt={`current-${idx}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setExistingImageUrls(prev => prev.filter(item => item !== url))}
+                        className="absolute inset-0 bg-black bg-opacity-55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {previews.length > 0 && (
+              <div>
+                <span className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
+                  {locale === 'vi' ? 'Ảnh mới' : 'New images'}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {previews.map((url, idx) => (
+                    <div key={url} className="relative group w-14 h-14 rounded border overflow-hidden">
+                      <img src={url} alt={`preview-${idx}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute inset-0 bg-black bg-opacity-55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold"
+                      >
+                        X
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('roomType.modal.description')}</label>

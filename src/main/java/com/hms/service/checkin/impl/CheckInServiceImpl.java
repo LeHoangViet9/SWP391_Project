@@ -44,7 +44,7 @@ public class CheckInServiceImpl implements CheckInService {
         Locale locale = LocaleContextHolder.getLocale();
 
         // 1. Verify Booking
-        Booking booking = bookingRepository.findById(request.getBookingId())
+        Booking booking = bookingRepository.findByIdWithPessimisticWrite(request.getBookingId())
                 .orElseThrow(() -> new ConflictException(
                         messageSource.getMessage(
                                 "error.checkin.booking.notfound",

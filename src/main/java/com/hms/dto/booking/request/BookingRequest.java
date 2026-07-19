@@ -47,4 +47,8 @@ public class BookingRequest {
 
     private String guestNationality;
 
+    // Internal capability fields used only when converting a server-side cart hold.
+    private String cartHoldToken;
+    private Long cartHoldItemId;
+
 }

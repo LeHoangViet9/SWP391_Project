@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, RefreshCw, CheckCircle, LogOut, Filter, Calendar } from 'lucide-react';
+import { Plus, Edit2, Eye, RefreshCw, Search, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getAllBookings, createBooking, updateBooking, deleteBooking, searchBookings, updateBookingStatus, assignRoom } from '../services/bookingService';
+import { getAllBookings, createBooking, updateBooking, searchBookings, updateBookingStatus } from '../services/bookingService';
 import { createCustomer } from '../services/customerService';
 import { apiFetch } from '../services/api';
 import { useLocale } from '../context/LocaleContext';
@@ -53,19 +53,16 @@ function getBookingStatus(item) {
 
 export default function BookingManager({ readOnly = false }) {
   const { t, locale } = useLocale();
+  const isVi = locale === 'vi';
   const { hasPermission, hasAnyPermission } = usePermission();
   
   const canView = hasAnyPermission(['BOOKING_VIEW', 'BOOKING_VIEW_OWN']);
   const canCreate = hasPermission('BOOKING_CREATE');
   const canUpdate = hasPermission('BOOKING_UPDATE');
-  const canDelete = hasPermission('BOOKING_DELETE');
   
   const isReceptionistOrAbove = canUpdate || canCreate;
 
-  const [subTab, setSubTab] = useState('overview');
   const [items, setItems] = useState([]);
-  const [todayCheckIns, setTodayCheckIns] = useState([]);
-  const [todayCheckOuts, setTodayCheckOuts] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -74,6 +71,7 @@ export default function BookingManager({ readOnly = false }) {
   const [totalPages, setTotalPages] = useState(1);
   const [toast, setToast] = useState({ type: 'success', message: '' });
   const [modal, setModal] = useState({ open: false, editing: null });
+  const [viewBooking, setViewBooking] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
 
@@ -83,17 +81,40 @@ export default function BookingManager({ readOnly = false }) {
   // Payment modal state (receptionist)
   const [paymentModal, setPaymentModal] = useState({ open: false, booking: null });
 
-  // States cho tác vụ gán phòng vật lý
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [assignTargetBooking, setAssignTargetBooking] = useState(null);
-  const [assignRoomId, setAssignRoomId] = useState('');
-  const [availableRooms, setAvailableRooms] = useState([]);
-  const [loadingAvailableRooms, setLoadingAvailableRooms] = useState(false);
+  // Confirmation modal state for booking cancellation.
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    type: null,
+    booking: null,
+    reason: 'Khách thay đổi kế hoạch',
+  });
+
+  const openCancelConfirm = (item) => setConfirmModal({ open: true, type: 'CANCEL', booking: item, reason: 'Khách thay đổi kế hoạch' });
+  const handleExecuteConfirm = async () => {
+    const { type, booking } = confirmModal;
+    if (!booking) return;
+    setSaving(true);
+    try {
+      if (type === 'CANCEL') {
+        await updateBookingStatus(booking.id, { status: 'CANCELLED' });
+        notify(locale === 'vi' ? `Hủy thành công đơn đặt phòng #${booking.id}` : `Cancelled booking #${booking.id} successfully`);
+      }
+      setConfirmModal({ open: false, type: null, booking: null, reason: 'Khách thay đổi kế hoạch' });
+      fetchData(page);
+    } catch (err) {
+      notify(err.message || (locale === 'vi' ? 'Lỗi thao tác, vui lòng thử lại' : 'Action failed, please try again'), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCustomerId, setFilterCustomerId] = useState('');
   const [filterRoomTypeId, setFilterRoomTypeId] = useState('');
   const [filterRoomId, setFilterRoomId] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
 
   const notify = (message, type = 'success') => setToast({ type, message });
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
@@ -181,7 +202,8 @@ export default function BookingManager({ readOnly = false }) {
     try {
       const params = { page: p, size: 10 };
       let res;
-      if (subTab === 'search') {
+      const hasServerFilters = filterStatus || filterCustomerId || filterRoomTypeId || filterRoomId;
+      if (hasServerFilters) {
         res = await searchBookings({
           ...params,
           status: filterStatus || undefined,
@@ -199,39 +221,11 @@ export default function BookingManager({ readOnly = false }) {
     } finally {
       setLoading(false);
     }
-  }, [subTab, filterStatus, filterCustomerId, filterRoomTypeId, filterRoomId, page]);
-
-  const fetchTodayData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-
-      const checkInRes = await apiFetch(`/bookings/check-in?start=${localDateTime(start)}&end=${localDateTime(end)}&page=0&size=50`);
-      setTodayCheckIns(checkInRes?.data?.content ?? []);
-
-      const checkOutRes = await apiFetch(`/bookings/check-out?start=${localDateTime(start)}&end=${localDateTime(end)}&page=0&size=50`);
-      setTodayCheckOuts(checkOutRes?.data?.content ?? []);
-    } catch (e) {
-      try {
-        const res = await getAllBookings({ page: 0, size: 100 });
-        const list = res?.data?.content ?? [];
-        const todayStr = new Date().toDateString();
-        setTodayCheckIns(list.filter(b => new Date(b.checkInDate).toDateString() === todayStr && getBookingStatus(b) === 'CONFIRMED'));
-        setTodayCheckOuts(list.filter(b => new Date(b.checkOutDate).toDateString() === todayStr && getBookingStatus(b) === 'CHECKED_IN'));
-      } catch (err) {
-        notify(err.message, 'error');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  }, [filterStatus, filterCustomerId, filterRoomTypeId, filterRoomId, page]);
 
   useEffect(() => {
-    if (subTab === 'overview') fetchTodayData();
-    else fetchData(page);
-  }, [subTab, page, fetchData, fetchTodayData]);
+    fetchData(page);
+  }, [page, fetchData]);
 
   useEffect(() => {
     apiFetch('/customers?size=200&status=ACTIVE').then(r => setCustomers(r?.data?.content ?? [])).catch(() => {});
@@ -247,15 +241,17 @@ export default function BookingManager({ readOnly = false }) {
     setModal({ open: true, editing: null });
   };
 
+  const openView = (item) => setViewBooking(item);
+
   const openEdit = (item) => {
     if (!canUpdate) return notify(t('booking.toast.forbiddenEdit'), 'error');
     setForm({
-      fullName: item.customer?.fullName || item.customerName || '',
-      email: item.customer?.email || '',
-      phone: item.customer?.phone || '',
-      idType: item.customer?.idType || '',
-      idNumberCard: item.customer?.idNumberCard || '',
-      nationality: item.customer?.nationality || '',
+      fullName: item.guestFullName || item.customer?.fullName || item.customerName || '',
+      email: item.guestEmail || item.customer?.email || item.customerEmail || '',
+      phone: item.guestPhone || item.customer?.phone || item.customerPhone || '',
+      idType: item.guestIdType || item.customer?.idType || '',
+      idNumberCard: item.guestIdNumberCard || item.customer?.idNumberCard || '',
+      nationality: item.guestNationality || item.customer?.nationality || '',
       roomTypeId: item.roomTypeId || item.roomType?.id || '',
       checkInDate: toInputDateTime(item.checkInDate),
       checkOutDate: toInputDateTime(item.checkOutDate),
@@ -267,6 +263,7 @@ export default function BookingManager({ readOnly = false }) {
   };
 
   const closeModal = () => setModal({ open: false, editing: null });
+  const closeViewModal = () => setViewBooking(null);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -308,7 +305,7 @@ export default function BookingManager({ readOnly = false }) {
         notify(t('booking.toast.addSuccess'));
       }
       closeModal();
-      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
+      fetchData(page);
     } catch (err) {
       const errMsg = err.message || '';
       const newErrors = {};
@@ -331,63 +328,6 @@ export default function BookingManager({ readOnly = false }) {
     }
   };
 
-  const handleDelete = async (item) => {
-    if (!canDelete) return notify(t('booking.toast.forbiddenDelete'), 'error');
-    if (!window.confirm(t('booking.toast.deleteConfirm', { id: item.id }).replace('{id}', item.id))) return;
-    try {
-      await deleteBooking(item.id);
-      notify(t('booking.toast.deleteSuccess'));
-      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
-    } catch (e) {
-      notify(e.status === 403 ? t('booking.toast.forbiddenDelete') : e.message, 'error');
-    }
-  };
-
-  const openAssignRoom = async (item) => {
-    setAssignTargetBooking(item);
-    setAssignRoomId('');
-    setAvailableRooms([]);
-    setAssignModalOpen(true);
-    setLoadingAvailableRooms(true);
-    try {
-      const targetRoomTypeId = item.roomTypeId || item.roomType?.id;
-      const res = await apiFetch(`/rooms?roomTypeId=${targetRoomTypeId}&status=AVAILABLE&size=200`);
-      setAvailableRooms(res?.data?.content ?? []);
-    } catch (err) {
-      notify(err.message || 'Lỗi tải danh sách phòng khả dụng', 'error');
-    } finally {
-      setLoadingAvailableRooms(false);
-    }
-  };
-
-  const handleAssignRoomSubmit = async (e) => {
-    e.preventDefault();
-    if (!assignRoomId) return notify('Vui lòng chọn phòng', 'error');
-    setSaving(true);
-    try {
-      await assignRoom(assignTargetBooking.id, { roomId: Number(assignRoomId) });
-      notify('Gán phòng thành công!');
-      setAssignModalOpen(false);
-      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
-    } catch (err) {
-      notify(err.message || 'Lỗi gán phòng', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleUpdateStatus = async (item, newStatus) => {
-    const statusText = t(`booking.status.${newStatus}`) || newStatus;
-    if (!window.confirm(t('booking.toast.statusConfirm', { status: statusText }).replace('{status}', statusText))) return;
-    try {
-      await updateBookingStatus(item.id, { status: newStatus });
-      notify(t('booking.toast.statusSuccess') || 'Cập nhật trạng thái thành công!');
-      if (subTab === 'overview') fetchTodayData(); else fetchData(page);
-    } catch (err) {
-      notify(err.message || t('booking.toast.loadError'), 'error');
-    }
-  };
-
   const formatDate = (dt) => dt ? new Date(dt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : '-';
 
   const renderStatusBadge = (status) => {
@@ -395,7 +335,47 @@ export default function BookingManager({ readOnly = false }) {
     return <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${opt.color}`}>{t(`booking.status.${opt.value}`)}</span>;
   };
 
-  const rows = items.map(item => {
+  const getIsoDateString = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value.substring(0, 10);
+    if (Array.isArray(value)) {
+      const [y, m, d] = value;
+      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    }
+    try {
+      const date = new Date(value);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toISOString().substring(0, 10);
+      }
+    } catch (e) {}
+    return String(value).substring(0, 10);
+  };
+
+  const filteredItems = items.filter(item => {
+    if (searchKeyword.trim()) {
+      const q = searchKeyword.trim().toLowerCase();
+      const customerName = (item.customerName || item.customer?.fullName || '').toLowerCase();
+      const phone = (item.customerPhone || item.customer?.phone || '').toLowerCase();
+      const roomType = (item.roomTypeName || item.roomType?.typeName || '').toLowerCase();
+      const bookingId = String(item.id).toLowerCase();
+      const roomNumber = String(item.roomNumber || '').toLowerCase();
+
+      const matchesKeyword = bookingId.includes(q) || customerName.includes(q) || phone.includes(q) || roomType.includes(q) || roomNumber.includes(q);
+      if (!matchesKeyword) return false;
+    }
+
+    if (filterStartDate || filterEndDate) {
+      const dateStr = getIsoDateString(item.checkInDate);
+      if (dateStr) {
+        if (filterStartDate && dateStr < filterStartDate) return false;
+        if (filterEndDate && dateStr > filterEndDate) return false;
+      }
+    }
+
+    return true;
+  });
+
+  const rows = filteredItems.map((item) => {
     const status = getBookingStatus(item);
     return (
       <tr key={item.id} className="hover:bg-stone-50">
@@ -421,16 +401,19 @@ export default function BookingManager({ readOnly = false }) {
         {!readOnly && isReceptionistOrAbove && (
           <td className="px-4 py-3">
             <div className="flex flex-wrap items-center gap-1.5">
+              <button onClick={() => openView(item)} className="text-slate-500 hover:text-slate-800 p-1" title="Xem chi tiết" aria-label="Xem chi tiết">
+                <Eye size={15} />
+              </button>
               {status === 'PENDING_PAYMENT' && (
                 <>
                   <button
                     onClick={() => setPaymentModal({ open: true, booking: item })}
                     className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-bold transition-colors shadow-sm"
                   >
-                    💳 Thanh toán
+                    Thanh toán
                   </button>
                   <button
-                    onClick={() => handleUpdateStatus(item, 'CANCELLED')}
+                    onClick={() => openCancelConfirm(item)}
                     className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold transition-colors"
                   >
                     Hủy đơn
@@ -439,48 +422,19 @@ export default function BookingManager({ readOnly = false }) {
               )}
               {status === 'CONFIRMED' && (
                 <>
-                  {!item.roomId ? (
-                    <button
-                      onClick={() => openAssignRoom(item)}
-                      className="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-2 py-1 rounded text-xs font-bold transition-colors"
-                    >
-                      Gán phòng
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleUpdateStatus(item, 'CHECKED_IN')}
-                      className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2 py-1 rounded text-xs font-bold transition-colors"
-                    >
-                      Check-in
-                    </button>
-                  )}
                   <button
-                    onClick={() => handleUpdateStatus(item, 'CANCELLED')}
+                    onClick={() => openCancelConfirm(item)}
                     className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold transition-colors"
                   >
                     Hủy đơn
                   </button>
                 </>
               )}
-              {status === 'CHECKED_IN' && (
-                <button
-                  onClick={() => handleUpdateStatus(item, 'CHECKED_OUT')}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-2 py-1 rounded text-xs font-bold transition-colors"
-                >
-                  Check-out
+              {['PENDING_PAYMENT', 'CONFIRMED'].includes(status) && (
+                <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700 p-1" title="Chỉnh sửa">
+                  <Edit2 size={15} />
                 </button>
               )}
-              {['CHECKED_OUT', 'CANCELLED', 'NO_SHOW'].includes(status) && (
-                <span className="text-xs text-slate-400 font-medium italic">Không có tác vụ</span>
-              )}
-            </div>
-          </td>
-        )}
-        {!readOnly && isReceptionistOrAbove && (
-          <td className="px-4 py-3">
-            <div className="flex items-center gap-3">
-              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa"><Edit2 size={15} /></button>
-              <button onClick={() => handleDelete(item)} className="text-red-500 hover:text-red-700" title="Xóa"><Trash2 size={15} /></button>
             </div>
           </td>
         )}
@@ -497,118 +451,100 @@ export default function BookingManager({ readOnly = false }) {
     t('booking.columns.checkOut'),
     t('booking.columns.status'),
     t('booking.columns.totalPrice'),
-    ...(!readOnly && isReceptionistOrAbove ? ['Quy trình nhanh', t('booking.columns.actions')] : [])
+    ...(!readOnly && isReceptionistOrAbove ? [t('booking.columns.actions')] : [])
   ];
 
   return (
     <div>
       <Toast type={toast.type} message={toast.message} onClose={closeToast} />
 
-      <div className="flex border-b border-stone-200 mb-6 gap-6">
-        <button onClick={() => setSubTab('overview')} className={`pb-3 text-sm font-bold flex items-center gap-1.5 transition-colors ${subTab === 'overview' ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]' : 'text-slate-500 hover:text-slate-800'}`}>
-          <Calendar size={16} /> {t('booking.tabs.today')}
-        </button>
-        <button onClick={() => setSubTab('search')} className={`pb-3 text-sm font-bold flex items-center gap-1.5 transition-colors ${subTab === 'search' ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]' : 'text-slate-500 hover:text-slate-800'}`}>
-          <Filter size={16} /> {t('booking.tabs.filter')}
-        </button>
-        <button onClick={() => setSubTab('all')} className={`pb-3 text-sm font-bold flex items-center gap-1.5 transition-colors ${subTab === 'all' ? 'border-b-2 border-[#bfa15f] text-[#bfa15f]' : 'text-slate-500 hover:text-slate-800'}`}>
-          {t('booking.tabs.all')}
-        </button>
-      </div>
-
-      {subTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white border rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-              <CheckCircle size={18} className="text-emerald-500" /> {t('booking.overview.checkInToday', { count: todayCheckIns.length }).replace('{count}', todayCheckIns.length)}
-            </h3>
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-              {todayCheckIns.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">{t('booking.overview.noCheckIn')}</p>
-              ) : todayCheckIns.map(item => (
-                <div key={item.id} className="p-3 bg-stone-50 rounded border hover:shadow-sm transition-shadow">
-                  <p className="text-sm font-semibold">{item.customerName || `${t('booking.filters.customer')} #${item.customerId}`}</p>
-                  <p className="text-xs text-slate-500">{item.roomTypeName} - SL: <span className="font-bold">{item.quantity}</span></p>
-                  <p className="text-xs text-slate-400">{formatDate(item.checkInDate)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white border rounded-xl p-5 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
-              <LogOut size={18} className="text-blue-500" /> {t('booking.overview.checkOutToday', { count: todayCheckOuts.length }).replace('{count}', todayCheckOuts.length)}
-            </h3>
-            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-              {todayCheckOuts.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-8">{t('booking.overview.noCheckOut')}</p>
-              ) : todayCheckOuts.map(item => (
-                <div key={item.id} className="p-3 bg-stone-50 rounded border hover:shadow-sm transition-shadow">
-                  <p className="text-sm font-semibold">{item.customerName || `${t('booking.filters.customer')} #${item.customerId}`}</p>
-                  <p className="text-xs text-slate-500">{item.roomTypeName} - SL: <span className="font-bold">{item.quantity}</span></p>
-                  <p className="text-xs text-slate-400">{formatDate(item.checkOutDate)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          {!readOnly && isReceptionistOrAbove && (
+            <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
+              <Plus size={16} /> {t('booking.modal.save')}
+            </button>
+          )}
         </div>
-      )}
 
-      {subTab === 'search' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-stone-50 rounded-lg border">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-stone-50 rounded-xl border border-stone-200 shadow-xs">
+            {/* Từ khóa tìm kiếm */}
+            <div className="lg:col-span-2">
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{isVi ? 'Từ khóa tìm kiếm' : 'Search Keyword'}</label>
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchKeyword}
+                  onChange={e => setSearchKeyword(e.target.value)}
+                  placeholder={isVi ? 'Mã đơn (#ID), Tên khách, Số ĐT, Số phòng...' : 'Booking ID, Customer Name, Phone, Room #...'}
+                  className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]"
+                />
+                {searchKeyword && (
+                  <button onClick={() => setSearchKeyword('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600">✕</button>
+                )}
+              </div>
+            </div>
+
+            {/* Trạng thái */}
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">{t('booking.filters.status')}</label>
-              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full border rounded px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.filters.status')}</label>
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
                 <option value="">{t('booking.filters.all')}</option>
                 {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{t(`booking.status.${opt.value}`)}</option>)}
               </select>
             </div>
+
+            {/* Hạng phòng */}
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">{t('booking.filters.customer')}</label>
-              <select value={filterCustomerId} onChange={e => setFilterCustomerId(e.target.value)} className="w-full border rounded px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
-                <option value="">{t('booking.filters.all')}</option>
-                {customers.map(c => <option key={c.id} value={c.id}>{c.fullName}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">{t('booking.filters.roomType')}</label>
-              <select value={filterRoomTypeId} onChange={e => setFilterRoomTypeId(e.target.value)} className="w-full border rounded px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.filters.roomType')}</label>
+              <select value={filterRoomTypeId} onChange={e => setFilterRoomTypeId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
                 <option value="">{t('booking.filters.all')}</option>
                 {roomTypes.map(r => <option key={r.id} value={r.id}>{r.typeName}</option>)}
               </select>
             </div>
+
+
+
+            {/* Số phòng */}
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase">{t('booking.filters.roomNumber')}</label>
-              <select value={filterRoomId} onChange={e => setFilterRoomId(e.target.value)} className="w-full border rounded px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.filters.roomNumber')}</label>
+              <select value={filterRoomId} onChange={e => setFilterRoomId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
                 <option value="">{t('booking.filters.all')}</option>
                 {rooms.map(r => <option key={r.id} value={r.id}>{r.roomNumber}</option>)}
               </select>
             </div>
+
+            {/* Ngày Check-in từ ngày */}
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{isVi ? 'Check-in từ ngày' : 'Check-in From'}</label>
+              <input
+                type="date"
+                value={filterStartDate}
+                onChange={e => setFilterStartDate(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]"
+              />
+            </div>
+
+            {/* Ngày Check-in đến ngày */}
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{isVi ? 'Check-in đến ngày' : 'Check-in To'}</label>
+              <input
+                type="date"
+                value={filterEndDate}
+                onChange={e => setFilterEndDate(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-3">
-            <button onClick={() => { setFilterStatus(''); setFilterCustomerId(''); setFilterRoomTypeId(''); setFilterRoomId(''); }} className="px-4 py-2 border rounded text-sm hover:bg-stone-100">{t('booking.filters.clear')}</button>
-            <button onClick={() => fetchData(0)} className="px-5 py-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded text-sm font-semibold shadow">{t('booking.filters.search')}</button>
+            <button onClick={() => { setFilterStatus(''); setFilterCustomerId(''); setFilterRoomTypeId(''); setFilterRoomId(''); setSearchKeyword(''); setFilterStartDate(''); setFilterEndDate(''); setPage(0); }} className="px-4 py-2 border rounded-lg text-sm hover:bg-stone-100 font-semibold">{t('booking.filters.clear')}</button>
+            <button onClick={() => fetchData(0)} className="px-5 py-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded-lg text-sm font-semibold shadow">{t('booking.filters.search')}</button>
           </div>
 
           <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
-        </div>
-      )}
-
-      {subTab === 'all' && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <button onClick={() => fetchData(0)} className="p-2 border rounded hover:bg-stone-100"><RefreshCw size={14} /></button>
-            {!readOnly && isReceptionistOrAbove && (
-              <button onClick={openCreate} className="flex items-center gap-2 bg-[#bfa15f] hover:bg-[#a3854a] text-white px-4 py-2 rounded text-sm font-semibold shadow">
-                <Plus size={16} /> {t('booking.modal.save')}
-              </button>
-            )}
-          </div>
-          <DataTable columns={cols} rows={rows} loading={loading} page={page} totalPages={totalPages} onPageChange={setPage} />
-        </div>
-      )}
+      </div>
 
       <Modal open={modal.open} title={modal.editing ? t('booking.modal.editTitle') : t('booking.modal.addTitle')} onClose={closeModal} size="lg">
         <form onSubmit={handleSave} className="space-y-4">
@@ -854,6 +790,7 @@ export default function BookingManager({ readOnly = false }) {
                 <input
                   required
                   type="datetime-local"
+                  min={localDateTime(new Date()).substring(0, 16)}
                   value={form.checkInDate}
                   onChange={e => {
                     setForm(f => ({ ...f, checkInDate: e.target.value }));
@@ -879,6 +816,7 @@ export default function BookingManager({ readOnly = false }) {
                 <input
                   required
                   type="datetime-local"
+                  min={form.checkInDate || localDateTime(new Date()).substring(0, 16)}
                   value={form.checkOutDate}
                   onChange={e => {
                     setForm(f => ({ ...f, checkOutDate: e.target.value }));
@@ -910,70 +848,53 @@ export default function BookingManager({ readOnly = false }) {
         </form>
       </Modal>
 
-      {/* Modal gán phòng vật lý */}
       <Modal
-        open={assignModalOpen}
-        title={`Gán phòng vật lý - Đơn #${assignTargetBooking?.id}`}
-        onClose={() => setAssignModalOpen(false)}
+        open={Boolean(viewBooking)}
+        title={viewBooking ? `Chi tiết booking #${viewBooking.id}` : 'Chi tiết booking'}
+        onClose={closeViewModal}
         size="md"
       >
-        <form onSubmit={handleAssignRoomSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-              Loại phòng yêu cầu
-            </label>
-            <input
-              type="text"
-              readOnly
-              value={assignTargetBooking?.roomTypeName || ''}
-              className="w-full border border-stone-200 rounded px-3 py-2 text-sm bg-stone-50 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-              Chọn phòng vật lý khả dụng *
-            </label>
-            {loadingAvailableRooms ? (
-              <div className="text-sm text-slate-500 py-2">Đang tải phòng trống...</div>
-            ) : availableRooms.length === 0 ? (
-              <div className="text-sm text-red-500 py-2 font-bold">
-                Không có phòng trống nào thuộc loại phòng này!
+        {viewBooking && (
+          <div className="space-y-5 text-sm">
+            <section>
+              <h3 className="mb-3 border-b border-stone-200 pb-2 font-bold text-slate-800">Thông tin khách hàng</h3>
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                <div><p className="text-xs text-slate-500">Họ và tên</p><p className="font-semibold">{viewBooking.guestFullName || viewBooking.customer?.fullName || viewBooking.customerName || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Số điện thoại</p><p className="font-semibold">{viewBooking.guestPhone || viewBooking.customer?.phone || viewBooking.customerPhone || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Email</p><p className="break-words font-semibold">{viewBooking.guestEmail || viewBooking.customer?.email || viewBooking.customerEmail || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Quốc tịch</p><p className="font-semibold">{viewBooking.guestNationality || viewBooking.customer?.nationality || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Loại giấy tờ</p><p className="font-semibold">{viewBooking.guestIdType || viewBooking.customer?.idType || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Số giấy tờ</p><p className="font-semibold">{viewBooking.guestIdNumberCard || viewBooking.customer?.idNumberCard || '-'}</p></div>
               </div>
-            ) : (
-              <select
-                required
-                value={assignRoomId}
-                onChange={(e) => setAssignRoomId(e.target.value)}
-                className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white"
-              >
-                <option value="">-- Chọn phòng vật lý --</option>
-                {availableRooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    Phòng {r.roomNumber} (Tầng {r.floorNumber})
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+            </section>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setAssignModalOpen(false)}
-              className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50"
-            >
-              Hủy
-            </button>
-            <button
-              type="submit"
-              disabled={saving || availableRooms.length === 0}
-              className="px-5 py-2 text-sm bg-[#bfa15f] hover:bg-[#a3854a] text-white rounded font-semibold shadow disabled:opacity-60"
-            >
-              {saving ? 'Đang gán...' : 'Xác nhận gán phòng'}
-            </button>
+            <section>
+              <h3 className="mb-3 border-b border-stone-200 pb-2 font-bold text-slate-800">Thông tin đặt phòng</h3>
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
+                <div><p className="text-xs text-slate-500">Loại phòng</p><p className="font-semibold">{viewBooking.roomTypeName || viewBooking.roomType?.typeName || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Phòng</p><p className="font-semibold">{viewBooking.roomNumbers?.join(', ') || viewBooking.roomNumber || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Số lượng</p><p className="font-semibold">{viewBooking.quantity || 0}</p></div>
+                <div><p className="text-xs text-slate-500">Trạng thái</p>{renderStatusBadge(getBookingStatus(viewBooking))}</div>
+                <div><p className="text-xs text-slate-500">Check-in</p><p className="font-semibold">{formatDate(viewBooking.checkInDate)}</p></div>
+                <div><p className="text-xs text-slate-500">Check-out</p><p className="font-semibold">{formatDate(viewBooking.checkOutDate)}</p></div>
+              </div>
+              <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3">
+                <span className="font-bold text-slate-700">Tổng tiền</span>
+                <span className="font-bold text-[#bfa15f]">
+                  {viewBooking.totalPrice != null
+                    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(viewBooking.totalPrice)
+                    : '-'}
+                </span>
+              </div>
+            </section>
+
+            <div className="flex justify-end border-t border-stone-200 pt-3">
+              <button type="button" onClick={closeViewModal} className="rounded border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50">
+                Đóng
+              </button>
+            </div>
           </div>
-        </form>
+        )}
       </Modal>
 
       {/* Receptionist Payment Modal */}
@@ -983,9 +904,124 @@ export default function BookingManager({ readOnly = false }) {
         onClose={() => setPaymentModal({ open: false, booking: null })}
         onSuccess={() => {
           notify(locale === 'vi' ? 'Thanh toán thành công! Đơn đã chuyển sang chờ check-in.' : 'Payment successful! Booking moved to pending check-in.');
-          if (subTab === 'overview') fetchTodayData(); else fetchData(page);
+          fetchData(page);
         }}
       />
+
+      {/* Action Confirmation Modal (Hủy đơn) */}
+      <Modal
+        open={confirmModal.open}
+        title={
+          `Xác Nhận Hủy Đơn Đặt Phòng #${confirmModal.booking?.id}`
+        }
+        onClose={() => setConfirmModal({ open: false, type: null, booking: null, reason: 'Khách thay đổi kế hoạch' })}
+        size="md"
+      >
+        {confirmModal.booking && (
+          <div className="space-y-4">
+            {confirmModal.type === 'CANCEL' && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-bold text-amber-900">Xác nhận hủy đơn đặt phòng?</h4>
+                  <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                    Đơn đặt phòng sẽ chuyển sang trạng thái <strong>ĐÃ HỦY</strong> và phòng sẽ ngay lập tức được giải phóng trên hệ thống.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Booking Overview Details */}
+            <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-2 text-xs">
+              <div className="flex justify-between py-1 border-b border-stone-200">
+                <span className="text-slate-500">Mã đơn:</span>
+                <span className="font-mono font-bold text-slate-800">#{confirmModal.booking.id}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-200">
+                <span className="text-slate-500">Khách hàng:</span>
+                <span className="font-semibold text-slate-800">
+                  {confirmModal.booking.customerName || confirmModal.booking.customer?.fullName || 'Khách lẻ'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-200">
+                <span className="text-slate-500">Số điện thoại:</span>
+                <span className="font-mono font-medium text-slate-700">
+                  {confirmModal.booking.customerPhone || confirmModal.booking.customer?.phone || '-'}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-200">
+                <span className="text-slate-500">Loại phòng:</span>
+                <span className="font-semibold text-slate-800">
+                  {confirmModal.booking.roomTypeName || confirmModal.booking.roomType?.typeName}
+                  {confirmModal.booking.roomNumber && ` (Phòng: ${confirmModal.booking.roomNumber})`}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-stone-200">
+                <span className="text-slate-500">Thời gian lưu trú:</span>
+                <span className="font-medium text-slate-700">
+                  {formatDate(confirmModal.booking.checkInDate)} - {formatDate(confirmModal.booking.checkOutDate)}
+                </span>
+              </div>
+              <div className="flex justify-between py-1 pt-1 text-sm font-bold">
+                <span className="text-slate-700">Tổng tiền đơn:</span>
+                <span className="text-[#bfa15f]">
+                  {confirmModal.booking.totalPrice != null
+                    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(confirmModal.booking.totalPrice)
+                    : '-'}
+                </span>
+              </div>
+            </div>
+
+            {/* Optional Cancellation Reason input */}
+            {confirmModal.type === 'CANCEL' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Lý do hủy phòng:</label>
+                <select
+                  value={confirmModal.reason}
+                  onChange={(e) => setConfirmModal((prev) => ({ ...prev, reason: e.target.value }))}
+                  className="w-full text-xs p-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white"
+                >
+                  <option value="Khách thay đổi kế hoạch">Khách thay đổi kế hoạch chuyến đi</option>
+                  <option value="Khách đặt nhầm ngày / loại phòng">Khách đặt nhầm ngày / loại phòng</option>
+                  <option value="Khách không đến (No-show)">Khách không đến (No-show)</option>
+                  <option value="Lý do cá nhân khác">Lý do cá nhân khác</option>
+                </select>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-200">
+              <button
+                type="button"
+                onClick={() => setConfirmModal({ open: false, type: null, booking: null, reason: 'Khách thay đổi kế hoạch' })}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors"
+                disabled={saving}
+              >
+                Hủy bỏ
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExecuteConfirm}
+                disabled={saving}
+                className={`px-5 py-2 text-xs font-bold text-white rounded-lg shadow transition-all flex items-center gap-1.5 ${
+                  confirmModal.type === 'CANCEL'
+                    ? 'bg-amber-600 hover:bg-amber-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {saving ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" /> Đang xử lý...
+                  </>
+                ) : (
+                  'Xác Nhận Hủy Đơn'
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

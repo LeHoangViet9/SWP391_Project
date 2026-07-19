@@ -45,6 +45,29 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                         @Param("customerId") Long customerId,
                         Pageable pageable);
 
+        @Query("""
+                            SELECT b
+                            FROM Booking b
+                            WHERE b.customer.id = :customerId
+                            AND (:status IS NULL OR b.bookingStatus = :status)
+                            AND (:keyword IS NULL OR :keyword = ''
+                                OR LOWER(CAST(b.id AS string)) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(b.roomType.typeName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(b.room.roomNumber, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(b.guestFullName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(b.guestEmail, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(b.guestPhone, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
+                            AND b.checkInDate >= :startDate
+                            AND b.checkInDate < :endDateExclusive
+                        """)
+        Page<Booking> searchHistoryByCustomerId(
+                        @Param("customerId") Long customerId,
+                        @Param("keyword") String keyword,
+                        @Param("status") BookingStatus status,
+                        @Param("startDate") LocalDateTime startDate,
+                        @Param("endDateExclusive") LocalDateTime endDateExclusive,
+                        Pageable pageable);
+
         Page<Booking> findByCheckInDateBetween(
                         LocalDateTime start,
                         LocalDateTime end,
@@ -58,7 +81,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         @Query("""
                             SELECT COUNT(b) > 0
                             FROM Booking b
-                            WHERE b.room.id = :roomId
+                            LEFT JOIN b.rooms br
+                            WHERE (b.room.id = :roomId OR br.id = :roomId)
                             AND b.bookingStatus IN :statuses
                             AND b.checkInDate < :newCheckOutDate
                             AND b.checkOutDate > :newCheckInDate
