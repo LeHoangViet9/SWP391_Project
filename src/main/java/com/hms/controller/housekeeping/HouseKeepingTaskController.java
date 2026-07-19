@@ -39,6 +39,7 @@ public class HouseKeepingTaskController {
     private final IHouseKeepingTaskService taskService;
     private final MessageSource messageSource;
     private final UserRepository userRepository;
+    private final Locale locale = LocaleContextHolder.getLocale();
 
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('HOUSEKEEPING_VIEW')")
@@ -241,8 +242,7 @@ public class HouseKeepingTaskController {
 
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
-                .message("room.report.success")
-                .status(HttpStatus.OK)
+                .message(messageSource.getMessage("room.report.success", null, locale))                .status(HttpStatus.OK)
                 .build();
 
         return ResponseEntity.status(HttpStatus.OK).body(response);
