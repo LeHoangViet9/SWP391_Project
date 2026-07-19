@@ -26,7 +26,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -90,9 +90,6 @@ public class SecurityConfig {
                 ROLE_ADMIN > FEEDBACK_UPDATE
                 ROLE_ADMIN > FEEDBACK_DELETE
                 ROLE_ADMIN > INVOICE_VIEW
-                ROLE_ADMIN > INVOICE_CREATE
-                ROLE_ADMIN > INVOICE_UPDATE
-                ROLE_ADMIN > INVOICE_DELETE
                 ROLE_ADMIN > DASHBOARD_VIEW
                 ROLE_ADMIN > AUDIT_LOG_VIEW
                 ROLE_MANAGER > DASHBOARD_VIEW
@@ -108,7 +105,6 @@ public class SecurityConfig {
                 ROLE_MANAGER > BOOKING_UPDATE
                 ROLE_MANAGER > BOOKING_DELETE
                 ROLE_MANAGER > CHECKIN_VIEW
-                ROLE_MANAGER > CHECKIN_PROCESS
                 ROLE_MANAGER > HOUSEKEEPING_VIEW
                 ROLE_MANAGER > HOUSEKEEPING_CREATE
                 ROLE_MANAGER > HOUSEKEEPING_UPDATE
@@ -125,9 +121,6 @@ public class SecurityConfig {
                 ROLE_MANAGER > FEEDBACK_UPDATE
                 ROLE_MANAGER > FEEDBACK_DELETE
                 ROLE_MANAGER > INVOICE_VIEW
-                ROLE_MANAGER > INVOICE_CREATE
-                ROLE_MANAGER > INVOICE_UPDATE
-                ROLE_MANAGER > INVOICE_DELETE
                 ROLE_MANAGER > AUDIT_LOG_VIEW
                 ROLE_RECEPTIONIST > ROOM_VIEW
                 ROLE_RECEPTIONIST > ROOM_TYPE_VIEW
@@ -138,12 +131,9 @@ public class SecurityConfig {
                 ROLE_RECEPTIONIST > BOOKING_CREATE
                 ROLE_RECEPTIONIST > BOOKING_UPDATE
                 ROLE_RECEPTIONIST > CHECKIN_VIEW
-                ROLE_RECEPTIONIST > CHECKIN_PROCESS
                 ROLE_RECEPTIONIST > HOUSEKEEPING_VIEW
                 ROLE_RECEPTIONIST > FEEDBACK_VIEW
                 ROLE_RECEPTIONIST > INVOICE_VIEW
-                ROLE_RECEPTIONIST > INVOICE_CREATE
-                ROLE_RECEPTIONIST > INVOICE_UPDATE
                 ROLE_HOUSEKEEPER > ROLE_HOUSEKEEPING
                 ROLE_HOUSEKEEPER > ROOM_VIEW
                 ROLE_HOUSEKEEPER > HOUSEKEEPING_VIEW

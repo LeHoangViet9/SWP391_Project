@@ -73,9 +73,14 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
     setPage(0);
   }, [statusFilter]);
 
+  const now = new Date();
+
   const filteredBookings = useMemo(() => {
     const q = normalizeText(keyword);
     return bookings.filter((booking) => {
+      // Ẩn khỏi danh sách nếu đã qua ngày checkout (không thể check-in nữa)
+      if (booking.checkOutDate && new Date(booking.checkOutDate) < now) return false;
+
       const matchesRoom = !preferredRoom || booking.roomIds?.includes(preferredRoom.id)
         || booking.roomId === preferredRoom.id
         || (!booking.roomId && booking.roomTypeId === (preferredRoom.roomTypeId || preferredRoom.roomType?.id));
@@ -200,15 +205,30 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
         </span>
       </td>
       <td className="px-4 py-3">
-        <button
-          onClick={() => openCheckInModal(booking)}
-          disabled={!canProcessCheckIn}
-          title={!canProcessCheckIn ? 'Cần quyền CHECKIN_VIEW để check-in' : undefined}
-          className="inline-flex items-center gap-1.5 rounded bg-[#bfa15f] px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-[#a3854a]"
-        >
-          <ClipboardCheck size={14} />
-          Check-in
-        </button>
+        {(() => {
+          const notYetArrived = booking.checkInDate && new Date(booking.checkInDate) > now;
+          const isDisabled = !canProcessCheckIn || notYetArrived;
+          const title = !canProcessCheckIn
+            ? 'Cần quyền CHECKIN_VIEW để check-in'
+            : notYetArrived
+              ? `Chưa đến ngày nhận phòng (${formatDateTime(booking.checkInDate)})`
+              : undefined;
+          return (
+            <button
+              onClick={() => openCheckInModal(booking)}
+              disabled={isDisabled}
+              title={title}
+              className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-bold text-white shadow ${
+                notYetArrived
+                  ? 'cursor-not-allowed bg-slate-400 opacity-60'
+                  : 'bg-[#bfa15f] hover:bg-[#a3854a]'
+              }`}
+            >
+              <ClipboardCheck size={14} />
+              {notYetArrived ? 'Chưa đến ngày' : 'Check-in'}
+            </button>
+          );
+        })()}
       </td>
     </tr>
   ));

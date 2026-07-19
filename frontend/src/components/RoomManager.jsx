@@ -6,6 +6,9 @@ import {
   createRoom,
   updateRoom,
   deleteRoom,
+  updateRoomStatus,
+  getRoomsByStatus,
+  getRoomsByRoomType,
 } from '../services/roomService';
 import DataTable from './shared/DataTable';
 import { useLocale } from '../context/LocaleContext';
@@ -87,22 +90,23 @@ export default function RoomManager({ readOnly = false }) {
   const fetchDataDirect = useCallback(async (p, opt, val) => {
     setLoading(true);
     try {
-      const params = { page: p, size: 10 };
       const trimmed = val ? String(val).trim() : '';
+      let res;
+
       if (trimmed) {
-        if (opt === 'id') {
-          params.id = trimmed;
-        } else if (opt === 'roomNumber') {
-          params.roomNumber = trimmed;
+        if (opt === 'status') {
+          // Backend có endpoint riêng: /rooms/status/{status}
+          res = await getRoomsByStatus(trimmed, { page: p, size: 10 }, locale);
         } else if (opt === 'roomTypeId') {
-          params.roomTypeId = trimmed;
-        } else if (opt === 'floor') {
-          params.floor = trimmed;
-        } else if (opt === 'status') {
-          params.status = trimmed;
+          // Backend có endpoint riêng: /rooms/room-type/{roomTypeId}
+          res = await getRoomsByRoomType(trimmed, { page: p, size: 10 }, locale);
+        } else {
+          // roomNumber, floor, id — tất cả đều dùng ?keyword= vì backend searchRooms() match chúng
+          res = await getAllRooms({ page: p, size: 10, keyword: trimmed }, locale);
         }
+      } else {
+        res = await getAllRooms({ page: p, size: 10 }, locale);
       }
-      const res = await getAllRooms(params, locale);
       setItems(res?.data?.content ?? []);
       setTotalPages(res?.data?.totalPages ?? 1);
     } catch (e) {

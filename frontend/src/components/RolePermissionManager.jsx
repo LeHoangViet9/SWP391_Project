@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Save, RefreshCw, Check, X } from 'lucide-react';
+import { Shield, Save, RefreshCw, Check } from 'lucide-react';
 import { getRoles, getPermissions, assignPermissionsToRole } from '../services/roleService';
 import { useLocale } from '../context/LocaleContext';
 import Toast from './shared/Toast';
@@ -61,8 +61,12 @@ const PERMISSION_DESCRIPTIONS = {
   FEEDBACK_CREATE: { vi: 'Gửi đánh giá dịch vụ', en: 'Submit feedback' },
   FEEDBACK_UPDATE: { vi: 'Chỉnh sửa phản hồi', en: 'Edit feedback' },
   FEEDBACK_DELETE: { vi: 'Xóa phản hồi', en: 'Delete feedback' },
+  FEEDBACK_VIEW_OWN: { vi: 'Xem đánh giá phản hồi của bản thân', en: 'View own customer feedbacks' },
+  FEEDBACK_UPDATE_OWN: { vi: 'Chỉnh sửa phản hồi của bản thân', en: 'Edit own feedback' },
+  FEEDBACK_DELETE_OWN: { vi: 'Xóa phản hồi của bản thân', en: 'Delete own feedback' },
   INVOICE_VIEW: { vi: 'Xem danh sách hóa đơn', en: 'View invoices' },
-  DASHBOARD_VIEW: { vi: 'Xem báo cáo doanh thu & dashboard', en: 'View financial reports & dashboard' }
+  DASHBOARD_VIEW: { vi: 'Xem báo cáo doanh thu & dashboard', en: 'View financial reports & dashboard' },
+  AUDIT_LOG_VIEW: { vi: 'Xem nhật ký hoạt động hệ thống', en: 'View system audit logs' }
 };
 
 export default function RolePermissionManager() {
@@ -262,7 +266,6 @@ export default function RolePermissionManager() {
 
               const label = isVi ? groupLabel.vi : groupLabel.en;
               const allChecked = groupPerms.every(p => rolePermissions.has(p.id));
-              const someChecked = groupPerms.some(p => rolePermissions.has(p.id));
 
               return (
                 <div key={groupKey} className="bg-[#112240] border border-white/[0.08] rounded-2xl overflow-hidden shadow-xl">
