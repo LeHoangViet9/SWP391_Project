@@ -18,4 +18,6 @@ public interface NotificationService {
 
     // Chỉ gửi thông báo cho MANAGER — dùng cho cảnh báo timeout kiểm phòng.
     void notifyManagers(String title, String message, String targetUrl);
+
+    void notifyManagersAndAdmins(String title, String message, String targetUrl);
 }

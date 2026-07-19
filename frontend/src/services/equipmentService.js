@@ -4,12 +4,7 @@ export const equipmentService = {
     getAll: (params = {}, locale = 'vi') => {
         const q = new URLSearchParams();
 
-        if (params.id) q.set('id', params.id);
-        if (params.equipmentName) q.set('equipmentName', params.equipmentName);
-        if (params.equipmentCode) q.set('equipmentCode', params.equipmentCode);
-
-        // Backend filter theo roomId thông qua bảng room_equipments
-        if (params.roomId) q.set('roomId', params.roomId);
+        if (params.keyword) q.set('keyword', params.keyword);
 
         if (params.status) q.set('status', params.status);
         if (params.page != null) q.set('page', params.page);

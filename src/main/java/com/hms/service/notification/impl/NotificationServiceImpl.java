@@ -101,4 +101,15 @@ public class NotificationServiceImpl implements NotificationService {
             notify(manager, title, message, targetUrl);
         }
     }
+
+    @Override
+    @Transactional
+    public void notifyManagersAndAdmins(String title, String message, String targetUrl) {
+        List<User> recipients = new java.util.ArrayList<>();
+        recipients.addAll(userRepository.findByRole_RoleNameIgnoreCaseAndAccountStatus("MANAGER", AccountStatus.ACTIVE));
+        recipients.addAll(userRepository.findByRole_RoleNameIgnoreCaseAndAccountStatus("ADMIN", AccountStatus.ACTIVE));
+        for (User recipient : recipients) {
+            notify(recipient, title, message, targetUrl);
+        }
+    }
 }
