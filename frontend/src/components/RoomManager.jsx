@@ -30,14 +30,26 @@ const STATUS_COLORS = {
 
 const STATUS_LABELS = {
   vi: {
-    AVAILABLE: 'PhÃ²ng trá»‘ng', READY: 'Sáºµn sÃ ng', RESERVED: 'ÄÃ£ Ä‘áº·t', OCCUPIED: 'Äang á»Ÿ',
-    CLEANING: 'Äang dá»n', DIRTY: 'Chá» dá»n', MAINTENANCE: 'Báº£o trÃ¬',
-    CHECKOUT_PENDING: 'Chá» tráº£ phÃ²ng', INACTIVE: 'Ngá»«ng hoáº¡t Ä‘á»™ng',
+    AVAILABLE: 'Phòng trống',
+    READY: 'Sẵn sàng',
+    RESERVED: 'Đã đặt',
+    OCCUPIED: 'Đang ở',
+    CLEANING: 'Đang dọn',
+    DIRTY: 'Chờ dọn',
+    MAINTENANCE: 'Bảo trì',
+    CHECKOUT_PENDING: 'Chờ trả phòng',
+    INACTIVE: 'Ngừng hoạt động',
   },
   en: {
-    AVAILABLE: 'Available', READY: 'Ready', RESERVED: 'Reserved', OCCUPIED: 'Occupied',
-    CLEANING: 'Cleaning', DIRTY: 'Dirty', MAINTENANCE: 'Maintenance',
-    CHECKOUT_PENDING: 'Checkout pending', INACTIVE: 'Inactive',
+    AVAILABLE: 'Available',
+    READY: 'Ready',
+    RESERVED: 'Reserved',
+    OCCUPIED: 'Occupied',
+    CLEANING: 'Cleaning',
+    DIRTY: 'Dirty',
+    MAINTENANCE: 'Maintenance',
+    CHECKOUT_PENDING: 'Checkout pending',
+    INACTIVE: 'Inactive',
   },
 };
 
@@ -257,11 +269,11 @@ export default function RoomManager({ readOnly = false }) {
                 }}
                 className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700"
             >
-              <option value="roomNumber">{t('room.searchOptions.roomNumber') || 'Sá»‘ phÃ²ng'}</option>
-              <option value="id">{t('room.searchOptions.id') || 'MÃ£ (ID)'}</option>
-              <option value="roomTypeId">{t('room.searchOptions.roomTypeId') || 'Loáº¡i phÃ²ng'}</option>
-              <option value="floor">{t('room.searchOptions.floor') || 'Táº§ng'}</option>
-              <option value="status">{t('room.searchOptions.status') || 'Tráº¡ng thÃ¡i'}</option>
+              <option value="roomNumber">{t('room.searchOptions.roomNumber') || 'Số phòng'}</option>
+              <option value="id">{t('room.searchOptions.id') || 'Mã (ID)'}</option>
+              <option value="roomTypeId">{t('room.searchOptions.roomTypeId') || 'Loại phòng'}</option>
+              <option value="floor">{t('room.searchOptions.floor') || 'Tầng'}</option>
+              <option value="status">{t('room.searchOptions.status') || 'Trạng thái'}</option>
             </select>
 
             {searchOpt === 'roomTypeId' ? (
@@ -273,7 +285,7 @@ export default function RoomManager({ readOnly = false }) {
                     }}
                     className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700 max-w-xs flex-1"
                 >
-                  <option value="">{t('room.modal.selectType') || 'Chá»n loáº¡i phÃ²ng'}</option>
+                  <option value="">{t('room.modal.selectType') || 'Chọn loại phòng'}</option>
                   {roomTypes.map(rt => (
                       <option key={rt.id} value={rt.id}>{rt.typeName}</option>
                   ))}
@@ -287,9 +299,9 @@ export default function RoomManager({ readOnly = false }) {
                     }}
                     className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700 max-w-xs flex-1"
                 >
-                  <option value="">{t('booking.filters.all') || 'Táº¥t cáº£'}</option>
-                  <option value="AVAILABLE">{t('room.status.available') || 'Sáºµn sÃ ng'}</option>
-                  <option value="MAINTENANCE">{t('room.status.maintenance') || 'Äang sá»­a chá»¯a'}</option>
+                  <option value="">{t('booking.filters.all') || 'Tất cả'}</option>
+                  <option value="AVAILABLE">{t('room.status.available') || 'Sẵn sàng'}</option>
+                  <option value="MAINTENANCE">{t('room.status.maintenance') || 'Đang sửa chữa'}</option>
                 </select>
             ) : (
                 <div className="relative flex-1 max-w-xs">
@@ -300,9 +312,9 @@ export default function RoomManager({ readOnly = false }) {
                       onChange={e => setSearch(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && fetchData(0)}
                       placeholder={
-                        searchOpt === 'id' ? (t('room.placeholders.id') || 'Nháº­p mÃ£ ID...') :
-                            searchOpt === 'floor' ? (t('room.placeholders.floor') || 'Nháº­p sá»‘ táº§ng...') :
-                                (t('room.placeholders.roomNumber') || t('room.searchPlaceholder') || 'Nháº­p sá»‘ phÃ²ng...')
+                        searchOpt === 'id' ? (t('room.placeholders.id') || 'Nhập mã ID...') :
+                            searchOpt === 'floor' ? (t('room.placeholders.floor') || 'Nhập số tầng...') :
+                                (t('room.placeholders.roomNumber') || t('room.searchPlaceholder') || 'Nhập số phòng...')
                       }
                       className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
                   />
