@@ -452,7 +452,16 @@ export default function MaintenanceManager({ readOnly = false }) {
           </span>
           </td>
           <td className="px-4 py-3 text-xs text-slate-400">{formatDate(item.createdAt)}</td>
-          <td className="px-4 py-3 text-xs text-slate-500 font-semibold">{formatDateTime(item.estimatedCompletionTime)}</td>
+          <td className="px-4 py-3 text-xs font-semibold">
+            <div className="text-slate-500">{formatDateTime(item.estimatedCompletionTime)}</div>
+            {item.estimatedCompletionTime
+                && !['COMPLETED', 'CANCELLED'].includes(item.status)
+                && new Date(item.estimatedCompletionTime) < new Date() && (
+                    <span className="mt-1 inline-block rounded bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                Quá ETA
+              </span>
+                )}
+          </td>
           <td className="px-4 py-3 text-xs text-emerald-600 font-semibold">{formatDateTime(item.completedAt)}</td>
           {!isReadOnly && (
               <td className="px-4 py-3">

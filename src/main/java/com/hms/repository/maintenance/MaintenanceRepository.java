@@ -65,11 +65,14 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
             Pageable pageable
     );
 
-    @Query("SELECT r FROM RepairRequest r WHERE r.status NOT IN :statuses AND r.estimatedCompletionTime IS NOT NULL AND r.estimatedCompletionTime <= :now")
-    List<RepairRequest> findExpiredActiveRequests(
+    @Query("SELECT r FROM RepairRequest r " +
+            "WHERE r.status IN :statuses " +
+            "AND r.estimatedCompletionTime IS NOT NULL " +
+            "AND r.estimatedCompletionTime <= :now " +
+            "AND r.overdueNotifiedAt IS NULL")
+    List<RepairRequest> findActiveRequestsOverdueAndNotNotified(
             @Param("statuses") List<MaintenanceStatus> statuses,
-            @Param("now") LocalDateTime now
-    );
+            @Param("now") LocalDateTime now);
 
     /*
      * THÊM MỚI: Tìm tất cả phiếu ASSIGNED mà đã được giao trước thời điểm :threshold (quá 15 phút).

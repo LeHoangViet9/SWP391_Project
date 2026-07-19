@@ -72,6 +72,10 @@ public class RepairRequest {
     @Column(name = "estimated_completion_time")
     private LocalDateTime estimatedCompletionTime;
 
+    // Null nghĩa là phiếu chưa được gửi cảnh báo ETA quá hạn.
+    @Column(name = "overdue_notified_at")
+    private LocalDateTime overdueNotifiedAt;
+
     /*
      * THÊM MỚI: Ghi lại thời điểm phiếu được giao (ASSIGNED) cho nhân viên.
      * Dùng để scheduler tự động thu hồi việc nếu sau 15 phút nhân viên không bấm Nhận.

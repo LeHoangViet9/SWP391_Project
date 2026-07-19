@@ -330,6 +330,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         Long previousAssignee = repairRequest.getAssignedTo();
         MaintenanceStatus oldStatus = repairRequest.getStatus();
 
+        // ETA được đổi thì cho phép gửi cảnh báo lại nếu ETA mới tiếp tục bị quá hạn.
+        if (dto.getEstimatedCompletionTime() != null
+                && !dto.getEstimatedCompletionTime().equals(repairRequest.getEstimatedCompletionTime())) {
+            repairRequest.setOverdueNotifiedAt(null);
+        }
+
         maintenanceMapper.updateFromDto(dto, repairRequest);
 
         // Khi COMPLETED hoặc CANCELLED → cập nhật lại phòng về AVAILABLE
@@ -583,9 +589,46 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      * Tự động hoàn thành bảo trì & giải phóng phòng sang AVAILABLE khi thời gian dự
      * kiến hoàn thành trôi qua
      */
-    public void autoReleaseExpiredMaintenanceRooms() {
+    /**
+     * Cảnh báo một lần khi ETA đã qua. Không tự hoàn thành phiếu, không đổi trạng
+     * thái phòng hay thiết bị.
+     */
+    @org.springframework.scheduling.annotation.Scheduled(
+            fixedDelayString = "${app.maintenance.overdue-notification-ms:300000}")
+    @Transactional
+    public void notifyOverdueMaintenanceRequests() {
         LocalDateTime now = LocalDateTime.now();
-        List<RepairRequest> expiredRequests = maintenanceRepository.findExpiredActiveRequests(
+        List<RepairRequest> overdueRequests = maintenanceRepository.findActiveRequestsOverdueAndNotNotified(
+                List.of(MaintenanceStatus.PENDING, MaintenanceStatus.ASSIGNED, MaintenanceStatus.IN_PROGRESS), now);
+
+        for (RepairRequest request : overdueRequests) {
+            String title = "Bảo trì quá ETA";
+            String message = "Phiếu bảo trì #" + request.getId()
+                    + " đã quá thời gian dự kiến hoàn thành. Vui lòng kiểm tra và xử lý.";
+            String targetUrl = "/dashboard/maintenance";
+
+            notificationService.notifyManagersAndAdmins(title, message, targetUrl);
+            if (request.getAssignedTo() != null) {
+                userRepository.findById(request.getAssignedTo())
+                        .ifPresent(user -> notificationService.notify(user, title, message, targetUrl));
+            }
+            if (request.getReportedBy() != null && !request.getReportedBy().equals(request.getAssignedTo())) {
+                userRepository.findById(request.getReportedBy())
+                        .ifPresent(user -> notificationService.notify(user, title, message, targetUrl));
+            }
+
+            request.setOverdueNotifiedAt(now);
+            maintenanceRepository.save(request);
+        }
+    }
+
+    /**
+     * Legacy method retained temporarily for compatibility. It is not scheduled.
+     */
+    @Deprecated(forRemoval = true)
+    private void autoReleaseExpiredMaintenanceRooms() {
+        LocalDateTime now = LocalDateTime.now();
+        List<RepairRequest> expiredRequests = maintenanceRepository.findActiveRequestsOverdueAndNotNotified(
                 List.of(MaintenanceStatus.COMPLETED, MaintenanceStatus.CANCELLED),
                 now);
 
