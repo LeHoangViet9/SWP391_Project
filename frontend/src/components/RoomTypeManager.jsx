@@ -339,8 +339,22 @@ export default function RoomTypeManager({ readOnly = false }) {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('roomType.modal.description')}</label>
-            <textarea rows={3} value={form.description} maxLength={255} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none resize-none" placeholder="Mô tả tiện nghi, tầm nhìn..." />
+            <textarea
+              rows={3}
+              value={form.description}
+              maxLength={255}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none resize-none"
+              placeholder="Mô tả tiện nghi, tầm nhìn..."
+            />
+            <div className="mt-1 flex items-center justify-between text-xs">
+              <span className="text-slate-500">
+                {locale === 'vi' ? 'Tối đa 255 ký tự' : 'Maximum 255 characters'}
+              </span>
+              <span className="text-slate-500">
+                {form.description?.length ?? 0}/255
+              </span>
+            </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={closeModal} className="px-4 py-2 text-sm border border-stone-300 rounded hover:bg-stone-50">{t('roomType.modal.cancel')}</button>
