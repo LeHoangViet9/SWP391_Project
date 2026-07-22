@@ -6,7 +6,6 @@ import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 
 const PHONE_RE = /^(0|\+84)\d{9}$/;
-const USERNAME_RE = /^[a-zA-Z0-9_]+$/;
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@#$%^&+=!]{6,}$/;
 
 export default function RegisterPage() {
@@ -78,26 +77,6 @@ export default function RegisterPage() {
         setForm((prev) => ({ ...prev, [field]: value }));
     };
 
-    const validate = () => {
-        // Kiểm tra blank/whitespace-only
-        if (!form.fullName.trim()) return locale === 'vi' ? 'Họ và tên không được để trống.' : 'Full name is required.';
-        if (/^\s|\s$/.test(form.fullName)) {
-            return locale === 'vi' ? 'Họ và tên không được chứa khoảng trắng ở đầu hoặc cuối.' : 'Full name cannot have leading or trailing spaces.';
-        }
-        if (/\s{2,}/.test(form.fullName)) {
-            return locale === 'vi' ? 'Họ và tên không được chứa nhiều khoảng trắng liên tiếp.' : 'Full name cannot have consecutive spaces.';
-        }
-        if (!form.email.trim()) return locale === 'vi' ? 'Email không được để trống.' : 'Email is required.';
-        if (!form.phone.trim()) return locale === 'vi' ? 'Số điện thoại không được để trống.' : 'Phone number is required.';
-        if (!form.password) return locale === 'vi' ? 'Mật khẩu không được để trống.' : 'Password is required.';
-        if (!form.rePassword) return locale === 'vi' ? 'Vui lòng xác nhận mật khẩu.' : 'Please confirm your password.';
-        // Kiểm tra format
-        if (!PASSWORD_RE.test(form.password)) return t('auth.errPassword');
-        if (form.password !== form.rePassword) return t('auth.errPasswordMatch');
-        if (!PHONE_RE.test(form.phone.trim())) return t('auth.errPhone');
-        return null;
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -126,10 +105,10 @@ export default function RegisterPage() {
             const res = await register(payload);
             setSuccess(res.message || t('auth.registerSuccess'));
 
-            // Sau đăng ký → chuyển tới trang login và điền email
+            // Sau đăng ký → chuyển tới trang xác thực OTP kèm email
             setTimeout(() => {
                 navigate(
-                    `/login?email=${encodeURIComponent(payload.email)}&registered=1`
+                    `/verify-otp?email=${encodeURIComponent(payload.email)}`
                 );
             }, 1500);
         } catch (err) {

@@ -268,8 +268,9 @@ public class AuthServiceImpl implements AuthService {
         if (user.getAccountStatus() != AccountStatus.PENDING_VERIFICATION) {
             throw new BadRequestException(messageSource.getMessage("error.otp.alreadyVerified", null, locale));
         }
+        SecureRandom random = new SecureRandom();
 
-        String otp = generateOtp(6);
+        String otp = String.format("otp%d", random.nextInt(1000000));
         user.setOtpCode(otp);
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
         userRepository.save(user);
@@ -277,22 +278,6 @@ public class AuthServiceImpl implements AuthService {
         emailService.sendRegistrationOtp(user.getEmail(), otp);
     }
 
-    private String generateOtp(int length){
-        StringBuilder otp = new StringBuilder();
-        for(char c='0';c<='9';c++){
-            otp.append(c);
-        }
-        for(char c='A';c<='Z';c++){
-            otp.append(c);
-        }
-        String finalChar=otp.toString();
-        SecureRandom random = new SecureRandom();
-        StringBuilder sb = new StringBuilder(length);
-        for(int i=0;i<length;i++){
-            sb.append(finalChar.charAt(random.nextInt(finalChar.length())));
-        }
-        return sb.toString();
-    }
 
     private Map<String, Object> userAuditSnapshot(User user) {
         Map<String, Object> snapshot = new LinkedHashMap<>();
@@ -311,4 +296,22 @@ public class AuthServiceImpl implements AuthService {
         changes.put("email", email);
         return auditLogService.message(null, changes);
     }
+
+//
+//    private String generateOtp(int length){
+//        StringBuilder otp = new StringBuilder();
+//        for(char c='0';c<='9';c++){
+//            otp.append(c);
+//        }
+//        for(char c='A';c<='Z';c++){
+//            otp.append(c);
+//        }
+//        String finalChar=otp.toString();
+//        SecureRandom random = new SecureRandom();
+//        StringBuilder sb = new StringBuilder(length);
+//        for(int i=0;i<length;i++){
+//            sb.append(finalChar.charAt(random.nextInt(finalChar.length())));
+//        }
+//        return sb.toString();
+//    }
 }

@@ -128,10 +128,9 @@ export default function OtpVerificationPage() {
 
   const otp = digits.join('');
 
-  // Handle individual digit input
+  // Handle individual digit input (allow letters + numbers, auto-uppercase)
   const handleDigitChange = (index, value) => {
-    // Only allow numeric input
-    const digit = value.replace(/\D/g, '').slice(-1);
+    const digit = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(-1);
     
     const newDigits = [...digits];
     newDigits[index] = digit;
@@ -157,10 +156,10 @@ export default function OtpVerificationPage() {
     }
   };
 
-  // Handle paste (full OTP paste)
+  // Handle paste (full OTP paste - allow letters + numbers)
   const handlePaste = (e) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+    const pasted = e.clipboardData.getData('text').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, OTP_LENGTH);
     if (pasted.length > 0) {
       const newDigits = Array(OTP_LENGTH).fill('');
       pasted.split('').forEach((char, i) => {
@@ -303,7 +302,7 @@ export default function OtpVerificationPage() {
                     key={idx}
                     ref={el => inputRefs.current[idx] = el}
                     type="text"
-                    inputMode="numeric"
+                    inputMode="text"
                     maxLength={1}
                     value={digit}
                     onChange={(e) => handleDigitChange(idx, e.target.value)}
