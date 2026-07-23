@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { KeyRound, ShieldAlert } from 'lucide-react';
-import { apiFetch } from '../services/api';
+import { changePassword } from '../services/authService';
 import { useLocale } from '../context/LocaleContext';
 import Toast from './shared/Toast';
 
@@ -20,12 +20,10 @@ export default function ChangePassword() {
     }
     setLoading(true);
     try {
-      await apiFetch('/auth/change-password', {
-        method: 'PUT',
-        body: JSON.stringify({
-          oldPassword: form.oldPassword,
-          newPassword: form.newPassword,
-        }),
+      await changePassword({
+        oldPassword: form.oldPassword,
+        newPassword: form.newPassword,
+        confirmNewPassword: form.confirmPassword,
       });
       notify(t('changePassword.toast.success'));
       setForm({ oldPassword: '', newPassword: '', confirmPassword: '' });

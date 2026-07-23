@@ -83,3 +83,16 @@ export async function getCurrentUser(locale = 'vi') {
   }
   return res;
 }
+
+/** PUT /api/v1/auth/change-password */
+export async function changePassword(payload, locale = 'vi') {
+  const res = await apiFetch('/auth/change-password', {
+    method: 'PUT',
+    body: JSON.stringify({
+      oldPassword: payload.oldPassword,
+      newPassword: payload.newPassword,
+      confirmNewPassword: payload.confirmNewPassword,
+    }),
+  }, locale);
+  return res;
+}
