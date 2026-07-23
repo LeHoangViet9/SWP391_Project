@@ -185,10 +185,10 @@ public class RoomServiceImpl implements IRoomService {
     @Auditable(action = "UPDATE_ROOM_STATUS", module = "ROOM", logSuccess = false)
     public void updateRoomStatus(Long roomId, RoomStatus status) {
         Locale locale = LocaleContextHolder.getLocale();
-        if (status == RoomStatus.INACTIVE) {
+        if (status != RoomStatus.AVAILABLE && status != RoomStatus.MAINTENANCE) {
             throw new BadRequestException(
-                    messageSource.getMessage("error.room.status.inactive.forbidden", null,
-                            "Khong the dat trang thai INACTIVE truc tiep. Hay dung chuc nang xoa phong.", locale));
+                    messageSource.getMessage("error.room.status.manual.forbidden", null,
+                            "Only AVAILABLE and MAINTENANCE can be set manually.", locale));
         }
 
         Room room = roomRepository.findById(roomId)

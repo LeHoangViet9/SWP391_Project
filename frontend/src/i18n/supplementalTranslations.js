@@ -144,7 +144,7 @@ export const supplementalTranslations = {
       },
       status: {
         available: 'Sẵn sàng',
-        maintenance: 'Đang sửa chữa',
+        maintenance: 'Đang bảo trì',
       },
       noImage: 'Chưa có ảnh',
       searchPlaceholder: 'Tìm phòng...',
