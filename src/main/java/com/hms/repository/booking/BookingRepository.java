@@ -157,10 +157,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                             FROM Booking b
                             LEFT JOIN FETCH b.rooms
                             LEFT JOIN FETCH b.room
-                            WHERE b.bookingStatus = com.hms.common.enums.BookingStatus.CHECKED_IN
+                            WHERE b.bookingStatus IN :statuses
                             AND b.checkOutDate < :cutoffExclusive
                         """)
-        List<Booking> findCheckedInDueForAutoCheckout(
+        List<Booking> findDueForAutoCheckout(
+                        @Param("statuses") Collection<BookingStatus> statuses,
                         @Param("cutoffExclusive") LocalDateTime cutoffExclusive);
 
         /**

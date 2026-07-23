@@ -222,20 +222,33 @@ public class CheckoutServiceImpl implements CheckoutService {
                 ? now.toLocalDate().atStartOfDay()
                 : now.toLocalDate().plusDays(1).atStartOfDay();
 
-        List<Booking> candidates = bookingRepository.findCheckedInDueForAutoCheckout(cutoffExclusive);
+        List<Booking> candidates = bookingRepository.findDueForAutoCheckout(
+                List.of(BookingStatus.CONFIRMED, BookingStatus.CHECKED_IN),
+                cutoffExclusive);
         int processed = 0;
         for (Booking candidate : candidates) {
             Booking booking = bookingRepository.findByIdWithPessimisticWrite(candidate.getId()).orElse(null);
             if (booking == null
-                    || booking.getBookingStatus() != BookingStatus.CHECKED_IN
+                    || (booking.getBookingStatus() != BookingStatus.CONFIRMED
+                        && booking.getBookingStatus() != BookingStatus.CHECKED_IN)
                     || !isCheckoutDeadlinePassed(booking, now)) {
                 continue;
             }
 
-            List<Room> rooms = roomsOf(booking);
-            String historyReason = "Hệ thống tự động check-out sau 12:00 ngày trả phòng.";
-            rooms.forEach(room -> changeRoom(room, RoomStatus.DIRTY, null, historyReason));
-            assignHousekeepingTasks(rooms, null);
+            boolean customerNeverCheckedIn = booking.getBookingStatus() == BookingStatus.CONFIRMED;
+            List<Room> rooms = assignedRoomsOf(booking);
+
+            if (customerNeverCheckedIn) {
+                // Keep both lifecycle timestamps on the booking, while releasing an
+                // unused room without creating an unnecessary cleaning task.
+                booking.setActualCheckInTime(now);
+                String historyReason = "Hệ thống tự động đóng đơn khi khách chưa đến trước giờ trả phòng.";
+                rooms.forEach(room -> changeRoom(room, RoomStatus.AVAILABLE, null, historyReason));
+            } else {
+                String historyReason = "Hệ thống tự động check-out sau 12:00 ngày trả phòng.";
+                rooms.forEach(room -> changeRoom(room, RoomStatus.DIRTY, null, historyReason));
+                assignHousekeepingTasks(rooms, null);
+            }
 
             booking.setBookingStatus(BookingStatus.CHECKED_OUT);
             booking.setActualCheckOutTime(now);
@@ -245,6 +258,12 @@ public class CheckoutServiceImpl implements CheckoutService {
             processed++;
         }
         return processed;
+    }
+
+    private List<Room> assignedRoomsOf(Booking booking) {
+        if (booking.getRooms() != null && !booking.getRooms().isEmpty()) return booking.getRooms();
+        if (booking.getRoom() != null) return List.of(booking.getRoom());
+        return List.of();
     }
 
     private Booking findBooking(Long id) {
