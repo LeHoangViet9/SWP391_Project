@@ -53,6 +53,8 @@ const STATUS_LABELS = {
   },
 };
 
+const MANUAL_STATUS_OPTIONS = ['AVAILABLE', 'MAINTENANCE'];
+
 const EMPTY_FORM = { roomTypeId: '', floorNumber: '', description: '' };
 
 function getRoomStatus(item) {
@@ -199,6 +201,9 @@ export default function RoomManager({ readOnly = false }) {
   const rows = items.map(item => {
     const status = getRoomStatus(item);
     const displayStatus = STATUS_LABELS[locale]?.[status] || status;
+    const manualStatusOptions = MANUAL_STATUS_OPTIONS.includes(status)
+        ? MANUAL_STATUS_OPTIONS
+        : [status, ...MANUAL_STATUS_OPTIONS];
     return (
         <tr key={item.id} className="hover:bg-stone-50">
           <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
@@ -218,9 +223,9 @@ export default function RoomManager({ readOnly = false }) {
                     onChange={e => handleStatusChange(item, e.target.value)}
                     className={`text-xs font-semibold px-2 py-1 rounded-full border border-stone-200 outline-none cursor-pointer ${STATUS_COLORS[status] || 'bg-stone-100'}`}
                 >
-                  {Array.from(new Set([status, 'AVAILABLE', 'INACTIVE'])).map(s => {
+                  {manualStatusOptions.map(s => {
                     const label = STATUS_LABELS[locale]?.[s] || s;
-                    return <option key={s} value={s}>{label}</option>;
+                    return <option key={s} value={s} disabled={!MANUAL_STATUS_OPTIONS.includes(s)}>{label}</option>;
                   })}
                 </select>
             )}
@@ -300,8 +305,8 @@ export default function RoomManager({ readOnly = false }) {
                     className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700 max-w-xs flex-1"
                 >
                   <option value="">{t('booking.filters.all') || 'Tất cả'}</option>
-                  <option value="AVAILABLE">{t('room.status.available') || 'Sẵn sàng'}</option>
-                  <option value="MAINTENANCE">{t('room.status.maintenance') || 'Đang sửa chữa'}</option>
+                  <option value="AVAILABLE">{t('room.status.available') || STATUS_LABELS[locale]?.AVAILABLE || 'Sẵn sàng'}</option>
+                  <option value="MAINTENANCE">{t('room.status.maintenance') || STATUS_LABELS[locale]?.MAINTENANCE || 'Đang bảo trì'}</option>
                 </select>
             ) : (
                 <div className="relative flex-1 max-w-xs">
