@@ -663,7 +663,7 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
     const [actionLoading, setActionLoading] = useState(false);
     const [toast, setToast] = useState({ type: 'success', message: '' });
     // ── State: View ──────────────────────────────────────────────────────────
-    const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
+    const [viewMode, setViewMode] = useState('table'); // 'table'
     // ── State: Filters & Pagination ──────────────────────────────────────────
     const [filters, setFilters] = useState({
         status: '',
@@ -1029,18 +1029,8 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
                     </form>
                 </div>
             )}
-            {/* ── View Toggle + Sort ───────────────────────────────────────────────── */}
-            <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-lg">
-                    <button onClick={() => setViewMode('kanban')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-all ${viewMode === 'kanban' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}>
-                        <LayoutGrid size={15} /> Kanban
-                    </button>
-                    <button onClick={() => setViewMode('table')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-all ${viewMode === 'table' ? 'bg-white shadow text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}>
-                        <TableIcon size={15} /> Bảng
-                    </button>
-                </div>
+            {/* ── Sort & Date Filters ───────────────────────────────────────────────── */}
+            <div className="flex items-center justify-end flex-wrap gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
                     <CalendarDays size={16} className="text-[#bfa15f]" />
                     <label className="text-xs text-slate-400 font-medium">Xem công việc:</label>
@@ -1066,28 +1056,8 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
                     />
                 </div>
             </div>
-            {/* ── Kanban View ──────────────────────────────────────────────────────── */}
-            {viewMode === 'kanban' && (
-                loading ? (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        {TASK_STATUSES.map(s => (
-                            <div key={s} className="bg-stone-50 rounded-2xl border border-stone-200 p-4 space-y-3 animate-pulse">
-                                <div className="h-4 bg-stone-200 rounded w-1/2" />
-                                {[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-stone-200 rounded-xl" />)}
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {TASK_STATUSES.map(s => (
-                            <KanbanColumn key={s} status={s} tasks={kanbanGroups[s]} locale={locale}
-                                onView={openDetail} onEdit={openEdit} onDelete={openDelete} readOnly={readOnly} />
-                        ))}
-                    </div>
-                )
-            )}
             {/* ── Table View ───────────────────────────────────────────────────────── */}
-            {viewMode === 'legacy-table' && (
+            {viewMode === 'table' && (
                 <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -1187,17 +1157,6 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
                         </div>
                     )}
                 </div>
-            )}
-            {viewMode === 'table' && (
-                <DataTable
-                    columns={tableColumns}
-                    rows={tableRows}
-                    loading={loading}
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={setPage}
-                    emptyText="Không có tác vụ nào"
-                />
             )}
         </div>
     );
