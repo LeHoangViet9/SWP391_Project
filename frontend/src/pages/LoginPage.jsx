@@ -67,7 +67,7 @@ export default function LoginPage() {
       else if (role === 'RECEPTIONIST') navigate('/receptionist/dashboard', { replace: true });
       else if (role === 'HOUSEKEEPER') navigate('/housekeeper/dashboard', { replace: true });
       else if (role === 'MAINTENANCE') navigate('/maintenance/dashboard', { replace: true });
-      else if (role === 'CUSTOMER') navigate('/customer/dashboard', { replace: true });
+      else if (role === 'CUSTOMER') navigate('/', { replace: true });
       else navigate('/', { replace: true });
     } catch (err) {
       // Nếu tài khoản chưa xác thực OTP → redirect sang trang verify

@@ -26,6 +26,10 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
     // Kiểm tra xem nhân viên bảo trì có đang thực hiện yêu cầu sửa chữa nào ở trạng thái nhất định không
     boolean existsByAssignedToAndStatus(Long assignedTo, MaintenanceStatus status);
 
+    boolean existsByRoomIdAndStatusIn(Long roomId, List<MaintenanceStatus> statuses);
+
+    boolean existsByEquipmentIdAndStatusIn(Long equipmentId, List<MaintenanceStatus> statuses);
+
     // ===========================================================
 
     long countByStatus(MaintenanceStatus status);
@@ -59,13 +63,16 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
             @Param("status") MaintenanceStatus status,
             @Param("assignedTo") Long assignedTo,
             Pageable pageable
-        );
-
-    @Query("SELECT r FROM RepairRequest r WHERE r.status NOT IN :statuses AND r.estimatedCompletionTime IS NOT NULL AND r.estimatedCompletionTime <= :now")
-    List<RepairRequest> findExpiredActiveRequests(
-            @Param("statuses") List<MaintenanceStatus> statuses,
-            @Param("now") LocalDateTime now
     );
+
+    @Query("SELECT r FROM RepairRequest r " +
+            "WHERE r.status IN :statuses " +
+            "AND r.estimatedCompletionTime IS NOT NULL " +
+            "AND r.estimatedCompletionTime <= :now " +
+            "AND r.overdueNotifiedAt IS NULL")
+    List<RepairRequest> findActiveRequestsOverdueAndNotNotified(
+            @Param("statuses") List<MaintenanceStatus> statuses,
+            @Param("now") LocalDateTime now);
 
     /*
      * THÊM MỚI: Tìm tất cả phiếu ASSIGNED mà đã được giao trước thời điểm :threshold (quá 15 phút).

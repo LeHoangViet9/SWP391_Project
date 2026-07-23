@@ -2,6 +2,8 @@ package com.hms.service.maintenance.impl;
 
 import com.hms.common.enums.MaintenanceSeverity;
 import com.hms.common.enums.MaintenanceStatus;
+import com.hms.common.enums.EquipmentStatus;
+import com.hms.common.enums.RoomStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
 import com.hms.common.exception.ResourceNotFoundException;
@@ -27,6 +29,8 @@ import com.hms.common.exception.ConflictException;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -79,9 +83,17 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         }
 
         // Kiểm tra thiết bị tồn tại
-        if (dto.getEquipmentId() != null && !equipmentRepository.existsById(dto.getEquipmentId())) {
-            throw new ResourceNotFoundException(
-                    messageSource.getMessage(ERROR_EQUIPMENT_NOTFOUND, new Object[] { dto.getEquipmentId() }, locale));
+        if (dto.getEquipmentId() != null) {
+            var equipment = equipmentRepository.findById(dto.getEquipmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            messageSource.getMessage(ERROR_EQUIPMENT_NOTFOUND, new Object[] { dto.getEquipmentId() }, locale)));
+            if (equipment.getStatus() == EquipmentStatus.INACTIVE) {
+                throw new ConflictException("Cannot create a maintenance request for an inactive equipment");
+            }
+            if (equipment.getStatus() == EquipmentStatus.ACTIVE) {
+                equipment.setStatus(EquipmentStatus.MAINTENANCE);
+                equipmentRepository.save(equipment);
+            }
         }
 
         // Nếu có cả roomId và equipmentId, thiết bị phải được gán đúng phòng
@@ -95,6 +107,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         }
 
         RepairRequest repairRequest = maintenanceMapper.toEntity(dto);
+        repairRequest.setReportedBy(getCurrentUser().getId());
         repairRequest.setStatus(MaintenanceStatus.PENDING);
         repairRequest.setDeniedByIds("");
 
@@ -162,7 +175,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             String roomInfo = request.getRoomId() != null
                     ? messageSource.getMessage("maintenance.room.info", new Object[] { request.getRoomId() }, locale)
                     : messageSource.getMessage("maintenance.equipment.info", new Object[] { request.getEquipmentId() },
-                            locale);
+                    locale);
 
             String notifTitle = messageSource.getMessage("maintenance.notification.new.title", null, locale);
             String notifMsg = messageSource.getMessage("maintenance.notification.new.message",
@@ -199,8 +212,9 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      */
     @Override
     @Transactional
-    public MaintenanceResponse acceptRequest(Long requestId, Long maintenanceUserId) {
+    public MaintenanceResponse acceptRequest(Long requestId) {
         Locale locale = LocaleContextHolder.getLocale();
+        Long maintenanceUserId = getCurrentUser().getId();
 
         RepairRequest request = maintenanceRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -233,8 +247,9 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      */
     @Override
     @Transactional
-    public MaintenanceResponse denyRequest(Long requestId, Long maintenanceUserId, String reason) {
+    public MaintenanceResponse denyRequest(Long requestId, String reason) {
         Locale locale = LocaleContextHolder.getLocale();
+        Long maintenanceUserId = getCurrentUser().getId();
 
         RepairRequest request = maintenanceRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -315,6 +330,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         Long previousAssignee = repairRequest.getAssignedTo();
         MaintenanceStatus oldStatus = repairRequest.getStatus();
 
+        // ETA được đổi thì cho phép gửi cảnh báo lại nếu ETA mới tiếp tục bị quá hạn.
+        if (dto.getEstimatedCompletionTime() != null
+                && !dto.getEstimatedCompletionTime().equals(repairRequest.getEstimatedCompletionTime())) {
+            repairRequest.setOverdueNotifiedAt(null);
+        }
+
         maintenanceMapper.updateFromDto(dto, repairRequest);
 
         // Khi COMPLETED hoặc CANCELLED → cập nhật lại phòng về AVAILABLE
@@ -322,15 +343,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             if (dto.getStatus() == MaintenanceStatus.COMPLETED) {
                 repairRequest.setCompletedAt(LocalDateTime.now());
             }
-            if (repairRequest.getRoomId() != null) {
-                roomRepository.findById(repairRequest.getRoomId()).ifPresent(room -> {
-                    room.setRoomStatus(com.hms.common.enums.RoomStatus.AVAILABLE);
-                    roomRepository.save(room);
-                });
-            }
         }
 
         RepairRequest updated = maintenanceRepository.save(repairRequest);
+        if (updated.getStatus() == MaintenanceStatus.COMPLETED || updated.getStatus() == MaintenanceStatus.CANCELLED) {
+            reconcileRoomStatus(updated.getRoomId());
+            reconcileEquipmentStatus(updated.getEquipmentId());
+        }
 
         /*
          * THÊM MỚI: Gửi thông báo cho Quản lý & Lễ tân khi nhân viên bảo trì hoàn thành
@@ -389,9 +408,9 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             userRepository.findById(updated.getAssignedTo()).ifPresent(assignee -> {
                 String roomInfo = updated.getRoomId() != null
                         ? messageSource.getMessage("maintenance.room.info", new Object[] { updated.getRoomId() },
-                                notifLocale)
+                        notifLocale)
                         : messageSource.getMessage("maintenance.equipment.info",
-                                new Object[] { updated.getEquipmentId() }, notifLocale);
+                        new Object[] { updated.getEquipmentId() }, notifLocale);
                 String notifTitle = messageSource.getMessage("maintenance.notification.new.title", null, notifLocale);
                 String notifMsg = messageSource.getMessage("maintenance.notification.assigned_by_manager.message",
                         new Object[] { updated.getId(), roomInfo }, notifLocale);
@@ -458,13 +477,19 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     @Override
+    @Transactional
     public void deleteRequest(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
         RepairRequest repairRequest = maintenanceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage(
                                 ERROR_MAINTENANCE_NOTFOUND, new Object[] { id }, locale)));
-        maintenanceRepository.delete(repairRequest);
+        repairRequest.setStatus(MaintenanceStatus.CANCELLED);
+        repairRequest.setAssignedAt(null);
+        maintenanceRepository.save(repairRequest);
+        syncMaintenanceWorkStatus(repairRequest.getAssignedTo(), MaintenanceStatus.CANCELLED);
+        reconcileRoomStatus(repairRequest.getRoomId());
+        reconcileEquipmentStatus(repairRequest.getEquipmentId());
     }
 
     /**
@@ -523,15 +548,87 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         return res;
     }
 
+    private static final List<MaintenanceStatus> ACTIVE_MAINTENANCE_STATUSES = List.of(
+            MaintenanceStatus.PENDING, MaintenanceStatus.ASSIGNED, MaintenanceStatus.IN_PROGRESS);
+
+    private void reconcileRoomStatus(Long roomId) {
+        if (roomId == null || maintenanceRepository.existsByRoomIdAndStatusIn(roomId, ACTIVE_MAINTENANCE_STATUSES)) {
+            return;
+        }
+        roomRepository.findById(roomId).ifPresent(room -> {
+            if (room.getRoomStatus() == RoomStatus.MAINTENANCE) {
+                room.setRoomStatus(RoomStatus.AVAILABLE);
+                roomRepository.save(room);
+            }
+        });
+    }
+
+    private void reconcileEquipmentStatus(Long equipmentId) {
+        if (equipmentId == null || maintenanceRepository.existsByEquipmentIdAndStatusIn(equipmentId, ACTIVE_MAINTENANCE_STATUSES)) {
+            return;
+        }
+        equipmentRepository.findById(equipmentId).ifPresent(equipment -> {
+            if (equipment.getStatus() == EquipmentStatus.MAINTENANCE) {
+                equipment.setStatus(EquipmentStatus.ACTIVE);
+                equipmentRepository.save(equipment);
+            }
+        });
+    }
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName() == null || "anonymousUser".equals(authentication.getName())) {
+            throw new ConflictException("An authenticated user is required");
+        }
+        return userRepository.findUserByEmail(authentication.getName())
+                .orElseThrow(() -> new ConflictException("Authenticated user no longer exists"));
+    }
+
     /**
      * Tự động hoàn thành bảo trì & giải phóng phòng sang AVAILABLE khi thời gian dự
      * kiến hoàn thành trôi qua
      */
-    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 60000)
+    /**
+     * Cảnh báo một lần khi ETA đã qua. Không tự hoàn thành phiếu, không đổi trạng
+     * thái phòng hay thiết bị.
+     */
+    @org.springframework.scheduling.annotation.Scheduled(
+            fixedDelayString = "${app.maintenance.overdue-notification-ms:300000}")
     @Transactional
-    public void autoReleaseExpiredMaintenanceRooms() {
+    public void notifyOverdueMaintenanceRequests() {
         LocalDateTime now = LocalDateTime.now();
-        List<RepairRequest> expiredRequests = maintenanceRepository.findExpiredActiveRequests(
+        List<RepairRequest> overdueRequests = maintenanceRepository.findActiveRequestsOverdueAndNotNotified(
+                List.of(MaintenanceStatus.PENDING, MaintenanceStatus.ASSIGNED, MaintenanceStatus.IN_PROGRESS), now);
+
+        for (RepairRequest request : overdueRequests) {
+            String title = "Bảo trì quá ETA";
+            String message = "Phiếu bảo trì #" + request.getId()
+                    + " đã quá thời gian dự kiến hoàn thành. Vui lòng kiểm tra và xử lý.";
+            String targetUrl = "/dashboard/maintenance";
+
+            notificationService.notifyManagersAndAdmins(title, message, targetUrl);
+            if (request.getAssignedTo() != null) {
+                userRepository.findById(request.getAssignedTo())
+                        .ifPresent(user -> notificationService.notify(user, title, message, targetUrl));
+            }
+            if (request.getReportedBy() != null && !request.getReportedBy().equals(request.getAssignedTo())) {
+                userRepository.findById(request.getReportedBy())
+                        .ifPresent(user -> notificationService.notify(user, title, message, targetUrl));
+            }
+
+            request.setOverdueNotifiedAt(now);
+            maintenanceRepository.save(request);
+        }
+    }
+
+    /**
+     * Legacy method retained temporarily for compatibility. It is not scheduled.
+     */
+    @Deprecated(forRemoval = true)
+    private void autoReleaseExpiredMaintenanceRooms() {
+        LocalDateTime now = LocalDateTime.now();
+        List<RepairRequest> expiredRequests = maintenanceRepository.findActiveRequestsOverdueAndNotNotified(
                 List.of(MaintenanceStatus.COMPLETED, MaintenanceStatus.CANCELLED),
                 now);
 

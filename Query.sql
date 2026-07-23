@@ -364,3 +364,6 @@ ALTER TABLE repair_requests
     ADD COLUMN IF NOT EXISTS denied_by_ids VARCHAR(500) DEFAULT '';
 
 select * from users;
+
+
+delete from users where email='leviet20051509@gmail.com'

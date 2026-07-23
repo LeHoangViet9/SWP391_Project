@@ -83,21 +83,21 @@ public class PermissionDataInitializer implements ApplicationRunner {
             });
         }
 
-        // 1.5. Xóa các permissions rác không còn sử dụng
-        List<String> orphanPerms = Arrays.asList("INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE", "CHECKIN_PROCESS", "CUSTOMER_EXPORT");
-        for (String permName : orphanPerms) {
-            permissionRepository.findByName(permName).ifPresent(perm -> {
-                List<Role> allRoles = roleRepository.findAll();
-                for (Role role : allRoles) {
-                    if (role.getPermissions().contains(perm)) {
-                        role.getPermissions().remove(perm);
-                        roleRepository.save(role);
-                    }
-                }
-                permissionRepository.delete(perm);
-                log.info("Deleted orphan permission: {}", permName);
-            });
-        }
+//        // 1.5. Xóa các permissions rác không còn sử dụng
+//        List<String> orphanPerms = Arrays.asList("INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE", "CHECKIN_PROCESS", "CUSTOMER_EXPORT");
+//        for (String permName : orphanPerms) {
+//            permissionRepository.findByName(permName).ifPresent(perm -> {
+//                List<Role> allRoles = roleRepository.findAll();
+//                for (Role role : allRoles) {
+//                    if (role.getPermissions().contains(perm)) {
+//                        role.getPermissions().remove(perm);
+//                        roleRepository.save(role);
+//                    }
+//                }
+//                permissionRepository.delete(perm);
+//                log.info("Deleted orphan permission: {}", permName);
+//            });
+//        }
 
         // 2. Gán permissions cho từng role
         assignPermissionsToAdmin();
