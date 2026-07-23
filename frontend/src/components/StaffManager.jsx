@@ -198,11 +198,10 @@ export default function StaffManager() {
         </span>
       </td>
       <td className="px-4 py-3">
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-          (item.accountStatus || item.status) === 'ACTIVE'
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${(item.accountStatus || item.status) === 'ACTIVE'
             ? 'bg-emerald-100 text-emerald-700'
             : 'bg-stone-100 text-stone-600'
-        }`}>
+          }`}>
           {item.accountStatus || item.status}
         </span>
       </td>
