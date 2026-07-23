@@ -6,7 +6,6 @@ import {
   createRoom,
   updateRoom,
   deleteRoom,
-  updateRoomStatus,
   getRoomsByStatus,
   getRoomsByRoomType,
 } from '../services/roomService';
