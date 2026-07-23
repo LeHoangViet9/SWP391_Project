@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import {
-    Printer, Download, ArrowLeft, Building2, FileText,
+    Printer, ArrowLeft, Building2, FileText,
     CreditCard, CheckCircle2, Crown, Banknote, Landmark, Copy, Check,
 } from 'lucide-react';
 import Header from '../components/layout/Header';
@@ -136,11 +136,6 @@ export default function InvoicePage() {
     }, []);
 
     const handlePrint = () => window.print();
-
-    const handleDownloadPDF = () => {
-        // Uses browser print dialog with "Save as PDF" option
-        window.print();
-    };
 
     // Calculate invoice data
     const invoiceItems = invoice?.items || (invoice ? [invoice] : []);
@@ -283,13 +278,6 @@ export default function InvoicePage() {
                         >
                             <Printer size={16} />
                             {isVi ? 'In hóa đơn' : 'Print'}
-                        </button>
-                        <button
-                            onClick={handleDownloadPDF}
-                            className="inline-flex items-center gap-2 px-4 py-2.5 btn-gold rounded-lg text-sm"
-                        >
-                            <Download size={16} />
-                            {isVi ? 'Tải PDF' : 'Download PDF'}
                         </button>
                     </div>}
                 </div>
@@ -507,20 +495,13 @@ export default function InvoicePage() {
                         </div>
                         <h2 className="mt-5 text-2xl font-bold text-emerald-800">{isVi ? 'Đặt phòng và thanh toán thành công' : 'Booking and payment completed'}</h2>
                         <p className="mt-2 text-sm text-emerald-700">{isVi ? 'Đơn đã được chuyển sang danh sách chờ check-in.' : 'The booking was moved to the check-in queue.'}</p>
-                        <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                        <div className="mt-7">
                             <button
                                 type="button"
                                 onClick={handlePrint}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-5 py-3 font-bold text-emerald-700 hover:bg-emerald-50"
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-5 py-3 font-bold text-emerald-700 hover:bg-emerald-50"
                             >
                                 <Printer size={18} /> {isVi ? 'In hóa đơn' : 'Print invoice'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleDownloadPDF}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700"
-                            >
-                                <Download size={18} /> {isVi ? 'Xuất PDF' : 'Export PDF'}
                             </button>
                         </div>
                         <Link to="/" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-emerald-700">
@@ -540,20 +521,13 @@ export default function InvoicePage() {
                         <p className="mt-1 text-sm text-emerald-700">
                             {isVi ? 'Thanh toán đã được xác nhận và đơn đặt phòng đang chờ check-in.' : 'Payment is confirmed and the booking is pending check-in.'}
                         </p>
-                        <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                        <div className="mt-7">
                             <button
                                 type="button"
                                 onClick={handlePrint}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-5 py-3 font-bold text-emerald-700 hover:bg-emerald-50"
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-5 py-3 font-bold text-emerald-700 hover:bg-emerald-50"
                             >
                                 <Printer size={18} /> {isVi ? 'In hóa đơn' : 'Print invoice'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleDownloadPDF}
-                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 font-bold text-white hover:bg-emerald-700"
-                            >
-                                <Download size={18} /> {isVi ? 'Xuất PDF' : 'Export PDF'}
                             </button>
                         </div>
                         <Link to="/" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-emerald-700">
