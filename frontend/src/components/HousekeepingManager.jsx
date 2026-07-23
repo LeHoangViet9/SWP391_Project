@@ -6,7 +6,7 @@ import {
     Clock, CheckCircle2, XCircle, Loader2, History,
     BedDouble, User, CalendarDays,
     LayoutGrid, TableIcon, Wrench, ClipboardList,
-    Minus, FileText, Loader,
+    Minus, FileText, Loader, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import Toast from './shared/Toast';
 import DataTable from './shared/DataTable';
@@ -1057,107 +1057,15 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
                 </div>
             </div>
             {/* ── Table View ───────────────────────────────────────────────────────── */}
-            {viewMode === 'table' && (
-                <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-stone-50 border-b border-stone-200">
-                                <tr>
-                                    {['ID', 'Phòng', 'Nhân viên', 'Người giao', 'Trạng thái', 'Ngày tạo', 'Thao tác'].map((h, i) => (
-                                        <th key={i} className="px-4 py-3 text-xs font-bold text-slate-500 uppercase whitespace-nowrap">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-stone-100">
-                                {loading ? (
-                                    [...Array(pageSize > 5 ? 5 : pageSize)].map((_, i) => <SkeletonRow key={i} />)
-                                ) : tasks.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="text-center py-16 text-slate-400">
-                                            <ClipboardList size={40} className="mx-auto mb-2 opacity-30" />
-                                            <p>Không có tác vụ nào</p>
-                                        </td>
-                                    </tr>
-                                ) : tasks.map(task => (
-                                    <tr key={task.id} className="hover:bg-stone-50 transition-colors">
-                                        <td className="px-4 py-3 font-mono text-sm font-bold text-[#bfa15f]">#{task.id}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <BedDouble size={15} className="text-[#bfa15f] shrink-0" />
-                                                <span className="text-sm font-semibold text-slate-800">{task.roomNumber || `ID: ${task.roomId}`}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-slate-600">
-                                            <div className="font-semibold text-slate-700">{task.assignedToName || `#${task.assignedToId}`}</div>
-                                            <div className="mt-1"><WorkStatusBadge status={task.assignedToWorkStatus} /></div>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-slate-500">{task.assignedByName || `#${task.assignedById}`}</td>
-                                        <td className="px-4 py-3"><StatusBadge status={task.status} locale={locale} /></td>
-                                        <td className="px-4 py-3 text-sm text-slate-500 whitespace-nowrap">
-                                            {task.createdAt ? new Date(task.createdAt).toLocaleDateString('vi-VN') : '—'}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-1">
-                                                <button onClick={() => openDetail(task)}
-                                                    className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-[#bfa15f]" title="Xem chi tiết">
-                                                    <Eye size={15} />
-                                                </button>
-                                                {!readOnly && (
-                                                    <>
-                                                        <button onClick={() => openEdit(task)}
-                                                            className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-amber-600" title="Chỉnh sửa">
-                                                            <Pencil size={15} />
-                                                        </button>
-                                                        <button onClick={() => openDelete(task)}
-                                                            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-slate-400 hover:text-red-600" title="Xóa">
-                                                            <Trash2 size={15} />
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-between px-4 py-3 border-t border-stone-100 bg-stone-50">
-                            <p className="text-xs text-slate-500">
-                                Trang <span className="font-bold">{page + 1}</span> / {totalPages} · {totalElements} tác vụ
-                            </p>
-                            <div className="flex items-center gap-1">
-                                <button onClick={() => setPage(0)} disabled={page === 0}
-                                    className="px-2 py-1 text-xs rounded border border-stone-200 disabled:opacity-40 hover:border-[#bfa15f] transition-colors">
-                                    «
-                                </button>
-                                <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
-                                    className="px-2 py-1 text-xs rounded border border-stone-200 disabled:opacity-40 hover:border-[#bfa15f] transition-colors flex items-center gap-1">
-                                    <ChevronLeft size={13} />
-                                </button>
-                                {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                                    const pageNum = Math.max(0, Math.min(page - 2, totalPages - 5)) + i;
-                                    return (
-                                        <button key={pageNum} onClick={() => setPage(pageNum)}
-                                            className={`w-7 h-7 text-xs rounded border transition-colors ${page === pageNum ? 'bg-[#bfa15f] text-white border-[#bfa15f]' : 'border-stone-200 hover:border-[#bfa15f] text-slate-600'}`}>
-                                            {pageNum + 1}
-                                        </button>
-                                    );
-                                })}
-                                <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-                                    className="px-2 py-1 text-xs rounded border border-stone-200 disabled:opacity-40 hover:border-[#bfa15f] transition-colors flex items-center gap-1">
-                                    <ChevronRight size={13} />
-                                </button>
-                                <button onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1}
-                                    className="px-2 py-1 text-xs rounded border border-stone-200 disabled:opacity-40 hover:border-[#bfa15f] transition-colors">
-                                    »
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
+            <DataTable
+                columns={tableColumns}
+                rows={tableRows}
+                loading={loading}
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                emptyText="Không có tác vụ nào"
+            />
         </div>
     );
 }
