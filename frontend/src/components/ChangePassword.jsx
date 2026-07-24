@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { KeyRound, ShieldAlert } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../services/api';
 import { useLocale } from '../context/LocaleContext';
 import Toast from './shared/Toast';
 
 export default function ChangePassword() {
   const { t } = useLocale();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ type: 'success', message: '' });
@@ -25,12 +27,23 @@ export default function ChangePassword() {
         body: JSON.stringify({
           oldPassword: form.oldPassword,
           newPassword: form.newPassword,
+          confirmNewPassword: form.confirmPassword,
         }),
       });
       notify(t('changePassword.toast.success'));
       setForm({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      // Bảo mật: xóa token và chuyển về trang đăng nhập sau 2 giây
+      setTimeout(() => {
+        localStorage.removeItem('hms_token');
+        navigate('/login');
+      }, 2000);
     } catch (err) {
-      notify(err.message || t('changePassword.toast.error'), 'error');
+      const fieldErrors = err.data?.data;
+      if (fieldErrors && typeof fieldErrors === 'object' && Object.keys(fieldErrors).length > 0) {
+        notify(Object.values(fieldErrors)[0], 'error');
+      } else {
+        notify(err.message || t('changePassword.toast.error'), 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -39,7 +52,7 @@ export default function ChangePassword() {
   return (
     <div className="max-w-md">
       <Toast type={toast.type} message={toast.message} onClose={closeToast} />
-      
+
       <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-lg mb-6">
         <ShieldAlert className="shrink-0 mt-0.5" size={18} />
         <div className="text-xs space-y-1">

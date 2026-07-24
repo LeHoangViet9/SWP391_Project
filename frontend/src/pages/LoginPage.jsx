@@ -15,8 +15,8 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Đọc email và flag registered từ URL (sau khi đăng ký xong)
-  const emailFromUrl = searchParams.get('email') || '';
+  // Đọc email và flag registered từ URL (hoặc từ local storage sau khi quên MK)
+  const emailFromUrl = searchParams.get('email') || localStorage.getItem('savedEmail') || '';
   const isJustRegistered = searchParams.get('registered') === '1';
 
   const [form, setForm] = useState({ email: emailFromUrl, password: '' });
@@ -31,6 +31,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (emailFromUrl) {
       setForm((prev) => ({ ...prev, email: emailFromUrl }));
+      localStorage.removeItem('savedEmail'); // Xóa đi để không auto-fill mãi mãi
     }
   }, [emailFromUrl]);
 

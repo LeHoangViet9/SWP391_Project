@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -269,14 +270,14 @@ public class AuthServiceImpl implements AuthService {
             throw new BadRequestException(messageSource.getMessage("error.otp.alreadyVerified", null, locale));
         }
         SecureRandom random = new SecureRandom();
-
-        String otp = String.format("otp%d", random.nextInt(1000000));
+        String otp = String.format("%06d", random.nextInt(1000000));
         user.setOtpCode(otp);
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(5));
         userRepository.save(user);
 
         emailService.sendRegistrationOtp(user.getEmail(), otp);
     }
+
 
 
     private Map<String, Object> userAuditSnapshot(User user) {
