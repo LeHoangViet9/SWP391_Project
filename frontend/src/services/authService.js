@@ -25,6 +25,8 @@ export function clearAuth() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem('hms_customer_id');
+  localStorage.removeItem('hms_booking_cart');
+  localStorage.removeItem('hms_booking_cart_hold_token');
 }
 
 /** POST /api/v1/auth/login */
