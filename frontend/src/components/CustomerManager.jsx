@@ -29,6 +29,7 @@ const EMPTY = {
   idType: 'CCCD',
   idNumberCard: '',
   nationality: 'Việt Nam',
+  createdAt:''
 };
 
 export default function CustomerManager() {
@@ -240,6 +241,7 @@ export default function CustomerManager() {
       <td className="px-4 py-3 text-xs text-slate-500">{item.email || '-'}</td>
       <td className="px-4 py-3 text-xs">{item.phone || '-'}</td>
       <td className="px-4 py-3 text-xs">{item.idCard || item.idNumberCard || '-'}</td>
+      <td className="px-4 py-3 text-xs">{item.createdAt || '-'}</td>
       <td className="px-4 py-3 text-xs">{item.nationality || '-'}</td>
       <td className="px-4 py-3">{getStatusBadge(item.status)}</td>
       <td className="px-4 py-3">
@@ -290,7 +292,7 @@ export default function CustomerManager() {
     </tr>
   ));
 
-  const cols = [t('customer.columns.id'), t('customer.columns.fullName'), t('customer.columns.email'), t('customer.columns.phone'), t('customer.columns.idCard'), t('customer.columns.nationality'), t('customer.columns.status'), t('customer.columns.actions')];
+  const cols = [t('customer.columns.id'), t('customer.columns.fullName'), t('customer.columns.email'), t('customer.columns.phone'), t('customer.columns.idCard'),t('Create at'), t('customer.columns.nationality'), t('customer.columns.status'), t('customer.columns.actions')];
 
   return (
     <div>
