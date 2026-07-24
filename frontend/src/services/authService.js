@@ -31,10 +31,11 @@ export function clearAuth() {
 
 /** POST /api/v1/auth/login */
 export async function login(credentials, locale = 'vi') {
+  const email = credentials.email ? credentials.email.trim() : credentials.email;
   const res = await apiFetch('/auth/login', {
     method: 'POST',
     body: JSON.stringify({
-      email: credentials.email,
+      email: email,
       password: credentials.password,
     }),
   }, locale);
@@ -44,13 +45,14 @@ export async function login(credentials, locale = 'vi') {
 
 /** POST /api/v1/auth/register */
 export async function register(payload, locale = 'vi') {
+  const email = payload.email ? payload.email.trim() : payload.email;
   const res = await apiFetch('/auth/register', {
     method: 'POST',
     body: JSON.stringify({
       fullName: payload.fullName,
       password: payload.password,
       rePassword: payload.rePassword,
-      email: payload.email,
+      email: email,
       phone: payload.phone,
     }),
   }, locale);
@@ -59,10 +61,11 @@ export async function register(payload, locale = 'vi') {
 
 /** POST /api/v1/auth/verify-otp */
 export async function verifyOtp(payload, locale = 'vi') {
+  const email = payload.email ? payload.email.trim() : payload.email;
   const res = await apiFetch('/auth/verify-otp', {
     method: 'POST',
     body: JSON.stringify({
-      email: payload.email,
+      email: email,
       otpCode: payload.otpCode,
     }),
   }, locale);

@@ -14,7 +14,8 @@ import java.util.Optional;
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
     Optional<Customer> findByIdAndStatus(Long id, AccountStatus status);
 
-    Optional<Customer> findByEmailAndStatus(String email, AccountStatus status);
+    @Query("SELECT c FROM Customer c WHERE LOWER(c.email) = LOWER(:email) AND c.status = :status")
+    Optional<Customer> findByEmailAndStatus(@Param("email") String email, @Param("status") AccountStatus status);
 
     @Query("""
 SELECT c FROM Customer c
@@ -30,7 +31,8 @@ AND (
             @Param("status") AccountStatus status
     );
 
-    boolean existsByEmail(String email);
+    @Query("SELECT COUNT(c) > 0 FROM Customer c WHERE LOWER(c.email) = LOWER(:email)")
+    boolean existsByEmail(@Param("email") String email);
 
     boolean existsByPhone(String phone);
 

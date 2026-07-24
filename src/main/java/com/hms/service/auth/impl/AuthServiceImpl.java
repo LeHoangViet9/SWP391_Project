@@ -49,6 +49,9 @@ public class AuthServiceImpl implements AuthService {
     @Auditable(action = "CREATE_USER", module = "USER", logSuccess = false)
     public UserResponse registerNewUser(UserRegisterRequest registerRequest) {
         Locale locale = LocaleContextHolder.getLocale();
+        if (registerRequest.getEmail() != null) {
+            registerRequest.setEmail(registerRequest.getEmail().trim().toLowerCase());
+        }
         if(userRepository.existsUserByEmail(registerRequest.getEmail())) {
             throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
         }
@@ -63,6 +66,7 @@ public class AuthServiceImpl implements AuthService {
                 ));
 
         User user = userMapper.toEntityRegister(registerRequest);
+        user.setEmail(registerRequest.getEmail());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setRole(role);
         user.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
@@ -103,9 +107,10 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public UserResponse login(UserLoginRequest loginRequest) {
         Locale locale = LocaleContextHolder.getLocale();
+        String normalizedEmail = loginRequest.getEmail() != null ? loginRequest.getEmail().trim().toLowerCase() : "";
 
         try {
-            User user = userRepository.findUserByEmail(loginRequest.getEmail())
+            User user = userRepository.findUserByEmail(normalizedEmail)
                     .orElseThrow(() -> new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale)));
 
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {

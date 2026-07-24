@@ -20,21 +20,24 @@ public interface UserRepository extends JpaRepository<User,Long> {
             "AND u.accountStatus = com.hms.common.enums.AccountStatus.ACTIVE")
     List<User> findActiveHousekeepers();
 
-    boolean existsUserByEmail(String email);
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE LOWER(u.email) = LOWER(:email)")
+    boolean existsUserByEmail(@Param("email") String email);
 
     boolean existsUserByPhone(String phone);
 
-    boolean existsByEmailAndIdNot(String email, Long id);
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE LOWER(u.email) = LOWER(:email) AND u.id <> :id")
+    boolean existsByEmailAndIdNot(@Param("email") String email, @Param("id") Long id);
 
     boolean existsByPhoneAndIdNot(String phone, Long id);
 
-    Optional<User> findUserByEmail(String email);
+    @Query("SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:email)")
+    Optional<User> findUserByEmail(@Param("email") String email);
 
     @Query("""
             select u from User u
             left join fetch u.role r
             left join fetch r.permissions
-            where u.email = :email
+            where LOWER(u.email) = LOWER(:email)
             """)
     Optional<User> findUserWithPermissionsByEmail(@Param("email") String email);
 
