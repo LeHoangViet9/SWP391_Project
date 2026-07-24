@@ -320,7 +320,10 @@ export default function CustomerManager() {
             <input
               type={searchOpt === 'id' ? 'number' : 'text'}
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => {
+                setSearch(e.target.value);
+                setPage(0); // Reset page khi gõ tìm kiếm
+              }}
               onKeyDown={e => e.key === 'Enter' && fetchData(0)}
               placeholder={
                 searchOpt === 'id' ? (t('customer.placeholders.id') || 'Nhập mã ID...') :
@@ -337,7 +340,10 @@ export default function CustomerManager() {
 
           <select
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
+            onChange={e => {
+              setStatusFilter(e.target.value);
+              setPage(0); // Reset page khi đổi trạng thái
+            }}
             className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700"
           >
             {STATUS_OPTIONS.map(opt => {

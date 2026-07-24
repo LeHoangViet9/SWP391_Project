@@ -1,4 +1,4 @@
-# 📘 Hướng Dẫn Chi Tiết Chuyên Sâu: Nghiệp Vụ, Luồng Hoạt Động & Bộ Câu Hỏi Bảo Vệ Quản Lý Khách Hàng (Customer Management)
+# 📘 Hướng Dẫn Chi Tiết Chuyên Sâu: Nghiệp Vụ, Luồng Hoạt Động Frontend ➔ Backend & Kịch Bản Bảo Vệ Quản Lý Khách Hàng (Customer Management)
 
 ---
 
@@ -58,226 +58,342 @@ public class Customer {
 
 | Layer | File Path / Class Name | Vai trò / Trách nhiệm chính |
 | :--- | :--- | :--- |
+| **Frontend UI** | [CustomerManager.jsx](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/frontend/src/components/CustomerManager.jsx) | Màn hình React hiển thị bảng `DataTable`, Modal form thêm/sửa, Debounce 300ms tìm kiếm và Client Validation. |
+| **Frontend Service** | `customerService.js` (`frontend/src/services`) | Gọi hàm wrapper `apiFetch` truyền tham số URL Query / Body JSON và Header JWT Token xuống Backend. |
 | **Controller** | [CustomerController.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/controller/customer/CustomerController.java) | Tiếp nhận REST API `/api/v1/customers`, kiểm tra phân quyền Spring Security SpEL `@PreAuthorize`. |
 | **Service Interface** | `CustomerService.java` | Khai báo các phương thức chuẩn cho nghiệp vụ khách hàng. |
 | **Service Impl** | [CustomerServiceImpl.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/service/customer/impl/CustomerServiceImpl.java) | Thực thi toàn bộ logic nghiệp vụ, quản lý Transaction `@Transactional`, kiểm tra trùng lặp email/phone/CCCD, xử lý xóa mềm & xóa vĩnh viễn. |
 | **Repository** | [CustomerRepository.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/repository/customer/CustomerRepository.java) | Tương tác DB qua JPQL. Thực thi câu truy vấn tìm kiếm đa tiêu chí `searchCustomer`. |
 | **Request DTO** | [CustomerCreateDTO.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/dto/customer/request/CustomerCreateDTO.java) | Chứa thuộc tính dữ liệu gửi từ Client và Bean Validation (`@NotBlank`, `@Pattern`, `@Email`). |
-| **Response DTO** | [CustomerResponse.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/dto/customer/response/CustomerResponse.java) | Format dữ liệu trả về cho Frontend. |
-| **Frontend UI** | [CustomerManager.jsx](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/frontend/src/components/CustomerManager.jsx) | Màn hình Quản lý Khách hàng React, chứa bảng dữ liệu, Modal form thêm/sửa, Debounce 300ms tìm kiếm và Client Validation. |
+| **Response DTO** | [CustomerResponse.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/frontend/src/dto) | Format dữ liệu trả về cho Frontend. |
 
 ---
 
-## III. CHI TIẾT 5 LUỒNG NGHIỆP VỤ XỬ LÝ TRONG HỆ THỐNG (DETAILED WORKFLOWS)
+## III. CHI TIẾT 5 LUỒNG NGHIỆP VỤ TỪ FRONTEND ĐẾN BACKEND (END-TO-END WORKFLOWS)
 
 ```
-                    ┌──────────────────────────────────────────────────┐
-                    │       Màn hình Quản Lý Khách Hàng (React)        │
-                    └────────────────────────┬─────────────────────────┘
-                                             │
-      ┌──────────────────┬───────────────────┼───────────────────┬──────────────────┐
-      │                  │                   │                   │                  │
-      ▼                  ▼                   ▼                   ▼                  ▼
-【Luồng 1: Self-Profile】 【Luồng 2: Walk-In】 【Luồng 3: Re-Booking】 【Luồng 4: Search】 【Luồng 5: Delete】
-Khách tự xem/sửa     Lễ tân tạo khách mới    Tự đồng bộ khách cũ   Tìm kiếm đa tiêu chí  Xóa mềm / Restore /
-Profile qua JWT      tại quầy dịch vụ        khi đặt phòng lại    với Debounce 300ms    Xóa vĩnh viễn (Force)
+┌─────────────────────────┐          HTTP Request          ┌─────────────────────────┐          JPQL / SQL          ┌─────────────────────────┐
+│   FRONTEND (React UI)   │ ────────────────────────────>  │    BACKEND (Spring Boot) │ ───────────────────────────>  │   DATABASE (PostgreSQL) │
+│   CustomerManager.jsx   │ <────────────────────────────  │   Controller ➔ Service  │ <───────────────────────────  │    Table: customers     │
+└─────────────────────────┘          JSON Response         └─────────────────────────┘          Data Rows             └─────────────────────────┘
 ```
 
 ---
 
-### 🔄 LUỒNG 1: Khách Hàng Tự Đăng Ký & Tự Cập Nhật Hồ Sơ (Self-Service Profile Flow)
+### 🔄 LUỒNG 1: Xem & Tự Cập Nhật Profile Cá Nhân (Self-Service Profile Flow)
 
-```
-Client (Customer) ➔ Gửi API (JWT Token) ➔ SpEL Security Evaluator ➔ Service Update ➔ DB
-```
+#### 🎨 **Phía Frontend**:
+1. **Khách hàng** (Role: `CUSTOMER`) đăng nhập và vào trang Tài khoản hệ thống (`/account`).
+2. Màn hình [AccountInfo.jsx](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/frontend/src/components/AccountInfo.jsx) hiển thị thông tin gồm 2 phần: **System Account** (từ `users`) và **Customer Profile** (từ `customers`).
+3. Khách hàng bấm **"Chỉnh sửa"** (chỉ cho phép sửa `Họ và tên`, `Số điện thoại`, `Quốc tịch` — cấm sửa `Email` và `Số giấy tờ`).
+4. **Client-Side Validation**: Kiểm tra realtime các lỗi trống, sai định dạng.
+5. Khi form hợp lệ, khách bấm **"Lưu thay đổi"** ➔ Gọi `updateCustomer(id, payload, locale)` trong `customerService.js`.
+6. `customerService.js` sử dụng `apiFetch` tạo HTTP Request:
+   - **Method**: `PUT`
+   - **URL**: `/api/v1/customers/{id}`
+   - **Headers**: `Authorization: Bearer <token_jwt>`
+   - **Body**: Payload chứa thông tin vừa sửa.
+   - **📝 Chi tiết Code sửa đổi (`AccountInfo.jsx`)**:
+     ```javascript
+     const loadProfile = useCallback(async () => {
+       // ...
+       // Gọi song song 2 API để lấy data mới nhất của cả User và Customer
+       const [userRes, customerRes] = await Promise.all([
+         refreshCurrentUser(),           // Gọi GET /api/v1/auth/me
+         getMyCustomerProfile(locale),   // Gọi GET /api/v1/customers/me
+       ]);
+       // Cập nhật State
+       setProfile(userRes?.data || user); 
+       if (customerRes?.data) setCustomerProfile(customerRes.data);
+     }, [...]);
+     
+     const handleSave = async (e) => {
+       // ...
+       // Gọi API cập nhật thông tin Customer
+       await updateCustomer(customerProfile.id, {
+         fullName: form.fullName.trim(),
+         phone: form.phone.trim(),
+         nationality: form.nationality.trim(),
+         idType: form.idType,
+         idNumberCard: form.idNumberCard,
+         email: form.email,
+       }, locale);
+       // ...
+       // Sau khi cập nhật xong, gọi lại hàm loadProfile để reload cả 2 bảng
+       await loadProfile();
+     };
+     ```
 
-1. **Bước 1**: Khách hàng đăng nhập vào ứng dụng, hệ thống cấp mã **JWT Token** chứa email người dùng (`authentication.name`).
-2. **Bước 2**: Khách vào trang Profile cá nhân, chọn cập nhật thông tin và bấm "Lưu". Frontend gửi HTTP Request `PUT /api/v1/customers/{id}` kèm JWT Token trong Header.
-3. **Bước 3**: Backend [CustomerController.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/controller/customer/CustomerController.java#L91) đón request và kích hoạt mệnh đề Spring SpEL:
+#### ⚙️ **Phía Backend (Bảo mật & Đồng bộ Kép)**:
+1. **Controller**: [CustomerController.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/controller/customer/CustomerController.java) tiếp nhận request `PUT /api/v1/customers/{id}`.
+2. **Security Evaluation**: Spring Security kích hoạt SpEL:
    ```java
    @PreAuthorize("hasAuthority('CUSTOMER_UPDATE') or (hasRole('CUSTOMER') and #customerCreateDTO.email == authentication.name)")
    ```
-4. **Bước 4**: Spring Security kiểm tra:
-   - Nếu là Lễ tân/Admin (có authority `CUSTOMER_UPDATE`) ➔ Được phép sửa bất kỳ ID nào.
-   - Nếu là Khách hàng (`ROLE_CUSTOMER`) ➔ So sánh email trong Body `#customerCreateDTO.email` có trùng khớp với `authentication.name` (Email trong Token) hay không.
-   - **Nếu khớp**: Cho phép đi tiếp vào Service.
-   - **Nếu không khớp** (Cố tình nhập email người khác): Trả về lỗi `403 Forbidden`.
-5. **Bước 5**: `CustomerServiceImpl.updateCustomer` kiểm tra email/phone/CCCD mới có bị trùng với khách hàng khác trong DB không. Nếu hợp lệ ➔ Lưu DB và trả về `CustomerResponse`.
+   - Spring Security giải mã JWT Token, trích xuất `authentication.name` (Email đăng nhập).
+   - So sánh email trong Body `#customerCreateDTO.email` với `authentication.name`. Trùng khớp ➔ Đi tiếp. Sai lệch ➔ `403 Forbidden`.
+3. **Service Impl**: [CustomerServiceImpl.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/service/customer/impl/CustomerServiceImpl.java) thực thi:
+   - **Double Duplicate Check (Kiểm tra trùng lặp 2 lớp)**:
+     - *Lớp 1 (Bảng customers)*: Kiểm tra SĐT/CCCD mới có bị khách hàng khác chiếm không.
+     - *Lớp 2 (Bảng users)*: Lấy Email dò sang bảng `users`, kiểm tra SĐT mới có bị User khác đăng ký không.
+     - Vi phạm ➔ Ném `ConflictException` (HTTP 409).
+   - **Đồng bộ Dữ liệu (Auto-Sync)**:
+     - Tự động chép đè `Họ và tên` và `Số điện thoại` mới từ payload sang thực thể `User`.
+     - Gọi `userRepository.save(user)` để đồng bộ dữ liệu Hệ thống.
+   - **Cập nhật Customer**:
+     - Gọi `customerMapper.updateCustomerFromDto` và `customerRepository.save(customer)`.
+   - **📝 Chi tiết Code sửa đổi (`CustomerServiceImpl.java`)**:
+     ```java
+     // Đồng bộ dữ liệu sang bảng users nếu tồn tại account gắn với email này
+     userRepository.findUserByEmail(customer.getEmail()).ifPresent(user -> {
+         // Lớp 2: Kiểm tra trùng phone ở bảng users (ngoại trừ user hiện tại)
+         if (!user.getPhone().equals(dto.getPhone()) && userRepository.existsByPhoneAndIdNot(dto.getPhone(), user.getId())) {
+             throw new ConflictException(
+                     messageSource.getMessage("error.phone.existed", new Object[]{dto.getPhone()}, locale)
+             );
+         }
+         // Lớp 2: Kiểm tra trùng email ở bảng users (ngoại trừ user hiện tại)
+         if (!user.getEmail().equals(dto.getEmail()) && userRepository.existsByEmailAndIdNot(dto.getEmail(), user.getId())) {
+             throw new ConflictException(
+                     messageSource.getMessage("error.email.existed", new Object[]{dto.getEmail()}, locale)
+             );
+         }
+         // Ghi đè thông tin mới sang User entity
+         user.setFullName(dto.getFullName());
+         user.setPhone(dto.getPhone());
+         user.setEmail(dto.getEmail());
+         userRepository.save(user); // Lưu đồng bộ xuống bảng users
+     });
+     ```
+4. **Trả về Response**: Controller trả về HTTP 200 OK.
+
+#### 🔄 **Phản hồi lại Frontend**:
+1. Frontend nhận HTTP 200 OK.
+2. Hiển thị **Toast notification** thông báo *"Cập nhật thông tin thành công!"*.
+3. Màn hình tự động thoát chế độ Edit và gọi lại hàm `loadProfile()`.
+4. Hàm `loadProfile()` sử dụng `Promise.all` để chạy ngầm 2 tác vụ: gọi `refreshCurrentUser()` (gọi API `GET /api/v1/auth/me`) và gọi `getMyCustomerProfile()` (gọi API `GET /api/v1/customers/me`).
+5. Nhờ Backend đã tự động đồng bộ (Auto-Sync) ➔ Dữ liệu hiển thị ở phần **System Account** lập tức trùng khớp hoàn toàn với **Customer Profile** ngay trên giao diện mà không bị lệch.
 
 ---
 
 ### 🔄 LUỒNG 2: Lễ Tân Tạo Khách Hàng Vãng Lai Tại Quầy (Walk-In Guest Flow)
 
-```
-Lễ tân gõ Form ➔ Client Validation ➔ POST /api/v1/customers ➔ Server Validation ➔ Check Trùng ➔ Save DB
-```
-
-1. **Bước 1**: Khách đến quầy lễ tân đặt phòng. Lễ tân mở giao diện [CustomerManager.jsx](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/frontend/src/components/CustomerManager.jsx), bấm nút **"+ Add Customer"**.
-2. **Bước 2 (Client Validation)**: Lễ tân nhập thông tin vào Modal Form. Hàm `validateField` ở Frontend kiểm tra ngay tại client:
-   - `fullName`: Không được trống, không chứa khoảng trắng thừa ở đầu/cuối hay liên tiếp (`/^\s|\s$/`).
-   - `phone`: Phải có 10 chữ số bắt đầu bằng số `0` (`/^0[0-9]{9}$/`).
+#### 🎨 **Phía Frontend**:
+1. Lễ tân vào màn hình [CustomerManager.jsx](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/frontend/src/components/CustomerManager.jsx), bấm nút **"+ Add Customer"**.
+2. React mở Modal chứa Form nhập thông tin.
+3. **Client-Side Validation (Realtime)**: Khi gõ vào ô nhập liệu, hàm `validateField(name, value)` kiểm tra lập tức:
+   - `fullName`: Không được trống, không chứa khoảng trắng thừa ở đầu/cuối (`/^\s|\s$/`).
+   - `phone`: Đúng 10 chữ số bắt đầu bằng số 0 (`/^0[0-9]{9}$/`).
    - `idNumberCard`: Từ 6-20 ký tự chữ/số/dấu gạch (`/^[A-Za-z0-9\-]{6,20}$/`).
-3. **Bước 3**: Lễ tân bấm "Lưu". Frontend gửi `POST /api/v1/customers` với body JSON.
-4. **Bước 4 (Server Validation)**: Backend [CustomerCreateDTO.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/dto/customer/request/CustomerCreateDTO.java) thực thi Bean Validation (`@NotBlank`, `@Email`, `@Pattern`). Nếu lỗi ➔ Ném `400 Bad Request`.
-5. **Bước 5 (Logic Check Trùng)**: Service [CustomerServiceImpl.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/service/customer/impl/CustomerServiceImpl.java#L88-L93) kiểm tra:
-   ```java
-   if(customerRepository.existsByPhone(customerDTO.getPhone())){
-       throw new ConflictException(messageSource.getMessage("error.phone.existed", ...));
-   }
-   if(customerRepository.existsByIdNumberCard(customerDTO.getIdNumberCard())) {
-       throw new ConflictException(messageSource.getMessage("error.idCard.existed", ...));
-   }
-   ```
-6. **Bước 6**: Nếu không trùng ➔ Gán `status = AccountStatus.ACTIVE`, lưu DB và trả về `HTTP 201 Created`.
+4. Nếu có trường bị lỗi ➔ Hiển thị chữ đỏ ngay bên dưới ô nhập liệu và chặn không cho bấm Submit.
+5. Khi form hợp lệ, Lễ tân bấm **"Lưu"** ➔ Gọi `createCustomer(payload, locale)` trong `customerService.js` ➔ `apiFetch('/customers', { method: 'POST', body: JSON.stringify(payload) })`.
+   - **📝 Chi tiết Code sửa đổi (`CustomerManager.jsx`)**:
+     ```javascript
+     const handleSave = async (e) => {
+       e.preventDefault();
+       // ... Validate form ...
+       setSaving(true);
+       try {
+         if (!currentId) {
+           // Lễ tân tạo mới khách hàng vãng lai
+           await createCustomer({ ...form }, locale);
+           notify('Thêm khách hàng thành công!', 'success');
+         } else {
+           // Cập nhật khách hàng
+           await updateCustomer(currentId, { ...form }, locale);
+           notify('Cập nhật thành công!', 'success');
+         }
+         closeModal();
+         fetchData(page); // Tải lại bảng dữ liệu
+       } catch (err) { ... }
+     };
+     ```
+
+#### ⚙️ **Phía Backend**:
+1. **Controller**: [CustomerController.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/controller/customer/CustomerController.java#L78) nhận request `POST /api/v1/customers`.
+2. **Server-Side Validation**: Spring Boot kiểm tra `@Valid @RequestBody CustomerCreateDTO`. Nếu vi phạm các annotation `@NotBlank`, `@Email`, `@Pattern` ➔ Spring tự động trả về `400 Bad Request`.
+3. **Service Impl**: [CustomerServiceImpl.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/service/customer/impl/CustomerServiceImpl.java#L88-L98):
+   - Kiểm tra `customerRepository.existsByPhone(phone)` và `existsByIdNumberCard(idCard)`.
+   - Nếu bị trùng ➔ Ném `ConflictException("error.phone.existed" / "error.idCard.existed")` (HTTP 409).
+   - Nếu không trùng ➔ Chuyển DTO thành Entity `Customer`, gán `status = AccountStatus.ACTIVE`.
+   - Gọi `customerRepository.save(customer)` thực thi câu lệnh SQL `INSERT INTO customers...`.
+   - **📝 Chi tiết Code sửa đổi (`CustomerServiceImpl.java`)**:
+     ```java
+     // 1. Kiểm tra trùng số điện thoại
+     if (customerRepository.existsByPhone(customerDTO.getPhone())) {
+         throw new ConflictException(messageSource.getMessage("error.phone.existed", new Object[]{customerDTO.getPhone()}, locale));
+     }
+     // 2. Kiểm tra trùng CCCD
+     if (customerRepository.existsByIdNumberCard(customerDTO.getIdNumberCard())) {
+         throw new ConflictException(messageSource.getMessage("error.idCard.existed", new Object[]{customerDTO.getIdNumberCard()}, locale));
+     }
+     // 3. Khởi tạo và Lưu dữ liệu
+     Customer customer = customerMapper.toEntity(customerDTO);
+     customer.setStatus(AccountStatus.ACTIVE); // Mặc định ACTIVE
+     Customer savedCustomer = customerRepository.save(customer);
+     ```
+4. **Trả về Response**: Controller trả về `ResponseEntity.status(201).body(ApiResponse(true, "Thêm thành công", customerResponse, 201))`.
+
+#### 🔄 **Phản hồi lại Frontend**:
+1. Frontend nhận response `HTTP 201 Created`.
+2. Đóng Modal Form (`closeModal()`).
+3. Hiển thị **Toast thông báo** *"Thêm khách hàng mới thành công!"*.
+4. Tự động gọi `fetchData(page)` để load lại danh sách, cập nhật dòng dữ liệu mới lên bảng `DataTable`.
 
 ---
 
-### 🔄 LUỒNG 3: Tự Động Cập Nhật Thông Tin Khách Cũ Khi Đặt Phòng (Re-Booking Auto-Sync Flow)
+### 🔄 LUỒNG 3: Tự Động Đồng Bộ Khách Hàng Cũ Khi Đặt Phòng (Re-Booking Auto-Sync Flow)
 
-```
-Đặt phòng lại ➔ Nhập Email cũ ➔ Hệ thống phát hiện email trùng ➔ Tự đồng bộ thông tin mới ➔ Trả về Customer ID
-```
+**💡 Hoàn cảnh thực tế (Business Case):**
+Trong thực tế khách sạn, một khách hàng (ví dụ anh A) đến ở vào tháng 1 và đã được lưu vào hệ thống. Đến tháng 5, anh A quay lại đặt phòng. 
+- Lễ tân (hoặc chính anh A đặt online) nhập lại Email cũ vào form Tạo Khách Hàng / Đặt Phòng. 
+- Theo logic thông thường của API `POST /customers` (Tạo mới), nếu thấy Email đã tồn tại trong Database, hệ thống sẽ ném lỗi 409 đỏ chót: *"Email đã tồn tại!"*. 
+- Điều này khiến luồng Đặt phòng bị đứt đoạn, Lễ tân bị kẹt lại không tạo được Booking tiếp theo.
 
-1. **Bài toán Nghiệp vụ**: Khách hàng cũ quay lại khách sạn đặt phòng hoặc Lễ tân nhập lại email của khách từng ở trước đây.
-2. **Bước 1**: Khi gọi `POST /api/v1/customers`, Service kiểm tra `customerRepository.existsByEmail(customerDTO.getEmail()) == true`.
-3. **Bước 2**: Thay vì báo lỗi *"Email đã tồn tại"* ngắt đứt luồng đặt phòng của khách, [CustomerServiceImpl.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/service/customer/impl/CustomerServiceImpl.java#L42-L85) tự động xử lý:
-   ```java
-   Customer customer = customerRepository.findByEmailAndStatus(customerDTO.getEmail(), AccountStatus.ACTIVE)
-           .orElseThrow(...);
+**✅ Giải pháp của hệ thống:** Thay vì chửi lỗi, Backend sẽ **"Nhận diện khách cũ"**. Nó tự động lấy Hồ sơ cũ của anh A ra, xem đợt này anh A có đổi Số điện thoại hay đổi CCCD mới không. Nếu có thì tự động cập nhật ẩn ở dưới (Auto-Sync) rồi trả về dữ liệu thành công để Lễ tân làm Booking tiếp mà không hề bị báo lỗi.
 
-   boolean updated = false;
-   // Đối chiếu và cập nhật tên, số điện thoại, CCCD, quốc tịch nếu có thay đổi
-   if (customerDTO.getFullName() != null && !customerDTO.getFullName().trim().equals(customer.getFullName())) {
-       customer.setFullName(customerDTO.getFullName().trim());
-       updated = true;
-   }
-   ...
-   if (updated) {
-       customer = customerRepository.save(customer);
-   }
-   return customerMapper.toResponse(customer);
-   ```
-4. **Bước 3**: Trả về hồ sơ Khách hàng hiện tại để hệ thống tiếp tục luồng tạo Đặt phòng (`Booking`) một cách mượt mà.
+#### 🎨 **Phía Frontend**:
+1. Khách cũ quay lại đặt phòng hoặc Lễ tân nhập thông tin khách cũ (có Email đã tồn tại) vào Form.
+2. Frontend ngầm gửi request `POST /api/v1/customers` với hy vọng tạo mới khách hàng để lấy ID gắn vào Booking.
+
+#### ⚙️ **Phía Backend (Xử lý thông minh)**:
+1. **Service Impl**: `CustomerServiceImpl.java` phát hiện `customerRepository.existsByEmail(dto.getEmail()) == true`.
+2. **Xử lý nghiệp vụ thông minh**: Thay vì trả lỗi *"Email đã tồn tại"* gây đứt đoạn luồng đặt phòng, Service thực thi:
+   - Tìm khách hàng trong DB: `customerRepository.findByEmailAndStatus(dto.getEmail(), AccountStatus.ACTIVE)`.
+   - So sánh thông tin mới truyền lên với thông tin cũ (`fullName`, `phone`, `idNumberCard`, `idType`, `nationality`).
+   - Nếu có thông tin mới thay đổi (ví dụ đổi SĐT hoặc đổi CCCD) ➔ Cập nhật thông tin mới nhất và gọi `customerRepository.save(customer)`.
+   - **📝 Chi tiết Code sửa đổi (`CustomerServiceImpl.java`)**:
+     ```java
+     // Chặn luồng lỗi 409 khi email tồn tại, thay vào đó thực hiện Đồng bộ (Auto-Sync)
+     if (customerRepository.existsByEmail(customerDTO.getEmail())) {
+         Customer customer = customerRepository.findByEmailAndStatus(customerDTO.getEmail(), AccountStatus.ACTIVE)
+                 .orElseThrow(() -> new ConflictException(messageSource.getMessage("error.email.existed", new Object[]{customerDTO.getEmail()}, locale)));
+
+         boolean isUpdated = false;
+         // Kiểm tra nếu tên thay đổi
+         if (!customer.getFullName().equals(customerDTO.getFullName())) {
+             customer.setFullName(customerDTO.getFullName());
+             isUpdated = true;
+         }
+         // ... Tương tự cho phone, idNumberCard, nationality ...
+         
+         if (isUpdated) {
+             customer = customerRepository.save(customer);
+             log.info("[CustomerSync] Cập nhật thông tin tự động cho Email: {}", customerDTO.getEmail());
+         }
+         return customerMapper.toResponse(customer);
+     }
+     ```
+3. **Trả về Response**: Trả về `CustomerResponse` của chính khách hàng cũ đó kèm các thông tin vừa được cập nhật.
+
+#### 🔄 **Phản hồi lại Frontend**:
+1. Frontend nhận thông tin `Customer` mà không bị gián đoạn lỗi.
+2. Hệ thống tự động lấy `customer.id` để tiếp tục thực hiện luồng tạo Đặt phòng (`Booking`) tiếp theo.
 
 ---
 
 ### 🔄 LUỒNG 4: Tìm Kiếm & Phân Trang Đa Tiêu Chí (Search & Pagination Flow)
 
-```
-Gõ từ khóa ➔ Debounce 300ms ➔ GET /api/v1/customers?keyword=... ➔ Service bọc % ➔ JPQL Query ➔ Render DataTable
-```
+#### 🎨 **Phía Frontend**:
+1. Lễ tân gõ từ khóa vào ô tìm kiếm (ví dụ: `"Johnson"`, `"0904"`, `"Việt Nam"`, `"00109"`) hoặc chọn trạng thái (`ACTIVE`, `INACTIVE`, `BANNED`).
+2. **Debounce 300ms**: Sử dụng `setTimeout` 300ms. Khi dừng gõ 300ms ➔ Tự động gọi `fetchData(0)`.
+   - **📝 Chi tiết Code sửa đổi (`CustomerManager.jsx`)**:
+     ```javascript
+     // Debounce 300ms bằng useEffect
+     useEffect(() => {
+       const timer = setTimeout(() => {
+         fetchData(page);
+       }, 300);
+       // Hủy bỏ lần chạy trước đó nếu người dùng đang gõ dở
+       return () => clearTimeout(timer);
+     }, [page, search, statusFilter, fetchData]);
+     ```
+3. `fetchDataDirect` chuẩn bị tham số `{ page: 0, size: 10, status, keyword: trimmed }`.
+4. Gọi `getCustomers(params, locale)` trong `customerService.js` ➔ Gửi HTTP Request `GET /api/v1/customers?page=0&size=10&status=ACTIVE&keyword=...`.
 
-1. **Bước 1**: Lễ tân gõ từ khóa vào ô tìm kiếm (ví dụ: `"Johnson"`, `"0904"`, `"Việt Nam"`, `"00109"`) hoặc thay đổi bộ lọc trạng thái (`ACTIVE`, `INACTIVE`, `BANNED`).
-2. **Bước 2**: Component [CustomerManager.jsx](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/frontend/src/components/CustomerManager.jsx#L118-L122) kích hoạt **Debounce 300ms**:
-   ```javascript
-   useEffect(() => {
-     const timer = setTimeout(() => {
-       fetchData(page);
-     }, 300);
-     return () => clearTimeout(timer);
-   }, [page, search, statusFilter, fetchData]);
-   ```
-3. **Bước 3**: Frontend gọi API `GET /api/v1/customers?keyword=...&status=ACTIVE&page=0&size=10`.
-4. **Bước 4**: Controller nhận request, gọi `customerService.getCustomers(...)`.
-5. **Bước 5**: Service [CustomerServiceImpl.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/service/customer/impl/CustomerServiceImpl.java#L157-L161) bọc wildcard `%` phục vụ tìm kiếm gần đúng (partial match):
+#### ⚙️ **Phía Backend**:
+1. **Controller**: [CustomerController.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/controller/customer/CustomerController.java#L46-L53) nhận các parameter `@RequestParam`.
+2. **Service Impl**: bọc ký tự đại diện `%`:
    ```java
    String searchKeyword = (keyword != null && !keyword.trim().isEmpty())
            ? "%" + keyword.trim() + "%"
            : null;
    ```
-6. **Bước 6**: Repository [CustomerRepository.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/repository/customer/CustomerRepository.java#L39-L55) thực thi câu JPQL rút gọn chuẩn (đồng bộ phong cách với module `Room`):
-   ```sql
-   SELECT c FROM Customer c
-   WHERE (:status IS NULL OR c.status = :status)
-   AND (
-       CAST(:keyword AS string) IS NULL
-       OR LOWER(c.fullName) LIKE LOWER(CAST(:keyword AS string))
-       OR LOWER(c.email) LIKE LOWER(CAST(:keyword AS string))
-       OR c.phone LIKE CAST(:keyword AS string)
-       OR c.idNumberCard LIKE CAST(:keyword AS string)
-       OR LOWER(c.nationality) LIKE LOWER(CAST(:keyword AS string))
-       OR CAST(c.id AS string) LIKE CAST(:keyword AS string)
-   )
-   ```
-7. **Bước 7**:
-   - Nếu từ khóa khớp với bất kỳ trường nào ➔ Trả về danh sách chứa thông tin đó.
-   - Nếu từ khóa **KHÔNG tồn tại** (ví dụ gõ `"abcdef"`) ➔ Trả về danh sách rỗng (`content: []`), Frontend hiển thị giao diện **`No data available.`**.
+3. **Repository**: thực thi câu JPQL Query:
+   - **📝 Chi tiết Code sửa đổi (`CustomerRepository.java`)**:
+     ```java
+     @Query("""
+         SELECT c FROM Customer c
+         WHERE (:status IS NULL OR c.status = :status)
+         AND (
+             CAST(:keyword AS string) IS NULL
+             OR LOWER(c.fullName) LIKE LOWER(CAST(:keyword AS string))
+             OR LOWER(c.email) LIKE LOWER(CAST(:keyword AS string))
+             OR c.phone LIKE CAST(:keyword AS string)
+             OR c.idNumberCard LIKE CAST(:keyword AS string)
+             OR LOWER(c.nationality) LIKE LOWER(CAST(:keyword AS string))
+         )
+     """)
+     Page<Customer> searchCustomers(@Param("keyword") String keyword, @Param("status") AccountStatus status, Pageable pageable);
+     ```
+4. **Trả về Response**: Spring Data JPA trả về đối tượng `Page<Customer>` ➔ Service map sang `Page<CustomerResponse>` ➔ Controller trả về HTTP 200 OK.
+
+#### 🔄 **Phản hồi lại Frontend**:
+1. Trong `CustomerManager.jsx`, hàm `fetchDataDirect` nhận JSON response chứa dữ liệu phân trang.
+2. Hàm này lập tức cập nhật state thông qua `setItems` và `setTotalPages`.
+   - **📝 Chi tiết Code sửa đổi (`CustomerManager.jsx`)**:
+     ```javascript
+     const fetchDataDirect = useCallback(async (p, opt, val, statusVal = statusFilter) => {
+       // ... gọi API getCustomers ...
+       const res = await getCustomers(params, locale);
+       
+       // Nhận dữ liệu phân trang và cập nhật State để re-render
+       setItems(res?.data?.content ?? []);
+       setTotalPages(res?.data?.totalPages ?? 1);
+     }, [...]);
+     ```
+3. Bảng `DataTable` tự động nhận State mới và re-render:
+   - **Nếu tìm thấy**: Hiển thị danh sách kết quả khớp từ khóa.
+   - **Nếu KHÔNG tìm thấy** (gõ từ khóa không tồn tại) ➔ `content` rỗng ➔ Bảng hiển thị chữ **`No data available.`**
 
 ---
 
 ### 🔄 LUỒNG 5: Vô Hiệu Hóa (Xóa Mềm), Khôi Phục & Xóa Vĩnh Viễn (Soft Delete, Restore & Force Delete)
 
-```
-Xóa mềm ➔ set INACTIVE (Bảo lưu dữ liệu)
-Khôi phục ➔ set ACTIVE
-Xóa vĩnh viễn ➔ DELETE SQL (Bắt lỗi Constraint Violation nếu có Booking)
-```
+#### 🔴 **Nhánh 5A: Xóa Mềm (Soft Delete)**
+1. **Frontend**: Lễ tân bấm icon Thùng rác bên cạnh hàng dữ liệu ➔ Gọi `handleDelete(item)` ➔ Gọi `deleteCustomer(id, locale)` ➔ Gửi `DELETE /api/v1/customers/{id}`.
+2. **Backend**: Controller gọi `CustomerServiceImpl.deleteCustomer(id)` ➔ Tìm customer ➔ Gán `customer.setStatus(AccountStatus.INACTIVE)` ➔ Gọi `customerRepository.save(customer)`.
+3. **Phản hồi Frontend**: Nhận HTTP 200 OK ➔ Toast thông báo *"Xóa mềm thành công"* ➔ `fetchData(page)` load lại bảng (dữ liệu ẩn khỏi tab `ACTIVE`).
 
-1. **Xóa mềm (Soft Delete - `DELETE /api/v1/customers/{id}`)**:
-   - Lễ tân bấm icon Xóa. Service gán `customer.setStatus(AccountStatus.INACTIVE)` và lưu DB.
-   - Dữ liệu bị ẩn khỏi bảng hoạt động nhưng lịch sử Đặt phòng & Hóa đơn cũ vẫn được bảo lưu để làm báo cáo tài chính.
-2. **Khôi phục (Restore - `PUT /api/v1/customers/{id}/restore`)**:
-   - Chuyển lọc trạng thái sang `INACTIVE`, bấm icon Khôi phục. Service gán `customer.setStatus(AccountStatus.ACTIVE)`.
-3. **Xóa vĩnh viễn (Force Delete - `DELETE /api/v1/customers/{id}/force`)**:
-   - Chỉ dùng cho dữ liệu rác/nhập sai chưa từng có giao dịch.
-   - Code trong [CustomerServiceImpl.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/service/customer/impl/CustomerServiceImpl.java#L198-L212):
+#### 🟢 **Nhánh 5B: Khôi Phục (Restore)**
+1. **Frontend**: Lễ tân chọn lọc trạng thái `INACTIVE` ➔ Bấm icon Khôi phục (`RefreshCw`) ➔ Gọi `handleRestore(item)` ➔ Gửi `PUT /api/v1/customers/{id}/restore`.
+2. **Backend**: Controller gọi `CustomerServiceImpl.restoreCustomer(id)` ➔ Gán `customer.setStatus(AccountStatus.ACTIVE)` ➔ Gọi `customerRepository.save(customer)`.
+3. **Phản hồi Frontend**: Nhận HTTP 200 OK ➔ Toast *"Khôi phục tài khoản thành công"* ➔ Bảng tự động cập nhật.
+
+#### ❌ **Nhánh 5C: Xóa Vĩnh Viễn (Force Delete)**
+1. **Frontend**: Trong tab `INACTIVE`, Lễ tân bấm icon Thùng rác lần 2 để xác nhận xóa vĩnh viễn ➔ Gọi `handleForceDelete(item)` ➔ Gửi `DELETE /api/v1/customers/{id}/force`.
+2. **Backend**: Controller gọi `CustomerServiceImpl.forceDeleteCustomer(id)`:
+   - **📝 Chi tiết Code sửa đổi (`CustomerServiceImpl.java`)**:
      ```java
-     try {
-         customerRepository.delete(customer);
-         customerRepository.flush(); // Ép thực thi DELETE SQL ngay lập tức
-     } catch (DataIntegrityViolationException e) {
-         throw new ConflictException(
-             messageSource.getMessage("error.customer.cannot_delete_has_history", null, locale)
-         );
+     public void forceDeleteCustomer(Long id) {
+         Customer customer = customerRepository.findByIdAndStatus(id, AccountStatus.INACTIVE)
+             .orElseThrow(() -> new ResourceNotFoundException("Customer not found or not inactive"));
+         try {
+             customerRepository.delete(customer);
+             // Ép Hibernate thực thi câu DELETE ngay xuống Database
+             customerRepository.flush(); 
+         } catch (DataIntegrityViolationException e) {
+             // Lỗi Constraint Violation do khóa ngoại từ bảng Bookings
+             throw new ConflictException(
+                 messageSource.getMessage("error.customer.cannot_delete_has_history", null, locale)
+             );
+         }
      }
      ```
-   - Nếu khách hàng đã từng phát sinh Đặt phòng (khóa ngoại `customer_id` trong bảng `bookings`), DB sẽ ném lỗi Foreign Key Violation. Service bắt `DataIntegrityViolationException` và ném lỗi `ConflictException` hiển thị thông báo rõ ràng: *"Không thể xóa vĩnh viễn khách hàng đã có lịch sử đặt phòng!"*.
+3. **Xử lý Vi phạm Khóa Ngoại**:
+   - Nếu khách hàng đã từng có Đặt phòng (`Booking`), bảng `bookings` chứa khóa ngoại `customer_id` ➔ DB ném lỗi Constraint Violation.
+   - Backend catch `DataIntegrityViolationException` ➔ Ném `ConflictException` (HTTP 409).
+4. **Phản hồi Frontend**:
+   - **Nếu không có lịch sử**: Nhận HTTP 200 OK ➔ Toast *"Xóa hoàn toàn khỏi hệ thống thành công"*.
+   - **Nếu có lịch sử**: Nhận HTTP 409 ➔ Toast màu đỏ hiển thị thông báo lỗi rõ ràng: *"Không thể xóa vĩnh viễn khách hàng đã có lịch sử đặt phòng!"*.
 
----
-
-## IV. BỘ CÂU HỎI BẢO VỆ ĐỒ ÁN & HƯỚNG DẪN CODE LIVE CHI TIẾT (DEFENSE QA & LIVE CODING EXAMPLES)
-
----
-
-### ❓ CÂU 1: "Làm sao phân quyền để Khách hàng tự cập nhật được profile của mình nhưng KHÔNG THỂ sửa profile của khách hàng khác?"
-
-#### 📍 Vị trí Code:
-Dòng 91 tại [CustomerController.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/controller/customer/CustomerController.java#L91):
-
-```java
-@PutMapping("/{id}")
-@PreAuthorize("hasAuthority('CUSTOMER_UPDATE') or (hasRole('CUSTOMER') and #customerCreateDTO.email == authentication.name)")
-public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(
-        @Valid @RequestBody CustomerCreateDTO customerCreateDTO,
-        @PathVariable Long id){ ... }
-```
-
-#### 💡 Giải thích Cơ chế:
-- Lễ tân có authority `CUSTOMER_UPDATE` ➔ Mệnh đề 1 `true` ➔ Sửa được ai cũng được.
-- Khách hàng có Role `CUSTOMER` ➔ Mệnh đề 2 kích hoạt: So sánh `authentication.name` (Email trích xuất từ JWT Token đăng nhập) với `#customerCreateDTO.email` (Email truyền trong Body). Nếu trùng khớp mới cho phép sửa.
-
----
-
-### ❓ CÂU 2: "Thầy/Cô muốn bổ sung trường `passportNumber` (Hộ chiếu) và `vipLevel` (Cấp VIP) cho Khách hàng. Hãy thực hiện Live Coding ngay trên máy."
-
-#### 🛠️ Hướng Dẫn Thực Hiện 5 Bước:
-
-1. **Bước 1 (Entity)** [Customer.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/entity/customer/Customer.java):
-   ```java
-   @Column(name = "passport_number") private String passportNumber;
-   @Column(name = "vip_level") private String vipLevel;
-   ```
-2. **Bước 2 (Request DTO)** [CustomerCreateDTO.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/dto/customer/request/CustomerCreateDTO.java):
-   ```java
-   private String passportNumber;
-   private String vipLevel;
-   ```
-3. **Bước 3 (Response DTO)** [CustomerResponse.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/dto/customer/response/CustomerResponse.java):
-   ```java
-   private String passportNumber;
-   private String vipLevel;
-   ```
-4. **Bước 4 (Service Impl)** [CustomerServiceImpl.java](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/src/main/java/com/hms/service/customer/impl/CustomerServiceImpl.java):
-   Gán `customer.setPassportNumber(dto.getPassportNumber())` và `customer.setVipLevel(dto.getVipLevel())`.
-5. **Bước 5 (Frontend React)** [CustomerManager.jsx](file:///d:/FPT/Ki5/SWP391/Hotel_Management_System/SWP391_Project/frontend/src/components/CustomerManager.jsx):
-   Thêm thuộc tính vào state `EMPTY`, thêm cột vào bảng `cols`, thêm ô hiển thị dữ liệu `rows` và thêm `<input>` vào Form Modal.

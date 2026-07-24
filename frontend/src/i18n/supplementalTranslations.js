@@ -40,6 +40,29 @@ export const supplementalTranslations = {
       refresh: 'Làm mới',
       loadError: 'Không thể tải thông tin tài khoản.',
       unknownUser: 'Người dùng',
+      systemAccount: 'Tài khoản hệ thống',
+      customerProfile: 'Hồ sơ khách hàng',
+      fullName: 'Họ và tên',
+      nationality: 'Quốc tịch',
+      idType: 'Loại giấy tờ',
+      idCard: 'Số giấy tờ',
+      edit: 'Chỉnh sửa',
+      saveChanges: 'Lưu thay đổi',
+      cancel: 'Hủy',
+      saving: 'Đang lưu...',
+      cannotChange: 'không thể thay đổi',
+      cannotChangeParentheses: '(không thể thay đổi)',
+      validation: {
+        fullNameEmpty: 'Họ và tên không được để trống.',
+        fullNameSpace: 'Họ và tên không được chứa nhiều khoảng trắng liên tiếp.',
+        phoneEmpty: 'Số điện thoại không được để trống.',
+        phoneFormat: 'Số điện thoại phải bắt đầu bằng 0 và có 10 chữ số.',
+        nationalityEmpty: 'Quốc tịch không được để trống.',
+      },
+      toast: {
+        updateSuccess: 'Cập nhật thông tin thành công!',
+        updateFailed: 'Cập nhật thất bại. Vui lòng thử lại.',
+      }
     },
 
     bookingHistory: {
@@ -585,6 +608,29 @@ export const supplementalTranslations = {
       refresh: 'Refresh',
       loadError: 'Unable to load account information.',
       unknownUser: 'User',
+      systemAccount: 'System Account',
+      customerProfile: 'Customer Profile',
+      fullName: 'Full Name',
+      nationality: 'Nationality',
+      idType: 'ID Type',
+      idCard: 'ID Number',
+      edit: 'Edit',
+      saveChanges: 'Save Changes',
+      cancel: 'Cancel',
+      saving: 'Saving...',
+      cannotChange: 'cannot change',
+      cannotChangeParentheses: '(cannot be changed)',
+      validation: {
+        fullNameEmpty: 'Full name cannot be empty.',
+        fullNameSpace: 'Full name cannot contain consecutive spaces.',
+        phoneEmpty: 'Phone number cannot be empty.',
+        phoneFormat: 'Phone number must start with 0 and have 10 digits.',
+        nationalityEmpty: 'Nationality cannot be empty.',
+      },
+      toast: {
+        updateSuccess: 'Information updated successfully!',
+        updateFailed: 'Update failed. Please try again.',
+      }
     },
 
     bookingHistory: {

@@ -6,10 +6,12 @@ import com.hms.common.utils.PageableUtils;
 import com.hms.dto.customer.request.CustomerCreateDTO;
 import com.hms.dto.customer.response.CustomerResponse;
 import com.hms.entity.customer.Customer;
+import com.hms.entity.auth.User;
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.repository.customer.CustomerRepository;
+import com.hms.repository.auth.UserRepository;
 import com.hms.service.customer.CustomerService;
 import com.hms.service.customer.mapper.CustomerMapper;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ import java.util.Locale;
 @Transactional(readOnly = true)
 public class CustomerServiceImpl implements CustomerService {
     private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
     private final MessageSource messageSource;
     private final CustomerMapper customerMapper;
     private final PageableUtils pageableUtils;
@@ -125,6 +128,24 @@ public class CustomerServiceImpl implements CustomerService {
                     messageSource.getMessage("error.idCard.existed", new Object[]{dto.getIdNumberCard()}, locale)
             );
         }
+
+        // Đồng bộ dữ liệu sang bảng users nếu tồn tại account gắn với email này
+        userRepository.findUserByEmail(customer.getEmail()).ifPresent(user -> {
+            if (!user.getPhone().equals(dto.getPhone()) && userRepository.existsByPhoneAndIdNot(dto.getPhone(), user.getId())) {
+                throw new ConflictException(
+                        messageSource.getMessage("error.phone.existed", new Object[]{dto.getPhone()}, locale)
+                );
+            }
+            if (!user.getEmail().equals(dto.getEmail()) && userRepository.existsByEmailAndIdNot(dto.getEmail(), user.getId())) {
+                throw new ConflictException(
+                        messageSource.getMessage("error.email.existed", new Object[]{dto.getEmail()}, locale)
+                );
+            }
+            user.setFullName(dto.getFullName());
+            user.setPhone(dto.getPhone());
+            user.setEmail(dto.getEmail());
+            userRepository.save(user);
+        });
 
         customerMapper.updateCustomerFromDto(dto, customer);
         Customer updatedCustomer = customerRepository.save(customer);

@@ -24,6 +24,11 @@ export async function getCustomers(params = {}, locale = 'vi') {
   return apiFetch(`/customers${buildQuery(params)}`, {}, locale);
 }
 
+/** GET /api/v1/customers/me — Lấy profile khách hàng đang đăng nhập */
+export async function getMyCustomerProfile(locale = 'vi') {
+  return apiFetch('/customers/me', {}, locale);
+}
+
 /** GET /api/v1/customers/{id} */
 export async function getCustomerById(id, locale = 'vi') {
   return apiFetch(`/customers/${id}`, {}, locale);

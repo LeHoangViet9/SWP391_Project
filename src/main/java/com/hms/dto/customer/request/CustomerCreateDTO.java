@@ -28,5 +28,4 @@ public class CustomerCreateDTO {
     private String idNumberCard;
     @NotBlank(message = "{customer.nationality.notblank}")
     private String nationality;
-    private String notes;
 }
