@@ -19,19 +19,28 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.newPassword !== form.confirmPassword) {
+    const tokenTrimmed = form.token.trim();
+    const newPasswordTrimmed = form.newPassword.trim();
+    const confirmPasswordTrimmed = form.confirmPassword.trim();
+    
+    if (newPasswordTrimmed !== confirmPasswordTrimmed) {
       return notify('Mật khẩu xác nhận không khớp!', 'warning');
     }
     setLoading(true);
     try {
       await apiFetch('/auth/reset-password', {
         method: 'POST',
-        body: JSON.stringify({ token: form.token, newPassword: form.newPassword }),
+        body: JSON.stringify({ token: tokenTrimmed, newPassword: newPasswordTrimmed, confirmPassword: confirmPasswordTrimmed }),
       });
       notify('Đặt lại mật khẩu thành công! Chuyển hướng đăng nhập...');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      notify(err.message || 'Đặt lại mật khẩu thất bại.', 'error');
+      const fieldErrors = err.data?.data;
+      if (fieldErrors && typeof fieldErrors === 'object' && Object.keys(fieldErrors).length > 0) {
+        notify(Object.values(fieldErrors)[0], 'error');
+      } else {
+        notify(err.message || 'Đặt lại mật khẩu thất bại.', 'error');
+      }
     } finally {
       setLoading(false);
     }

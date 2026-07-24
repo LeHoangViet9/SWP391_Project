@@ -21,6 +21,7 @@ export default function ForgotPasswordPage() {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
+      localStorage.setItem('savedEmail', email);
       notify('Yêu cầu đặt lại mật khẩu đã được gửi! Vui lòng kiểm tra email của bạn.');
     } catch (err) {
       notify(err.message || 'Gửi yêu cầu thất bại. Vui lòng thử lại.', 'error');
