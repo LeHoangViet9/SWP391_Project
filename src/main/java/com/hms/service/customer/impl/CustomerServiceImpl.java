@@ -157,8 +157,12 @@ public class CustomerServiceImpl implements CustomerService {
         Pageable pageable = pageableUtils.createPageable(
                 page, size, sortBy.getField(), direction);
 
+        String searchKeyword = (keyword != null && !keyword.trim().isEmpty())
+                ? "%" + keyword.trim() + "%"
+                : null;
+
         return customerRepository
-                .searchCustomer(keyword, status, pageable)
+                .searchCustomer(searchKeyword, status, pageable)
                 .map(customerMapper::toResponse);
     }
 

@@ -98,19 +98,7 @@ export default function CustomerManager() {
       const params = { page: p, size: 10, status: statusVal };
       const trimmed = val ? String(val).trim() : '';
       if (trimmed) {
-        if (opt === 'id') {
-          params.id = trimmed;
-        } else if (opt === 'fullName') {
-          params.fullName = trimmed;
-        } else if (opt === 'email') {
-          params.email = trimmed;
-        } else if (opt === 'phone') {
-          params.phone = trimmed;
-        } else if (opt === 'idNumberCard') {
-          params.idNumberCard = trimmed;
-        } else if (opt === 'nationality') {
-          params.nationality = trimmed;
-        }
+        params.keyword = trimmed;
       }
       const res = await getCustomers(params, locale);
       setItems(res?.data?.content ?? []);
@@ -127,8 +115,11 @@ export default function CustomerManager() {
   }, [page, searchOpt, search, statusFilter, fetchDataDirect]);
 
   useEffect(() => {
-    fetchData(page);
-  }, [page, statusFilter, fetchData]);
+    const timer = setTimeout(() => {
+      fetchData(page);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [page, search, statusFilter, fetchData]);
 
   const openCreate = () => {
     if (!canCreate) return notify(t('customer.toast.forbidden'), 'error');

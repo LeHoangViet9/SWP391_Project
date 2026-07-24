@@ -45,6 +45,8 @@ AND (
     OR LOWER(c.email) LIKE LOWER(CAST(:keyword AS string))
     OR c.phone LIKE CAST(:keyword AS string)
     OR c.idNumberCard LIKE CAST(:keyword AS string)
+    OR LOWER(c.nationality) LIKE LOWER(CAST(:keyword AS string))
+    OR CAST(c.id AS string) LIKE CAST(:keyword AS string)
 )
 """)
     Page<Customer> searchCustomer(
