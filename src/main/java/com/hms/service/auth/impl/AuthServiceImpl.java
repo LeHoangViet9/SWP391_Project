@@ -49,11 +49,24 @@ public class AuthServiceImpl implements AuthService {
     @Auditable(action = "CREATE_USER", module = "USER", logSuccess = false)
     public UserResponse registerNewUser(UserRegisterRequest registerRequest) {
         Locale locale = LocaleContextHolder.getLocale();
+        if (registerRequest.getEmail() != null) {
+            registerRequest.setEmail(registerRequest.getEmail().trim().toLowerCase());
+        }
         if(userRepository.existsUserByEmail(registerRequest.getEmail())) {
             throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
         }
         if(userRepository.existsUserByPhone(registerRequest.getPhone())) {
             throw new ConflictException(messageSource.getMessage("error.phone.exists", null, locale));
+        }
+
+        Optional<Customer> existingCustomerByPhone = customerRepository.findByPhone(registerRequest.getPhone());
+        if (existingCustomerByPhone.isPresent() && !existingCustomerByPhone.get().getEmail().equalsIgnoreCase(registerRequest.getEmail())) {
+            throw new ConflictException(messageSource.getMessage("error.phone.exists", null, locale));
+        }
+
+        Optional<Customer> existingCustomerByEmail = customerRepository.findByEmail(registerRequest.getEmail());
+        if (existingCustomerByEmail.isPresent() && !existingCustomerByEmail.get().getPhone().equals(registerRequest.getPhone())) {
+            throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
         }
 
         String defaultRole = "CUSTOMER";
@@ -63,6 +76,7 @@ public class AuthServiceImpl implements AuthService {
                 ));
 
         User user = userMapper.toEntityRegister(registerRequest);
+        user.setEmail(registerRequest.getEmail());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setRole(role);
         user.setAccountStatus(AccountStatus.PENDING_VERIFICATION);
@@ -80,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
                     .email(savedUser.getEmail())
                     .phone(savedUser.getPhone())
                     .idType(IdType.CCCD)
-                    .idNumberCard("PENDING_" + savedUser.getId())
+                    .idNumberCard("PENDING-" + savedUser.getId())
                     .nationality("Vietnam")
                     .status(AccountStatus.ACTIVE)
                     .build();
@@ -103,9 +117,10 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public UserResponse login(UserLoginRequest loginRequest) {
         Locale locale = LocaleContextHolder.getLocale();
+        String normalizedEmail = loginRequest.getEmail() != null ? loginRequest.getEmail().trim().toLowerCase() : "";
 
         try {
-            User user = userRepository.findUserByEmail(loginRequest.getEmail())
+            User user = userRepository.findUserByEmail(normalizedEmail)
                     .orElseThrow(() -> new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale)));
 
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {

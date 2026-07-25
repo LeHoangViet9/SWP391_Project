@@ -70,7 +70,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         Locale locale = LocaleContextHolder.getLocale();
 
         if (invoiceRepository.existsByBookingIdAndInvoiceType(request.getBookingId(),
-                com.hms.common.enums.InvoiceType.ROOM)) {
+                InvoiceType.ROOM)) {
             throw new ConflictException(messageSource.getMessage("error.bookingId.exist",
                     new Object[] { request.getBookingId() }, locale));
         }
@@ -223,8 +223,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     @Transactional
-    public CombinedInvoiceResponse processReceptionistPayment(
-            List<Long> bookingIds, ReceptionistPaymentRequest request) {
+    public CombinedInvoiceResponse processReceptionistPayment(List<Long> bookingIds, ReceptionistPaymentRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
         List<Long> normalizedIds = normalizeBookingIds(bookingIds);
         List<Booking> bookings = normalizedIds.stream()
