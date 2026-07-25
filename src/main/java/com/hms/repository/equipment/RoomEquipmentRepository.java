@@ -2,6 +2,8 @@ package com.hms.repository.equipment;
 
 import com.hms.entity.equipment.RoomEquipment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -15,6 +17,14 @@ public interface RoomEquipmentRepository extends JpaRepository<RoomEquipment, Lo
 
     // Lấy danh sách phòng đang dùng 1 thiết bị
     List<RoomEquipment> findByEquipmentId(Long equipmentId);
+
+    // Tính tổng số lượng thiết bị này đã gán ở tất cả các phòng
+    @Query("SELECT COALESCE(SUM(re.quantity), 0) FROM RoomEquipment re WHERE re.equipment.id = :equipmentId")
+    Integer sumQuantityByEquipmentId(@Param("equipmentId") Long equipmentId);
+
+    // Tính tổng số lượng thiết bị này đã gán ở tất cả các phòng ngoại trừ phòng đang chỉ định
+    @Query("SELECT COALESCE(SUM(re.quantity), 0) FROM RoomEquipment re WHERE re.equipment.id = :equipmentId AND re.room.id <> :roomId")
+    Integer sumQuantityByEquipmentIdAndRoomIdNot(@Param("equipmentId") Long equipmentId, @Param("roomId") Long roomId);
 
     // ==================== DELETE VALIDATION ====================
 

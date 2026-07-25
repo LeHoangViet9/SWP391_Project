@@ -32,6 +32,11 @@ public class Equipment {
     @Column(name = "description")
     private String description;
 
+    // Tổng số lượng thiết bị sở hữu trong kho
+    @Builder.Default
+    @Column(name = "total_quantity", nullable = false, columnDefinition = "integer default 0")
+    private Integer totalQuantity = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private EquipmentStatus status;

@@ -465,6 +465,7 @@ export const supplementalTranslations = {
         name: 'Tên thiết bị',
         code: 'Mã thiết bị',
         description: 'Mô tả',
+        stock: 'Kho (Tổng / Khả dụng)',
         assignedRooms: 'Phòng đã gán',
         status: 'Trạng thái',
         actions: 'Thao tác',
@@ -484,6 +485,7 @@ export const supplementalTranslations = {
         namePlaceholder: 'Ví dụ: TV Samsung',
         code: 'Mã thiết bị *',
         codePlaceholder: 'Ví dụ: TV-001',
+        totalQuantity: 'Số lượng tổng trong kho',
         description: 'Mô tả',
         images: 'Ảnh thiết bị',
         imagesNote: 'Nếu chọn ảnh mới, hệ thống sẽ upload thêm các ảnh cho thiết bị này.',
@@ -536,6 +538,7 @@ export const supplementalTranslations = {
         noChanges: 'Không có thay đổi nào để lưu',
         saveSuccess: 'Cập nhật thiết bị trong phòng thành công!',
         saveError: 'Cập nhật thất bại',
+        forbidden: 'Bạn không có quyền thực hiện gán thiết bị',
       },
     },
 

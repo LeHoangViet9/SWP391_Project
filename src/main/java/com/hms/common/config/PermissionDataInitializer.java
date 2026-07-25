@@ -186,7 +186,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
         List<String> maintenancePerms = Arrays.asList(
                 "DASHBOARD_VIEW",
                 "ROOM_VIEW",
-                "EQUIPMENT_VIEW", "EQUIPMENT_CREATE", "EQUIPMENT_UPDATE",
+                "EQUIPMENT_VIEW",
                 "MAINTENANCE_VIEW", "MAINTENANCE_CREATE", "MAINTENANCE_UPDATE"
         );
         syncRolePermissions("MAINTENANCE", maintenancePerms);

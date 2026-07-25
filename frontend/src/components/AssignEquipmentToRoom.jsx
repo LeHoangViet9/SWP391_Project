@@ -3,10 +3,13 @@ import { RefreshCw, Search, Plus, Minus, Save } from 'lucide-react';
 import { equipmentService } from '../services/equipmentService';
 import { getAllRooms } from '../services/roomService';
 import { useLocale } from '../context/LocaleContext';
+import { usePermission } from '../hooks/usePermission';
 import Toast from './shared/Toast';
 
 export default function AssignEquipmentToRoom() {
     const { locale, t } = useLocale();
+    const { hasPermission } = usePermission();
+    const canAssign = hasPermission('EQUIPMENT_UPDATE');
 
     const [rooms, setRooms] = useState([]);
     const [equipments, setEquipments] = useState([]);
@@ -153,6 +156,11 @@ export default function AssignEquipmentToRoom() {
 
     // Gửi yêu cầu lưu thay đổi hàng loạt lên Backend
     const handleSaveChanges = async () => {
+        if (!canAssign) {
+            notify(t('assign.toast.forbidden') || 'Bạn không có quyền thực hiện gán thiết bị', 'error');
+            return;
+        }
+
         if (!roomId) {
             notify(t('assign.toast.selectRoomFirst') || 'Vui lòng chọn phòng trước khi lưu', 'error');
             return;
@@ -263,9 +271,9 @@ export default function AssignEquipmentToRoom() {
                         </h3>
                         <button
                             type="button"
-                            disabled={!hasChanges || saving}
+                            disabled={!hasChanges || saving || !canAssign}
                             onClick={handleSaveChanges}
-                            className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-semibold text-white transition-all ${hasChanges
+                            className={`flex items-center gap-2 rounded px-4 py-2 text-sm font-semibold text-white transition-all ${hasChanges && canAssign
                                 ? 'bg-[#bfa15f] hover:bg-[#a3854a] cursor-pointer shadow-md'
                                 : 'bg-stone-300 cursor-not-allowed'
                                 }`}

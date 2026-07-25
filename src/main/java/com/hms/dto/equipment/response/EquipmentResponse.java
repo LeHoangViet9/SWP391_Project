@@ -16,12 +16,13 @@ public class EquipmentResponse {
     private String equipmentCode;
 
     private String description;
+    private Integer totalQuantity;
+    private Integer assignedQuantity;
+    private Integer availableQuantity;
+
     private EquipmentStatus status;
     private LocalDateTime createdAt;
 
     private List<EquipmentImageResponse> images;
-    //  MỚI:
-    // Equipment không còn thuộc trực tiếp 1 phòng.
-    // Trả về danh sách phòng đang dùng thiết bị này.
     private List<RoomEquipmentResponse> assignedRooms;
 }

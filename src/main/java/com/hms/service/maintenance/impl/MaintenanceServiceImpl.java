@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import java.time.LocalDateTime;
@@ -304,6 +305,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
     /**
      * Parse danh sách ID từ chuỗi CSV "5,8,12"
+     * THAY ĐỔI / CẢI TIẾN: Thêm try-catch an toàn khi parse chuỗi để loại bỏ các phần tử lỗi định dạng,
+     * tránh bị văng lỗi NumberFormatException hệ thống khi dữ liệu chứa ký tự bất thường.
      */
     private List<Long> parseDeniedIds(String deniedByIds) {
         if (deniedByIds == null || deniedByIds.isBlank())
@@ -311,7 +314,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         return Arrays.stream(deniedByIds.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .map(Long::parseLong)
+                .map(s -> {
+                    try {
+                        return Long.parseLong(s);
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 

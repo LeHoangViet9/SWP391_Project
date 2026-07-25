@@ -30,6 +30,8 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
 
     boolean existsByEquipmentIdAndStatusIn(Long equipmentId, List<MaintenanceStatus> statuses);
 
+    boolean existsByEquipmentIdAndRoomIdAndStatusIn(Long equipmentId, Long roomId, List<MaintenanceStatus> statuses);
+
     // ===========================================================
 
     long countByStatus(MaintenanceStatus status);

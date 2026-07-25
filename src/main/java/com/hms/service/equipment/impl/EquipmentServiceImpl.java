@@ -1,8 +1,10 @@
 package com.hms.service.equipment.impl;
 
 import com.hms.common.enums.EquipmentStatus;
+import com.hms.common.enums.MaintenanceStatus;
 import com.hms.common.enums.SortDirection;
 import com.hms.common.enums.SortField;
+import com.hms.common.exception.BadRequestException;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
 import com.hms.common.utils.PageableUtils;
@@ -80,7 +82,8 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         return equipmentRepository
                 .searchEquipment(keyword, status, pageable)
-                .map(equipmentMapper::toResponse);
+                .map(equipmentMapper::toResponse)
+                .map(this::enrichResponseWithStock);
     }
 
     @Override
@@ -98,11 +101,14 @@ public class EquipmentServiceImpl implements EquipmentService {
         }
 
         Equipment equipment = equipmentMapper.toEntity(equipmentDTO);
+        if (equipment.getTotalQuantity() == null) {
+            equipment.setTotalQuantity(0);
+        }
         equipment.setStatus(EquipmentStatus.ACTIVE);
 
         Equipment savedEquipment = equipmentRepository.save(equipment);
 
-        return equipmentMapper.toResponse(savedEquipment);
+        return enrichResponseWithStock(equipmentMapper.toResponse(savedEquipment));
     }
 
     @Override
@@ -123,10 +129,13 @@ public class EquipmentServiceImpl implements EquipmentService {
         }
 
         equipmentMapper.updateEquipmentFromDto(dto, equipment);
+        if (dto.getTotalQuantity() != null) {
+            equipment.setTotalQuantity(dto.getTotalQuantity());
+        }
 
         Equipment updatedEquipment = equipmentRepository.save(equipment);
 
-        return equipmentMapper.toResponse(updatedEquipment);
+        return enrichResponseWithStock(equipmentMapper.toResponse(updatedEquipment));
     }
 
     @Override
@@ -176,8 +185,22 @@ public class EquipmentServiceImpl implements EquipmentService {
 
         Equipment equipment = findActiveEquipment(id, locale);
 
-        return equipmentMapper.toResponse(equipment);
+        return enrichResponseWithStock(equipmentMapper.toResponse(equipment));
     }
+
+    private EquipmentResponse enrichResponseWithStock(EquipmentResponse res) {
+        if (res == null || res.getId() == null) return res;
+        int total = res.getTotalQuantity() != null ? res.getTotalQuantity() : 0;
+        int assigned = roomEquipmentRepository.sumQuantityByEquipmentId(res.getId());
+        res.setAssignedQuantity(assigned);
+        res.setAvailableQuantity(Math.max(0, total - assigned));
+        return res;
+    }
+
+    // BỔ SUNG: Danh sách trắng MIME Type cho phép upload ảnh để chống giả mạo đuôi file (File Upload Security)
+    private static final java.util.Set<String> ALLOWED_MIME_TYPES = java.util.Set.of(
+            "image/jpeg", "image/png", "image/webp", "image/gif"
+    );
 
     @Override
     public RoomEquipmentResponse assignToRoom(Long equipmentId, AssignEquipmentToRoomDTO dto) {
@@ -193,6 +216,22 @@ public class EquipmentServiceImpl implements EquipmentService {
                                 locale
                         )
                 ));
+
+        // THAY ĐỔI / SỬA LỖI LOGIC: Nếu số lượng truyền vào <= 0 thì thực hiện xóa liên kết khỏi phòng
+        // Thay vì trước đây vẫn lưu bản ghi RoomEquipment với quantity = 0 vào Database.
+        if (dto.getQuantity() == null || dto.getQuantity() <= 0) {
+            roomEquipmentRepository.findByRoomIdAndEquipmentId(dto.getRoomId(), equipmentId)
+                    .ifPresent(roomEquipmentRepository::delete);
+            return null;
+        }
+
+        // THAY ĐỔI / RÀNG BUỘC TỒN KHO: Kiểm tra số lượng tồn kho khả dụng trước khi gán
+        int totalQty = equipment.getTotalQuantity() != null ? equipment.getTotalQuantity() : 0;
+        int assignedOtherRooms = roomEquipmentRepository.sumQuantityByEquipmentIdAndRoomIdNot(equipmentId, dto.getRoomId());
+        if (assignedOtherRooms + dto.getQuantity() > totalQty) {
+            int maxCanAssign = Math.max(0, totalQty - assignedOtherRooms);
+            throw new BadRequestException("Không đủ thiết bị trong kho! Số lượng khả dụng tối đa: " + maxCanAssign);
+        }
 
         RoomEquipment roomEquipment = roomEquipmentRepository
                 .findByRoomIdAndEquipmentId(dto.getRoomId(), equipmentId)
@@ -213,6 +252,15 @@ public class EquipmentServiceImpl implements EquipmentService {
         Locale locale = LocaleContextHolder.getLocale();
 
         findActiveEquipment(equipmentId, locale);
+
+        // THAY ĐỔI / BỔ SUNG EDGE CASE: Chặn không cho gỡ thiết bị khỏi phòng nếu thiết bị trong phòng đó
+        // đang thuộc một phiếu bảo trì dở dang (PENDING, ASSIGNED, IN_PROGRESS).
+        List<MaintenanceStatus> activeStatuses = List.of(
+                MaintenanceStatus.PENDING, MaintenanceStatus.ASSIGNED, MaintenanceStatus.IN_PROGRESS
+        );
+        if (maintenanceRepository.existsByEquipmentIdAndRoomIdAndStatusIn(equipmentId, roomId, activeStatuses)) {
+            throw new ConflictException("Cannot remove equipment from room while active maintenance exists");
+        }
 
         RoomEquipment roomEquipment = roomEquipmentRepository
                 .findByRoomIdAndEquipmentId(roomId, equipmentId)
@@ -246,13 +294,12 @@ public class EquipmentServiceImpl implements EquipmentService {
         Equipment equipment = findActiveEquipment(equipmentId, locale);
 
         if (images == null || images.isEmpty()) {
-            throw new ConflictException(
+            throw new BadRequestException(
                     messageSource.getMessage("error.equipment.image.required", null, locale)
             );
         }
 
-        // THAY ĐỔI: Tắt cờ isPrimary (ảnh chính) ở các ảnh cũ
-        // để khi lưu ảnh mới, ảnh mới sẽ được làm ảnh chính duy nhất hiển thị trên giao diện
+        // Tắt cờ isPrimary (ảnh chính) ở các ảnh cũ để ảnh mới được gán làm ảnh chính duy nhất
         if (equipment.getImages() != null) {
             for (EquipmentImage img : equipment.getImages()) {
                 if (Boolean.TRUE.equals(img.getIsPrimary())) {
@@ -262,7 +309,7 @@ public class EquipmentServiceImpl implements EquipmentService {
             }
         }
 
-        List<EquipmentImageResponse> result = new java.util.ArrayList<>();
+        List<EquipmentImage> imagesToSave = new java.util.ArrayList<>();
 
         try {
             Path uploadPath = Paths.get("uploads/equipments")
@@ -278,34 +325,43 @@ public class EquipmentServiceImpl implements EquipmentService {
                     continue;
                 }
 
+                // THAY ĐỔI / BẢO MẬT: Validate Content-Type (MIME) thực tế của file đính kèm
+                // nhằm ngăn chặn hành vi đổi tên đuôi file mã độc (.php -> .png) để bypass hệ thống.
+                String contentType = image.getContentType();
+                if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType.toLowerCase())) {
+                    throw new BadRequestException(
+                            messageSource.getMessage("error.equipment.image.invalid_extension", new Object[]{ALLOWED_MIME_TYPES}, locale)
+                    );
+                }
+
                 String originalName = image.getOriginalFilename() == null
                         ? "image.jpg"
                         : image.getOriginalFilename();
 
                 originalName = StringUtils.cleanPath(originalName);
 
-                // THAY ĐỔI (Cách 2): Lấy phần mở rộng của file
-                String extension = "";
+                String extension = ".jpg";
                 int dotIndex = originalName.lastIndexOf('.');
                 if (dotIndex >= 0) {
                     extension = originalName.substring(dotIndex);
-                } else {
-                    extension = ".jpg";
                 }
 
-                // KIỂM TRA ĐỊNH DẠNG FILE ẢNH HỢP LỆ
                 List<String> allowedExtensions = List.of(".jpg", ".jpeg", ".png", ".webp", ".gif");
                 if (!allowedExtensions.contains(extension.toLowerCase())) {
-                    throw new ConflictException(
+                    throw new BadRequestException(
                             messageSource.getMessage("error.equipment.image.invalid_extension", new Object[]{allowedExtensions}, locale)
                     );
                 }
 
-                // THAY ĐỔI (Cách 2): Đặt tên file gọn gàng theo mã thiết bị và short UUID
                 String fileName = equipment.getEquipmentCode().toLowerCase() + "_"
                         + UUID.randomUUID().toString().substring(0, 8) + extension;
 
                 Path targetPath = uploadPath.resolve(fileName).normalize();
+
+                // THAY ĐỔI / BẢO MẬT: Kiểm tra an toàn đường dẫn lưu file chống tấn công Path Traversal (vd: ../../etc/passwd)
+                if (!targetPath.startsWith(uploadPath)) {
+                    throw new SecurityException("Path traversal attempt detected");
+                }
 
                 Files.copy(
                         image.getInputStream(),
@@ -313,26 +369,24 @@ public class EquipmentServiceImpl implements EquipmentService {
                         StandardCopyOption.REPLACE_EXISTING
                 );
 
-                EquipmentImage equipmentImage = EquipmentImage.builder()
+                imagesToSave.add(EquipmentImage.builder()
                         .equipment(equipment)
                         .imageUrl("/uploads/equipments/" + fileName)
                         .isPrimary(firstImage)
-                        .build();
-
-                EquipmentImage savedImage = equipmentImageRepository.save(equipmentImage);
-
-                result.add(equipmentMapper.toImageResponse(savedImage));
+                        .build());
 
                 firstImage = false;
             }
 
-            if (result.isEmpty()) {
-                throw new ConflictException(
+            if (imagesToSave.isEmpty()) {
+                throw new BadRequestException(
                         messageSource.getMessage("error.equipment.image.required", null, locale)
                 );
             }
 
-            return result;
+            // THAY ĐỔI / TỐI ƯU HIỆU NĂNG: Lưu toàn bộ ảnh mới bằng saveAll() trong 1 lượt thay vì save từng ảnh lẻ
+            List<EquipmentImage> savedImages = equipmentImageRepository.saveAll(imagesToSave);
+            return savedImages.stream().map(equipmentMapper::toImageResponse).collect(Collectors.toList());
 
         } catch (IOException ex) {
             throw new ConflictException(
@@ -353,7 +407,10 @@ public class EquipmentServiceImpl implements EquipmentService {
                 ));
     }
 
-    // THAY ĐỔI: Triển khai phương thức gán thiết bị theo lô (Bulk Assign) vào phòng
+    // THAY ĐỔI / TỐI ƯU HIỆU NĂNG VÀ N+1 QUERY:
+    // Triển khai gán thiết bị theo lô (Bulk Assign) không bị N+1 Query.
+    // Lấy toàn bộ danh sách Equipment và RoomEquipment trong 1-2 SQL queries,
+    // sau đó phân loại toSave / toDelete và gọi saveAll() & deleteAll().
     @Override
     @Transactional
     public List<RoomEquipmentResponse> assignBulkToRoom(Long roomId, List<BulkAssignEquipmentDTO> dtos) {
@@ -369,44 +426,76 @@ public class EquipmentServiceImpl implements EquipmentService {
                 ));
 
         if (dtos == null || dtos.isEmpty()) {
-            throw new ConflictException("At least one equipment assignment is required");
-        }
-        long distinctEquipmentIds = dtos.stream().map(BulkAssignEquipmentDTO::getEquipmentId).distinct().count();
-        if (distinctEquipmentIds != dtos.size()) {
-            throw new ConflictException("Each equipment can appear only once in a bulk assignment");
+            throw new BadRequestException("At least one equipment assignment is required");
         }
 
-        List<RoomEquipmentResponse> result = new java.util.ArrayList<>();
+        // Kiểm tra dữ liệu trùng lặp trong DTO truyền vào
+        java.util.Set<Long> equipmentIds = dtos.stream()
+                .map(BulkAssignEquipmentDTO::getEquipmentId)
+                .collect(Collectors.toSet());
+        if (equipmentIds.size() != dtos.size()) {
+            throw new BadRequestException("Each equipment can appear only once in a bulk assignment");
+        }
 
+        // BƯỚC 1 (TỐI ƯU N+1): Fetch toàn bộ danh sách Equipments ACTIVE trong 1 câu SQL single query
+        java.util.Map<Long, Equipment> equipmentMap = equipmentRepository.findAllById(equipmentIds).stream()
+                .filter(e -> e.getStatus() == EquipmentStatus.ACTIVE)
+                .collect(Collectors.toMap(Equipment::getId, java.util.function.Function.identity()));
+
+        if (equipmentMap.size() != equipmentIds.size()) {
+            throw new ResourceNotFoundException("Some specified equipments were not found or are inactive");
+        }
+
+        // BƯỚC 2 (TỐI ƯU N+1): Fetch toàn bộ RoomEquipment hiện tại của phòng trong 1 câu SQL single query
+        java.util.Map<Long, RoomEquipment> existingAssignments = roomEquipmentRepository.findByRoomId(roomId).stream()
+                .collect(Collectors.toMap(re -> re.getEquipment().getId(), java.util.function.Function.identity()));
+
+        List<RoomEquipment> toSave = new java.util.ArrayList<>();
+        List<RoomEquipment> toDelete = new java.util.ArrayList<>();
+
+        // BƯỚC 3: Xử lý dữ liệu trong bộ nhớ (In-Memory processing)
         for (BulkAssignEquipmentDTO dto : dtos) {
-            Long equipmentId = dto.getEquipmentId();
+            Long eqId = dto.getEquipmentId();
             Integer quantity = dto.getQuantity();
+            RoomEquipment existing = existingAssignments.get(eqId);
 
-            if (quantity == null || quantity < 0) {
-                continue;
-            }
-
-            Equipment equipment = findActiveEquipment(equipmentId, locale);
-
-            if (quantity == 0) {
-                // THAY ĐỔI: Nếu số lượng = 0, thực hiện gỡ thiết bị khỏi phòng (xóa)
-                roomEquipmentRepository.findByRoomIdAndEquipmentId(roomId, equipmentId)
-                        .ifPresent(roomEquipmentRepository::delete);
+            if (quantity == null || quantity <= 0) {
+                // Nếu số lượng <= 0: Thêm vào danh sách xóa khỏi phòng
+                if (existing != null) {
+                    toDelete.add(existing);
+                }
             } else {
-                // THAY ĐỔI: Nếu số lượng > 0, thực hiện thêm mới hoặc cập nhật số lượng
-                RoomEquipment roomEquipment = roomEquipmentRepository
-                        .findByRoomIdAndEquipmentId(roomId, equipmentId)
-                        .orElse(RoomEquipment.builder()
-                                .room(room)
-                                .equipment(equipment)
-                                .build());
+                // THAY ĐỔI / RÀNG BUỘC TỒN KHO: Kiểm tra số lượng tồn kho khả dụng trước khi gán
+                Equipment eqObj = equipmentMap.get(eqId);
+                int totalQty = eqObj.getTotalQuantity() != null ? eqObj.getTotalQuantity() : 0;
+                int assignedOtherRooms = roomEquipmentRepository.sumQuantityByEquipmentIdAndRoomIdNot(eqId, roomId);
+                if (assignedOtherRooms + quantity > totalQty) {
+                    int maxCanAssign = Math.max(0, totalQty - assignedOtherRooms);
+                    throw new BadRequestException("Thiết bị '" + eqObj.getEquipmentName() + "' không đủ trong kho! Số lượng khả dụng tối đa: " + maxCanAssign);
+                }
 
-                roomEquipment.setQuantity(quantity);
-                RoomEquipment saved = roomEquipmentRepository.save(roomEquipment);
-                result.add(equipmentMapper.toRoomEquipmentResponse(saved));
+                // Nếu số lượng > 0 và hợp lệ: Cập nhật bản ghi hiện tại hoặc tạo bản ghi mới
+                if (existing == null) {
+                    existing = RoomEquipment.builder()
+                            .room(room)
+                            .equipment(eqObj)
+                            .quantity(quantity)
+                            .build();
+                } else {
+                    existing.setQuantity(quantity);
+                }
+                toSave.add(existing);
             }
         }
 
-        return result;
+        // BƯỚC 4 (TỐI ƯU N+1): Thực thi Batch Delete và Batch Save để tối ưu câu lệnh DB
+        if (!toDelete.isEmpty()) {
+            roomEquipmentRepository.deleteAll(toDelete);
+        }
+        List<RoomEquipment> savedList = roomEquipmentRepository.saveAll(toSave);
+
+        return savedList.stream()
+                .map(equipmentMapper::toRoomEquipmentResponse)
+                .collect(Collectors.toList());
     }
 }

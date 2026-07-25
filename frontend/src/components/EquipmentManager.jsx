@@ -11,6 +11,7 @@ const EMPTY_FORM = {
   equipmentName: '',
   equipmentCode: '',
   description: '',
+  totalQuantity: 0,
 };
 
 const STATUS_LABELS = {
@@ -38,6 +39,7 @@ function mapEquipmentToForm(item) {
     equipmentName: item.equipmentName || '',
     equipmentCode: item.equipmentCode || '',
     description: item.description || '',
+    totalQuantity: item.totalQuantity != null ? item.totalQuantity : 0,
   };
 }
 
@@ -180,6 +182,7 @@ export default function EquipmentManager() {
     equipmentName: form.equipmentName.trim(),
     equipmentCode: form.equipmentCode.trim(),
     description: form.description.trim() || null,
+    totalQuantity: Math.max(0, parseInt(form.totalQuantity, 10) || 0),
   });
 
   const handleSave = async (event) => {
@@ -309,6 +312,13 @@ export default function EquipmentManager() {
             {item.description || '-'}
           </td>
 
+          <td className="px-4 py-3 text-xs">
+            <span className="font-semibold text-slate-700">{item.totalQuantity || 0} cái</span>
+            <div className="text-[11px] text-slate-500 mt-0.5">
+              Đã gán: <span className="font-medium text-amber-700">{item.assignedQuantity || 0}</span> | Khả dụng: <span className="font-semibold text-emerald-600">{item.availableQuantity ?? (item.totalQuantity || 0)}</span>
+            </div>
+          </td>
+
           <td className="px-4 py-3 text-sm text-slate-500">
             {assignedRoomCount > 0
               ? `${assignedRoomCount} ${t('equipment.columns.assignedRooms') || 'phòng'}`
@@ -373,6 +383,7 @@ export default function EquipmentManager() {
     t('equipment.columns.name') || 'Tên thiết bị',
     t('equipment.columns.code') || 'Mã thiết bị',
     t('equipment.columns.description') || 'Mô tả',
+    t('equipment.columns.stock') || 'Kho (Tổng / Khả dụng)',
     t('equipment.columns.assignedRooms') || 'Phòng đã gán',
     t('equipment.columns.status') || 'Trạng thái',
     t('equipment.columns.actions') || 'Thao tác',
@@ -513,6 +524,23 @@ export default function EquipmentManager() {
                     <option key={code} value={code} />
                 ))}
               </datalist>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                {t('equipment.modal.totalQuantity') || 'Số lượng tổng trong kho'}
+              </label>
+              <input
+                  type="number"
+                  min="0"
+                  required
+                  value={form.totalQuantity}
+                  onChange={(event) =>
+                      setForm((current) => ({ ...current, totalQuantity: event.target.value }))
+                  }
+                  className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
+                  placeholder="Ví dụ: 20"
+              />
             </div>
 
             <div>

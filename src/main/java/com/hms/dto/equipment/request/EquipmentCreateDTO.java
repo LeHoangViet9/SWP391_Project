@@ -22,4 +22,7 @@ public class EquipmentCreateDTO {
     private String equipmentCode;
 
     private String description;
+
+    @jakarta.validation.constraints.Min(value = 0, message = "Total quantity cannot be negative")
+    private Integer totalQuantity;
 }
