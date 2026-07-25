@@ -24,7 +24,7 @@ public class CustomerCreateDTO {
     @NotNull(message = "{customer.idtype.notblank}")
     private IdType idType;
     @NotBlank(message = "{customer.idCard.notblank}")
-    @Pattern(regexp = "^[A-Za-z0-9\\-]{6,20}$", message = "{customer.idCard.valid}")
+    @Pattern(regexp = "^[A-Za-z0-9_\\-]{6,20}$", message = "{customer.idCard.valid}")
     private String idNumberCard;
     @NotBlank(message = "{customer.nationality.notblank}")
     private String nationality;

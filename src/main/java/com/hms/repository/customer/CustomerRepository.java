@@ -9,13 +9,18 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 @Repository
 public interface CustomerRepository extends JpaRepository<Customer, Long> {
     Optional<Customer> findByIdAndStatus(Long id, AccountStatus status);
 
-    @Query("SELECT c FROM Customer c WHERE LOWER(c.email) = LOWER(:email) AND c.status = :status")
-    Optional<Customer> findByEmailAndStatus(@Param("email") String email, @Param("status") AccountStatus status);
+    @Query("SELECT c FROM Customer c WHERE LOWER(c.email) = LOWER(:email) AND c.status = :status ORDER BY c.id ASC")
+    List<Customer> findAllByEmailAndStatus(@Param("email") String email, @Param("status") AccountStatus status);
+
+    default Optional<Customer> findByEmailAndStatus(String email, AccountStatus status) {
+        return findAllByEmailAndStatus(email, status).stream().findFirst();
+    }
 
     @Query("""
 SELECT c FROM Customer c
@@ -33,8 +38,11 @@ AND (
 
     @Query("SELECT COUNT(c) > 0 FROM Customer c WHERE LOWER(c.email) = LOWER(:email)")
     boolean existsByEmail(@Param("email") String email);
+    @Query("SELECT c FROM Customer c WHERE LOWER(c.email) = LOWER(:email)")
+    Optional<Customer> findByEmail(@Param("email") String email);
 
     boolean existsByPhone(String phone);
+    Optional<Customer> findByPhone(String phone);
 
     boolean existsByIdNumberCard(String idCard);
 

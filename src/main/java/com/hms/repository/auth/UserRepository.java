@@ -30,16 +30,25 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     boolean existsByPhoneAndIdNot(String phone, Long id);
 
-    @Query("SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:email)")
-    Optional<User> findUserByEmail(@Param("email") String email);
+    @Query("SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:email) ORDER BY u.id ASC")
+    List<User> findAllUsersByEmail(@Param("email") String email);
+
+    default Optional<User> findUserByEmail(String email) {
+        return findAllUsersByEmail(email).stream().findFirst();
+    }
 
     @Query("""
             select u from User u
             left join fetch u.role r
             left join fetch r.permissions
             where LOWER(u.email) = LOWER(:email)
+            ORDER BY u.id ASC
             """)
-    Optional<User> findUserWithPermissionsByEmail(@Param("email") String email);
+    List<User> findAllUsersWithPermissionsByEmail(@Param("email") String email);
+
+    default Optional<User> findUserWithPermissionsByEmail(String email) {
+        return findAllUsersWithPermissionsByEmail(email).stream().findFirst();
+    }
 
     Optional<User> findByResetPasswordToken(String resetPasswordToken);
 

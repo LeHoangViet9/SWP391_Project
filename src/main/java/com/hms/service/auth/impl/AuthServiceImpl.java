@@ -59,6 +59,16 @@ public class AuthServiceImpl implements AuthService {
             throw new ConflictException(messageSource.getMessage("error.phone.exists", null, locale));
         }
 
+        Optional<Customer> existingCustomerByPhone = customerRepository.findByPhone(registerRequest.getPhone());
+        if (existingCustomerByPhone.isPresent() && !existingCustomerByPhone.get().getEmail().equalsIgnoreCase(registerRequest.getEmail())) {
+            throw new ConflictException(messageSource.getMessage("error.phone.exists", null, locale));
+        }
+
+        Optional<Customer> existingCustomerByEmail = customerRepository.findByEmail(registerRequest.getEmail());
+        if (existingCustomerByEmail.isPresent() && !existingCustomerByEmail.get().getPhone().equals(registerRequest.getPhone())) {
+            throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
+        }
+
         String defaultRole = "CUSTOMER";
         Role role = roleRepository.findByRoleNameIgnoreCase(defaultRole)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -84,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
                     .email(savedUser.getEmail())
                     .phone(savedUser.getPhone())
                     .idType(IdType.CCCD)
-                    .idNumberCard("PENDING_" + savedUser.getId())
+                    .idNumberCard("PENDING-" + savedUser.getId())
                     .nationality("Vietnam")
                     .status(AccountStatus.ACTIVE)
                     .build();
