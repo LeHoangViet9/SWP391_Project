@@ -212,6 +212,9 @@ export default function RoomManager({ readOnly = false }) {
             {item.roomTypeName || item.roomType?.typeName || '-'}
           </td>
           <td className="px-4 py-3 text-center">{item.floorNumber}</td>
+          <td className="px-4 py-3 text-xs text-slate-500 max-w-xs truncate" title={item.description || ''}>
+            {item.description || '-'}
+          </td>
           <td className="px-4 py-3">
             {isReadOnly ? (
                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[status] || 'bg-stone-100 text-stone-600'}`}>
@@ -257,7 +260,16 @@ export default function RoomManager({ readOnly = false }) {
     );
   });
 
-  const cols = [t('room.columns.id'), t('room.columns.roomNumber'), t('room.columns.roomType'), t('room.columns.floor'), t('room.columns.status'), ...(!isReadOnly ? [t('room.columns.actions')] : [])];
+  const descriptionColumn = t('room.columns.description');
+  const cols = [
+    t('room.columns.id'),
+    t('room.columns.roomNumber'),
+    t('room.columns.roomType'),
+    t('room.columns.floor'),
+    descriptionColumn === 'room.columns.description' ? (locale === 'vi' ? 'Mô tả' : 'Description') : descriptionColumn,
+    t('room.columns.status'),
+    ...(!isReadOnly ? [t('room.columns.actions')] : []),
+  ];
 
   return (
       <div>
