@@ -24,7 +24,7 @@ export default function DashboardOverview() {
       const res = await apiFetch('/dashboards', {}, locale);
       setData(res.data);
     } catch (err) {
-      setError(err.message || 'Không thể tải dữ liệu bảng điều khiển.');
+      setError(err.message || 'Unable to load dữ liệu bảng điều khiển.');
     } finally {
       setLoading(false);
     }
@@ -38,7 +38,7 @@ export default function DashboardOverview() {
     return (
       <div className="flex items-center justify-center h-60 gap-3 text-slate-400">
         <RefreshCw size={20} className="animate-spin text-[#bfa15f]" />
-        <span className="text-sm">Đang tải bảng điều khiển...</span>
+        <span className="text-sm">Loading bảng điều khiển...</span>
       </div>
     );
   }
@@ -77,7 +77,7 @@ export default function DashboardOverview() {
         {user?.fullName ? `Xin chào, ${user.fullName}!` : 'Xin chào!'}
       </h3>
       <p className="text-slate-500 text-sm mt-2">
-        Vui lòng chọn một chức năng từ danh mục bên trái để tiếp tục.
+        Please chọn một chức năng từ danh mục bên trái để tiếp tục.
       </p>
     </div>
   );

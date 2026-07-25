@@ -13,22 +13,22 @@
  * ┌────────────────────┬──────┬─────────┬─────────────┬─────────────┬────────────┬──────────┐
  * │ Menu Item          │ADMIN │MANAGER  │RECEPTIONIST │MAINTENANCE  │HOUSEKEEPER │CUSTOMER  │
  * ├────────────────────┼──────┼─────────┼─────────────┼─────────────┼────────────┼──────────┤
- * │ Báo Cáo            │  ✓   │    ✓    │             │             │            │          │
- * │ Phân Quyền         │  ✓   │         │             │             │            │          │
- * │ Nhân Viên          │  ✓   │    ✓    │             │             │            │          │
- * │ Loại Phòng         │  ✓   │    ✓    │             │             │            │          │
- * │ Phòng              │  ✓   │    ✓    │      ✓      │             │            │          │
- * │ Đặt Phòng          │  ✓   │    ✓    │      ✓      │             │            │          │
- * │ Đặt Phòng Của Tôi  │      │         │             │             │            │    ✓     │
- * │ Khách Hàng         │  ✓   │    ✓    │      ✓      │             │            │          │
- * │ Thiết Bị           │  ✓   │    ✓    │             │      ✓      │            │          │
- * │ Phân Bổ Thiết Bị   │  ✓   │    ✓    │             │      ✓      │            │          │
- * │ Bảo Trì            │  ✓   │    ✓    │             │      ✓      │     ✓      │          │
- * │ Buồng Phòng        │  ✓   │    ✓    │             │             │     ✓      │          │
- * │ Đánh Giá           │  ✓   │    ✓    │      ✓      │             │            │    ✓     │
- * │ Hóa Đơn            │  ✓   │    ✓    │      ✓      │             │            │    ✓     │
- * │ Tài Khoản          │  ✓   │    ✓    │      ✓      │      ✓      │     ✓      │    ✓     │
- * │ Đổi Mật Khẩu       │  ✓   │    ✓    │      ✓      │      ✓      │     ✓      │    ✓     │
+ * │ Reports            │  ✓   │    ✓    │             │             │            │          │
+ * │ Role Configuration     │  ✓   │         │             │             │            │          │
+ * │ Staff          │  ✓   │    ✓    │             │             │            │          │
+ * │ Room Types         │  ✓   │    ✓    │             │             │            │          │
+ * │ Rooms              │  ✓   │    ✓    │      ✓      │             │            │          │
+ * │ Bookings          │  ✓   │    ✓    │      ✓      │             │            │          │
+ * │ My Bookings       │      │         │             │             │            │    ✓     │
+ * │ Customers         │  ✓   │    ✓    │      ✓      │             │            │          │
+ * │ Equipment           │  ✓   │    ✓    │             │      ✓      │            │          │
+ * │ Assign Equipment   │  ✓   │    ✓    │             │      ✓      │            │          │
+ * │ Maintenance            │  ✓   │    ✓    │             │      ✓      │     ✓      │          │
+ * │ Housekeeping        │  ✓   │    ✓    │             │             │     ✓      │          │
+ * │ Feedback           │  ✓   │    ✓    │      ✓      │             │            │    ✓     │
+ * │ Invoice            │  ✓   │    ✓    │      ✓      │             │            │    ✓     │
+ * │ Account          │  ✓   │    ✓    │      ✓      │      ✓      │     ✓      │    ✓     │
+ * │ Change Password       │  ✓   │    ✓    │      ✓      │      ✓      │     ✓      │    ✓     │
  * └────────────────────┴──────┴─────────┴─────────────┴─────────────┴────────────┴──────────┘
  */
 
@@ -71,7 +71,7 @@ export const MENU_CONFIG = [
   // ── Nhóm: Tổng Quan ──────────────────────────────────────────────
   {
     key: 'dashboard',
-    label: 'Báo Cáo',
+    label: 'Reports',
     labelEn: 'Dashboard',
     path: '/dashboard/reports',
     icon: BarChart2,
@@ -82,7 +82,7 @@ export const MENU_CONFIG = [
   // ── Nhóm: Quản Trị Hệ Thống ──────────────────────────────────────
   {
     key: 'role-config',
-    label: 'Phân Quyền',
+    label: 'Role Configuration',
     labelEn: 'Role Config',
     path: '/dashboard/roles',
     icon: ShieldCheck,
@@ -91,7 +91,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'staff',
-    label: 'Nhân Viên',
+    label: 'Staff',
     labelEn: 'Staff',
     path: '/dashboard/staff',
     icon: UserCheck,
@@ -111,7 +111,7 @@ export const MENU_CONFIG = [
   // ── Nhóm: Phòng Ốc ───────────────────────────────────────────────
   {
     key: 'room-types',
-    label: 'Loại Phòng',
+    label: 'Room Types',
     labelEn: 'Room Types',
     path: '/dashboard/room-types',
     icon: Tag,
@@ -120,7 +120,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'rooms',
-    label: 'Phòng',
+    label: 'Rooms',
     labelEn: 'Rooms',
     path: '/dashboard/rooms',
     icon: BedDouble,
@@ -131,7 +131,7 @@ export const MENU_CONFIG = [
   // ── Nhóm: Hoạt Động ──────────────────────────────────────────────
   {
     key: 'bookings',
-    label: 'Đặt Phòng',
+    label: 'Bookings',
     labelEn: 'Bookings',
     path: '/dashboard/bookings',
     icon: CalendarCheck,
@@ -149,7 +149,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'my-bookings',
-    label: 'Đặt Phòng Của Tôi',
+    label: 'My Bookings',
     labelEn: 'My Bookings',
     path: '/dashboard/my-bookings',
     icon: CalendarDays,
@@ -158,7 +158,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'customers',
-    label: 'Khách Hàng',
+    label: 'Customers',
     labelEn: 'Customers',
     path: '/dashboard/customers',
     icon: Users,
@@ -167,7 +167,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'equipment',
-    label: 'Thiết Bị',
+    label: 'Equipment',
     labelEn: 'Equipment',
     path: '/dashboard/equipment',
     icon: Wrench,
@@ -176,7 +176,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'assign-equipment',
-    label: 'Phân Bổ Thiết Bị',
+    label: 'Assign Equipment',
     labelEn: 'Assign Equipment',
     path: '/dashboard/assign-equipment',
     icon: PackageCheck,
@@ -185,7 +185,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'maintenance',
-    label: 'Bảo Trì',
+    label: 'Maintenance',
     labelEn: 'Maintenance',
     path: '/dashboard/maintenance',
     icon: Hammer,
@@ -194,7 +194,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'housekeeping',
-    label: 'Buồng Phòng',
+    label: 'Housekeeping',
     labelEn: 'Housekeeping',
     path: '/dashboard/housekeeping',
     icon: ClipboardList,
@@ -203,7 +203,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'feedback',
-    label: 'Đánh Giá',
+    label: 'Feedback',
     labelEn: 'Feedback',
     path: '/dashboard/feedback',
     icon: MessageSquare,
@@ -212,7 +212,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'invoices',
-    label: 'Hóa Đơn',
+    label: 'Invoice',
     labelEn: 'Invoices',
     path: '/dashboard/invoices',
     icon: FileText,
@@ -220,10 +220,10 @@ export const MENU_CONFIG = [
     group: 'operations',
   },
 
-  // ── Nhóm: Tài Khoản (luôn hiện) ──────────────────────────────────
+  // ── Nhóm: Account (luôn hiện) ──────────────────────────────────
   {
     key: 'account',
-    label: 'Thông Tin Tài Khoản',
+    label: 'Account Info',
     labelEn: 'Account Info',
     path: '/dashboard/account',
     icon: UserCircle,
@@ -233,7 +233,7 @@ export const MENU_CONFIG = [
   },
   {
     key: 'password',
-    label: 'Đổi Mật Khẩu',
+    label: 'Change Password',
     labelEn: 'Change Password',
     path: '/dashboard/password',
     icon: KeyRound,
@@ -247,11 +247,11 @@ export const MENU_CONFIG = [
  * Group labels for sidebar section headers
  */
 export const GROUP_LABELS = {
-  overview:   { vi: 'Tổng Quan',    en: 'Overview' },
-  system:     { vi: 'Quản Trị',     en: 'Administration' },
-  rooms:      { vi: 'Phòng Ốc',     en: 'Rooms' },
-  operations: { vi: 'Hoạt Động',    en: 'Operations' },
-  account:    { vi: 'Tài Khoản',    en: 'Account' },
+  overview:   { en: 'Overview' },
+  system:     { en: 'Administration' },
+  rooms:      { en: 'Rooms' },
+  operations: { en: 'Operations' },
+  account:    { vi: 'Account',    en: 'Account' },
 };
 
 /**

@@ -13,10 +13,10 @@ const dateTime = value => value ? new Date(value).toLocaleString('vi-VN') : '-';
 const statusConfig = {
   CHECKED_IN: { label: 'Đang lưu trú', className: 'bg-blue-50 text-blue-700 border-blue-100' },
   CHECKED_OUT: { label: 'Đã trả phòng', className: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-  CONFIRMED: { label: 'Chờ check-in', className: 'bg-amber-50 text-amber-700 border-amber-100' },
-  PENDING_PAYMENT: { label: 'Chờ thanh toán', className: 'bg-orange-50 text-orange-700 border-orange-100' },
-  CANCELLED: { label: 'Đã hủy', className: 'bg-red-50 text-red-700 border-red-100' },
-  NO_SHOW: { label: 'Không đến', className: 'bg-slate-100 text-slate-600 border-slate-200' },
+  CONFIRMED: { label: 'Pending Check-in', className: 'bg-amber-50 text-amber-700 border-amber-100' },
+  PENDING_PAYMENT: { label: 'Pending Payment', className: 'bg-orange-50 text-orange-700 border-orange-100' },
+  CANCELLED: { label: 'Cancelled', className: 'bg-red-50 text-red-700 border-red-100' },
+  NO_SHOW: { label: 'No Show', className: 'bg-slate-100 text-slate-600 border-slate-200' },
 };
 
 function getStatusBadge(status) {
@@ -88,7 +88,7 @@ export default function CheckOutManager({ preferredRoom = null }) {
     try {
       const res = await searchBookings({ status: 'CHECKED_IN', page: 0, size: 100 });
       setBookings(res?.data?.content || []);
-    } catch (e) { notify(e.message || 'Không thể tải danh sách khách đang lưu trú.', 'error'); }
+    } catch (e) { notify(e.message || 'Unable to load danh sách khách đang lưu trú.', 'error'); }
     finally { setLoading(false); }
   }, []);
   
@@ -137,7 +137,7 @@ export default function CheckOutManager({ preferredRoom = null }) {
       } else {
         setStage('INITIATE');
       }
-    } catch (e) { notify(e.message || 'Không thể tạo hóa đơn check-out.', 'error'); setSelected(null); }
+    } catch (e) { notify(e.message || 'No thể tạo hóa đơn check-out.', 'error'); setSelected(null); }
   }
 
   async function initiateInspection(event) {
@@ -154,9 +154,9 @@ export default function CheckOutManager({ preferredRoom = null }) {
       });
       setBill(res?.data);
       setStage('WAITING_FOR_INSPECTION');
-      notify('Yêu cầu kiểm phòng thành công! Đã tự động phân công nhân viên dọn dẹp.');
+      notify('Request kiểm phòng successful! Đã tự động phân công nhân viên dọn dẹp.');
       await load();
-    } catch (e) { notify(e.message || 'Không thể khởi tạo kiểm phòng.', 'error'); }
+    } catch (e) { notify(e.message || 'No thể khởi tạo kiểm phòng.', 'error'); }
     finally { setSaving(false); }
   }
 
@@ -172,14 +172,14 @@ export default function CheckOutManager({ preferredRoom = null }) {
         } else {
           if (data?.additionalCharges > 0) {
             setStage('PAYMENT');
-            notify('Báo cáo minibar đã được gửi về! Vui lòng tiến hành thanh toán.');
+            notify('Báo cáo minibar đã được gửi về! Please tiến hành thanh toán.');
           } else {
             setStage('RELEASE_READY');
-            notify('Báo cáo minibar đã được gửi về: Không tiêu dùng dịch vụ. Sẵn sàng giải phóng phòng!');
+            notify('Báo cáo minibar đã được gửi về: No tiêu dùng dịch vụ. Available giải phóng phòng!');
           }
         }
       }
-    } catch (e) { notify(e.message || 'Không thể cập nhật trạng thái.', 'error'); }
+    } catch (e) { notify(e.message || 'No thể cập nhật trạng thái.', 'error'); }
     finally { setLoading(false); }
   }
 
@@ -198,8 +198,8 @@ export default function CheckOutManager({ preferredRoom = null }) {
       });
       setBill(res?.data);
       setStage('RELEASE_READY');
-      notify('Hóa đơn Minibar đã được thanh toán thành công!');
-    } catch (e) { notify(e.message || 'Không thể xác nhận thanh toán.', 'error'); }
+      notify('Invoice Minibar đã được thanh toán successful!');
+    } catch (e) { notify(e.message || 'No thể xác nhận thanh toán.', 'error'); }
     finally { setSaving(false); }
   }
 
@@ -209,13 +209,13 @@ export default function CheckOutManager({ preferredRoom = null }) {
     try {
       const res = await releaseCheckoutRoom(selected.id);
       setBill(res?.data); setStage('DONE');
-      notify('Giải phóng phòng thành công. Housekeeping đã được tự động phân công.');
+      notify('Giải phóng phòng successful. Housekeeping đã được tự động phân công.');
       await load();
-    } catch (e) { notify(e.message || 'Không thể hoàn tất trả phòng.', 'error'); }
+    } catch (e) { notify(e.message || 'No thể hoàn tất trả phòng.', 'error'); }
     finally { setSaving(false); }
   }
 
-  const columns = ['Mã đơn', 'Khách hàng', 'Phòng', 'Ngày trả dự kiến', 'Tiền phòng', 'Trạng thái', ''];
+  const columns = ['Booking ID', 'Customer', 'Phòng', 'Check-out dự kiến', 'Tiền phòng', 'Status', ''];
   const tableRows = rows.map(row => <tr key={row.id}>
     <td className="px-4 py-3 font-bold">#{row.id}</td>
     <td className="px-4 py-3">{row.guestFullName || row.customerName || '-'}</td>
@@ -248,10 +248,10 @@ export default function CheckOutManager({ preferredRoom = null }) {
     <Toast type={toast.type} message={toast.message} onClose={() => setToast(t => ({ ...t, message: '' }))} />
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div><h2 className="text-xl font-bold text-slate-800">Khách chờ check-out</h2><p className="text-sm text-slate-500">Bắt đầu quy trình trả phòng để phân công kiểm phòng tự động, thanh toán phụ phí minibar và giải phóng phòng.</p></div>
-      <button onClick={load} className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm"><RefreshCw size={16} /> Làm mới</button>
+      <button onClick={load} className="inline-flex items-center gap-2 rounded border px-3 py-2 text-sm"><RefreshCw size={16} /> Refresh</button>
     </div>
     <div className="relative max-w-md"><Search className="absolute left-3 top-2.5 text-slate-400" size={17} /><input value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="Tìm mã đơn, khách hoặc phòng..." className="w-full rounded border py-2 pl-10 pr-3 text-sm" /></div>
-    <DataTable columns={columns} rows={tableRows} loading={loading} emptyText="Không có khách đang lưu trú chờ check-out." />
+    <DataTable columns={columns} rows={tableRows} loading={loading} emptyText="No có khách đang lưu trú chờ check-out." />
 
     <Modal open={Boolean(selected)} title={selected ? `Check-out đơn #${selected.id}` : 'Check-out'} onClose={() => !saving && setSelected(null)} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -265,18 +265,18 @@ export default function CheckOutManager({ preferredRoom = null }) {
           <div className="h-px bg-stone-200 flex-1 mx-4"></div>
           <div className="flex items-center gap-2">
             <span className={`h-6 w-6 flex items-center justify-center rounded-full font-bold ${stage === 'PAYMENT' ? 'bg-[#bfa15f] text-white' : (stage === 'RELEASE_READY' || stage === 'DONE' ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-600')}`}>2</span>
-            <span className="font-semibold text-slate-700">Thanh toán phụ thu</span>
+            <span className="font-semibold text-slate-700">Payment phụ thu</span>
           </div>
           <div className="h-px bg-stone-200 flex-1 mx-4"></div>
           <div className="flex items-center gap-2">
             <span className={`h-6 w-6 flex items-center justify-center rounded-full font-bold ${stage === 'RELEASE_READY' ? 'bg-[#bfa15f] text-white' : (stage === 'DONE' ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-600')}`}>3</span>
-            <span className="font-semibold text-slate-700">Trả phòng & Bàn giao</span>
+            <span className="font-semibold text-slate-700">Check-out & Bàn giao</span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 rounded bg-stone-50 p-4 text-sm">
-          <p><b>Khách:</b> {bill?.customerName || '-'}</p><p><b>Phòng:</b> {bill?.roomNumbers?.join(', ') || '-'}</p>
-          <p><b>Hóa đơn đã thanh toán:</b> {money(bill?.originalAmount)}</p><p><b>Trạng thái phòng:</b> {bill?.roomStatus || '-'}</p>
+          <p><b>Khách:</b> {bill?.customerName || '-'}</p><p><b>Room:</b> {bill?.roomNumbers?.join(', ') || '-'}</p>
+          <p><b>Invoice đã thanh toán:</b> {money(bill?.originalAmount)}</p><p><b>Status phòng:</b> {bill?.roomStatus || '-'}</p>
         </div>
 
         {stage === 'INITIATE' && (
@@ -298,7 +298,7 @@ export default function CheckOutManager({ preferredRoom = null }) {
 
             {/* Đồng hồ đếm thời gian */}
             <div className="flex items-center justify-center gap-4 rounded-xl border border-stone-200 bg-stone-50 py-3 px-4">
-              <span className="text-xs text-slate-500 font-medium">Thời gian chờ:</span>
+              <span className="text-xs text-slate-500 font-medium">Time chờ:</span>
               <span className={`font-mono text-2xl font-bold ${
                 elapsedSeconds >= 600 ? 'text-red-600' :
                 elapsedSeconds >= 300 ? 'text-amber-500' :
@@ -316,7 +316,7 @@ export default function CheckOutManager({ preferredRoom = null }) {
                 <span className="text-xl">🚨</span>
                 <div>
                   <p className="font-bold text-red-700 text-sm">Quá 10 phút — Manager đã được thông báo!</p>
-                  <p className="text-xs text-red-600 mt-0.5">Hệ thống đã tự động gửi cảnh báo cho quản lý về tình huống trễ kiểm phòng này.</p>
+                  <p className="text-xs text-red-600 mt-0.5">System đã tự động gửi cảnh báo cho quản lý về tình huống trễ kiểm phòng này.</p>
                 </div>
               </div>
             )}
@@ -324,7 +324,7 @@ export default function CheckOutManager({ preferredRoom = null }) {
               <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
                 <span className="text-xl">⏰</span>
                 <div>
-                  <p className="font-bold text-amber-700 text-sm">Quá 5 phút — Hệ thống đã nhắc lại nhân viên!</p>
+                  <p className="font-bold text-amber-700 text-sm">Quá 5 phút — System đã nhắc lại nhân viên!</p>
                   <p className="text-xs text-amber-600 mt-0.5">Nếu sau 10 phút vẫn chưa có báo cáo, quản lý sẽ được thông báo tự động.</p>
                 </div>
               </div>
@@ -334,14 +334,14 @@ export default function CheckOutManager({ preferredRoom = null }) {
               <RefreshCw size={48} className="mx-auto text-amber-500 animate-spin" />
               <p className="font-semibold text-amber-800 text-base">Đang chờ nhân viên dọn phòng kê khai minibar...</p>
               <p className="text-sm text-slate-600 max-w-md mx-auto">
-                Nhân viên buồng phòng đã được phân công đang kiểm tra thực tế tại phòng. Sau khi nhân viên buồng phòng gửi báo cáo minibar, hệ thống sẽ tự động cập nhật hóa đơn.
+                Nhân viên buồng phòng đã được phân công đang kiểm tra thực tế tại phòng. After khi nhân viên buồng phòng gửi báo cáo minibar, hệ thống sẽ tự động cập nhật hóa đơn.
               </p>
               <button
                 type="button"
                 onClick={refreshCheckoutStatus}
                 className="inline-flex items-center gap-2 rounded bg-[#bfa15f] px-4 py-2 text-sm font-bold text-white shadow-sm"
               >
-                <RefreshCw size={16} /> Cập nhật trạng thái
+                <RefreshCw size={16} /> Update trạng thái
               </button>
             </div>
           </div>
@@ -350,22 +350,22 @@ export default function CheckOutManager({ preferredRoom = null }) {
 
         {stage === 'PAYMENT' && (
           <div className="space-y-4">
-            <h4 className="text-sm font-bold text-slate-800 border-b pb-2 flex items-center gap-2 text-amber-600"><FileText size={18}/> 2. Hóa đơn Minibar được tạo (Chờ thanh toán)</h4>
+            <h4 className="text-sm font-bold text-slate-800 border-b pb-2 flex items-center gap-2 text-amber-600"><FileText size={18}/> 2. Invoice Minibar được tạo (Pending Payment)</h4>
             
             <div className="rounded-xl border p-4 bg-amber-50/50 border-amber-200 text-sm space-y-2">
               <div className="flex justify-between">
-                <span>Chi tiết sử dụng:</span>
+                <span>Details sử dụng:</span>
                 <span className="font-medium text-slate-800">{bill?.chargeNote || ''}</span>
               </div>
               <div className="flex justify-between border-t pt-2">
-                <span className="font-bold">Tổng tiền cần thu:</span>
+                <span className="font-bold">Total Price cần thu:</span>
                 <span className="font-bold text-[#bfa15f] text-lg">{money(bill?.additionalCharges || 0)}</span>
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 p-4 border rounded-xl bg-white">
               <label className="text-sm font-semibold text-slate-700">
-                Chọn phương thức thanh toán
+                Select phương thức thanh toán
                 <select
                   value={paymentMethod}
                   onChange={e => setPaymentMethod(e.target.value)}
@@ -386,7 +386,7 @@ export default function CheckOutManager({ preferredRoom = null }) {
                     value={cashReceived}
                     onChange={e => setCashReceived(e.target.value)}
                     className="mt-1 w-full rounded border px-3 py-2 outline-none text-sm"
-                    placeholder="Nhập số tiền..."
+                    placeholder="Enter số tiền..."
                   />
                 </label>
               ) : (
@@ -397,7 +397,7 @@ export default function CheckOutManager({ preferredRoom = null }) {
                     onChange={e => setPaymentConfirmed(e.target.checked)}
                     className="rounded border-stone-300 text-[#bfa15f]"
                   />
-                  Xác nhận khách đã chuyển khoản/quẹt thẻ thành công
+                  Confirm khách đã chuyển khoản/quẹt thẻ successful
                 </label>
               )}
             </div>
@@ -413,28 +413,28 @@ export default function CheckOutManager({ preferredRoom = null }) {
 
         {stage === 'RELEASE_READY' && (
           <div className="space-y-4">
-            <h4 className="text-sm font-bold text-slate-800 border-b pb-2 flex items-center gap-2 text-emerald-600"><CheckCircle size={18}/> 3. Thanh toán hoàn tất - Giải phóng phòng</h4>
+            <h4 className="text-sm font-bold text-slate-800 border-b pb-2 flex items-center gap-2 text-emerald-600"><CheckCircle size={18}/> 3. Payment hoàn tất - Giải phóng phòng</h4>
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 text-emerald-800 text-sm space-y-2">
-              <p>Khách hàng đã thanh toán thành công hóa đơn dịch vụ Minibar <b>{money(bill?.additionalCharges)}</b> (hoặc phòng không tiêu dùng dịch vụ).</p>
-              <p>Vui lòng tiến hành giải phóng phòng để bàn giao cho tổ buồng phòng dọn dẹp.</p>
+              <p>Customer đã thanh toán successful hóa đơn dịch vụ Minibar <b>{money(bill?.additionalCharges)}</b> (hoặc phòng không tiêu dùng dịch vụ).</p>
+              <p>Please tiến hành giải phóng phòng để bàn giao cho tổ buồng phòng dọn dẹp.</p>
             </div>
           </div>
         )}
 
         {stage === 'DONE' && (
           <div className="rounded border p-4 text-sm border-emerald-200 bg-emerald-50 text-emerald-800 space-y-1">
-            <p className="font-bold text-base">✓ Trả phòng thành công</p>
-            {bill?.additionalCharges > 0 && <p className="text-sm">Hóa đơn dịch vụ Minibar: <b>{money(bill?.additionalCharges)}</b> (Đã thanh toán)</p>}
-            <p className="text-sm">Trạng thái phòng: <b>{bill?.roomStatus}</b></p>
+            <p className="font-bold text-base">✓ Check-out successful</p>
+            {bill?.additionalCharges > 0 && <p className="text-sm">Invoice dịch vụ Minibar: <b>{money(bill?.additionalCharges)}</b> (Đã thanh toán)</p>}
+            <p className="text-sm">Status phòng: <b>{bill?.roomStatus}</b></p>
             <p className="text-xs text-emerald-700 font-medium mt-2">Phòng đã được chuyển giao, housekeeping sẽ tự động được phân công.</p>
           </div>
         )}
 
         <div className="flex justify-end gap-3 border-t pt-4">
           <button type="button" onClick={() => setSelected(null)} className="rounded border px-4 py-2 text-sm">Đóng</button>
-          {stage === 'INITIATE' && <button disabled={saving || !canProcess} className="inline-flex items-center gap-2 rounded bg-[#bfa15f] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Yêu cầu kiểm phòng</button>}
+          {stage === 'INITIATE' && <button disabled={saving || !canProcess} className="inline-flex items-center gap-2 rounded bg-[#bfa15f] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Request kiểm phòng</button>}
           {stage === 'WAITING_FOR_INSPECTION' && <button type="button" onClick={refreshCheckoutStatus} className="inline-flex items-center gap-2 rounded bg-amber-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"><RefreshCw size={16}/>Kiểm tra kết quả</button>}
-          {stage === 'PAYMENT' && <button disabled={saving || !canProcess || paymentInvalid} className="inline-flex items-center gap-2 rounded bg-emerald-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"><DollarSign size={16}/>Xác nhận đã thanh toán</button>}
+          {stage === 'PAYMENT' && <button disabled={saving || !canProcess || paymentInvalid} className="inline-flex items-center gap-2 rounded bg-emerald-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"><DollarSign size={16}/>Confirm đã thanh toán</button>}
           {stage === 'RELEASE_READY' && <button disabled={saving || !canProcess} className="inline-flex items-center gap-2 rounded bg-emerald-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"><LogOut size={16}/>Giải phóng phòng</button>}
         </div>
       </form>

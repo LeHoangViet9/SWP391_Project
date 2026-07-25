@@ -21,7 +21,7 @@ export async function getCleaningRooms(params = {}, locale = 'vi') {
 
 /**
  * PATCH /api/v1/housekeeping/rooms/{id}/status?status=CLEANING|READY|AVAILABLE
- * Cập nhật trạng thái phòng trong luồng dọn phòng
+ * Update trạng thái phòng trong luồng dọn phòng
  */
 export async function updateRoomCleaningStatus(roomId, status, locale = 'vi') {
   return apiFetch(`/housekeeping/rooms/${roomId}/status?status=${status}`, { method: 'PATCH' }, locale);

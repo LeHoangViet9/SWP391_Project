@@ -88,10 +88,10 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
             </div>
             <div>
               <h3 className="font-display text-xl font-bold text-slate-800">
-                {isVi ? 'Đánh Giá từ Khách Hàng' : 'Guest Reviews & Ratings'}
+                {'Guest Reviews & Ratings'}
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                {isVi ? 'Xem ý kiến thực tế của khách hàng đã lưu trú' : 'Real reviews and suggestions from our guests'}
+                {'Real reviews and suggestions from our guests'}
               </p>
             </div>
           </div>
@@ -112,7 +112,7 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
             {/* Avg Rating Card */}
             <div className="bg-white border border-stone-200/80 p-6 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                {isVi ? 'Điểm đánh giá trung bình' : 'Average Score'}
+                {'Average Score'}
               </span>
               <span className="text-5xl font-extrabold text-[#bfa15f] leading-none mb-3">
                 {avgRating}
@@ -129,14 +129,14 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
                 ))}
               </div>
               <span className="text-xs text-slate-400 mt-3 font-medium">
-                {isVi ? `Dựa trên ${stats.totalReviews} đánh giá` : `Based on ${stats.totalReviews} reviews`}
+                {`Based on ${stats.totalReviews} reviews`}
               </span>
             </div>
 
             {/* Distribution chart */}
             <div className="bg-white border border-stone-200/80 p-6 rounded-2xl md:col-span-2 space-y-3 shadow-sm">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                {isVi ? 'Tỷ lệ phân bố sao' : 'Rating Breakdown'}
+                {'Rating Breakdown'}
               </span>
               {ratingCounts.map(({ stars, count }) => {
                 const pct = stats.totalReviews > 0 ? (count / stats.totalReviews) * 100 : 0;
@@ -170,7 +170,7 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
                   type="text"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder={isVi ? 'Tìm theo tên, nội dung...' : 'Search by guest, comment...'}
+                  placeholder={'Search by guest, comment...'}
                   className="w-full pl-8 pr-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-[#bfa15f] outline-none text-slate-800 placeholder-slate-400 transition-all"
                 />
               </div>
@@ -181,11 +181,11 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
                 onChange={e => setFilterCategory(e.target.value)}
                 className="px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-semibold text-slate-700 focus:border-[#bfa15f] outline-none transition-all cursor-pointer"
               >
-                <option value="">{isVi ? 'Tất cả danh mục' : 'All Categories'}</option>
-                <option value="Room">{isVi ? 'Phòng nghỉ' : 'Room'}</option>
-                <option value="Service">{isVi ? 'Dịch vụ' : 'Service'}</option>
-                <option value="Cleanliness">{isVi ? 'Sạch sẽ' : 'Cleanliness'}</option>
-                <option value="Staff">{isVi ? 'Nhân viên' : 'Staff'}</option>
+                <option value="">{'All Categories'}</option>
+                <option value="Room">{'Room'}</option>
+                <option value="Service">{'Service'}</option>
+                <option value="Cleanliness">{'Cleanliness'}</option>
+                <option value="Staff">{'Staff'}</option>
               </select>
             </div>
 
@@ -199,7 +199,7 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
                     : 'bg-stone-50 border-stone-200 text-slate-600 hover:border-stone-300'
                 }`}
               >
-                {isVi ? 'Tất cả sao' : 'All Stars'}
+                {'All Stars'}
               </button>
               {[5, 4, 3, 2, 1].map(stars => (
                 <button
@@ -223,14 +223,14 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
               <div className="bg-white border border-stone-200 p-12 text-center rounded-2xl shadow-sm">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#bfa15f] mx-auto" />
                 <span className="text-sm text-slate-400 block mt-3">
-                  {isVi ? 'Đang tải đánh giá...' : 'Loading reviews...'}
+                  {'Loading reviews...'}
                 </span>
               </div>
             ) : feedbacks.length === 0 ? (
               <div className="bg-white border border-stone-200 p-12 text-center rounded-2xl shadow-sm">
                 <MessageSquare className="mx-auto text-stone-300 mb-3" size={36} />
                 <p className="text-sm text-slate-500">
-                  {isVi ? 'Không tìm thấy đánh giá nào.' : 'No reviews found.'}
+                  {'No reviews found.'}
                 </p>
               </div>
             ) : (
@@ -248,7 +248,7 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
                             {item.customerName || item.customerFullName}
                           </h4>
                           <p className="text-[10px] text-slate-400 mt-0.5">
-                            {item.roomTypeName} &bull; {new Date(item.createdAt).toLocaleDateString(isVi ? 'vi-VN' : 'en-US')}
+                            {item.roomTypeName} &bull; {new Date(item.createdAt).toLocaleDateString('en-US')}
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
@@ -288,7 +288,7 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
                         <div className="flex items-center gap-1.5 mb-1">
                           <MessageSquare size={12} className="text-[#bfa15f]" />
                           <span className="text-[9px] font-bold text-slate-700 uppercase tracking-wider">
-                            {isVi ? 'Phản hồi từ HMS' : 'Response from HMS'}
+                            {'Response from HMS'}
                           </span>
                         </div>
                         <p className="text-[10px] text-slate-500 leading-relaxed">
@@ -306,7 +306,7 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
         {/* Footer/Pagination */}
         <div className="p-6 border-t border-stone-200/80 bg-white flex items-center justify-between shrink-0">
           <span className="text-xs text-slate-400 font-medium">
-            {isVi ? `Trang ${page + 1} / ${totalPages}` : `Page ${page + 1} of ${totalPages}`}
+            {`Page ${page + 1} of ${totalPages}`}
           </span>
           <div className="flex gap-2">
             <button
@@ -314,14 +314,14 @@ export default function PublicReviewsModal({ isOpen, onClose, locale }) {
               onClick={() => setPage(p => Math.max(0, p - 1))}
               className="px-4 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-semibold text-slate-600 hover:bg-stone-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {isVi ? 'Trực tiếp trước' : 'Previous'}
+              {'Previous'}
             </button>
             <button
               disabled={page === totalPages - 1 || loading}
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
               className="px-4 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-semibold text-slate-600 hover:bg-stone-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {isVi ? 'Sau' : 'Next'}
+              {'Next'}
             </button>
           </div>
         </div>

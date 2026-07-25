@@ -81,7 +81,7 @@ function HorizBar({ label, value, max, color, unit = '', locale = 'vi' }) {
 function EmptyChart({ locale = 'vi' }) {
   return (
     <div className="h-44 flex items-center justify-center text-slate-300 text-sm">
-      {locale === 'vi' ? 'Chưa có dữ liệu' : 'No data available'}
+      {'No data available'}
     </div>
   );
 }
@@ -112,7 +112,7 @@ export default function ReportManager({ data, refetch }) {
         </button>
       </div>
 
-      {/* KPI Cards — Doanh thu */}
+      {/* KPI Cards — Revenue */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {adminDashboardCards.slice(0, 4).map((card) => (
           <DashboardCard

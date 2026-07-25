@@ -16,9 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Tạo tài khoản test khi khởi động (chỉ nếu email chưa tồn tại).
- * Mật khẩu được BCrypt hash — KHÔNG thể giải mã ngược từ DB.
- * Xem mật khẩu gốc trong log startup hoặc file TEST_ACCOUNTS.md.
+ * Create test accounts on startup (only if email does not exist).
+ * Password BCrypt hashed - CANNOT be decrypted from DB.
+ * See raw password in startup log or TEST_ACCOUNTS.md.
  */
 @Component
 @Order(3)
@@ -106,6 +106,6 @@ public class UserDataInitializer implements ApplicationRunner {
         });
 
         log.info("=========================================================");
-        log.info("BCrypt hash trong DB KHÔNG đọc ngược được — dùng mật khẩu ở trên để đăng nhập.");
+        log.info("BCrypt hash in DB CANNOT be reversed - use above password to login.");
     }
 }

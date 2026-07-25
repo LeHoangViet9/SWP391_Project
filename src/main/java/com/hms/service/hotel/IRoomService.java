@@ -31,7 +31,7 @@ public interface IRoomService {
 
     Page<RoomResponse> getRoomsByRoomType(Long roomTypeId, Integer page, Integer size);
 
-    // Lấy tất cả phòng đang trống/available
+    // Lấy tất cả room đang trống/available
     Page<RoomResponse> getAvailableRooms(Integer page, Integer size);
 
     void updateRoomStatus(Long roomId, RoomStatus status);

@@ -59,7 +59,7 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
       setBookings(res?.data?.content ?? []);
       setTotalPages(res?.data?.totalPages ?? 1);
     } catch (err) {
-      notify(err.message || 'Không thể tải danh sách đặt phòng chờ check-in.', 'error');
+      notify(err.message || 'Unable to load danh sách đặt phòng chờ check-in.', 'error');
     } finally {
       setLoading(false);
     }
@@ -119,7 +119,7 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
       const res = await getAvailableRoomsForCheckIn(booking.id);
       setAvailableRooms(res?.data ?? []);
     } catch (err) {
-      notify(err.message || 'Không thể tải danh sách phòng trống.', 'error');
+      notify(err.message || 'Unable to load danh sách phòng trống.', 'error');
     } finally {
       setLoadingRooms(false);
     }
@@ -157,19 +157,19 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
         guestNationality: guestReviewForm.nationality,
       };
       const res = await processCheckIn(payload);
-      notify(res?.data?.message || 'Check-in thành công.');
+      notify(res?.data?.message || 'Check-in successful.');
       await fetchBookings(0);
       await onCompleted?.();
       setPage(0);
       resetModalState();
     } catch (err) {
       const message = err.status === 403
-        ? 'Bạn chưa có quyền CHECKIN_VIEW. Vui lòng phân quyền lại và đăng nhập lại.'
+        ? 'Bạn chưa có quyền CHECKIN_VIEW. Please phân quyền lại và đăng nhập lại.'
         : err.status === 409
           ? (err.message || 'Booking/phòng chưa đủ điều kiện check-in.')
           : err.status === 500
             ? 'Backend đang lỗi khi xử lý check-in. Hãy xem console backend để lấy stacktrace.'
-            : (err.message || 'Check-in thất bại.');
+            : (err.message || 'Check-in failed.');
       notify(message, 'error');
     } finally {
       setSaving(false);
@@ -183,14 +183,14 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
         <p className="text-sm font-semibold text-slate-800">{booking.customerName || '-'}</p>
         {booking.bookingForOther && (
           <p className="mt-1 inline-flex rounded bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
-            Đặt hộ: {booking.guestFullName || '-'}
+            Booked by: {booking.guestFullName || '-'}
           </p>
         )}
-        <p className="text-xs text-slate-400">Khách hàng #{booking.customerId}</p>
+        <p className="text-xs text-slate-400">Customer #{booking.customerId}</p>
       </td>
       <td className="px-4 py-3">
         <p className="text-sm font-semibold">{booking.roomTypeName || '-'}</p>
-        <p className="text-xs text-slate-400">Số lượng: {booking.quantity || 1}</p>
+        <p className="text-xs text-slate-400">Quantity: {booking.quantity || 1}</p>
       </td>
       <td className="px-4 py-3 text-xs text-slate-600">{formatDateTime(booking.checkInDate)}</td>
       <td className="px-4 py-3 text-xs text-slate-600">{formatDateTime(booking.checkOutDate)}</td>
@@ -201,7 +201,7 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
             ? 'bg-amber-50 text-amber-700'
             : 'bg-blue-50 text-blue-700'
         }`}>
-          {booking.bookingStatus === 'PENDING_PAYMENT' ? 'Chờ thanh toán' : 'Chờ check-in'}
+          {booking.bookingStatus === 'PENDING_PAYMENT' ? 'Pending Payment' : 'Pending Check-in'}
         </span>
       </td>
       <td className="px-4 py-3">
@@ -239,7 +239,7 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">Tiếp nhận khách nhận phòng</h2>
+          <h2 className="text-lg font-bold text-slate-800">Process Guest Check-in</h2>
           <p className="mt-1 text-sm text-slate-500">
             Xử lý các đơn đã thanh toán và đang chờ check-in; không còn bước xác nhận thủ công.
           </p>
@@ -249,41 +249,41 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
           className="inline-flex items-center justify-center gap-2 rounded border border-stone-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-stone-50"
         >
           <RefreshCw size={15} />
-          Làm mới
+          Refresh
         </button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] md:items-end">
         <label className="block">
-          <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Tìm booking</span>
+          <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Search bookings</span>
           <div className="relative">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="Nhập mã đơn, tên khách, hạng phòng..."
+              placeholder="Enter mã đơn, tên khách, hạng phòng..."
               className="w-full rounded border border-stone-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-[#bfa15f]"
             />
           </div>
         </label>
         <div className="rounded border border-emerald-100 bg-emerald-50 px-4 py-2">
           <p className="text-xs font-bold uppercase text-emerald-700">
-            {statusFilter === 'PENDING_PAYMENT' ? 'Chờ thanh toán' : 'Chờ check-in'}
+            {statusFilter === 'PENDING_PAYMENT' ? 'Pending Payment' : 'Pending Check-in'}
           </p>
           <p className="text-lg font-bold text-emerald-800">{filteredBookings.length}</p>
         </div>
       </div>
 
       <DataTable
-        columns={['Mã đơn', 'Khách hàng', 'Hạng phòng', 'Ngày nhận', 'Ngày trả', 'Tổng tiền', 'Trạng thái', 'Thao tác']}
+        columns={['Booking ID', 'Customer', 'Room Type', 'Check-in', 'Check-out', 'Total Price', 'Status', 'Actions']}
         rows={rows}
         loading={loading}
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
         emptyText={statusFilter === 'PENDING_PAYMENT'
-          ? 'Không có đơn đặt phòng chờ thanh toán.'
-          : 'Không có đơn đặt phòng chờ check-in.'}
+          ? 'No có đơn đặt phòng chờ thanh toán.'
+          : 'No có đơn đặt phòng chờ check-in.'}
       />
 
       <Modal
@@ -295,19 +295,19 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
         <form onSubmit={handleCheckIn} className="space-y-5">
           <div className="grid grid-cols-1 gap-3 rounded-lg border border-stone-200 bg-stone-50 p-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs font-bold uppercase text-slate-500">Khách hàng</p>
+              <p className="text-xs font-bold uppercase text-slate-500">Customer</p>
               <p className="mt-1 text-sm font-semibold text-slate-800">{selectedBooking?.customerName || '-'}</p>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase text-slate-500">Hạng phòng</p>
+              <p className="text-xs font-bold uppercase text-slate-500">Room Type</p>
               <p className="mt-1 text-sm font-semibold text-slate-800">{selectedBooking?.roomTypeName || '-'}</p>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase text-slate-500">Ngày nhận</p>
+              <p className="text-xs font-bold uppercase text-slate-500">Check-in</p>
               <p className="mt-1 text-sm text-slate-700">{formatDateTime(selectedBooking?.checkInDate)}</p>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase text-slate-500">Ngày trả</p>
+              <p className="text-xs font-bold uppercase text-slate-500">Check-out</p>
               <p className="mt-1 text-sm text-slate-700">{formatDateTime(selectedBooking?.checkOutDate)}</p>
             </div>
           </div>
@@ -346,7 +346,7 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Số điện thoại</span>
+                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Phone Number</span>
                 <input
                   value={guestReviewForm.phone}
                   onChange={(event) => setGuestReviewForm({ ...guestReviewForm, phone: event.target.value })}
@@ -354,7 +354,7 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Loại giấy tờ</span>
+                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">ID Type</span>
                 <select
                   value={guestReviewForm.idType}
                   onChange={(event) => setGuestReviewForm({ ...guestReviewForm, idType: event.target.value })}
@@ -374,7 +374,7 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Quốc tịch</span>
+                <span className="mb-1 block text-xs font-bold uppercase text-slate-500">Nationality</span>
                 <input
                   value={guestReviewForm.nationality}
                   onChange={(event) => setGuestReviewForm({ ...guestReviewForm, nationality: event.target.value })}
@@ -401,7 +401,7 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
             </label>
             {loadingRooms ? (
               <div className="rounded border border-stone-200 px-3 py-2 text-sm text-slate-500">
-                Đang tải phòng trống...
+                Loading phòng trống...
               </div>
             ) : (
               <select
@@ -419,7 +419,7 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
             )}
             {!loadingRooms && availableRooms.length === 0 && (
               <p className="mt-2 text-xs font-semibold text-red-600">
-                Không tìm thấy phòng trống phù hợp. Backend vẫn sẽ kiểm tra lại khi xác nhận.
+                No tìm thấy phòng trống phù hợp. Backend vẫn sẽ kiểm tra lại khi xác nhận.
               </p>
             )}
           </div>
@@ -428,13 +428,13 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
               <div className="flex items-center gap-2 text-emerald-800">
                 <CheckCircle2 size={18} />
-                <p className="text-sm font-bold">Check-in thành công</p>
+                <p className="text-sm font-bold">Check-in successful</p>
               </div>
               <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
                 <p><span className="font-semibold">Khách:</span> {checkInResult.customerName}</p>
-                <p><span className="font-semibold">Phòng:</span> {checkInResult.roomNumber}</p>
-                <p><span className="font-semibold">Trạng thái:</span> {checkInResult.bookingStatus}</p>
-                <p><span className="font-semibold">Thời gian:</span> {formatDateTime(checkInResult.checkInTime)}</p>
+                <p><span className="font-semibold">Room:</span> {checkInResult.roomNumber}</p>
+                <p><span className="font-semibold">Status:</span> {checkInResult.bookingStatus}</p>
+                <p><span className="font-semibold">Time:</span> {formatDateTime(checkInResult.checkInTime)}</p>
               </div>
             </div>
           )}
@@ -455,7 +455,7 @@ export default function CheckInManager({ preferredRoom = null, onCompleted }) {
                 className="inline-flex items-center gap-2 rounded bg-[#bfa15f] px-5 py-2 text-sm font-bold text-white shadow hover:bg-[#a3854a] disabled:opacity-60"
               >
                 <BedDouble size={16} />
-                {saving ? 'Đang check-in...' : 'Xác nhận check-in'}
+                {saving ? 'Đang check-in...' : 'Confirm check-in'}
               </button>
             )}
           </div>

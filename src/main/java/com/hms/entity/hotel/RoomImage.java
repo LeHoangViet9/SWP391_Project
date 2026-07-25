@@ -19,7 +19,7 @@ public class RoomImage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Liên kết nhiều ảnh về một phòng (N - 1)
+    // Liên kết nhiều ảnh về một room (N - 1)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
@@ -28,7 +28,7 @@ public class RoomImage {
     private String imageUrl; // Đường dẫn link ảnh (Cloudinary, S3 hoặc link web công khai)
 
     @Column(name = "description")
-    private String description; // Mô tả góc chụp (Ví dụ: "Ảnh phòng tắm", "Ban công hướng biển")
+    private String description; // Mô tả góc chụp (Ví dụ: "Bathroom photo", "Sea view balcony")
 
     @Column(name = "uploaded_at", updatable = false)
     @CreationTimestamp

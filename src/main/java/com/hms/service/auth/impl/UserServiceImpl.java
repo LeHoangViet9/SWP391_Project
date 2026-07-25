@@ -67,7 +67,7 @@ public class UserServiceImpl implements IUserService {
             Long id, String fullName, String email, String phone, String roleName, AccountStatus status,
             Integer page, Integer size, SortField sortBy, SortDirection direction) {
         Pageable pageable = pageableUtils.createPageable(page, size, sortBy.getField(), direction);
-        // Loại trừ CUSTOMER khỏi danh sách quản lý nhân viên
+        // Exclude CUSTOMER from staff management list
         Page<User> userPage = userRepository.searchEmployees(id, fullName, email, phone, roleName, status, pageable);
         return userPage.map(user -> userMapper.toResponse(user, null));
     }
@@ -200,7 +200,7 @@ public class UserServiceImpl implements IUserService {
                     messageSource.getMessage("error.permission.notfound", null, locale));
         }
 
-        // Gán quyền mới (ghi đè sử dụng Set để tránh trùng dữ liệu)
+        // Assign new permissions (ghi đè sử dụng Set để tránh trùng dữ liệu)
         user.setCustomPermissions(new HashSet<>(permissions));
 
         User updated = userRepository.save(user);

@@ -83,7 +83,7 @@ public class PermissionDataInitializer implements ApplicationRunner {
             });
         }
 
-//        // 1.5. Xóa các permissions rác không còn sử dụng
+//        // 1.5. Delete các permissions rác không còn sử dụng
 //        List<String> orphanPerms = Arrays.asList("INVOICE_CREATE", "INVOICE_UPDATE", "INVOICE_DELETE", "CHECKIN_PROCESS", "CUSTOMER_EXPORT");
 //        for (String permName : orphanPerms) {
 //            permissionRepository.findByName(permName).ifPresent(perm -> {

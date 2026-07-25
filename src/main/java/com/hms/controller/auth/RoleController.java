@@ -121,7 +121,7 @@ public class RoleController {
      * Endpoint: DELETE /api/v1/roles/{id}
      * Yêu cầu quyền: USER_AUTHORIZE
      *
-     * @param id của vai trò cần xóa
+     * @param id of role to delete
      * @return phản hồi trống bọc trong đối tượng ApiResponse
      */
     @DeleteMapping("/{id}")
@@ -143,7 +143,7 @@ public class RoleController {
      * Endpoint: PUT /api/v1/roles/{roleId}/permissions
      * Yêu cầu quyền: USER_AUTHORIZE
      *
-     * @param roleId của vai trò cần gán quyền
+     * @param roleId of role to assign permissions
      * @param permissionIds danh sách các ID quyền hạn cần gán
      * @return vai trò đã cập nhật danh sách quyền bọc trong đối tượng ApiResponse
      */

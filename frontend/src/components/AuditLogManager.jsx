@@ -128,7 +128,7 @@ export default function AuditLogManager() {
 
   const formatTime = (value) => {
     if (!value) return '-';
-    return new Intl.DateTimeFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+    return new Intl.DateTimeFormat('en-US', {
       day: '2-digit',
       month: '2-digit',
       year: '2-digit',

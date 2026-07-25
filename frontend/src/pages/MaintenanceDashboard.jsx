@@ -7,18 +7,18 @@ import ChangePassword from '../components/ChangePassword';
 import AccountInfo from '../components/AccountInfo';
 import { Hammer, Wrench, KeyRound, UserCircle, PackageCheck } from 'lucide-react';
 const TABS = [
-  { key: 'maintenance', label: 'Yêu Cầu Bảo Trì', Icon: Hammer, component: <MaintenanceManager /> },
+  { key: 'maintenance', label: 'Maintenance Requests', Icon: Hammer, component: <MaintenanceManager /> },
 
-  // GIỮ:
-  // Màn quản lý danh mục thiết bị.
-  { key: 'equipments', label: 'Thiết Bị', Icon: Wrench, component: <EquipmentManager /> },
+  // KEEP:
+  // Equipment catalog management screen.
+  { key: 'equipments', label: 'Equipment', Icon: Wrench, component: <EquipmentManager /> },
 
   //  MỚI:
-  // Màn riêng để gán thiết bị vào phòng.
-  { key: 'assign-equipments', label: 'Phân Bổ Thiết Bị', Icon: PackageCheck, component: <AssignEquipmentToRoom /> },
+  // Dedicated screen for assigning equipment to rooms.
+  { key: 'assign-equipments', label: 'Assign Equipment', Icon: PackageCheck, component: <AssignEquipmentToRoom /> },
 
-  { key: 'account', label: 'Thông Tin Tài Khoản', Icon: UserCircle, component: <AccountInfo /> },
-  { key: 'password', label: 'Đổi Mật Khẩu', Icon: KeyRound, component: <ChangePassword /> },
+  { key: 'account', label: 'Account Info', Icon: UserCircle, component: <AccountInfo /> },
+  { key: 'password', label: 'Change Password', Icon: KeyRound, component: <ChangePassword /> },
 ];
 
 export default function MaintenanceDashboard() {
@@ -26,8 +26,8 @@ export default function MaintenanceDashboard() {
 
   return (
     <DashboardLayout
-      title="Bảng Điều Khiển Bảo Trì"
-      subtitle="Nhân viên bảo trì — quản lý yêu cầu bảo trì và thiết bị"
+      title="Maintenance Dashboard"
+      subtitle="Maintenance staff — manage maintenance requests and equipment"
       tabs={TABS}
       activeTab={activeTab}
       setActiveTab={setActiveTab}

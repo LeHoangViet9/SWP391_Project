@@ -24,7 +24,7 @@ public class CheckoutRequestDTO {
 
     private Boolean paymentConfirmed = false;
 
-    @AssertTrue(message = "Ghi chú phụ phí là bắt buộc khi phụ phí lớn hơn 0")
+    @AssertTrue(message = "Surcharge notes are required when surcharge is greater than 0")
     public boolean isChargeNoteValid() {
         return additionalCharges == null
                 || additionalCharges.signum() == 0

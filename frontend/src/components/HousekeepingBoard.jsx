@@ -18,8 +18,8 @@ function TaskFormModal({ housekeepers, onSubmit, onClose, loading }) {
     const [errors, setErrors] = useState({});
     const validate = () => {
         const errs = {};
-        if (!form.roomId) errs.roomId = 'Vui lòng nhập ID phòng';
-        if (!form.assignedToId) errs.assignedToId = 'Vui lòng chọn nhân viên';
+        if (!form.roomId) errs.roomId = 'Please nhập ID phòng';
+        if (!form.assignedToId) errs.assignedToId = 'Please chọn nhân viên';
         return errs;
     };
     const handleChange = (e) => {
@@ -38,7 +38,7 @@ function TaskFormModal({ housekeepers, onSubmit, onClose, loading }) {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg animate-in zoom-in-95 fade-in duration-200">
                 <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100">
                     <h2 className="font-bold text-slate-800 text-lg flex items-center gap-2">
-                        <Plus size={18} className="text-[#bfa15f]" /> Tạo tác vụ mới
+                        <Plus size={18} className="text-[#bfa15f]" /> Tạo tác vụ new
                     </h2>
                     <button onClick={onClose} className="p-2 hover:bg-stone-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
                         <X size={20} />
@@ -47,11 +47,11 @@ function TaskFormModal({ housekeepers, onSubmit, onClose, loading }) {
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
-                            Số phòng (ID) <span className="text-red-500">*</span>
+                            Room Number (ID) <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="number" name="roomId" value={form.roomId} onChange={handleChange}
-                            placeholder="Nhập ID phòng..."
+                            placeholder="Enter ID phòng..."
                             className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.roomId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
                         />
                         {errors.roomId && <p className="text-red-500 text-xs mt-1">{errors.roomId}</p>}
@@ -65,7 +65,7 @@ function TaskFormModal({ housekeepers, onSubmit, onClose, loading }) {
                                 name="assignedToId" value={form.assignedToId} onChange={handleChange}
                                 className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.assignedToId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
                             >
-                                <option value="">Chọn nhân viên...</option>
+                                <option value="">Select nhân viên...</option>
                                 {housekeepers.map(h => (
                                     <option key={h.id} value={h.id} disabled={h.workStatus === 'OFF'}>
                                         {h.fullName} (#{h.id}){h.workStatus === 'OFF' ? ' — Nghỉ' : ''}
@@ -75,23 +75,23 @@ function TaskFormModal({ housekeepers, onSubmit, onClose, loading }) {
                         ) : (
                             <input
                                 type="number" name="assignedToId" value={form.assignedToId} onChange={handleChange}
-                                placeholder="Nhập ID nhân viên..."
+                                placeholder="Enter ID nhân viên..."
                                 className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.assignedToId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
                             />
                         )}
                         {errors.assignedToId && <p className="text-red-500 text-xs mt-1">{errors.assignedToId}</p>}
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Ghi chú</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Notes</label>
                         <textarea
                             name="notes" value={form.notes} onChange={handleChange}
-                            rows={3} placeholder="Ghi chú thêm về tác vụ..."
+                            rows={3} placeholder="Notes thêm về tác vụ..."
                             className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f] resize-none"
                         />
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-stone-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-stone-50 transition-colors">
-                            Hủy
+                            Cancel
                         </button>
                         <button
                             type="submit" disabled={loading}
@@ -113,8 +113,8 @@ function ReportIssueModal({ onSubmit, onClose, loading }) {
     const [errors, setErrors] = useState({});
     const validate = () => {
         const errs = {};
-        if (!form.roomId) errs.roomId = 'Vui lòng nhập ID phòng';
-        if (!form.issueDescription) errs.issueDescription = 'Vui lòng mô tả sự cố';
+        if (!form.roomId) errs.roomId = 'Please nhập ID phòng';
+        if (!form.issueDescription) errs.issueDescription = 'Please mô tả sự cố';
         return errs;
     };
     const handleChange = (e) => {
@@ -142,23 +142,23 @@ function ReportIssueModal({ onSubmit, onClose, loading }) {
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">ID Phòng <span className="text-red-500">*</span></label>
                         <input
                             type="number" name="roomId" value={form.roomId} onChange={handleChange}
-                            placeholder="Nhập ID phòng gặp sự cố..."
+                            placeholder="Enter ID phòng gặp sự cố..."
                             className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none focus:border-[#bfa15f] ${errors.roomId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
                         />
                         {errors.roomId && <p className="text-red-500 text-xs mt-1">{errors.roomId}</p>}
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Mức độ nghiêm trọng</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Severity nghiêm trọng</label>
                         <select name="severity" value={form.severity} onChange={handleChange}
                             className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]">
                             <option value="LOW">🟢 Thấp</option>
-                            <option value="MEDIUM">🟡 Trung bình</option>
+                            <option value="MEDIUM">🟡 Medium</option>
                             <option value="HIGH">🟠 Cao</option>
-                            <option value="CRITICAL">🔴 Khẩn cấp</option>
+                            <option value="CRITICAL">🔴 Critical</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Mô tả sự cố <span className="text-red-500">*</span></label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Description sự cố <span className="text-red-500">*</span></label>
                         <textarea
                             name="issueDescription" value={form.issueDescription} onChange={handleChange}
                             rows={4} placeholder="Ví dụ: Điều hòa không hoạt động, vòi sen bị rỉ nước..."
@@ -167,7 +167,7 @@ function ReportIssueModal({ onSubmit, onClose, loading }) {
                         {errors.issueDescription && <p className="text-red-500 text-xs mt-1">{errors.issueDescription}</p>}
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-stone-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-stone-50 transition-colors">Hủy</button>
+                        <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-stone-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-stone-50 transition-colors">Cancel</button>
                         <button type="submit" disabled={loading}
                             className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
                             {loading ? <Loader2 size={16} className="animate-spin" /> : <Wrench size={16} />}
@@ -190,7 +190,7 @@ function RoomHistoryModal({ onClose }) {
     const STATUS_LABELS = {
         DIRTY: { label: 'Cần dọn', color: 'bg-red-100 text-red-700 border-red-200', dot: 'bg-red-500' },
         CLEANING: { label: 'Đang dọn', color: 'bg-amber-100 text-amber-700 border-amber-200', dot: 'bg-amber-500' },
-        READY: { label: 'Sẵn sàng', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+        READY: { label: 'Available', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
         AVAILABLE: { label: 'Khả dụng', color: 'bg-blue-100 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
         OCCUPIED: { label: 'Đang có khách', color: 'bg-purple-100 text-purple-700 border-purple-200', dot: 'bg-purple-500' },
         MAINTENANCE: { label: 'Bảo trì', color: 'bg-orange-100 text-orange-700 border-orange-200', dot: 'bg-orange-500' },
@@ -225,7 +225,7 @@ function RoomHistoryModal({ onClose }) {
                     <form onSubmit={fetchHistory} className="flex gap-2">
                         <input
                             type="number" value={roomId} onChange={e => setRoomId(e.target.value)}
-                            placeholder="Nhập ID phòng..."
+                            placeholder="Enter ID phòng..."
                             className="flex-1 px-3 py-2.5 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]"
                         />
                         <button type="submit" className="px-4 py-2.5 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors flex items-center gap-2">
@@ -239,7 +239,7 @@ function RoomHistoryModal({ onClose }) {
                             <Loader2 size={32} className="animate-spin text-[#bfa15f]" />
                         </div>
                     ) : history.length === 0 && searched ? (
-                        <p className="text-center text-slate-400 py-12">Không có lịch sử cho phòng này</p>
+                        <p className="text-center text-slate-400 py-12">No có lịch sử cho phòng này</p>
                     ) : history.length > 0 ? (
                         <div className="relative pl-6">
                             <div className="absolute left-2.5 top-0 bottom-0 w-0.5 bg-stone-200" />
@@ -261,7 +261,7 @@ function RoomHistoryModal({ onClose }) {
                                             </div>
                                             {item.previousState && (
                                                 <p className="text-xs text-slate-400 mt-1.5">
-                                                    Trước đó: <span className="font-medium">{STATUS_LABELS[item.previousState]?.label || item.previousState}</span>
+                                                    Before đó: <span className="font-medium">{STATUS_LABELS[item.previousState]?.label || item.previousState}</span>
                                                 </p>
                                             )}
                                             {(item.triggeredByUserName || item.changedByName) && (
@@ -302,7 +302,7 @@ const STATUS_CONFIG = {
         Icon: Sparkles,
     },
     READY: {
-        label: 'Sẵn sàng',
+        label: 'Available',
         labelEn: 'Ready',
         color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
         dot: 'bg-emerald-500',
@@ -352,7 +352,7 @@ function KanbanCard({ room, onAction, updating, onReportMaintenance, canUpdate, 
                         className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${nextAction.btnClass} disabled:opacity-60 active:scale-[0.98]`}
                     >
                         <StatusIcon size={15} />
-                        {updating === room.id ? 'Đang cập nhật...' : nextAction.label}
+                        {updating === room.id ? 'Updating...' : nextAction.label}
                         <ArrowRight size={14} />
                     </button>
                 )}
@@ -397,7 +397,7 @@ function KanbanColumn({ title, rooms, icon: Icon, config, onAction, updating, on
                 {rooms.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-10 text-slate-300">
                         <CheckCircle2 size={32} className="mb-2" />
-                        <p className="text-xs font-semibold">Không có phòng</p>
+                        <p className="text-xs font-semibold">No có phòng</p>
                     </div>
                 ) : (
                     rooms.map(room => (
@@ -426,9 +426,9 @@ function TableView({ rooms, onAction, updating, canUpdate }) {
                 <tr className="border-b-2 border-stone-200">
                     <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-slate-400 font-semibold">Phòng</th>
                     <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-slate-400 font-semibold">Tầng</th>
-                    <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-slate-400 font-semibold">Loại phòng</th>
-                    <th className="text-center py-3 px-4 text-xs uppercase tracking-wider text-slate-400 font-semibold">Trạng thái</th>
-                    {canUpdate && <th className="text-right py-3 px-4 text-xs uppercase tracking-wider text-slate-400 font-semibold">Thao tác</th>}
+                    <th className="text-left py-3 px-4 text-xs uppercase tracking-wider text-slate-400 font-semibold">Room Type</th>
+                    <th className="text-center py-3 px-4 text-xs uppercase tracking-wider text-slate-400 font-semibold">Status</th>
+                    {canUpdate && <th className="text-right py-3 px-4 text-xs uppercase tracking-wider text-slate-400 font-semibold">Actions</th>}
                 </tr>
                 </thead>
                 <tbody>
@@ -471,7 +471,7 @@ function TableView({ rooms, onAction, updating, canUpdate }) {
                                         </button>
                                     )}
                                     {room.roomStatus === 'READY' && (
-                                        <span className="text-xs text-emerald-600 font-semibold">✓ Sẵn sàng</span>
+                                        <span className="text-xs text-emerald-600 font-semibold">✓ Available</span>
                                     )}
                                 </td>
                             )}
@@ -558,11 +558,11 @@ export default function HousekeepingBoard() {
                 ...payload,
                 assignedById: user?.id,
             });
-            notify('Tạo tác vụ thành công!');
+            notify('Tạo tác vụ successful!');
             setShowCreateModal(false);
             fetchAll();
         } catch (err) {
-            notify(err?.message || 'Tạo tác vụ thất bại', 'error');
+            notify(err?.message || 'Tạo tác vụ failed', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -578,7 +578,7 @@ export default function HousekeepingBoard() {
             notify('Đã gửi báo cáo sự cố!');
             setShowIssueModal(false);
         } catch (err) {
-            notify(err?.message || 'Gửi báo cáo thất bại', 'error');
+            notify(err?.message || 'Gửi báo cáo failed', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -589,7 +589,7 @@ export default function HousekeepingBoard() {
         try {
             await updateRoomCleaningStatus(roomId, nextStatus);
             const statusLabels = { CLEANING: 'Đang dọn', READY: 'Đã hoàn thành' };
-            notify(`Cập nhật phòng thành "${statusLabels[nextStatus] || nextStatus}" thành công!`);
+            notify(`Update phòng thành "${statusLabels[nextStatus] || nextStatus}" successful!`);
 
             // Move room between columns locally for instant feedback
             if (nextStatus === 'CLEANING') {
@@ -658,7 +658,7 @@ export default function HousekeepingBoard() {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
                 <div>
                     <h2 className="text-lg font-bold text-slate-800">Quản lý Buồng phòng</h2>
-                    <p className="text-sm text-slate-500 mt-0.5">Tổng cộng <span className="font-bold text-[#bfa15f]">{total}</span> phòng đang theo dõi</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Total <span className="font-bold text-[#bfa15f]">{total}</span> phòng đang theo dõi</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                     {canViewHistory && (
@@ -703,12 +703,12 @@ export default function HousekeepingBoard() {
                 <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-center transition-all hover:shadow-md">
                     <CheckCircle2 size={20} className="text-emerald-400 mx-auto mb-1" />
                     <p className="text-2xl font-bold text-emerald-600">{readyRooms.length}</p>
-                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mt-0.5">Sẵn sàng</p>
+                    <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mt-0.5">Available</p>
                 </div>
                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center transition-all hover:shadow-md">
                     <BedDouble size={20} className="text-slate-400 mx-auto mb-1" />
                     <p className="text-2xl font-bold text-slate-600">{total}</p>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Tổng cộng</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Total</p>
                 </div>
             </div>
 
@@ -747,7 +747,7 @@ export default function HousekeepingBoard() {
                         }`}
                     >
                         <Filter size={13} />
-                        {filter === 'all' ? 'Tất cả' : 'Ưu tiên'}
+                        {filter === 'all' ? 'All' : 'Priority'}
                         <ChevronDown size={12} />
                     </button>
                     {filterOpen && (
@@ -756,13 +756,13 @@ export default function HousekeepingBoard() {
                                 onClick={() => { setFilter('all'); setFilterOpen(false); }}
                                 className={`w-full text-left px-3 py-2 hover:bg-stone-50 ${filter === 'all' ? 'text-[#bfa15f] font-bold' : 'text-slate-600'}`}
                             >
-                                Tất cả phòng
+                                All phòng
                             </button>
                             <button
                                 onClick={() => { setFilter('priority'); setFilterOpen(false); }}
                                 className={`w-full text-left px-3 py-2 hover:bg-stone-50 ${filter === 'priority' ? 'text-[#bfa15f] font-bold' : 'text-slate-600'}`}
                             >
-                                Ưu tiên (Check-out)
+                                Priority (Check-out)
                             </button>
                         </div>
                     )}
@@ -773,10 +773,10 @@ export default function HousekeepingBoard() {
                     onClick={fetchAll}
                     disabled={loading}
                     className="ml-auto flex items-center gap-1.5 px-3 py-1.5 border border-stone-200 rounded-lg text-xs font-semibold text-slate-500 hover:bg-stone-50 hover:border-stone-300 transition-all disabled:opacity-60"
-                    title="Làm mới danh sách"
+                    title="Refresh danh sách"
                 >
                     <RefreshCw size={13} className={loading ? 'animate-spin text-[#bfa15f]' : ''} />
-                    {loading ? 'Đang tải...' : 'Làm mới'}
+                    {loading ? 'Loading...' : 'Refresh'}
                 </button>
 
             </div>
@@ -785,7 +785,7 @@ export default function HousekeepingBoard() {
             {loading && allRooms.length === 0 ? (
                 <div className="flex items-center justify-center py-20">
                     <RefreshCw size={24} className="animate-spin text-[#bfa15f]" />
-                    <span className="ml-3 text-sm text-slate-500">Đang tải danh sách phòng...</span>
+                    <span className="ml-3 text-sm text-slate-500">Loading danh sách phòng...</span>
                 </div>
             ) : viewMode === 'kanban' ? (
                 <div className="flex flex-col lg:flex-row gap-4 overflow-x-auto pb-2">
@@ -812,7 +812,7 @@ export default function HousekeepingBoard() {
                         canReport={canReport}
                     />
                     <KanbanColumn
-                        title="Sẵn sàng (READY)"
+                        title="Available (READY)"
                         rooms={readyRooms}
                         icon={CheckCircle2}
                         config={STATUS_CONFIG.READY}
@@ -833,7 +833,7 @@ export default function HousekeepingBoard() {
                     <AlertTriangle size={15} className="mt-0.5 shrink-0" />
                     <span>
             <strong>{dirtyRooms.length} phòng</strong> đang chờ dọn dẹp.
-            Ưu tiên dọn phòng có khách check-in sớm nhất trước.
+            Priority dọn phòng có khách check-in sớm nhất trước.
           </span>
                 </div>
             )}
@@ -848,7 +848,7 @@ export default function HousekeepingBoard() {
                 <div className="space-y-4">
                     <div>
                         <label className="block text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2">
-                            Mô tả vấn đề
+                            Description vấn đề
                         </label>
                         <textarea
                             value={maintenanceNote}
@@ -863,7 +863,7 @@ export default function HousekeepingBoard() {
                             onClick={() => setMaintenanceModal(false)}
                             className="flex-1 py-2.5 border border-stone-300 rounded-lg text-sm font-semibold text-slate-600 hover:border-slate-400 transition-colors"
                         >
-                            Hủy
+                            Cancel
                         </button>
                         <button
                             onClick={submitMaintenanceReport}

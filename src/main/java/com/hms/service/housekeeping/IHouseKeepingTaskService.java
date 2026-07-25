@@ -33,7 +33,7 @@ public interface IHouseKeepingTaskService {
 
     List<HouseKeepingTaskResponse> getUncompletedTasksByUser(Long userId);
 
-    // FIX: Thêm hàm lấy lịch sử đổi trạng thái phòng cho housekeeping audit.
+    // FIX: Thêm hàm lấy lịch sử đổi trạng thái room cho housekeeping audit.
     Page<RoomStateHistoryResponse> getRoomStateHistory(Long roomId,Integer page, Integer size,SortField sortBy,SortDirection sortDirection);
 
 
@@ -41,11 +41,11 @@ public interface IHouseKeepingTaskService {
 
     void reportMinibar(Long id, MinibarReportRequest request);
     /**
-     * Tự động tạo task dọn phòng khi checkout.
+     * Tự động tạo task dọn room khi checkout.
      * Gán cho housekeeper có ít task nhất (round-robin by workload).
      * Gửi email thông báo cho housekeeper được gán.
      *
-     * @param roomId ID phòng cần dọn
+     * @param roomId ID room cần dọn
      * @param triggeredByUserId ID user thực hiện checkout (có thể null)
      */
     void autoCreateCleaningTaskOnCheckout(Long roomId, Long triggeredByUserId);

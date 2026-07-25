@@ -99,29 +99,29 @@ export default function RoomTypeManager({ readOnly = false }) {
 
     const name = form.typeName?.trim();
     if (!name) {
-      notify(locale === 'vi' ? 'Tên loại phòng không được để trống!' : 'Room type name cannot be blank!', 'error');
+      notify('Room type name cannot be blank!', 'error');
       setSaving(false);
       return;
     }
     const basePrice = Number(form.basePrice);
     if (isNaN(basePrice) || basePrice <= 0 || !Number.isInteger(basePrice)) {
-      notify(locale === 'vi' ? 'Giá cơ bản phải là số nguyên dương!' : 'Base price must be a positive integer!', 'error');
+      notify('Base price must be a positive integer!', 'error');
       setSaving(false);
       return;
     }
     if (basePrice > 2147483647) {
-      notify(locale === 'vi' ? 'Giá cơ bản không được vượt quá 2.147.483.647!' : 'Base price must not exceed 2147483647!', 'error');
+      notify('Base price must not exceed 2147483647!', 'error');
       setSaving(false);
       return;
     }
     const maxGuests = Number(form.maxGuests);
     if (isNaN(maxGuests) || maxGuests < 1 || maxGuests > 20 || !Number.isInteger(maxGuests)) {
-      notify(locale === 'vi' ? 'Số khách tối đa phải là số nguyên từ 1 đến 20!' : 'Maximum guests must be an integer between 1 and 20!', 'error');
+      notify('Maximum guests must be an integer between 1 and 20!', 'error');
       setSaving(false);
       return;
     }
     if (form.description && form.description.length > 255) {
-      notify(locale === 'vi' ? 'Ghi chú không được vượt quá 255 ký tự!' : 'Description must not exceed 255 characters!', 'error');
+      notify('Description must not exceed 255 characters!', 'error');
       setSaving(false);
       return;
     }
@@ -146,7 +146,7 @@ export default function RoomTypeManager({ readOnly = false }) {
       closeModal();
       fetchData(page);
     } catch (e) {
-      notify(e.status === 403 ? '403 Forbidden — Bạn không có quyền thực hiện thao tác này!' : e.message, 'error');
+      notify(e.status === 403 ? '403 Forbidden — Access denied!' : e.message, 'error');
     } finally {
       setSaving(false);
     }
@@ -155,10 +155,10 @@ export default function RoomTypeManager({ readOnly = false }) {
   const handleDelete = async (item) => {
     try {
       const res = await apiFetch(`/room-types/${item.id}`, { method: 'DELETE' });
-      notify(res?.message || 'Đã xóa!');
+      notify(res?.message || 'Deleted!');
       fetchData(page);
     } catch (e) {
-      notify(e.status === 403 ? '403 Forbidden — Bạn không có quyền xóa!' : e.message, 'error');
+      notify(e.status === 403 ? '403 Forbidden — Access denied!' : e.message, 'error');
     } finally {
       setDeleteConfirmId(null);
     }
@@ -187,7 +187,7 @@ export default function RoomTypeManager({ readOnly = false }) {
             ))}
           </div>
         ) : (
-          <span className="text-xs text-slate-400">{t('room.noImage') || 'Chưa có ảnh'}</span>
+          <span className="text-xs text-slate-400">{t('room.noImage') || 'No image'}</span>
         )}
       </td>
       {!isReadOnly && (
@@ -195,16 +195,16 @@ export default function RoomTypeManager({ readOnly = false }) {
           {deleteConfirmId === item.id ? (
             <div className="flex items-center gap-2 justify-center">
               <button onClick={() => handleDelete(item)} className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium hover:bg-red-600 transition-colors">
-                {locale === 'vi' ? 'Xác nhận' : 'Confirm'}
+                {'Confirm'}
               </button>
               <button onClick={() => setDeleteConfirmId(null)} className="border border-stone-300 bg-white px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-stone-100 transition-colors">
-                {locale === 'vi' ? 'Hủy' : 'Cancel'}
+                {'Cancel'}
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-3 justify-center">
-              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}><Edit2 size={15} /></button>
-              <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'Xóa' : 'Delete'}><Trash2 size={15} /></button>
+              <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={'Edit'}><Edit2 size={15} /></button>
+              <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title={'Delete'}><Trash2 size={15} /></button>
             </div>
           )}
         </td>
@@ -212,7 +212,7 @@ export default function RoomTypeManager({ readOnly = false }) {
     </tr>
   ));
 
-  const cols = [t('roomType.columns.id'), t('roomType.columns.name'), t('roomType.columns.description'), t('roomType.columns.basePrice'), t('roomType.columns.maxGuests'), locale === 'vi' ? 'Hình ảnh' : 'Images', ...(!isReadOnly ? [t('roomType.columns.actions')] : [])];
+  const cols = [t('roomType.columns.id'), t('roomType.columns.name'), t('roomType.columns.description'), t('roomType.columns.basePrice'), t('roomType.columns.maxGuests'), 'Images', ...(!isReadOnly ? [t('roomType.columns.actions')] : [])];
 
   return (
     <div>
@@ -229,10 +229,10 @@ export default function RoomTypeManager({ readOnly = false }) {
             }}
             className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700"
           >
-            <option value="typeName">{t('roomType.searchOptions.name') || 'Tên loại phòng'}</option>
-            <option value="id">{t('roomType.searchOptions.id') || 'Mã (ID)'}</option>
-            <option value="basePrice">{t('roomType.searchOptions.price') || 'Giá tối đa (VND)'}</option>
-            <option value="maxGuests">{t('roomType.searchOptions.maxGuests') || 'Số khách tối thiểu'}</option>
+            <option value="typeName">{t('roomType.searchOptions.name') || 'Room Type Name'}</option>
+            <option value="id">{t('roomType.searchOptions.id') || 'ID'}</option>
+            <option value="basePrice">{t('roomType.searchOptions.price') || 'Max Price (VND)'}</option>
+            <option value="maxGuests">{t('roomType.searchOptions.maxGuests') || 'Min Guests'}</option>
           </select>
           <div className="relative flex-1 max-w-xs">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -242,10 +242,10 @@ export default function RoomTypeManager({ readOnly = false }) {
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && fetchData(0)}
               placeholder={
-                searchOpt === 'id' ? (t('roomType.placeholders.id') || 'Nhập mã ID...') :
-                searchOpt === 'basePrice' ? (t('roomType.placeholders.price') || 'Nhập giá tối đa...') :
-                searchOpt === 'maxGuests' ? (t('roomType.placeholders.maxGuests') || 'Nhập số khách tối thiểu...') :
-                (t('roomType.placeholders.name') || t('roomType.searchPlaceholder') || 'Nhập tên loại phòng...')
+                searchOpt === 'id' ? (t('roomType.placeholders.id') || 'Enter ID...') :
+                searchOpt === 'basePrice' ? (t('roomType.placeholders.price') || 'Enter max price...') :
+                searchOpt === 'maxGuests' ? (t('roomType.placeholders.maxGuests') || 'Enter min guests...') :
+                (t('roomType.placeholders.name') || t('roomType.searchPlaceholder') || 'Enter room type name...')
               }
               className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
             />
@@ -267,7 +267,7 @@ export default function RoomTypeManager({ readOnly = false }) {
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('roomType.modal.name')}</label>
             <input required value={form.typeName} onChange={e => setForm(f => ({ ...f, typeName: e.target.value }))}
-              className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder="Ví dụ: Deluxe Suite" />
+              className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none" placeholder="e.g., Deluxe Suite" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -283,7 +283,7 @@ export default function RoomTypeManager({ readOnly = false }) {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-              {locale === 'vi' ? 'Hình ảnh loại phòng' : 'Room type images'}
+              {'Room type images'}
             </label>
             <input
               type="file"
@@ -296,7 +296,7 @@ export default function RoomTypeManager({ readOnly = false }) {
             {existingImageUrls.length > 0 && (
               <div className="mb-3">
                 <span className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
-                  {locale === 'vi' ? 'Ảnh hiện tại' : 'Current images'}
+                  {'Current images'}
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {existingImageUrls.map((url, idx) => (
@@ -318,7 +318,7 @@ export default function RoomTypeManager({ readOnly = false }) {
             {previews.length > 0 && (
               <div>
                 <span className="block text-[11px] font-semibold text-slate-500 mb-1 uppercase tracking-wider">
-                  {locale === 'vi' ? 'Ảnh mới' : 'New images'}
+                  {'New images'}
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {previews.map((url, idx) => (
@@ -345,11 +345,11 @@ export default function RoomTypeManager({ readOnly = false }) {
               maxLength={255}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none resize-none"
-              placeholder="Mô tả tiện nghi, tầm nhìn..."
+              placeholder="Description of amenities, view..."
             />
             <div className="mt-1 flex items-center justify-between text-xs">
               <span className="text-slate-500">
-                {locale === 'vi' ? 'Tối đa 255 ký tự' : 'Maximum 255 characters'}
+                {'Maximum 255 characters'}
               </span>
               <span className="text-slate-500">
                 {form.description?.length ?? 0}/255

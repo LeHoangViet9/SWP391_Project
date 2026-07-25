@@ -16,10 +16,10 @@ public class UserPrincipal implements UserDetails {
     private final String username;
     private final String password;
     private final String email;
-    private final boolean enabled; // Liên kết trực tiếp với thuộc tính enabled của User Entity
+    private final boolean enabled; // Direct link to enabled attribute of User Entity
     private final Collection<? extends GrantedAuthority> authorities;
 
-    // Hàm Factory để build nhanh object từ Entity User sang UserPrincipal
+    // Factory function to quickly build UserPrincipal object from User Entity
     public static UserPrincipal create(User user) {
         GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().getRoleName().toUpperCase());
 
@@ -28,7 +28,7 @@ public class UserPrincipal implements UserDetails {
                 user.getEmail(),
                 user.getPassword(),
                 user.getEmail(),
-                user.getEnabled(), // 🌟 Gán giá trị true/false của OTP vào đây
+                user.getEnabled(), // 🌟 Assign true/false OTP value here
                 Collections.singletonList(authority)
         );
     }
@@ -65,6 +65,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return enabled; // 🌟 Trả về trạng thái kích hoạt thực tế
+        return enabled; // 🌟 Return actual activation status
     }
 }

@@ -56,7 +56,7 @@ export const adminDashboardCards = [
     getSub: (data, locale) => {
       const month = new Date().getMonth() + 1;
       const year = new Date().getFullYear();
-      return locale === 'vi' ? `Tháng ${month}/${year}` : `Month ${month}/${year}`;
+      return `Month ${month}/${year}`;
     }
   },
   {
@@ -110,7 +110,7 @@ export const adminDashboardCards = [
 export const receptionDashboardCards = [
   {
     key: 'expectedCheckIns',
-    title: 'Dự kiến nhận phòng',
+    title: 'Expected Check-in',
     icon: LogIn,
     linkPath: '/dashboard/check-in',
     color: '#3b82f6',
@@ -118,7 +118,7 @@ export const receptionDashboardCards = [
   },
   {
     key: 'expectedCheckOuts',
-    title: 'Dự kiến trả phòng',
+    title: 'Expected Check-out',
     icon: LogOut,
     linkPath: '/dashboard/check-in',
     color: '#8b5cf6',
@@ -126,7 +126,7 @@ export const receptionDashboardCards = [
   },
   {
     key: 'actualCheckIns',
-    title: 'Đã nhận phòng',
+    title: 'Checked In',
     icon: CheckCircle2,
     linkPath: '/dashboard/check-in',
     color: '#10b981',
@@ -134,7 +134,7 @@ export const receptionDashboardCards = [
   },
   {
     key: 'actualCheckOuts',
-    title: 'Đã trả phòng',
+    title: 'Checked Out',
     icon: CheckCircle2,
     linkPath: '/dashboard/check-in',
     color: '#14b8a6',
@@ -142,7 +142,7 @@ export const receptionDashboardCards = [
   },
   {
     key: 'pendingBookings',
-    title: 'Chờ duyệt đặt phòng',
+    title: 'Pending Booking Approval',
     icon: CalendarCheck,
     linkPath: '/dashboard/bookings',
     color: '#f59e0b',
@@ -154,7 +154,7 @@ export const receptionDashboardCards = [
 export const maintenanceDashboardCards = [
   {
     key: 'totalRequests',
-    title: 'Tổng yêu cầu',
+    title: 'Total Requests',
     icon: Hammer,
     linkPath: '/dashboard/maintenance',
     color: '#64748b',
@@ -162,7 +162,7 @@ export const maintenanceDashboardCards = [
   },
   {
     key: 'pendingRequests',
-    title: 'Chưa xử lý',
+    title: 'Pending',
     icon: AlertCircle,
     linkPath: '/dashboard/maintenance',
     color: '#ef4444',
@@ -170,7 +170,7 @@ export const maintenanceDashboardCards = [
   },
   {
     key: 'inProgressRequests',
-    title: 'Đang sửa chữa',
+    title: 'Under Maintenance',
     icon: Wrench,
     linkPath: '/dashboard/maintenance',
     color: '#3b82f6',
@@ -178,7 +178,7 @@ export const maintenanceDashboardCards = [
   },
   {
     key: 'completedRequests',
-    title: 'Đã hoàn thành',
+    title: 'Completed',
     icon: CheckCircle2,
     linkPath: '/dashboard/maintenance',
     color: '#10b981',
@@ -186,7 +186,7 @@ export const maintenanceDashboardCards = [
   },
   {
     key: 'totalCost',
-    title: 'Tổng chi phí',
+    title: 'Total Cost',
     icon: DollarSign,
     linkPath: '/dashboard/maintenance',
     color: '#bfa15f',
@@ -198,7 +198,7 @@ export const maintenanceDashboardCards = [
 export const housekeepingDashboardCards = [
   {
     key: 'myAssignedTasksCount',
-    title: 'Nhiệm vụ của tôi hôm nay',
+    title: 'My Tasks Today',
     icon: ClipboardList,
     linkPath: '/dashboard/housekeeping',
     color: '#bfa15f',
@@ -206,7 +206,7 @@ export const housekeepingDashboardCards = [
   },
   {
     key: 'dirtyRoomsCount',
-    title: 'Phòng đang bẩn (DIRTY)',
+    title: 'Dirty Rooms (DIRTY)',
     icon: AlertTriangle,
     linkPath: '/dashboard/housekeeping',
     color: '#ef4444',
@@ -214,7 +214,7 @@ export const housekeepingDashboardCards = [
   },
   {
     key: 'cleaningRoomsCount',
-    title: 'Phòng đang dọn (CLEANING)',
+    title: 'Cleaning Rooms (CLEANING)',
     icon: Sparkles,
     linkPath: '/dashboard/housekeeping',
     color: '#3b82f6',
@@ -222,7 +222,7 @@ export const housekeepingDashboardCards = [
   },
   {
     key: 'availableRoomsCount',
-    title: 'Phòng trống sẵn sàng (AVAILABLE)',
+    title: 'Available Rooms (AVAILABLE)',
     icon: CheckCircle2,
     linkPath: '/dashboard/housekeeping', // Redirects to housekeeping board since housekeeper lacks ROOM_VIEW permission
     color: '#10b981',

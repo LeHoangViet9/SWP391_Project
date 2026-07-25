@@ -15,7 +15,7 @@ public class AdminDashboardResponse {
     private BigDecimal totalRevenueAllTime; // Tổng doanh thu lịch sử từ trước đến nay
     private BigDecimal todayRevenue;        // Doanh thu riêng ngày hôm nay
     private BigDecimal thisMonthRevenue;    // Doanh thu gom của tháng này
-    private long totalSuccessfulBookings;   // Tổng số đơn đặt phòng thành công mang lại tiền
+    private long totalSuccessfulBookings;   // Tổng số đơn đặt room thành công mang lại tiền
 
     // --- KHỐI 0: SỐ LIỆU TỔNG QUAN HỆ THỐNG ---
     private long totalCustomers;   // Tổng số khách hàng
@@ -24,7 +24,7 @@ public class AdminDashboardResponse {
     private long totalStaff;       // Tổng số nhân viên (User)
 
     // --- KHỐI 2: DỮ LIỆU VẼ BIỂU ĐỒ TRÒN (CƠ CẤU) ---
-    // Cơ cấu doanh số theo loại phòng (Hạng phòng nào được chuộng nhất)
+    // Cơ cấu doanh số theo loại room (Hạng room nào được chuộng nhất)
     // Trả về map dạng: {"Deluxe Room": 45, "Suite Room": 20, "Standard Room": 80}
     private Map<String, Long> bookingsCountByRoomType;
 
@@ -40,7 +40,7 @@ public class AdminDashboardResponse {
     @Data
     @AllArgsConstructor
     public static class RevenueChartPoint {
-        private String label;        // Ví dụ: "Thứ 2", "Thứ 3"... hoặc "Tháng 5", "Tháng 6"
+        private String label;        // Ví dụ: "Mon", "Tue"... hoặc "May", "Jun"
         private BigDecimal value;    // Số tiền doanh thu tương ứng mốc đó
     }
 }

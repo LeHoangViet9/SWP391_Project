@@ -26,7 +26,7 @@ const ERROR_CONFIG = {
         iconColor: 'text-amber-500',
         titleVi: 'Phòng không còn trống',
         titleEn: 'Room No Longer Available',
-        descVi: 'Rất tiếc, phòng bạn chọn đã được đặt bởi khách khác trong khoảng thời gian này. Vui lòng chọn ngày khác hoặc xem phòng thay thế.',
+        descVi: 'Rất tiếc, phòng bạn chọn đã được đặt bởi khách khác trong khoảng thời gian này. Please chọn ngày khác hoặc xem phòng thay thế.',
         descEn: 'Sorry, this room has been booked by another guest for the selected dates. Please try different dates or view alternative rooms.',
     },
     payment_timeout: {
@@ -35,7 +35,7 @@ const ERROR_CONFIG = {
         iconColor: 'text-red-500',
         titleVi: 'Phiên thanh toán đã hết hạn',
         titleEn: 'Payment Session Expired',
-        descVi: 'Phiên thanh toán của bạn đã hết hạn do không hoạt động. Vui lòng thử lại để hoàn tất đặt phòng.',
+        descVi: 'Phiên thanh toán của bạn đã hết hạn do không hoạt động. Please thử lại để hoàn tất đặt phòng.',
         descEn: 'Your payment session has timed out due to inactivity. Please try again to complete your booking.',
     },
     network_error: {
@@ -44,7 +44,7 @@ const ERROR_CONFIG = {
         iconColor: 'text-blue-500',
         titleVi: 'Lỗi kết nối',
         titleEn: 'Connection Error',
-        descVi: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại.',
+        descVi: 'No thể kết nối đến máy chủ. Please kiểm tra kết nối mạng và thử lại.',
         descEn: 'Unable to connect to the server. Please check your internet connection and try again.',
     },
     system_error: {
@@ -53,7 +53,7 @@ const ERROR_CONFIG = {
         iconColor: 'text-orange-500',
         titleVi: 'Đã xảy ra lỗi',
         titleEn: 'Something Went Wrong',
-        descVi: 'Hệ thống gặp sự cố khi xử lý đặt phòng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.',
+        descVi: 'System gặp sự cố khi xử lý đặt phòng. Please thử lại sau hoặc liên hệ hỗ trợ.',
         descEn: 'Our system encountered an issue processing your booking. Please try again or contact support.',
     },
 };
@@ -121,7 +121,7 @@ export default function BookingFailureModal({
                     {errorMessage && (
                         <details className="text-left mb-6">
                             <summary className="text-xs text-slate-400 cursor-pointer hover:text-slate-600 transition-colors">
-                                {isVi ? 'Chi tiết lỗi' : 'Error details'}
+                                {'Error details'}
                             </summary>
                             <p className="mt-2 text-xs text-slate-500 bg-stone-50 rounded-lg p-3 border border-stone-200 font-mono break-all">
                                 {errorMessage}
@@ -138,7 +138,7 @@ export default function BookingFailureModal({
                         className="w-full btn-gold py-3.5 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm transition-all hover:shadow-lg hover:shadow-[#bfa15f]/20"
                     >
                         <RotateCcw size={16} />
-                        {isVi ? 'Thử lại' : 'Try Again'}
+                        {'Try Again'}
                     </button>
 
                     {/* Secondary: View Alternative Rooms */}
@@ -147,7 +147,7 @@ export default function BookingFailureModal({
                         className="w-full py-3.5 rounded-xl flex items-center justify-center gap-2 font-semibold text-sm border-2 border-stone-200 text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-all"
                     >
                         <Search size={16} />
-                        {isVi ? 'Xem phòng thay thế' : 'View Alternative Rooms'}
+                        {'View Alternative Rooms'}
                     </a>
 
                     {/* Tertiary: Contact Support */}
@@ -157,7 +157,7 @@ export default function BookingFailureModal({
                             className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-[#bfa15f] transition-colors"
                         >
                             <Headphones size={13} />
-                            {isVi ? 'Liên hệ hỗ trợ' : 'Contact Support'}
+                            {'Contact Support'}
                         </a>
                         <span className="text-stone-300 mx-2">|</span>
                         <a

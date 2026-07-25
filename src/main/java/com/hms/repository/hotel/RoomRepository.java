@@ -21,30 +21,30 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     Page<Room> findByRoomStatus(RoomStatus roomStatus, Pageable pageable);
 
-    // Lấy tất cả phòng KHÔNG có status chỉ định (dùng cho soft delete)
+    // Lấy tất cả room KHÔNG có status chỉ định (dùng cho soft delete)
 
-    // Lấy phòng theo loại, loại trừ INACTIVE (deleted)
+    // Lấy room theo loại, loại trừ INACTIVE (deleted)
     Page<Room> findByRoomTypeIdAndRoomStatusNot(Long roomTypeId, RoomStatus roomStatus, Pageable pageable);
 
-    // Lấy phòng theo tầng, loại trừ INACTIVE (deleted)
+    // Lấy room theo tầng, loại trừ INACTIVE (deleted)
     Page<Room> findByFloorNumberAndRoomStatusNot(Integer floorNumber, RoomStatus roomStatus, Pageable pageable);
 
-    // Lấy tất cả phòng theo tầng, bao gồm cả các phòng INACTIVE (để sinh số phòng
+    // Lấy tất cả room theo tầng, bao gồm cả các room INACTIVE (để sinh số phòng
     // không bị trùng)
     List<Room> findByFloorNumber(Integer floorNumber);
 
     @Query("SELECT r.roomStatus, COUNT(r) FROM Room r GROUP BY r.roomStatus")
     List<Object[]> countRoomsGroupedByStatus();
 
-    // Đếm số phòng AVAILABLE thuộc một loại phòng – dùng để kiểm tra số lượng
+    // Đếm số room AVAILABLE thuộc một loại room – dùng để kiểm tra số lượng
     // booking
 
     boolean existsByRoomTypeIdAndRoomStatusNot(Long roomTypeId, RoomStatus roomStatus);
 
     /**
-     * Đếm tổng phòng đang hoạt động của một loại phòng.
+     * Đếm tổng room đang hoạt động của một loại phòng.
      * Loại trừ INACTIVE (đã xóa mềm) và MAINTENANCE (bảo trì).
-     * Dùng để tính công suất thực sự, độc lập với trạng thái phòng tức thời.
+     * Dùng để tính công suất thực sự, độc lập với trạng thái room tức thời.
      */
     @Query("""
                 SELECT COUNT(r)

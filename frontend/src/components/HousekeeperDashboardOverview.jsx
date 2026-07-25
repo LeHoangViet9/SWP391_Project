@@ -11,7 +11,7 @@ export default function HousekeeperDashboardOverview({ data, refetch }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-slate-800">Bảng điều khiển buồng phòng</h3>
+          <h3 className="text-lg font-bold text-slate-800">Dashboard buồng phòng</h3>
           <p className="text-xs text-slate-400 mt-0.5">Theo dõi lịch dọn phòng, phòng bẩn cần xử lý khẩn cấp</p>
         </div>
         <button
@@ -19,7 +19,7 @@ export default function HousekeeperDashboardOverview({ data, refetch }) {
           className="flex items-center gap-1.5 text-xs px-3 py-2 border border-stone-200 rounded-lg hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors text-slate-500"
         >
           <RefreshCw size={13} />
-          Làm mới
+          Refresh
         </button>
       </div>
 
@@ -42,11 +42,11 @@ export default function HousekeeperDashboardOverview({ data, refetch }) {
         <div className="space-y-2 text-center md:text-left">
           <div className="flex items-center gap-2 justify-center md:justify-start text-emerald-600 font-semibold text-sm">
             <ShieldCheck size={18} />
-            <span>Sẵn sàng phục vụ khách lưu trú</span>
+            <span>Available phục vụ khách lưu trú</span>
           </div>
           <h4 className="text-base font-bold text-slate-800">Quản lý các nhiệm vụ buồng phòng</h4>
           <p className="text-sm text-slate-500 max-w-2xl">
-            Hãy bắt đầu cập nhật trạng thái làm sạch cho phòng bẩn (DIRTY) để chuyển trạng thái sang Đang dọn dẹp (CLEANING), sau đó hoàn thành để chuyển sang Sẵn sàng (AVAILABLE).
+            Hãy bắt đầu cập nhật trạng thái làm sạch cho phòng bẩn (DIRTY) để chuyển trạng thái sang Đang dọn dẹp (CLEANING), sau đó hoàn thành để chuyển sang Available (AVAILABLE).
           </p>
         </div>
         <button

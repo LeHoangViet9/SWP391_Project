@@ -41,7 +41,7 @@ export default function InvoiceManager() {
       setItems(res?.data?.content ?? []);
       setTotalPages(res?.data?.totalPages ?? 1);
     } catch (e) {
-      notify(e.message || (isVi ? 'Lỗi tải danh sách hóa đơn' : 'Failed to load invoices'), 'error');
+      notify(e.message || ('Failed to load invoices'), 'error');
     } finally {
       setLoading(false);
     }
@@ -66,13 +66,13 @@ export default function InvoiceManager() {
         isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
       }`}>
         {isPaid ? <CheckCircle size={12} /> : <Clock size={12} />}
-        {isPaid ? (isVi ? 'Đã thanh toán' : 'Paid') : (isVi ? 'Chờ thanh toán' : 'Pending')}
+        {isPaid ? ('Paid') : ('Pending')}
       </span>
     );
   };
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat(isVi ? 'vi-VN' : 'en-US', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'VND',
       maximumFractionDigits: 0,
@@ -81,13 +81,13 @@ export default function InvoiceManager() {
 
   const cols = [
     'ID',
-    isVi ? 'Mã đặt phòng' : 'Booking ID',
-    isVi ? 'Khách hàng' : 'Customer',
-    isVi ? 'Phân loại' : 'Type',
-    isVi ? 'Tổng tiền' : 'Total Amount',
-    isVi ? 'Trạng thái' : 'Status',
-    isVi ? 'Ngày tạo' : 'Created Date',
-    isVi ? 'Hành động' : 'Actions'
+    'Booking ID',
+    'Customer',
+    'Type',
+    'Total Amount',
+    'Status',
+    'Created Date',
+    'Actions'
   ];
 
   const rows = items.map(item => (
@@ -98,18 +98,18 @@ export default function InvoiceManager() {
       <td className="px-4 py-3">
         {item.invoiceType === 'SURCHARGE' ? (
           <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold bg-amber-50 text-amber-700">
-            {isVi ? 'Phụ thu Check-out' : 'Surcharge'}
+            {'Surcharge'}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold bg-stone-100 text-stone-700">
-            {isVi ? 'Tiền phòng' : 'Room Charge'}
+            {'Room Charge'}
           </span>
         )}
       </td>
       <td className="px-4 py-3 font-semibold text-[#bfa15f]">{formatPrice(item.totalAmount || item.totalPrice || 0)}</td>
       <td className="px-4 py-3">{getStatusBadge(item.paymentStatus)}</td>
       <td className="px-4 py-3 text-xs text-slate-500">
-        {item.createdAt ? new Date(item.createdAt).toLocaleString(isVi ? 'vi-VN' : 'en-US') : '—'}
+        {item.createdAt ? new Date(item.createdAt).toLocaleString('en-US') : '—'}
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
@@ -119,7 +119,7 @@ export default function InvoiceManager() {
             target="_blank"
             rel="noopener noreferrer"
             className="p-1.5 rounded-lg bg-stone-100 hover:bg-[#bfa15f]/20 text-slate-500 hover:text-[#bfa15f] transition-all"
-            title={isVi ? 'In hóa đơn' : 'Print Invoice'}
+            title={'Print Invoice'}
           >
             <Printer size={15} />
           </a>
@@ -135,10 +135,10 @@ export default function InvoiceManager() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-800">
-            {isVi ? 'Quản lý Hóa đơn & Doanh thu' : 'Invoice & Payment Management'}
+            {'Invoice & Payment Management'}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            {isVi ? 'Tra cứu hóa đơn đặt phòng, theo dõi trạng thái thanh toán và in chứng từ.' : 'Lookup booking invoices, track payment status and print receipts.'}
+            {'Lookup booking invoices, track payment status and print receipts.'}
           </p>
         </div>
       </div>
@@ -152,7 +152,7 @@ export default function InvoiceManager() {
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(0); }}
               onKeyDown={handleSearchKeyPress}
-              placeholder={isVi ? 'Nhập tên khách hoặc mã đặt phòng...' : 'Enter customer or booking ID...'}
+              placeholder={'Enter customer or booking ID...'}
               className="w-full pl-8 pr-3 py-2 text-sm bg-white/5 border border-white/10 rounded-xl focus:border-[#bfa15f] outline-none text-white placeholder-white/30 transition-all"
             />
           </div>
@@ -162,9 +162,9 @@ export default function InvoiceManager() {
             onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
             className="border border-white/10 rounded-xl px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-[#0c192c] text-white font-medium min-w-[150px]"
           >
-            <option value="">{isVi ? 'Tất cả trạng thái' : 'All Statuses'}</option>
-            <option value="PAID">{isVi ? 'Đã thanh toán' : 'Paid'}</option>
-            <option value="PENDING">{isVi ? 'Chờ thanh toán' : 'Pending'}</option>
+            <option value="">{'All Statuses'}</option>
+            <option value="PAID">{'Paid'}</option>
+            <option value="PENDING">{'Pending'}</option>
           </select>
 
           <button onClick={() => fetchData(page)} className="p-2 border border-white/10 rounded-xl hover:bg-white/5 text-white/70">

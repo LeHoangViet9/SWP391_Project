@@ -95,10 +95,10 @@ export default function BookingBar({ onSearchGuests }) {
           <div className="text-left">
             <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-1.5">
               <Users size={14} />
-              {locale === 'vi' ? 'Số lượng khách' : 'Number of Guests'}
+              {'Number of Guests'}
             </label>
             <span className="text-xs text-stone-400 block">
-              {locale === 'vi' ? 'Tìm phòng phù hợp nhất' : 'Find the perfect fit'}
+              {'Find the perfect fit'}
             </span>
           </div>
 

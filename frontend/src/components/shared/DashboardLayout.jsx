@@ -24,7 +24,6 @@ export default function DashboardLayout({
   const navigate = useNavigate();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
 
   const active = tabs.find((tab) => tab.key === activeTab);
@@ -33,11 +32,6 @@ export default function DashboardLayout({
   const handleLogout = () => {
     logout();
     navigate('/login');
-  };
-
-  const toggleLocale = (lang) => {
-    setLocale(lang);
-    setLangOpen(false);
   };
 
   return (
@@ -103,15 +97,15 @@ export default function DashboardLayout({
                 />
 
                 {/* SỬA:
-                    Bản cũ dùng:
+                    
                     t(`dashboard.tabs.${key}`) || label
 
                     Nhưng hàm t() của bạn nếu không thấy key thì trả về chính key đó,
                     ví dụ: dashboard.tabs.assign-equipments.
                     Vì đó vẫn là string nên || label không chạy.
 
-                    Bản mới dùng trực tiếp label trong TABS.
-                    Ví dụ: label: "Gán Thiết Bị"
+                    Bản new dùng trực tiếp label trong TABS.
+                    Ví dụ: label: "Gán Equipment"
                 */}
                 <span>{label}</span>
               </button>
@@ -153,39 +147,7 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <button
-                onClick={() => setLangOpen(!langOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 border border-stone-200 rounded text-xs hover:border-[#bfa15f] transition-colors bg-white font-semibold text-slate-700"
-              >
-                <span>{locale === 'vi' ? 'VI' : 'EN'}</span>
-                <ChevronDown size={12} className="text-slate-400" />
-              </button>
 
-              {langOpen && (
-                <div className="absolute right-0 mt-1.5 bg-white text-slate-800 rounded shadow-lg overflow-hidden min-w-[110px] z-[60] border border-stone-200 text-xs">
-                  <button
-                    onClick={() => toggleLocale('vi')}
-                    className={`block w-full text-left px-4 py-2 hover:bg-stone-100 ${locale === 'vi'
-                        ? 'text-[#bfa15f] font-semibold'
-                        : ''
-                      }`}
-                  >
-                    Tiếng Việt
-                  </button>
-
-                  <button
-                    onClick={() => toggleLocale('en')}
-                    className={`block w-full text-left px-4 py-2 hover:bg-stone-100 ${locale === 'en'
-                        ? 'text-[#bfa15f] font-semibold'
-                        : ''
-                      }`}
-                  >
-                    English
-                  </button>
-                </div>
-              )}
-            </div>
 
             <span className="w-px h-6 bg-stone-200" />
 
@@ -273,14 +235,14 @@ export default function DashboardLayout({
                   Bản cũ dùng:
                   t(`dashboard.tabs.${active?.key}`) || active?.label
 
-                  Bản mới dùng active.label để tránh hiện key i18n.
+                  
               */}
               {active?.label}
 
               {activeTab === 'room-types' &&
                 tabs.find((tab) => tab.key === 'room-types')?.readOnly && (
                   <span className="text-xs text-slate-400 font-normal ml-2">
-                    {locale === 'vi' ? '(Chỉ xem)' : '(Read only)'}
+                    {'(Read only)'}
                   </span>
                 )}
             </h2>

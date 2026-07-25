@@ -40,7 +40,7 @@ public class CustomerController {
         ));
     }
 
-    // 1. Lấy danh sách khách hàng -> Quyền xem (CUSTOMER_VIEW)
+    // 1. Get list of khách hàng -> Quyền xem (CUSTOMER_VIEW)
     @GetMapping
     @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<ApiResponse<Page<CustomerResponse>>> findAll(
@@ -73,7 +73,7 @@ public class CustomerController {
         ),HttpStatus.OK);
     }
 
-    // 3. Tạo mới khách hàng -> Quyền tạo (CUSTOMER_CREATE) hoặc Khách hàng tự tạo profile của mình
+    // 3. Create new khách hàng -> Quyền tạo (CUSTOMER_CREATE) hoặc Khách hàng tự tạo profile của mình
     @PostMapping
     @PreAuthorize("hasAuthority('CUSTOMER_CREATE') or (hasRole('CUSTOMER') and #customerCreateDTO.email == authentication.name)")
     public ResponseEntity<ApiResponse<CustomerResponse>> createCustomer(@Valid @RequestBody CustomerCreateDTO  customerCreateDTO){
@@ -86,7 +86,7 @@ public class CustomerController {
         ),HttpStatus.CREATED);
     }
 
-    // 4. Cập nhật thông tin khách hàng -> Quyền cập nhật (CUSTOMER_UPDATE) hoặc Khách hàng tự cập nhật profile của mình
+    // 4. Update information of khách hàng -> Quyền cập nhật (CUSTOMER_UPDATE) hoặc Khách hàng tự cập nhật profile của mình
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('CUSTOMER_UPDATE') or (hasRole('CUSTOMER') and #customerCreateDTO.email == authentication.name)")
     public ResponseEntity<ApiResponse<CustomerResponse>> updateCustomer(@Valid @RequestBody CustomerCreateDTO  customerCreateDTO, @PathVariable Long id){
@@ -99,7 +99,7 @@ public class CustomerController {
         ),HttpStatus.OK);
     }
 
-    // 5. Xóa mềm khách hàng -> Quyền xóa (CUSTOMER_DELETE)
+    // 5. Delete mềm khách hàng -> Quyền xóa (CUSTOMER_DELETE)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteCustomer(
@@ -135,7 +135,7 @@ public class CustomerController {
         );
     }
 
-    // 7. Xóa vĩnh viễn khách hàng -> Quyền xóa hoàn toàn (CUSTOMER_DELETE)
+    // 7. Delete vĩnh viễn khách hàng -> Quyền xóa hoàn toàn (CUSTOMER_DELETE)
     @DeleteMapping("/{id}/force")
     @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<ApiResponse<Void>> forceDeleteCustomer(

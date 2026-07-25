@@ -9,6 +9,6 @@ import java.util.List;
 @Repository
 public interface EquipmentImageRepository extends JpaRepository<EquipmentImage, Long> {
 
-    // Lấy danh sách ảnh của 1 thiết bị
+    // Get list of ảnh của 1 thiết bị
     List<EquipmentImage> findByEquipment_Id(Long equipmentId);
 }

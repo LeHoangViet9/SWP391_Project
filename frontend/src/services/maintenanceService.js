@@ -4,9 +4,9 @@ export const maintenanceService = {
     getAll: (params = {}, locale = 'vi') => {
         const q = new URLSearchParams();
 
-        // THAY ĐỔI: Gộp tất cả loại tìm kiếm vào 1 param 'keyword' để khớp với backend.
-        // Trước đây: Gửi túng param riêng (id, issueTitle, roomId...) nhưng backend chỉ nhận 'keyword'
-        // Sau khi sửa: Thống nhất gửi 'keyword' cho mọi loại tìm kiếm.
+        // FIX: Gộp tất cả loại tìm kiếm vào 1 param 'keyword' để khớp với backend.
+        // Before đây: Gửi túng param riêng (id, issueTitle, roomId...) nhưng backend chỉ nhận 'keyword'
+        // After khi sửa: Thống nhất gửi 'keyword' cho mọi loại tìm kiếm.
         if (params.keyword) q.set('keyword', params.keyword);
         if (params.severity) q.set('severity', params.severity);
         if (params.status) q.set('status', params.status);
@@ -14,7 +14,7 @@ export const maintenanceService = {
         if (params.page != null) q.set('page', params.page);
         if (params.size != null) q.set('size', params.size);
 
-        // THAY ĐỔI: Sửa mặc định sắp xếp theo ngày tạo (CREATED_AT) và mới nhất trước (DESC)
+        // FIX: Sửa mặc định sắp xếp theo ngày tạo (CREATED_AT) và new nhất trước (DESC)
         q.set('sortBy', params.sortBy || 'CREATED_AT');
         q.set('direction', params.direction || 'DESC');
 
@@ -72,7 +72,7 @@ export const maintenanceService = {
     /**
      * Maintenance staff từ chối yêu cầu → hệ thống giao cho người tiếp theo
      */
-    // THAY ĐỔI: Gửi kèm lý do từ chối (reason) nếu có lên server
+    // FIX: Gửi kèm lý do từ chối (reason) nếu có lên server
     denyRequest: (id, reason, locale = 'vi') => {
         const params = new URLSearchParams();
         if (reason && reason.trim()) params.set('reason', reason.trim());

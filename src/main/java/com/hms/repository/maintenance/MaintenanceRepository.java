@@ -19,7 +19,7 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
 
     // ==================== DELETE VALIDATION ====================
 
-    // Kiểm tra thiết bị có đang xuất hiện trong bất kỳ yêu cầu bảo trì nào hay không.
+    // Kiểm tra equipment có đang xuất hiện trong bất kỳ yêu cầu bảo trì nào hay không.
     // Nếu tồn tại thì không cho phép xóa thiết bị.
     boolean existsByEquipmentId(Long equipmentId);
 
@@ -75,9 +75,9 @@ public interface MaintenanceRepository extends JpaRepository<RepairRequest, Long
             @Param("now") LocalDateTime now);
 
     /*
-     * THÊM MỚI: Tìm tất cả phiếu ASSIGNED mà đã được giao trước thời điểm :threshold (quá 15 phút).
-     * Trước đây: Không có query này → không thể phát hiện phiếu bị "treo" bao lâu.
-     * Sau khi thêm: Scheduler dùng query này để quét mọi phút và thu hồi việc quá hạn.
+     * NEW: Tìm tất cả phiếu ASSIGNED mà đã được giao trước thời điểm :threshold (quá 15 minutes).
+     * Previously: Không có query này → không thể phát hiện phiếu bị "treo" bao lâu.
+     * After adding: Scheduler dùng query này để quét mọi minutes và thu hồi việc quá hạn.
      * :threshold = LocalDateTime.now().minusMinutes(15)
      */
     @Query("SELECT r FROM RepairRequest r WHERE r.status = com.hms.common.enums.MaintenanceStatus.ASSIGNED AND r.assignedAt IS NOT NULL AND r.assignedAt <= :threshold")

@@ -18,7 +18,7 @@ const DEMO_BANK = {
 const BOOKING_HOLD_MINUTES = 30;
 
 function formatPrice(price, locale) {
-    return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+    return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'VND',
         maximumFractionDigits: 0,
@@ -121,11 +121,11 @@ export default function InvoicePage() {
                 if (res?.data) {
                     setInvoice(res.data);
                 } else {
-                    setError(isVi ? 'Không tìm thấy hóa đơn.' : 'Invoice not found.');
+                    setError('Invoice not found.');
                 }
             })
             .catch((err) => {
-                setError(err.message || (isVi ? 'Lỗi tải hóa đơn.' : 'Failed to load invoice.'));
+                setError(err.message || ('Failed to load invoice.'));
             })
             .finally(() => setLoading(false));
     }, [bookingId, locale, searchParams.toString()]);
@@ -159,7 +159,7 @@ export default function InvoicePage() {
             setCopiedField(field);
             window.setTimeout(() => setCopiedField(''), 1800);
         } catch (_) {
-            setSimulationError(isVi ? 'Không thể sao chép tự động. Vui lòng sao chép thủ công.' : 'Could not copy automatically. Please copy manually.');
+            setSimulationError('Could not copy automatically. Please copy manually.');
         }
     };
 
@@ -172,7 +172,7 @@ export default function InvoicePage() {
             if (response?.data) setInvoice(response.data);
             setSimulationSucceeded(true);
         } catch (err) {
-            setSimulationError(err.message || (isVi ? 'Không thể giả lập thanh toán.' : 'Could not simulate payment.'));
+            setSimulationError(err.message || ('Could not simulate payment.'));
         } finally {
             setSimulationLoading(false);
         }
@@ -181,15 +181,15 @@ export default function InvoicePage() {
     const handleReceptionistPayment = async () => {
         setPaymentError('');
         if (!paymentMethod) {
-            setPaymentError(isVi ? 'Vui lòng chọn hình thức thanh toán.' : 'Please choose a payment method.');
+            setPaymentError('Please choose a payment method.');
             return;
         }
         if (paymentMethod === 'CASH' && (!cashReceived || parsedCashReceived < grandTotal)) {
-            setPaymentError(isVi ? 'Số tiền nhận từ khách phải đủ để thanh toán hóa đơn.' : 'Cash received must cover the invoice total.');
+            setPaymentError('Cash received must cover the invoice total.');
             return;
         }
         if (paymentMethod !== 'CASH' && !paymentConfirmed) {
-            setPaymentError(isVi ? 'Vui lòng xác nhận đã nhận được tiền từ khách.' : 'Please confirm that payment was received.');
+            setPaymentError('Please confirm that payment was received.');
             return;
         }
 
@@ -205,7 +205,7 @@ export default function InvoicePage() {
             );
             if (res?.data) setInvoice(res.data);
         } catch (err) {
-            setPaymentError(err.message || (isVi ? 'Thanh toán thất bại.' : 'Payment failed.'));
+            setPaymentError(err.message || ('Payment failed.'));
         } finally {
             setPaymentLoading(false);
         }
@@ -231,7 +231,7 @@ export default function InvoicePage() {
                 <div className="flex-1 flex items-center justify-center">
                     <div className="flex items-center gap-3 text-[#bfa15f]">
                         <div className="w-6 h-6 border-2 border-[#bfa15f] border-t-transparent rounded-full animate-spin" />
-                        <span>{isVi ? 'Đang tải hóa đơn...' : 'Loading invoice...'}</span>
+                        <span>{'Loading invoice...'}</span>
                     </div>
                 </div>
                 <Footer />
@@ -248,7 +248,7 @@ export default function InvoicePage() {
                         <FileText size={48} className="text-stone-300 mx-auto mb-4" />
                         <p className="text-slate-600 mb-4">{error}</p>
                         <Link to="/" className="text-[#bfa15f] font-semibold hover:underline">
-                            ← {isVi ? 'Về trang chủ' : 'Back to home'}
+                            ← {'Back to home'}
                         </Link>
                     </div>
                 </div>
@@ -269,7 +269,7 @@ export default function InvoicePage() {
                 <div className="no-print flex items-center justify-between mb-6">
                     <Link to="/" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-[#bfa15f] transition-colors">
                         <ArrowLeft size={16} />
-                        {isVi ? 'Quay lại' : 'Go back'}
+                        {'Go back'}
                     </Link>
                     {invoice?.paymentStatus === 'PAID' && <div className="hidden">
                         <button
@@ -277,7 +277,7 @@ export default function InvoicePage() {
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm font-semibold text-slate-700 hover:border-[#bfa15f] hover:text-[#bfa15f] transition-all shadow-sm"
                         >
                             <Printer size={16} />
-                            {isVi ? 'In hóa đơn' : 'Print'}
+                            {'Print'}
                         </button>
                     </div>}
                 </div>
@@ -285,9 +285,9 @@ export default function InvoicePage() {
                 {!isReceptionistPayment && invoice?.paymentStatus !== 'PAID' && (
                     <section className="no-print mb-6 overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-lg">
                         <div className="bg-gradient-to-r from-blue-700 to-cyan-600 px-6 py-5 text-white">
-                            <h2 className="text-xl font-bold">{isVi ? 'Thanh toán chuyển khoản' : 'Bank transfer payment'}</h2>
+                            <h2 className="text-xl font-bold">{'Bank transfer payment'}</h2>
                             <p className="mt-1 text-sm text-blue-50">
-                                {isVi ? 'Quét mã QR giả hoặc sao chép thông tin bên dưới để thử luồng thanh toán.' : 'Scan the demo QR or copy the details below to test the payment flow.'}
+                                {'Scan the demo QR or copy the details below to test the payment flow.'}
                             </p>
                         </div>
                         <div className="grid gap-6 p-6 md:grid-cols-[210px_1fr]">
@@ -295,17 +295,17 @@ export default function InvoicePage() {
                                 <QrPlaceholder value={transferContent} />
                                 <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700 tabular-nums">
                                     {paymentSecondsLeft > 0
-                                        ? `${isVi ? 'Đang chờ thanh toán' : 'Awaiting payment'} · ${formatCountdown(paymentSecondsLeft)}`
-                                        : (isVi ? 'Đã hết thời gian thanh toán' : 'Payment time expired')}
+                                        ? `${'Awaiting payment'} · ${formatCountdown(paymentSecondsLeft)}`
+                                        : ('Payment time expired')}
                                 </span>
                             </div>
                             <div className="space-y-3">
                                 {[
-                                    ['bank', isVi ? 'Ngân hàng' : 'Bank', DEMO_BANK.name],
-                                    ['account', isVi ? 'Số tài khoản' : 'Account number', DEMO_BANK.accountNumber],
-                                    ['holder', isVi ? 'Chủ tài khoản' : 'Account holder', DEMO_BANK.accountName],
-                                    ['amount', isVi ? 'Số tiền' : 'Amount', formatPrice(grandTotal, locale)],
-                                    ['content', isVi ? 'Nội dung chuyển khoản' : 'Transfer reference', transferContent],
+                                    ['bank', 'Bank', DEMO_BANK.name],
+                                    ['account', 'Account number', DEMO_BANK.accountNumber],
+                                    ['holder', 'Account holder', DEMO_BANK.accountName],
+                                    ['amount', 'Amount', formatPrice(grandTotal, locale)],
+                                    ['content', 'Transfer reference', transferContent],
                                 ].map(([field, label, value]) => (
                                     <div key={field} className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 px-4 py-3">
                                         <div className="min-w-0">
@@ -316,7 +316,7 @@ export default function InvoicePage() {
                                             type="button"
                                             onClick={() => copyValue(field, field === 'amount' ? grandTotal : value)}
                                             className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
-                                            title={isVi ? 'Sao chép' : 'Copy'}
+                                            title={'Copy'}
                                         >
                                             {copiedField === field ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
                                         </button>
@@ -330,8 +330,8 @@ export default function InvoicePage() {
                                     className="mt-2 w-full rounded-lg bg-blue-700 px-5 py-3.5 font-bold text-white shadow hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {simulationLoading
-                                        ? (isVi ? 'Đang xử lý...' : 'Processing...')
-                                        : (isVi ? 'Giả lập thanh toán thành công' : 'Simulate successful payment')}
+                                        ? ('Processing...')
+                                        : ('Simulate successful payment')}
                                 </button>
                             </div>
                         </div>
@@ -341,17 +341,17 @@ export default function InvoicePage() {
                 {isReceptionistPayment && invoice?.paymentStatus !== 'PAID' && (
                     <section className="no-print mb-6 rounded-xl border border-stone-200 bg-white p-6 shadow-lg">
                         <h2 className="text-xl font-bold text-slate-800">
-                            {isVi ? 'Thanh toán tại quầy' : 'Payment at reception'}
+                            {'Payment at reception'}
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            {isVi ? 'Chọn một trong ba hình thức và xác nhận tiền đã nhận.' : 'Choose one payment method and confirm receipt.'}
+                            {'Choose one payment method and confirm receipt.'}
                         </p>
 
                         <div className="mt-5 grid gap-3 sm:grid-cols-3">
                             {[
-                                { value: 'CASH', label: isVi ? 'Tiền mặt' : 'Cash', Icon: Banknote },
-                                { value: 'TRANSFER', label: isVi ? 'Chuyển khoản' : 'Bank transfer', Icon: Landmark },
-                                { value: 'CARD', label: isVi ? 'Thẻ' : 'Card', Icon: CreditCard },
+                                { value: 'CASH', label: 'Cash', Icon: Banknote },
+                                { value: 'TRANSFER', label: 'Bank transfer', Icon: Landmark },
+                                { value: 'CARD', label: 'Card', Icon: CreditCard },
                             ].map(({ value, label, Icon }) => (
                                 <button
                                     type="button"
@@ -375,7 +375,7 @@ export default function InvoicePage() {
                         {paymentMethod === 'CASH' && (
                             <div className="mt-5 rounded-lg border border-emerald-100 bg-emerald-50 p-5">
                                 <label className="block text-sm font-bold text-slate-700">
-                                    {isVi ? 'Số tiền nhận từ khách' : 'Cash received'}
+                                    {'Cash received'}
                                     <input
                                         type="number"
                                         min={grandTotal}
@@ -391,16 +391,16 @@ export default function InvoicePage() {
                                 </label>
                                 {cashIsInsufficient && (
                                     <p className="mt-1 text-xs font-semibold text-red-600">
-                                        {isVi ? 'Số tiền nhận chưa đủ tổng tiền hóa đơn.' : 'Cash received is below the invoice total.'}
+                                        {'Cash received is below the invoice total.'}
                                     </p>
                                 )}
                                 <div className="mt-4 grid grid-cols-2 gap-4 border-t border-emerald-200 pt-4">
                                     <div>
-                                        <p className="text-xs font-bold uppercase text-slate-500">{isVi ? 'Tổng phải thu' : 'Amount due'}</p>
+                                        <p className="text-xs font-bold uppercase text-slate-500">{'Amount due'}</p>
                                         <p className="mt-1 font-bold text-slate-800">{formatPrice(grandTotal, locale)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs font-bold uppercase text-slate-500">{isVi ? 'Tiền trả lại khách' : 'Change due'}</p>
+                                        <p className="text-xs font-bold uppercase text-slate-500">{'Change due'}</p>
                                         <p className="mt-1 text-xl font-bold text-emerald-700">{formatPrice(changeAmount, locale)}</p>
                                     </div>
                                 </div>
@@ -413,16 +413,16 @@ export default function InvoicePage() {
                                     <div className="flex flex-col items-center justify-center rounded-xl bg-white p-3">
                                         <QrPlaceholder value={transferContent} />
                                         <span className="mt-2 text-xs font-bold text-blue-700">
-                                            {isVi ? 'Quét để chuyển khoản' : 'Scan to transfer'}
+                                            {'Scan to transfer'}
                                         </span>
                                     </div>
                                     <div className="space-y-2">
                                         {[
-                                            ['staff-bank', isVi ? 'Ngân hàng' : 'Bank', DEMO_BANK.name],
-                                            ['staff-account', isVi ? 'Số tài khoản' : 'Account number', DEMO_BANK.accountNumber],
-                                            ['staff-holder', isVi ? 'Chủ tài khoản' : 'Account holder', DEMO_BANK.accountName],
-                                            ['staff-amount', isVi ? 'Số tiền' : 'Amount', formatPrice(grandTotal, locale)],
-                                            ['staff-content', isVi ? 'Nội dung chuyển khoản' : 'Transfer reference', transferContent],
+                                            ['staff-bank', 'Bank', DEMO_BANK.name],
+                                            ['staff-account', 'Account number', DEMO_BANK.accountNumber],
+                                            ['staff-holder', 'Account holder', DEMO_BANK.accountName],
+                                            ['staff-amount', 'Amount', formatPrice(grandTotal, locale)],
+                                            ['staff-content', 'Transfer reference', transferContent],
                                         ].map(([field, label, value]) => (
                                             <div key={field} className="flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-white px-3 py-2.5">
                                                 <div className="min-w-0">
@@ -433,7 +433,7 @@ export default function InvoicePage() {
                                                     type="button"
                                                     onClick={() => copyValue(field, field === 'staff-amount' ? grandTotal : value)}
                                                     className="shrink-0 rounded p-2 text-slate-500 hover:bg-blue-50 hover:text-blue-700"
-                                                    title={isVi ? 'Sao chép' : 'Copy'}
+                                                    title={'Copy'}
                                                 >
                                                     {copiedField === field ? <Check size={17} className="text-emerald-600" /> : <Copy size={17} />}
                                                 </button>
@@ -448,8 +448,8 @@ export default function InvoicePage() {
                                             className="mt-2 w-full rounded-lg bg-blue-700 px-4 py-3 font-bold text-white hover:bg-blue-800"
                                         >
                                             {paymentConfirmed
-                                                ? (isVi ? '✓ Đã giả lập thanh toán' : '✓ Payment simulated')
-                                                : (isVi ? 'Giả lập thanh toán' : 'Simulate payment')}
+                                                ? ('✓ Payment simulated')
+                                                : ('Simulate payment')}
                                         </button>
                                     </div>
                                 </div>
@@ -469,8 +469,8 @@ export default function InvoicePage() {
                                 />
                                 <span className="text-sm font-semibold text-slate-700">
                                     {paymentMethod === 'CARD'
-                                        ? (isVi ? 'Tôi xác nhận đã nhận đủ tiền thanh toán thẻ từ khách.' : 'I confirm the card payment was received.')
-                                        : (isVi ? 'Tôi xác nhận tiền chuyển khoản đã vào tài khoản.' : 'I confirm the transfer was received.')}
+                                        ? ('I confirm the card payment was received.')
+                                        : ('I confirm the transfer was received.')}
                                 </span>
                             </label>
                         )}
@@ -483,7 +483,7 @@ export default function InvoicePage() {
                                 || ((paymentMethod === 'TRANSFER' || paymentMethod === 'CARD') && !paymentConfirmed)}
                             className="btn-gold mt-5 w-full rounded py-3 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            {paymentLoading ? (isVi ? 'Đang lưu thanh toán...' : 'Saving payment...') : (isVi ? 'Xác nhận thanh toán và chuyển sang check-in' : 'Confirm payment and send to check-in')}
+                            {paymentLoading ? ('Saving payment...') : ('Confirm payment and send to check-in')}
                         </button>
                     </section>
                 )}
@@ -493,19 +493,19 @@ export default function InvoicePage() {
                         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
                             <CheckCircle2 size={48} className="text-emerald-600" />
                         </div>
-                        <h2 className="mt-5 text-2xl font-bold text-emerald-800">{isVi ? 'Đặt phòng và thanh toán thành công' : 'Booking and payment completed'}</h2>
-                        <p className="mt-2 text-sm text-emerald-700">{isVi ? 'Đơn đã được chuyển sang danh sách chờ check-in.' : 'The booking was moved to the check-in queue.'}</p>
+                        <h2 className="mt-5 text-2xl font-bold text-emerald-800">{'Booking and payment completed'}</h2>
+                        <p className="mt-2 text-sm text-emerald-700">{'The booking was moved to the check-in queue.'}</p>
                         <div className="mt-7">
                             <button
                                 type="button"
                                 onClick={handlePrint}
                                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-5 py-3 font-bold text-emerald-700 hover:bg-emerald-50"
                             >
-                                <Printer size={18} /> {isVi ? 'In hóa đơn' : 'Print invoice'}
+                                <Printer size={18} /> {'Print invoice'}
                             </button>
                         </div>
                         <Link to="/" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-emerald-700">
-                            <ArrowLeft size={18} /> {isVi ? 'Quay về trang chủ' : 'Back to home'}
+                            <ArrowLeft size={18} /> {'Back to home'}
                         </Link>
                     </section>
                 )}
@@ -516,10 +516,10 @@ export default function InvoicePage() {
                             <CheckCircle2 size={48} className="text-emerald-600" />
                         </div>
                         <h2 className="mt-5 text-2xl font-bold text-emerald-800">
-                            {isVi ? 'Thanh toán thành công' : 'Payment successful'}
+                            {'Payment successful'}
                         </h2>
                         <p className="mt-1 text-sm text-emerald-700">
-                            {isVi ? 'Thanh toán đã được xác nhận và đơn đặt phòng đang chờ check-in.' : 'Payment is confirmed and the booking is pending check-in.'}
+                            {'Payment is confirmed and the booking is pending check-in.'}
                         </p>
                         <div className="mt-7">
                             <button
@@ -527,11 +527,11 @@ export default function InvoicePage() {
                                 onClick={handlePrint}
                                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-5 py-3 font-bold text-emerald-700 hover:bg-emerald-50"
                             >
-                                <Printer size={18} /> {isVi ? 'In hóa đơn' : 'Print invoice'}
+                                <Printer size={18} /> {'Print invoice'}
                             </button>
                         </div>
                         <Link to="/" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-emerald-700">
-                            <ArrowLeft size={18} /> {isVi ? 'Quay về trang chủ' : 'Back to home'}
+                            <ArrowLeft size={18} /> {'Back to home'}
                         </Link>
                     </section>
                 )}
@@ -556,7 +556,7 @@ export default function InvoicePage() {
                             {/* Invoice badge */}
                             <div className="text-right">
                             <span className="inline-block bg-[#bfa15f]/20 text-[#bfa15f] text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
-                              {isVi ? 'Hóa đơn' : 'Invoice'}
+                              {'Invoice'}
                             </span>
                             </div>
                         </div>
@@ -564,12 +564,12 @@ export default function InvoicePage() {
                         {/* Hotel details */}
                         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                             <div>
-                                <p className="text-white/60 print:text-black/50 text-xs uppercase tracking-wider mb-1">{isVi ? 'Địa chỉ' : 'Address'}</p>
+                                <p className="text-white/60 print:text-black/50 text-xs uppercase tracking-wider mb-1">{'Address'}</p>
                                 <p className="text-white/90 print:text-black/80">98 Colin P Kelly Jr Street</p>
                                 <p className="text-white/90 print:text-black/80">San Francisco, CA 94107</p>
                             </div>
                             <div className="sm:text-right">
-                                <p className="text-white/60 print:text-black/50 text-xs uppercase tracking-wider mb-1">{isVi ? 'Mã số thuế' : 'Tax ID'}</p>
+                                <p className="text-white/60 print:text-black/50 text-xs uppercase tracking-wider mb-1">{'Tax ID'}</p>
                                 <p className="text-white/90 print:text-black/80 font-mono">0123456789-001</p>
                                 <p className="text-white/60 print:text-black/50 text-xs mt-1">Tel: +84 123 456 789</p>
                             </div>
@@ -580,30 +580,30 @@ export default function InvoicePage() {
                     <div className="bg-stone-50 border-b border-stone-200 px-8 py-4">
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                             <div>
-                                <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{isVi ? 'Số hóa đơn' : 'Invoice No.'}</p>
+                                <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{'Invoice No.'}</p>
                                 <p className="font-bold text-slate-800 font-mono">{invoiceNumber}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{isVi ? 'Ngày lập' : 'Date'}</p>
+                                <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{'Date'}</p>
                                 <p className="font-bold text-slate-800">{invoiceDate}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{isVi ? 'Mã đặt phòng' : 'Booking ID'}</p>
+                                <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{'Booking ID'}</p>
                                 <p className="font-bold text-slate-800 font-mono">
                                     {(invoice?.bookingIds || [bookingId]).map(id => `#${id}`).join(', ')}
                                 </p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{isVi ? 'Trạng thái' : 'Status'}</p>
+                                <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{'Status'}</p>
                                 <span className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${
                                     invoice?.paymentStatus === 'PAID'
                                         ? 'bg-emerald-100 text-emerald-700'
                                         : 'bg-amber-100 text-amber-700'
                                 }`}>
                   {invoice?.paymentStatus === 'PAID' ? (
-                      <><CheckCircle2 size={12} /> {isVi ? 'Đã thanh toán' : 'Paid'}</>
+                      <><CheckCircle2 size={12} /> {'Paid'}</>
                   ) : (
-                      isVi ? 'Chờ thanh toán' : 'Pending'
+                      'Pending'
                   )}
                 </span>
                             </div>
@@ -613,7 +613,7 @@ export default function InvoicePage() {
                     {/* ─── Customer Info ─── */}
                     {invoice?.customerName && (
                         <div className="px-8 py-4 border-b border-stone-200">
-                            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">{isVi ? 'Khách hàng' : 'Bill To'}</p>
+                            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">{'Bill To'}</p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
                                 <p className="font-semibold text-slate-800">{invoice.customerName}</p>
                                 {invoice.customerEmail && <p className="text-slate-500">{invoice.customerEmail}</p>}
@@ -628,19 +628,19 @@ export default function InvoicePage() {
                             <thead>
                             <tr className="border-b-2 border-stone-200">
                                 <th className="text-left py-3 text-xs uppercase tracking-wider text-slate-400 font-semibold">
-                                    {isVi ? 'Mô tả' : 'Description'}
+                                    {'Description'}
                                 </th>
                                 <th className="text-center py-3 text-xs uppercase tracking-wider text-slate-400 font-semibold hidden sm:table-cell">
-                                    {isVi ? 'Ngày' : 'Date'}
+                                    {'Date'}
                                 </th>
                                 <th className="text-center py-3 text-xs uppercase tracking-wider text-slate-400 font-semibold">
-                                    {isVi ? 'SL' : 'Qty'}
+                                    {'Qty'}
                                 </th>
                                 <th className="text-right py-3 text-xs uppercase tracking-wider text-slate-400 font-semibold hidden sm:table-cell">
-                                    {isVi ? 'Đơn giá' : 'Unit Price'}
+                                    {'Unit Price'}
                                 </th>
                                 <th className="text-right py-3 text-xs uppercase tracking-wider text-slate-400 font-semibold">
-                                    {isVi ? 'Thành tiền' : 'Total'}
+                                    {'Total'}
                                 </th>
                             </tr>
                             </thead>
@@ -668,48 +668,48 @@ export default function InvoicePage() {
                                 {/* Payment breakdown */}
                                 <div className="flex-1 space-y-3">
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">{isVi ? 'Tạm tính' : 'Subtotal'}</span>
+                                        <span className="text-slate-500">{'Subtotal'}</span>
                                         <span className="text-slate-700">{formatPrice(subtotal, locale)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">{isVi ? 'Thuế VAT' : 'VAT'}</span>
+                                        <span className="text-slate-500">{'VAT'}</span>
                                         <span className="text-slate-700">{formatPrice(vatAmount, locale)}</span>
                                     </div>
                                     {additionalCharges > 0 && (
                                         <div className="flex justify-between text-sm">
-                                            <span className="text-slate-500">{isVi ? 'Phụ phí' : 'Additional charges'}</span>
+                                            <span className="text-slate-500">{'Additional charges'}</span>
                                             <span className="text-slate-700">{formatPrice(additionalCharges, locale)}</span>
                                         </div>
                                     )}
                                     {invoice?.paymentMethod === 'CASH' && invoice?.cashReceived != null && (
                                         <>
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-slate-500">{isVi ? 'Tiền khách đưa' : 'Cash received'}</span>
+                                                <span className="text-slate-500">{'Cash received'}</span>
                                                 <span className="font-semibold text-slate-700">{formatPrice(invoice.cashReceived, locale)}</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-slate-500">{isVi ? 'Tiền trả lại' : 'Change given'}</span>
+                                                <span className="text-slate-500">{'Change given'}</span>
                                                 <span className="font-semibold text-emerald-700">{formatPrice(invoice.changeAmount || 0, locale)}</span>
                                             </div>
                                         </>
                                     )}
                                     <div className="h-px bg-stone-200 my-2" />
                                     <div className="flex justify-between items-baseline">
-                                        <span className="text-base font-bold text-slate-800">{isVi ? 'Tổng cộng' : 'Total Amount Due'}</span>
+                                        <span className="text-base font-bold text-slate-800">{'Total Amount Due'}</span>
                                         <span className="text-2xl font-bold text-[#bfa15f]">{formatPrice(grandTotal, locale)}</span>
                                     </div>
 
                                     {/* Payment method */}
                                     <div className="pt-3 flex items-center gap-2 text-xs text-slate-400">
                                         <CreditCard size={14} />
-                                        <span>{isVi ? 'Phương thức:' : 'Payment:'} </span>
+                                        <span>{'Payment:'} </span>
                                         <span className="font-semibold text-slate-600">
                       {{
-                          CASH: isVi ? 'Tiền mặt' : 'Cash',
-                          TRANSFER: isVi ? 'Chuyển khoản' : 'Bank transfer',
-                          CARD: isVi ? 'Thẻ' : 'Card',
+                          CASH: 'Cash',
+                          TRANSFER: 'Bank transfer',
+                          CARD: 'Card',
                           VNPAY: 'VNPay',
-                      }[invoice?.paymentMethod || (!isReceptionistPayment ? 'TRANSFER' : '')] || (isVi ? 'Chưa chọn' : 'Not selected')}
+                      }[invoice?.paymentMethod || (!isReceptionistPayment ? 'TRANSFER' : '')] || ('Not selected')}
                     </span>
                                     </div>
                                 </div>
@@ -717,10 +717,10 @@ export default function InvoicePage() {
                                 {/* Receptionist transfer QR; customers use the demo payment panel above. */}
                                 {isReceptionistPayment && <div className="flex flex-col items-center justify-center sm:border-l sm:border-stone-200 sm:pl-6">
                                     <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
-                                        {isVi ? 'Quét để thanh toán' : 'Scan to Pay'}
+                                        {'Scan to Pay'}
                                     </p>
                                     {isReceptionistPayment && invoice?.qrCodeUrl ? (
-                                        <img src={invoice.qrCodeUrl} alt="Mã QR chuyển khoản" className="h-40 w-40 rounded-lg border border-stone-200 bg-white object-contain" />
+                                        <img src={invoice.qrCodeUrl} alt="Transfer QR Code" className="h-40 w-40 rounded-lg border border-stone-200 bg-white object-contain" />
                                     ) : (
                                         <QrPlaceholder value={invoiceNumber} />
                                     )}
@@ -735,12 +735,10 @@ export default function InvoicePage() {
                     {/* ─── Footer ─── */}
                     <div className="bg-stone-50 border-t border-stone-200 px-8 py-5 text-center">
                         <p className="text-xs text-slate-400">
-                            {isVi
-                                ? 'Cảm ơn quý khách đã sử dụng dịch vụ HMS Luxury Hotel. Hẹn gặp lại!'
-                                : 'Thank you for choosing HMS Luxury Hotel. We look forward to seeing you again!'}
+                            {'Thank you for choosing HMS Luxury Hotel. We look forward to seeing you again!'}
                         </p>
                         <p className="text-[10px] text-stone-300 mt-1">
-                            {isVi ? 'Hóa đơn được tạo tự động bởi hệ thống HMS' : 'This invoice was generated automatically by HMS System'}
+                            {'This invoice was generated automatically by HMS System'}
                         </p>
                     </div>
                 </div>

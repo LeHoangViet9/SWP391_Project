@@ -40,14 +40,14 @@ public class Equipment {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    //  1 thiết bị có nhiều ảnh
+    //  1 equipment có nhiều ảnh
     @Builder.Default
     @OneToMany(mappedBy = "equipment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EquipmentImage> images = new ArrayList<>();
 
     //  MỚI:
     // Không dùng equipments.room_id nữa.
-    // Gán thiết bị vào phòng thông qua bảng room_equipments.
+    // Gán equipment vào room thông qua bảng room_equipments.
     @Builder.Default
     @OneToMany(mappedBy = "equipment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomEquipment> roomEquipments = new ArrayList<>();

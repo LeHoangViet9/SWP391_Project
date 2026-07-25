@@ -26,7 +26,7 @@ public class RoomEquipmentResponse {
     private String equipmentName;
     private String equipmentCode;
 
-    // Số lượng thiết bị được gán vào phòng
+    // Số lượng equipment được gán vào phòng
     private Integer quantity;
 
     private LocalDateTime assignedAt;

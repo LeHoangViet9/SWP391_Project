@@ -1,19 +1,11 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext } from 'react';
 import { translations } from '../i18n/translations';
 import { supplementalTranslations } from '../i18n/supplementalTranslations';
 
 const LocaleContext = createContext(null);
-const LOCALE_KEY = 'hms_locale';
 
 export function LocaleProvider({ children }) {
-  const [locale, setLocale] = useState(() => {
-    return localStorage.getItem(LOCALE_KEY) || 'vi';
-  });
-
-  useEffect(() => {
-    localStorage.setItem(LOCALE_KEY, locale);
-    document.documentElement.lang = locale;
-  }, [locale]);
+  const locale = 'en';
 
   const readKey = (source, key) => {
     const keys = key.split('.');
@@ -26,8 +18,6 @@ export function LocaleProvider({ children }) {
 
   const t = (key, params = {}) => {
     const value =
-      readKey(translations[locale], key) ??
-      readKey(supplementalTranslations[locale], key) ??
       readKey(translations.en, key) ??
       readKey(supplementalTranslations.en, key);
 
@@ -39,10 +29,10 @@ export function LocaleProvider({ children }) {
     );
   };
 
-  const acceptLanguage = locale === 'vi' ? 'vi-VN' : 'en-US';
+  const acceptLanguage = 'en-US';
 
   return (
-    <LocaleContext.Provider value={{ locale, setLocale, t, acceptLanguage }}>
+    <LocaleContext.Provider value={{ locale, setLocale: () => {}, t, acceptLanguage }}>
       {children}
     </LocaleContext.Provider>
   );

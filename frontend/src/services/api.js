@@ -1,7 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
 
 function buildAuthHeaders(locale, extraHeaders = {}, includeJson = true) {
-  const acceptLanguage = locale === 'vi' ? 'vi-VN' : 'en-US';
+  const acceptLanguage = 'en-US';
   const token = localStorage.getItem('hms_token');
   return {
     ...(includeJson ? { 'Content-Type': 'application/json' } : {}),

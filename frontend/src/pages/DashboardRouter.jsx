@@ -41,23 +41,23 @@ import AuditLogManager from '../components/AuditLogManager';
  */
 const ROUTE_COMPONENTS = {
   'audit-logs': { Component: AuditLogManager, title: 'Audit Log', titleEn: 'Audit Log' },
-  'reports': { Component: DashboardOverview, title: 'Báo Cáo', titleEn: 'Dashboard Reports' },
-  'roles': { Component: RolePermissionManager, title: 'Phân Quyền', titleEn: 'Role Configuration' },
-  'staff': { Component: StaffManager, title: 'Quản Lý Nhân Viên', titleEn: 'Staff Management' },
-  'room-types': { Component: RoomTypeManager, title: 'Quản Lý Loại Phòng', titleEn: 'Room Type Management' },
-  'rooms': { Component: RoomManager, title: 'Quản Lý Phòng', titleEn: 'Room Management' },
-  'bookings': { Component: BookingManager, title: 'Quản Lý Đặt Phòng', titleEn: 'Booking Management' },
+  'reports': { Component: DashboardOverview, title: 'Reports', titleEn: 'Dashboard Reports' },
+  'roles': { Component: RolePermissionManager, title: 'Role Configuration', titleEn: 'Role Configuration' },
+  'staff': { Component: StaffManager, title: 'Staff Management', titleEn: 'Staff Management' },
+  'room-types': { Component: RoomTypeManager, title: 'Room Type Management', titleEn: 'Room Type Management' },
+  'rooms': { Component: RoomManager, title: 'Room Management', titleEn: 'Room Management' },
+  'bookings': { Component: BookingManager, title: 'Booking Management', titleEn: 'Booking Management' },
   'check-in': { Component: CheckInOutManager, title: 'Check-in / Check-out', titleEn: 'Check-in / Check-out' },
-  'my-bookings': { Component: CustomerBookingHistory, title: 'Đặt Phòng Của Tôi', titleEn: 'My Bookings' },
-  'customers': { Component: CustomerManager, title: 'Quản Lý Khách Hàng', titleEn: 'Customer Management' },
-  'equipment': { Component: EquipmentManager, title: 'Quản Lý Thiết Bị', titleEn: 'Equipment Management' },
-  'assign-equipment': { Component: AssignEquipmentToRoom, title: 'Phân Bổ Thiết Bị', titleEn: 'Assign Equipment' },
-  'maintenance': { Component: MaintenanceManager, title: 'Quản Lý Bảo Trì', titleEn: 'Maintenance Management' },
-  'housekeeping': { Component: HousekeepingBoard, title: 'Quản Lý Buồng Phòng', titleEn: 'Housekeeping' },
-  'feedback': { Component: FeedbackManager, title: 'Đánh Giá', titleEn: 'Feedback' },
-  'invoices': { Component: InvoiceManager, title: 'Hóa Đơn', titleEn: 'Invoices' },
-  'account': { Component: AccountInfo, title: 'Thông Tin Tài Khoản', titleEn: 'Account Info' },
-  'password': { Component: ChangePassword, title: 'Đổi Mật Khẩu', titleEn: 'Change Password' }
+  'my-bookings': { Component: CustomerBookingHistory, title: 'My Bookings', titleEn: 'My Bookings' },
+  'customers': { Component: CustomerManager, title: 'Customer Management', titleEn: 'Customer Management' },
+  'equipment': { Component: EquipmentManager, title: 'Equipment Management', titleEn: 'Equipment Management' },
+  'assign-equipment': { Component: AssignEquipmentToRoom, title: 'Assign Equipment', titleEn: 'Assign Equipment' },
+  'maintenance': { Component: MaintenanceManager, title: 'Maintenance Management', titleEn: 'Maintenance Management' },
+  'housekeeping': { Component: HousekeepingBoard, title: 'Housekeeping', titleEn: 'Housekeeping' },
+  'feedback': { Component: FeedbackManager, title: 'Feedback', titleEn: 'Feedback' },
+  'invoices': { Component: InvoiceManager, title: 'Invoice', titleEn: 'Invoices' },
+  'account': { Component: AccountInfo, title: 'Account Info', titleEn: 'Account Info' },
+  'password': { Component: ChangePassword, title: 'Change Password', titleEn: 'Change Password' }
 }; // <-- Đã thêm dấu đóng ngoặc ở đây
 
 

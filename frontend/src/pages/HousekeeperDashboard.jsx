@@ -7,10 +7,10 @@ import AccountInfo from '../components/AccountInfo';
 import { LayoutGrid, Hammer, KeyRound, UserCircle } from 'lucide-react';
 
 const TABS = [
-  { key: 'housekeeping', label: 'Quản Lý Buồng Phòng', Icon: LayoutGrid, component: <HousekeepingBoard /> },
-  { key: 'maintenance', label: 'Yêu Cầu Bảo Trì', Icon: Hammer, component: <MaintenanceManager readOnly />, readOnly: true },
-  { key: 'account', label: 'Thông Tin Tài Khoản', Icon: UserCircle, component: <AccountInfo /> },
-  { key: 'password', label: 'Đổi Mật Khẩu', Icon: KeyRound, component: <ChangePassword /> },
+  { key: 'housekeeping', label: 'Housekeeping', Icon: LayoutGrid, component: <HousekeepingBoard /> },
+  { key: 'maintenance', label: 'Maintenance Requests', Icon: Hammer, component: <MaintenanceManager readOnly />, readOnly: true },
+  { key: 'account', label: 'Account Info', Icon: UserCircle, component: <AccountInfo /> },
+  { key: 'password', label: 'Change Password', Icon: KeyRound, component: <ChangePassword /> },
 ];
 
 export default function HousekeeperDashboard() {
@@ -18,8 +18,8 @@ export default function HousekeeperDashboard() {
 
   return (
     <DashboardLayout
-      title="Bảng Điều Khiển Buồng Phòng"
-      subtitle="Nhân viên buồng phòng — quản lý dọn phòng và theo dõi bảo trì"
+      title="Housekeeping Dashboard"
+      subtitle="Housekeeping staff — manage room cleaning and track maintenance"
       tabs={TABS}
       activeTab={activeTab}
       setActiveTab={setActiveTab}

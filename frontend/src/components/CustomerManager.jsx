@@ -16,8 +16,8 @@ import Toast from './shared/Toast';
 
 const STATUS_OPTIONS = [
   { value: 'ACTIVE', label: 'Đang hoạt động', color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'INACTIVE', label: 'Ngừng hoạt động', color: 'bg-stone-100 text-stone-600' },
-  { value: 'BANNED', label: 'Bị cấm', color: 'bg-red-100 text-red-700' },
+  { value: 'INACTIVE', label: 'Inactive', color: 'bg-stone-100 text-stone-600' },
+  { value: 'BANNED', label: 'Banned', color: 'bg-red-100 text-red-700' },
 ];
 
 const ID_TYPES = ['CCCD', 'PASSPORT', 'OTHER'];
@@ -56,33 +56,33 @@ export default function CustomerManager() {
     const trimmed = value ? value.trim() : '';
     if (name === 'fullName') {
       if (!trimmed) {
-        err = locale === 'vi' ? 'Họ và tên không được chỉ chứa khoảng trắng!' : 'Full name cannot be empty or only spaces!';
+        err = 'Full name cannot be empty or only spaces!';
       } else if (/^\s|\s$/.test(value)) {
-        err = locale === 'vi' ? 'Họ và tên không được chứa khoảng trắng ở đầu hoặc cuối!' : 'Full name cannot have leading or trailing spaces!';
+        err = 'Full name cannot have leading or trailing spaces!';
       } else if (/\s{2,}/.test(value)) {
-        err = locale === 'vi' ? 'Họ và tên không được chứa nhiều khoảng trắng liên tiếp!' : 'Full name cannot have consecutive spaces!';
+        err = 'Full name cannot have consecutive spaces!';
       }
     } else if (name === 'email') {
       if (!trimmed) {
-        err = locale === 'vi' ? 'Email không được chỉ chứa khoảng trắng!' : 'Email cannot be empty or only spaces!';
+        err = 'Email cannot be empty or only spaces!';
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-        err = locale === 'vi' ? 'Email không hợp lệ!' : 'Invalid email format!';
+        err = 'Invalid email format!';
       }
     } else if (name === 'phone') {
       if (!trimmed) {
-        err = locale === 'vi' ? 'Số điện thoại không được chỉ chứa khoảng trắng!' : 'Phone number cannot be empty or only spaces!';
+        err = 'Phone number cannot be empty or only spaces!';
       } else if (!/^0[0-9]{9}$/.test(trimmed)) {
-        err = locale === 'vi' ? 'Số điện thoại phải bắt đầu bằng 0 và có 10 chữ số!' : 'Phone number must start with 0 and have 10 digits!';
+        err = 'Phone number must start with 0 and have 10 digits!';
       }
     } else if (name === 'idNumberCard') {
       if (!trimmed) {
-        err = locale === 'vi' ? 'Số giấy tờ không được chỉ chứa khoảng trắng!' : 'ID card number cannot be empty or only spaces!';
+        err = 'ID card number cannot be empty or only spaces!';
       } else if (!/^[A-Za-z0-9\-]{6,20}$/.test(trimmed)) {
-        err = locale === 'vi' ? 'Số giấy tờ phải từ 6-20 ký tự!' : 'ID card number must be 6-20 characters!';
+        err = 'ID card number must be 6-20 characters!';
       }
     } else if (name === 'nationality') {
       if (!trimmed) {
-        err = locale === 'vi' ? 'Quốc tịch không được chỉ chứa khoảng trắng!' : 'Nationality cannot be empty or only spaces!';
+        err = 'Nationality cannot be empty or only spaces!';
       }
     }
     setErrors(prev => ({ ...prev, [name]: err }));
@@ -154,7 +154,7 @@ export default function CustomerManager() {
     const errNationality = validateField('nationality', form.nationality);
 
     if (errFullName || errEmail || errPhone || errIdNumberCard || errNationality) {
-      notify(locale === 'vi' ? 'Vui lòng sửa các trường thông tin bị lỗi!' : 'Please fix the invalid fields!', 'error');
+      notify('Please fix the invalid fields!', 'error');
       return;
     }
 
@@ -245,7 +245,7 @@ export default function CustomerManager() {
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           {canEdit && confirmId !== item.id && (
-            <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
+            <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Edit">
               <Edit2 size={15} />
             </button>
           )}
@@ -307,12 +307,12 @@ export default function CustomerManager() {
             }}
             className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700"
           >
-            <option value="fullName">{t('customer.searchOptions.fullName') || 'Họ và tên'}</option>
-            <option value="id">{t('customer.searchOptions.id') || 'Mã (ID)'}</option>
+            <option value="fullName">{t('customer.searchOptions.fullName') || 'Full Name'}</option>
+            <option value="id">{t('customer.searchOptions.id') || 'ID'}</option>
             <option value="email">{t('customer.searchOptions.email') || 'Email'}</option>
-            <option value="phone">{t('customer.searchOptions.phone') || 'Số điện thoại'}</option>
-            <option value="idNumberCard">{t('customer.searchOptions.idNumberCard') || 'Số giấy tờ'}</option>
-            <option value="nationality">{t('customer.searchOptions.nationality') || 'Quốc tịch'}</option>
+            <option value="phone">{t('customer.searchOptions.phone') || 'Phone Number'}</option>
+            <option value="idNumberCard">{t('customer.searchOptions.idNumberCard') || 'ID Number'}</option>
+            <option value="nationality">{t('customer.searchOptions.nationality') || 'Nationality'}</option>
           </select>
 
           <div className="relative flex-1 max-w-xs">
@@ -326,13 +326,13 @@ export default function CustomerManager() {
               }}
               onKeyDown={e => e.key === 'Enter' && fetchData(0)}
               placeholder={
-                searchOpt === 'id' ? (t('customer.placeholders.id') || 'Nhập mã ID...') :
-                searchOpt === 'fullName' ? (t('customer.placeholders.fullName') || 'Nhập họ và tên...') :
-                searchOpt === 'email' ? (t('customer.placeholders.email') || 'Nhập email...') :
-                searchOpt === 'phone' ? (t('customer.placeholders.phone') || 'Nhập số điện thoại...') :
-                searchOpt === 'idNumberCard' ? (t('customer.placeholders.idNumberCard') || 'Nhập số giấy tờ...') :
-                searchOpt === 'nationality' ? (t('customer.placeholders.nationality') || 'Nhập quốc tịch...') :
-                (t('customer.searchPlaceholder') || 'Tìm kiếm...')
+                searchOpt === 'id' ? (t('customer.placeholders.id') || 'Enter ID...') :
+                searchOpt === 'fullName' ? (t('customer.placeholders.fullName') || 'Enter họ và tên...') :
+                searchOpt === 'email' ? (t('customer.placeholders.email') || 'Enter email...') :
+                searchOpt === 'phone' ? (t('customer.placeholders.phone') || 'Enter số điện thoại...') :
+                searchOpt === 'idNumberCard' ? (t('customer.placeholders.idNumberCard') || 'Enter số giấy tờ...') :
+                searchOpt === 'nationality' ? (t('customer.placeholders.nationality') || 'Enter quốc tịch...') :
+                (t('customer.searchPlaceholder') || 'Search...')
               }
               className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
             />

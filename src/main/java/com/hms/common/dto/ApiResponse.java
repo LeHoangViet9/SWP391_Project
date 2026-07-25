@@ -17,20 +17,20 @@ public class ApiResponse<T> {
     private T data;
 
     /**
-     * Serialize thành integer (200, 201, 400, ...) thay vì object HttpStatus phức tạp.
-     * Ví dụ: HttpStatus.OK → 200
+     * Serialize to integer (200, 201, 400, ...) instead of complex HttpStatus object.
+     * Example: HttpStatus.OK → 200
      */
     private int statusCode;
 
     /**
-     * Field này chỉ dùng nội bộ (để build ResponseEntity), không serialize ra JSON.
+     * Internal field (for building ResponseEntity), not serialized to JSON.
      */
     @JsonIgnore
     private HttpStatus status;
 
 
     /**
-     * Constructor tương thích ngược với code cũ dùng (boolean, String, T, HttpStatus).
+     * Backwards-compatible constructor with legacy code using (boolean, String, T, HttpStatus).
      */
     public ApiResponse(boolean success, String message, T data, HttpStatus status) {
         this.success = success;
@@ -41,7 +41,7 @@ public class ApiResponse<T> {
     }
 
     // ──────────────────────────────────────────────────────────────────
-    // Static factory helpers (giữ nguyên API cũ)
+    // Static factory helpers (preserve existing API)
     // ──────────────────────────────────────────────────────────────────
 
     public static <T> ApiResponse<T> success(String message) {

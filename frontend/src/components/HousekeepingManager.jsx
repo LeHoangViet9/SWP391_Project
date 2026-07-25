@@ -34,15 +34,15 @@ const getDateRange = (mode, value) => {
     return { fromDate: value, toDate: value };
 };
 const STATUS_CONFIG = {
-    PENDING: { label: 'Chờ xử lý', labelEn: 'Pending', color: 'bg-red-100 text-red-700 border-red-200', dot: 'bg-red-500', icon: Clock },
+    PENDING: { label: 'Pending', labelEn: 'Pending', color: 'bg-red-100 text-red-700 border-red-200', dot: 'bg-red-500', icon: Clock },
     IN_PROGRESS: { label: 'Đang làm', labelEn: 'In Progress', color: 'bg-amber-100 text-amber-700 border-amber-200', dot: 'bg-amber-500', icon: Loader2 },
     COMPLETED: { label: 'Hoàn thành', labelEn: 'Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', icon: CheckCircle2 },
-    CANCELLED: { label: 'Đã hủy', labelEn: 'Cancelled', color: 'bg-slate-100 text-slate-500 border-slate-200', dot: 'bg-slate-400', icon: XCircle },
+    CANCELLED: { label: 'Cancelled', labelEn: 'Cancelled', color: 'bg-slate-100 text-slate-500 border-slate-200', dot: 'bg-slate-400', icon: XCircle },
 };
 // ─── Sub-Components ───────────────────────────────────────────────────────────
 const WORK_STATUS_CONFIG = {
-    AVAILABLE: { label: 'Sẵn sàng', className: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
-    WORKING: { label: 'Đang làm việc', className: 'text-amber-700 bg-amber-50 border-amber-200' },
+    AVAILABLE: { label: 'Available', className: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+    WORKING: { label: 'Working', className: 'text-amber-700 bg-amber-50 border-amber-200' },
     OFF: { label: 'Đang nghỉ', className: 'text-slate-600 bg-slate-50 border-slate-200' },
 };
 
@@ -85,7 +85,7 @@ const DeleteConfirmModal = ({ task, onConfirm, onClose, loading }) => (
                     <AlertTriangle className="text-red-600" size={24} />
                 </div>
                 <div>
-                    <h3 className="font-bold text-slate-800">Xác nhận xóa tác vụ</h3>
+                    <h3 className="font-bold text-slate-800">Confirm xóa tác vụ</h3>
                     <p className="text-sm text-slate-500 mt-0.5">
                         Tác vụ <span className="font-semibold text-slate-700">#{task?.id}</span> – Phòng <span className="font-semibold text-slate-700">{task?.roomNumber || task?.roomId}</span> sẽ bị xóa vĩnh viễn.
                     </p>
@@ -93,7 +93,7 @@ const DeleteConfirmModal = ({ task, onConfirm, onClose, loading }) => (
             </div>
             <div className="flex gap-3 pt-2">
                 <button onClick={onClose} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
-                    Hủy
+                    Cancel
                 </button>
                 <button
                     onClick={onConfirm}
@@ -101,7 +101,7 @@ const DeleteConfirmModal = ({ task, onConfirm, onClose, loading }) => (
                     className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
                 >
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                    Xóa tác vụ
+                    Delete tác vụ
                 </button>
             </div>
         </div>
@@ -130,7 +130,7 @@ const TaskDetailDrawer = ({
             <div className="w-full max-w-md bg-white shadow-2xl flex flex-col overflow-y-auto animate-in slide-in-from-right duration-300">
                 <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b border-stone-100">
                     <h2 className="font-bold text-slate-800 text-lg flex items-center gap-2">
-                        <ClipboardList size={20} className="text-[#bfa15f]" /> Chi tiết tác vụ #{task.id}
+                        <ClipboardList size={20} className="text-[#bfa15f]" /> Details tác vụ #{task.id}
                     </h2>
                     <button onClick={onClose} className="p-2 hover:bg-stone-100 rounded-full transition-colors text-slate-400 hover:text-slate-600">
                         <X size={20} />
@@ -140,17 +140,17 @@ const TaskDetailDrawer = ({
                     <div className="flex items-center gap-3 p-4 bg-stone-50 rounded-xl">
                         <BedDouble size={20} className="text-[#bfa15f] shrink-0" />
                         <div>
-                            <p className="text-xs text-slate-400 font-medium">Số phòng</p>
+                            <p className="text-xs text-slate-400 font-medium">Room Number</p>
                             <p className="font-bold text-slate-800">{task.roomNumber || `ID: ${task.roomId}`}</p>
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-stone-50 rounded-xl">
-                            <p className="text-xs text-slate-400 font-medium mb-1">Trạng thái</p>
+                            <p className="text-xs text-slate-400 font-medium mb-1">Status</p>
                             <StatusBadge status={task.status} locale={locale} />
                         </div>
                         <div className="p-4 bg-stone-50 rounded-xl">
-                            <p className="text-xs text-slate-400 font-medium mb-1">Ngày tạo</p>
+                            <p className="text-xs text-slate-400 font-medium mb-1">Created At</p>
                             <p className="text-sm font-semibold text-slate-700">
                                 {task.createdAt ? new Date(task.createdAt).toLocaleDateString('vi-VN') : '—'}
                             </p>
@@ -163,7 +163,7 @@ const TaskDetailDrawer = ({
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>
-                                <p className="text-slate-400 text-xs mb-0.5">Người thực hiện</p>
+                                <p className="text-slate-400 text-xs mb-0.5">Actor</p>
                                 <p className="font-semibold text-slate-700">{task.assignedToName || `#${task.assignedToId}` || '—'}</p>
                             </div>
                             <div>
@@ -174,7 +174,7 @@ const TaskDetailDrawer = ({
                     </div>
                     {task.notes && (
                         <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
-                            <p className="text-xs text-amber-600 font-bold uppercase tracking-wide mb-2">Ghi chú</p>
+                            <p className="text-xs text-amber-600 font-bold uppercase tracking-wide mb-2">Notes</p>
                             <p className="text-sm text-slate-700 leading-relaxed">{task.notes}</p>
                         </div>
                     )}
@@ -198,7 +198,7 @@ const TaskDetailDrawer = ({
                                     disabled={actionLoading}
                                     className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
                                 >
-                                    <X size={16} /> Hủy việc
+                                    <X size={16} /> Cancel việc
                                 </button>
                             )}
 
@@ -227,7 +227,7 @@ const TaskDetailDrawer = ({
                             onClick={() => onEdit(task)}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#bfa15f] text-white rounded-xl font-semibold hover:bg-[#a8893f] transition-colors"
                         >
-                            <Pencil size={16} /> Chỉnh sửa tác vụ
+                            <Pencil size={16} /> Edit tác vụ
                         </button>
                     </div>
                 )}
@@ -247,8 +247,8 @@ const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
     const [errors, setErrors] = useState({});
     const validate = () => {
         const errs = {};
-        if (!form.roomId) errs.roomId = 'Vui lòng nhập ID phòng';
-        if (!form.assignedToId) errs.assignedToId = 'Vui lòng chọn nhân viên';
+        if (!form.roomId) errs.roomId = 'Please nhập ID phòng';
+        if (!form.assignedToId) errs.assignedToId = 'Please chọn nhân viên';
         return errs;
     };
     const handleChange = (e) => {
@@ -268,7 +268,7 @@ const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
                 <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100">
                     <h2 className="font-bold text-slate-800 text-lg flex items-center gap-2">
                         {isEdit ? <Pencil size={18} className="text-[#bfa15f]" /> : <Plus size={18} className="text-[#bfa15f]" />}
-                        {isEdit ? `Cập nhật tác vụ #${task.id}` : 'Tạo tác vụ mới'}
+                        {isEdit ? `Update Task #${task.id}` : 'Create New Task'}
                     </h2>
                     <button onClick={onClose} className="p-2 hover:bg-stone-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
                         <X size={20} />
@@ -278,14 +278,14 @@ const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
                     {/* Room ID */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
-                            Số phòng (ID) <span className="text-red-500">*</span>
+                            Room Number (ID) <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="number"
                             name="roomId"
                             value={form.roomId}
                             onChange={handleChange}
-                            placeholder="Nhập ID phòng..."
+                            placeholder="Enter Room ID..."
                             className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.roomId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
                         />
                         {errors.roomId && <p className="text-red-500 text-xs mt-1">{errors.roomId}</p>}
@@ -293,7 +293,7 @@ const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
                     {/* Assigned To */}
                     <div>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
-                            Nhân viên thực hiện <span className="text-red-500">*</span>
+                            ASSIGNED STAFF <span className="text-red-500">*</span>
                         </label>
                         {housekeepers.length > 0 ? (
                             <select
@@ -302,7 +302,7 @@ const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
                                 onChange={handleChange}
                                 className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.assignedToId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
                             >
-                                <option value="">Chọn nhân viên...</option>
+                                <option value="">Select staff...</option>
                                 {housekeepers.map(h => {
                                     const workStatus = h.workStatus || 'AVAILABLE';
                                     const label = WORK_STATUS_CONFIG[workStatus]?.label || workStatus;
@@ -319,7 +319,7 @@ const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
                                 name="assignedToId"
                                 value={form.assignedToId}
                                 onChange={handleChange}
-                                placeholder="Nhập ID nhân viên..."
+                                placeholder="Enter Staff ID..."
                                 className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none transition-colors focus:border-[#bfa15f] ${errors.assignedToId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
                             />
                         )}
@@ -328,7 +328,7 @@ const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
                     {/* Status (edit only) */}
                     {isEdit && (
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Trạng thái</label>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Status</label>
                             <select
                                 name="status"
                                 value={form.status}
@@ -343,19 +343,19 @@ const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
                     )}
                     {/* Notes */}
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Ghi chú</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Notes</label>
                         <textarea
                             name="notes"
                             value={form.notes}
                             onChange={handleChange}
                             rows={3}
-                            placeholder="Ghi chú thêm về tác vụ..."
+                            placeholder="Additional task notes..."
                             className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f] resize-none"
                         />
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-stone-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-stone-50 transition-colors">
-                            Hủy
+                            Cancel
                         </button>
                         <button
                             type="submit"
@@ -363,7 +363,7 @@ const TaskFormModal = ({ task, housekeepers, onSubmit, onClose, loading }) => {
                             className="flex-1 px-4 py-2.5 bg-[#bfa15f] text-white rounded-xl text-sm font-semibold hover:bg-[#a8893f] disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
                         >
                             {loading ? <Loader2 size={16} className="animate-spin" /> : (isEdit ? <Check size={16} /> : <Plus size={16} />)}
-                            {isEdit ? 'Cập nhật' : 'Tạo tác vụ'}
+                            {isEdit ? 'Update' : 'Create Task'}
                         </button>
                     </div>
                 </form>
@@ -377,8 +377,8 @@ const ReportIssueModal = ({ defaultRoomId = '', onSubmit, onClose, loading }) =>
     const [errors, setErrors] = useState({});
     const validate = () => {
         const errs = {};
-        if (!form.roomId) errs.roomId = 'Vui lòng nhập ID phòng';
-        if (!form.issueDescription) errs.issueDescription = 'Vui lòng mô tả sự cố';
+        if (!form.roomId) errs.roomId = 'Please nhập ID phòng';
+        if (!form.issueDescription) errs.issueDescription = 'Please mô tả sự cố';
         return errs;
     };
     const handleChange = (e) => {
@@ -406,23 +406,23 @@ const ReportIssueModal = ({ defaultRoomId = '', onSubmit, onClose, loading }) =>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">ID Phòng <span className="text-red-500">*</span></label>
                         <input
                             type="number" name="roomId" value={form.roomId} onChange={handleChange}
-                            placeholder="Nhập ID phòng gặp sự cố..."
+                            placeholder="Enter ID phòng gặp sự cố..."
                             className={`w-full px-3 py-2.5 border rounded-lg text-sm outline-none focus:border-[#bfa15f] ${errors.roomId ? 'border-red-400 bg-red-50' : 'border-stone-200'}`}
                         />
                         {errors.roomId && <p className="text-red-500 text-xs mt-1">{errors.roomId}</p>}
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Mức độ nghiêm trọng</label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Severity nghiêm trọng</label>
                         <select name="severity" value={form.severity} onChange={handleChange}
                             className="w-full px-3 py-2.5 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]">
                             <option value="LOW">🟢 Thấp</option>
-                            <option value="MEDIUM">🟡 Trung bình</option>
+                            <option value="MEDIUM">🟡 Medium</option>
                             <option value="HIGH">🟠 Cao</option>
-                            <option value="CRITICAL">🔴 Khẩn cấp</option>
+                            <option value="CRITICAL">🔴 Critical</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Mô tả sự cố <span className="text-red-500">*</span></label>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Description sự cố <span className="text-red-500">*</span></label>
                         <textarea
                             name="issueDescription" value={form.issueDescription} onChange={handleChange}
                             rows={4} placeholder="Ví dụ: Điều hòa không hoạt động, vòi sen bị rỉ nước..."
@@ -431,7 +431,7 @@ const ReportIssueModal = ({ defaultRoomId = '', onSubmit, onClose, loading }) =>
                         {errors.issueDescription && <p className="text-red-500 text-xs mt-1">{errors.issueDescription}</p>}
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-stone-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-stone-50 transition-colors">Hủy</button>
+                        <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-stone-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-stone-50 transition-colors">Cancel</button>
                         <button type="submit" disabled={loading}
                             className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
                             {loading ? <Loader2 size={16} className="animate-spin" /> : <Wrench size={16} />}
@@ -470,7 +470,7 @@ const MinibarReportMiniModal = ({ task, onSubmit, onClose, loading }) => {
                     <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-stone-100 text-slate-400"><X size={18} /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <p className="text-xs text-slate-500">Vui lòng kiểm tra thực tế trong phòng và nhập số lượng đồ uống đã tiêu thụ.</p>
+                    <p className="text-xs text-slate-500">Please kiểm tra thực tế trong phòng và nhập số lượng đồ uống đã tiêu thụ.</p>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                         <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
                             <div>
@@ -521,7 +521,7 @@ const MinibarReportMiniModal = ({ task, onSubmit, onClose, loading }) => {
                         </div>
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm font-bold text-slate-600">Hủy</button>
+                        <button type="button" onClick={onClose} className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm font-bold text-slate-600">Cancel</button>
                         <button type="submit" disabled={loading}
                             className="flex-1 py-2.5 bg-[#bfa15f] hover:bg-[#a3874c] text-white rounded-xl text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2">
                             {loading ? <Loader size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Gửi báo cáo
@@ -566,7 +566,7 @@ const RoomHistoryModal = ({ onClose }) => {
                     <form onSubmit={fetchHistory} className="flex gap-2">
                         <input
                             type="number" value={roomId} onChange={e => setRoomId(e.target.value)}
-                            placeholder="Nhập ID phòng..."
+                            placeholder="Enter ID phòng..."
                             className="flex-1 px-3 py-2.5 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]"
                         />
                         <button type="submit" className="px-4 py-2.5 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors flex items-center gap-2">
@@ -580,7 +580,7 @@ const RoomHistoryModal = ({ onClose }) => {
                             <Loader2 size={32} className="animate-spin text-[#bfa15f]" />
                         </div>
                     ) : history.length === 0 && searched ? (
-                        <p className="text-center text-slate-400 py-12">Không có lịch sử cho phòng này</p>
+                        <p className="text-center text-slate-400 py-12">No có lịch sử cho phòng này</p>
                     ) : history.length > 0 ? (
                         <div className="relative pl-6">
                             <div className="absolute left-2.5 top-0 bottom-0 w-0.5 bg-stone-200" />
@@ -620,7 +620,7 @@ const KanbanColumn = ({ status, tasks, onView, locale, readOnly = false }) => {
             </div>
             <div className="flex-1 p-3 space-y-2 overflow-y-auto max-h-[60vh]">
                 {tasks.length === 0 ? (
-                    <p className="text-center text-slate-400 text-xs py-8 italic">Không có tác vụ</p>
+                    <p className="text-center text-slate-400 text-xs py-8 italic">No có tác vụ</p>
                 ) : tasks.map(task => (
                     <div key={task.id}
                         className="bg-white border border-stone-200 rounded-xl p-3.5 shadow-sm hover:shadow-md hover:border-[#bfa15f]/40 transition-all cursor-pointer group"
@@ -719,7 +719,7 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
             setTotalPages(pageData?.totalPages || 0);
             setTotalElements(pageData?.totalElements || 0);
         } catch (err) {
-            notify(err?.message || 'Không thể tải danh sách tác vụ', 'error');
+            notify(err?.message || 'Unable to load danh sách tác vụ', 'error');
         } finally {
             setLoading(false);
         }
@@ -755,11 +755,11 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
                 assignedById: user?.id
             };
             const res = await housekeepingService.createTask(payload, locale);
-            notify(res?.message || 'Tạo tác vụ thành công!');
+            notify(res?.message || 'Tạo tác vụ successful!');
             setShowCreateModal(false);
             fetchTasks();
         } catch (err) {
-            notify(err?.message || 'Tạo tác vụ thất bại', 'error');
+            notify(err?.message || 'Tạo tác vụ failed', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -768,12 +768,12 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
         setActionLoading(true);
         try {
             const res = await housekeepingService.updateTask(selectedTask.id, formData, locale);
-            notify(res?.message || 'Cập nhật tác vụ thành công!');
+            notify(res?.message || 'Update tác vụ successful!');
             setShowEditModal(false);
             setSelectedTask(null);
             fetchTasks();
         } catch (err) {
-            notify(err?.message || 'Cập nhật tác vụ thất bại', 'error');
+            notify(err?.message || 'Update tác vụ failed', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -787,7 +787,7 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
             setSelectedTask(null);
             fetchTasks();
         } catch (err) {
-            notify(err?.message || 'Xóa tác vụ thất bại', 'error');
+            notify(err?.message || 'Delete tác vụ failed', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -796,13 +796,13 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
         setActionLoading(true);
         try {
             const res = await housekeepingService.updateTask(taskId, { status: newStatus }, locale);
-            notify(res?.message || 'Cập nhật trạng thái thành công!');
+            notify(res?.message || 'Update trạng thái successful!');
             fetchTasks();
             if (selectedTask && selectedTask.id === taskId) {
                 setSelectedTask(prev => ({ ...prev, status: newStatus }));
             }
         } catch (err) {
-            notify(err?.message || 'Cập nhật thất bại', 'error');
+            notify(err?.message || 'Update failed', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -811,11 +811,11 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
         setActionLoading(true);
         try {
             const res = await housekeepingService.reportMinibar(taskId, quantities, locale);
-            notify(res?.message || 'Đã gửi báo cáo tiêu dùng Minibar thành công!');
+            notify(res?.message || 'Đã gửi báo cáo tiêu dùng Minibar successful!');
             setShowMinibarModal(false);
             setMinibarTask(null);
         } catch (err) {
-            notify(err?.message || 'Không tìm thấy đặt phòng hoặc gửi thất bại.', 'error');
+            notify(err?.message || 'No tìm thấy đặt phòng hoặc gửi failed.', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -831,7 +831,7 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
             setShowIssueModal(false);
             setReportRoomId(null);
         } catch (err) {
-            notify(err?.message || 'Gửi báo cáo thất bại', 'error');
+            notify(err?.message || 'Gửi báo cáo failed', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -854,7 +854,7 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
         status: s,
         count: tasks.filter(t => t.status === s).length,
     }));
-    const tableColumns = ['ID', 'Phòng', 'Nhân viên', 'Người giao', 'Trạng thái', 'Ngày tạo', 'Thao tác'];
+    const tableColumns = ['ID', 'ROOM', 'STAFF', 'ASSIGNER', 'STATUS', 'CREATED AT', 'ACTIONS'];
     const tableRows = tasks.map(task => (
         <tr key={task.id} className="hover:bg-stone-50 transition-colors">
             <td className="px-4 py-3 font-mono text-sm font-bold text-[#bfa15f]">#{task.id}</td>
@@ -876,7 +876,7 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
             <td className="px-4 py-3">
                 <div className="flex items-center gap-1">
                     <button onClick={() => openDetail(task)}
-                        className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-[#bfa15f]" title="Xem chi tiết">
+                        className="p-1.5 hover:bg-stone-200 rounded-lg transition-colors text-slate-400 hover:text-[#bfa15f]" title="View Details">
                         <Eye size={15} />
                     </button>
                     {!readOnly && (
@@ -886,7 +886,7 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
                                 <Pencil size={15} />
                             </button>
                             <button onClick={() => openDelete(task)}
-                                className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-slate-400 hover:text-red-600" title="Xóa">
+                                className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-slate-400 hover:text-red-600" title="Delete">
                                 <Trash2 size={15} />
                             </button>
                         </>
@@ -945,20 +945,20 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h2 className="text-lg font-bold text-slate-800">Quản lý Tác vụ Buồng phòng</h2>
-                    <p className="text-sm text-slate-500 mt-0.5">Tổng cộng <span className="font-bold text-[#bfa15f]">{totalElements}</span> tác vụ</p>
+                    <p className="text-sm text-slate-500 mt-0.5">Total <span className="font-bold text-[#bfa15f]">{totalElements}</span> tác vụ</p>
                 </div>
                 {(hasPermission('HOUSEKEEPING_VIEW') || (canExecuteTasks && hasPermission('HOUSEKEEPING_UPDATE')) || (hasPermission('HOUSEKEEPING_CREATE') && !readOnly)) && (
                     <div className="flex flex-wrap gap-2">
                         {canExecuteTasks && hasPermission('HOUSEKEEPING_UPDATE') && (
                             <button onClick={() => setShowIssueModal(true)}
                                 className="flex items-center gap-2 px-3.5 py-2 border border-red-200 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors bg-white">
-                                <Wrench size={16} /> Báo cáo sự cố
+                                <Wrench size={16} /> Report Issue
                             </button>
                         )}
                         {(hasPermission('HOUSEKEEPING_CREATE') && !readOnly) && (
                             <button onClick={() => setShowCreateModal(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-[#bfa15f] text-white rounded-lg text-sm font-semibold hover:bg-[#a8893f] transition-colors shadow-sm">
-                                <Plus size={16} /> Tạo tác vụ
+                                <Plus size={16} /> Create Task
                             </button>
                         )}
                     </div>
@@ -991,33 +991,33 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
                 <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm">
                     <form onSubmit={handleSearch} className="flex flex-wrap gap-3 items-end">
                         <div className="flex-1 min-w-[150px]">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Trạng thái</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Status</label>
                             <select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)}
                                 className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]">
-                                <option value="">Tất cả</option>
+                                <option value="">All</option>
                                 {TASK_STATUSES.map(s => (
                                     <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>
                                 ))}
                             </select>
                         </div>
                         <div className="flex-1 min-w-[130px]">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Nhân viên</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">STAFF ID</label>
                             <input type="number" value={filters.assignedToId} onChange={e => handleFilterChange('assignedToId', e.target.value)}
-                                placeholder="ID nhân viên..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
+                                placeholder="Staff ID..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
                         </div>
                         <div className="flex-1 min-w-[130px]">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Người giao</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ASSIGNER ID</label>
                             <input type="number" value={filters.assignedById} onChange={e => handleFilterChange('assignedById', e.target.value)}
-                                placeholder="ID người giao..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
+                                placeholder="Assigner ID..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
                         </div>
                         <div className="flex-1 min-w-[120px]">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ID Phòng</label>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">ROOM ID</label>
                             <input type="number" value={filters.roomId} onChange={e => handleFilterChange('roomId', e.target.value)}
-                                placeholder="ID phòng..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
+                                placeholder="Room ID..." className="w-full px-3 py-2 border border-stone-200 rounded-lg text-sm outline-none focus:border-[#bfa15f]" />
                         </div>
                         <div className="flex gap-2 shrink-0 [&>button:last-child]:hidden">
                             <button type="submit" className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition-colors">
-                                <Search size={15} /> Lọc
+                                <Search size={15} /> Filter
                             </button>
                             <button type="button" onClick={handleResetFilters} className="px-3 py-2 border border-stone-200 rounded-lg text-sm text-slate-500 hover:bg-stone-50 transition-colors">
                                 <X size={15} />
@@ -1052,7 +1052,7 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
                         value={selectedDate}
                         onChange={e => { setSelectedDate(e.target.value); setPage(0); }}
                         className="border border-stone-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[#bfa15f]"
-                        aria-label={dateMode === 'month' ? 'Chọn tháng' : 'Chọn ngày'}
+                        aria-label={dateMode === 'month' ? 'Select tháng' : 'Select ngày'}
                     />
                 </div>
             </div>
@@ -1064,7 +1064,7 @@ export default function HousekeepingManager({ readOnly = false, canExecuteTasks 
                 page={page}
                 totalPages={totalPages}
                 onPageChange={setPage}
-                emptyText="Không có tác vụ nào"
+                emptyText="No có tác vụ nào"
             />
         </div>
     );

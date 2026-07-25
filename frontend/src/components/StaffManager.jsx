@@ -18,17 +18,17 @@ function getAssignableRoles(actorRole) {
 }
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'Tất cả trạng thái' },
-  { value: 'ACTIVE', label: 'Hoạt động' },
-  { value: 'INACTIVE', label: 'Ngừng hoạt động' },
-  { value: 'BANNED', label: 'Bị cấm' },
+  { value: '', label: 'All Statuses' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'INACTIVE', label: 'Inactive' },
+  { value: 'BANNED', label: 'Banned' },
 ];
 
 const WORK_STATUS_CONFIG = {
-  AVAILABLE: { label: 'Sẵn sàng', className: 'bg-emerald-100 text-emerald-700' },
-  WORKING: { label: 'Đang làm việc', className: 'bg-amber-100 text-amber-700' },
-  WAITING_CONFIRM: { label: 'Chờ xác nhận', className: 'bg-blue-100 text-blue-700' },
-  OFF: { label: 'Đang nghỉ', className: 'bg-slate-100 text-slate-600' },
+  AVAILABLE: { label: 'Available', className: 'bg-emerald-100 text-emerald-700' },
+  WORKING: { label: 'Working', className: 'bg-amber-100 text-amber-700' },
+  WAITING_CONFIRM: { label: 'Pending Confirmation', className: 'bg-blue-100 text-blue-700' },
+  OFF: { label: 'On Leave', className: 'bg-slate-100 text-slate-600' },
 };
 
 const EMPTY_FORM = {
@@ -111,13 +111,13 @@ export default function StaffManager() {
   }, [page, statusFilter, fetchData]);
 
   const openCreate = () => {
-    if (!canCreate) return notify(t('staff.toast.forbidden') || 'Không có quyền thực hiện', 'error');
+    if (!canCreate) return notify(t('staff.toast.forbidden') || 'No permission for this action', 'error');
     setForm({ ...EMPTY_FORM, roleName: assignableRoles[0] || EMPTY_FORM.roleName });
     setModal({ open: true, editing: null });
   };
 
   const openEdit = (item) => {
-    if (!canEdit) return notify(t('staff.toast.forbidden') || 'Không có quyền thực hiện', 'error');
+    if (!canEdit) return notify(t('staff.toast.forbidden') || 'No permission for this action', 'error');
     setForm({
       fullName: item.fullName || '',
       password: '',
@@ -220,7 +220,7 @@ export default function StaffManager() {
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           {canEdit && (
-            <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Chỉnh sửa">
+            <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title="Edit">
               <Edit2 size={15} />
             </button>
           )}
@@ -228,14 +228,14 @@ export default function StaffManager() {
             deleteConfirmId === item.id ? (
               <div className="flex items-center gap-2">
                 <button onClick={() => handleDelete(item)} className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium hover:bg-red-600 transition-colors">
-                  {t('booking.filters.search') ? 'Xác nhận' : 'Confirm'}
+                  {t('booking.filters.search') ? 'Confirm' : 'Confirm'}
                 </button>
                 <button onClick={() => setDeleteConfirmId(null)} className="border border-stone-300 bg-white px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-stone-100 transition-colors">
-                  {t('booking.filters.clear') ? 'Hủy' : 'Cancel'}
+                  {t('booking.filters.clear') ? 'Cancel' : 'Cancel'}
                 </button>
               </div>
             ) : (
-              <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title="Xóa">
+              <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title="Delete">
                 <Trash2 size={15} />
               </button>
             )
@@ -252,7 +252,7 @@ export default function StaffManager() {
     t('staff.columns.phone'),
     t('staff.columns.role'),
     t('staff.columns.status'),
-    'Trạng thái làm việc',
+    'Work Status',
     ...(canEdit || canDelete ? [t('staff.columns.actions')] : [])
   ];
 
@@ -274,11 +274,11 @@ export default function StaffManager() {
             }}
             className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
           >
-            <option value="fullName">{t('staff.searchOptions.fullName') || 'Họ và tên'}</option>
+            <option value="fullName">{t('staff.searchOptions.fullName') || 'Full Name'}</option>
             <option value="email">{t('staff.searchOptions.email') || 'Email'}</option>
-            <option value="phone">{t('staff.searchOptions.phone') || 'Số điện thoại'}</option>
-            <option value="roleName">{t('staff.searchOptions.roleName') || 'Vai trò'}</option>
-            <option value="id">{t('staff.searchOptions.id') || 'Mã (ID)'}</option>
+            <option value="phone">{t('staff.searchOptions.phone') || 'Phone Number'}</option>
+            <option value="roleName">{t('staff.searchOptions.roleName') || 'Role'}</option>
+            <option value="id">{t('staff.searchOptions.id') || 'ID'}</option>
           </select>
 
           <div className="relative flex-1 max-w-xs">
@@ -381,13 +381,13 @@ export default function StaffManager() {
 
           {(form.roleName === 'HOUSEKEEPER' || form.roleName === 'MAINTENANCE') && (
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Trạng thái làm việc</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Work Status</label>
               <select required value={form.workStatus} onChange={e => setForm(f => ({ ...f, workStatus: e.target.value }))}
                 className="w-full border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white">
-                <option value="AVAILABLE">Sẵn sàng</option>
-                <option value="WORKING">Đang làm việc</option>
-                <option value="WAITING_CONFIRM">Chờ xác nhận</option>
-                <option value="OFF">Đang nghỉ</option>
+                <option value="AVAILABLE">Available</option>
+                <option value="WORKING">Working</option>
+                <option value="WAITING_CONFIRM">Pending Confirmation</option>
+                <option value="OFF">On Leave</option>
               </select>
             </div>
           )}

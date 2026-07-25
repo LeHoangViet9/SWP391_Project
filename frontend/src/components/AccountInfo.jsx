@@ -9,7 +9,7 @@ function formatDateTime(value, locale) {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US', {
+  return date.toLocaleString('en-US', {
     dateStyle: 'short',
     timeStyle: 'short',
   });
@@ -176,7 +176,7 @@ export default function AccountInfo() {
         </div>
       )}
 
-      {/* Tài khoản hệ thống (chỉ đọc) */}
+      {/* Account hệ thống (chỉ đọc) */}
       <div>
         <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">{t('accountInfo.systemAccount')}</p>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -192,7 +192,7 @@ export default function AccountInfo() {
         </div>
       </div>
 
-      {/* Thông tin Hồ sơ Khách hàng */}
+      {/* Thông tin Hồ sơ Customer */}
       {customerProfile && (
         <div>
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">{t('accountInfo.customerProfile')}</p>
@@ -217,10 +217,10 @@ export default function AccountInfo() {
               ))}
             </div>
           ) : (
-            // --- Chế độ Chỉnh sửa ---
+            // --- Chế độ Edit ---
             <form onSubmit={handleSave} className="rounded-lg border border-[#bfa15f]/30 bg-amber-50/30 p-5 space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {/* Họ và tên */}
+                {/* Full Name */}
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
                     {t('accountInfo.fullName')} <span className="text-red-500">*</span>
@@ -234,7 +234,7 @@ export default function AccountInfo() {
                   {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
                 </div>
 
-                {/* Số điện thoại */}
+                {/* Phone Number */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
                     {t('accountInfo.phone')} <span className="text-red-500">*</span>
@@ -248,7 +248,7 @@ export default function AccountInfo() {
                   {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                 </div>
 
-                {/* Quốc tịch */}
+                {/* Nationality */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
                     {t('accountInfo.nationality')} <span className="text-red-500">*</span>
@@ -262,7 +262,7 @@ export default function AccountInfo() {
                   {errors.nationality && <p className="text-red-500 text-xs mt-1">{errors.nationality}</p>}
                 </div>
 
-                {/* Loại giấy tờ — chỉ đọc */}
+                {/* ID Type — chỉ đọc */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">{t('accountInfo.idType')} <span className="text-slate-400 font-normal normal-case">{t('accountInfo.cannotChangeParentheses')}</span></label>
                   <input
@@ -272,7 +272,7 @@ export default function AccountInfo() {
                   />
                 </div>
 
-                {/* Số giấy tờ — chỉ đọc, không được sửa */}
+                {/* ID Number — chỉ đọc, không được sửa */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wider">{t('accountInfo.idCard')} <span className="text-slate-400 font-normal normal-case">{t('accountInfo.cannotChangeParentheses')}</span></label>
                   <input

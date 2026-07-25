@@ -11,11 +11,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AssignEquipmentToRoomDTO {
 
-    //  MỚI: chọn phòng cần gán
+    //  MỚI: chọn room cần gán
     @NotNull(message = "Room is required")
     private Long roomId;
 
-    // MỚI: số lượng thiết bị trong phòng
+    // MỚI: số lượng equipment trong phòng
     @NotNull(message = "Quantity is required")
     @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;

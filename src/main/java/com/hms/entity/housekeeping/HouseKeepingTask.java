@@ -53,17 +53,17 @@ public class HouseKeepingTask {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    // Thời điểm lễ tân bấm "Yêu cầu kiểm phòng" khi checkout.
-    // Dùng để tính timeout: 5 phút → nhắc housekeeper, 10 phút → cảnh báo manager.
+    // Thời điểm lễ tân bấm "Room inspection request" khi checkout.
+    // Dùng để tính timeout: 5 minutes → nhắc housekeeper, 10 minutes → cảnh báo manager.
     @Column(name = "checkout_inspection_requested_at")
     private LocalDateTime checkoutInspectionRequestedAt;
 
-    // Thời điểm đã gửi thông báo nhắc lại cho housekeeper (sau 5 phút).
+    // Thời điểm đã gửi thông báo nhắc lại cho housekeeper (sau 5 minutes).
     // Null = chưa nhắc. Không null = đã nhắc rồi, không gửi lại.
     @Column(name = "reminder_sent_at")
     private LocalDateTime reminderSentAt;
 
-    // Thời điểm đã gửi cảnh báo cho manager (sau 10 phút).
+    // Thời điểm đã gửi cảnh báo cho manager (sau 10 minutes).
     // Null = chưa gửi. Không null = đã cảnh báo rồi, không gửi lại.
     @Column(name = "manager_alert_sent_at")
     private LocalDateTime managerAlertSentAt;

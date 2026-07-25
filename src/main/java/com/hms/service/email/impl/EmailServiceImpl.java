@@ -111,13 +111,13 @@ public class EmailServiceImpl implements EmailService {
             "<tr><td style=\"padding:40px;\">" +
             // Greeting
             "<p style=\"margin:0 0 8px;font-size:16px;color:#44403c;\">" +
-            (isVi ? "Xin chào," : "Hello,") + "</p>" +
+            (isVi ? "Hello," : "Hello,") + "</p>" +
             "<h2 style=\"margin:0 0 24px;font-size:20px;font-weight:700;color:#1a2332;\">" +
-            (isVi ? "Vui lòng xác thực tài khoản của bạn" : "Please verify your identity") + "</h2>" +
+            (isVi ? "Please verify your account" : "Please verify your identity") + "</h2>" +
 
             // Description
             "<p style=\"margin:0 0 24px;font-size:14px;color:#78716c;line-height:1.6;\">" +
-            (isVi ? "Đây là mã xác thực đăng ký HMS Hotel của bạn:" : "Here is your HMS registration authentication code:") + "</p>" +
+            (isVi ? "This is your HMS Hotel registration verification code:" : "Here is your HMS registration authentication code:") + "</p>" +
 
             // OTP Code Box
             "<table cellpadding=\"0\" cellspacing=\"0\" style=\"margin:0 auto 24px;border:1px solid #e7e5e4;border-radius:12px;padding:20px 24px;\">" +
@@ -127,18 +127,18 @@ public class EmailServiceImpl implements EmailService {
 
             // Validity notice
             "<p style=\"margin:0 0 8px;font-size:13px;color:#78716c;\">" +
-            (isVi ? "Mã này có hiệu lực trong " : "This code is valid for ") +
-            "<strong style=\"color:#1a2332;\">5 " + (isVi ? "phút" : "minutes") + "</strong>" +
-            (isVi ? " và chỉ sử dụng được một lần." : " and can only be used once.") + "</p>" +
+            (isVi ? "This code is valid for " : "This code is valid for ") +
+            "<strong style=\"color:#1a2332;\">5 " + (isVi ? "minutes" : "minutes") + "</strong>" +
+            (isVi ? " and can only be used once." : " and can only be used once.") + "</p>" +
 
             // Security notice
             "<p style=\"margin:0 0 0;font-size:13px;color:#78716c;\">" +
-            "<strong style=\"color:#1a2332;\">" + (isVi ? "Vui lòng không chia sẻ mã này:" : "Please don't share this code:") + "</strong> " +
-            (isVi ? "chúng tôi sẽ không bao giờ hỏi bạn qua điện thoại hay email." : "we'll never ask for it on the phone or via email.") + "</p>" +
+            "<strong style=\"color:#1a2332;\">" + (isVi ? "Please do not share this code:" : "Please don't share this code:") + "</strong> " +
+            (isVi ? "we will never ask you over phone or email." : "we'll never ask for it on the phone or via email.") + "</p>" +
 
             // Signature
             "<p style=\"margin:24px 0 0;font-size:14px;color:#78716c;\">" +
-            (isVi ? "Trân trọng," : "Thanks,") + "<br>" +
+            (isVi ? "Best regards," : "Thanks,") + "<br>" +
             "<strong style=\"color:#1a2332;\">The HMS Team</strong></p>" +
 
             "</td></tr>" +
@@ -147,7 +147,7 @@ public class EmailServiceImpl implements EmailService {
             "<tr><td style=\"background:#fafaf9;padding:24px 40px;border-top:1px solid #e7e5e4;text-align:center;\">" +
             "<p style=\"margin:0 0 8px;font-size:11px;color:#a8a29e;line-height:1.5;\">" +
             (isVi
-                ? "Bạn nhận được email này vì đã yêu cầu mã xác thực cho tài khoản HMS Hotel.<br>Nếu không phải bạn, vui lòng bỏ qua email này."
+                ? "You received this email because a verification code was requested for your HMS Hotel account.<br>If this was not you, please ignore this email."
                 : "You're receiving this email because a verification code was requested for your HMS account.<br>If this wasn't you, please ignore this email.") +
             "</p>" +
             "<p style=\"margin:0;font-size:10px;color:#d6d3d1;\">" +
@@ -184,19 +184,19 @@ public class EmailServiceImpl implements EmailService {
             // ── Body ──
             "<tr><td style=\"padding:40px;\">" +
             "<h2 style=\"margin:0 0 16px;font-size:20px;font-weight:700;color:#1a2332;\">" +
-            (isVi ? "Đặt lại mật khẩu" : "Reset Your Password") + "</h2>" +
+            (isVi ? "Reset Password" : "Reset Your Password") + "</h2>" +
             "<p style=\"margin:0 0 24px;font-size:14px;color:#78716c;line-height:1.6;\">" +
-            (isVi ? "Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản HMS Hotel của bạn. Nhấn vào nút bên dưới để tiếp tục:" : "We received a request to reset your HMS Hotel account password. Click the button below to continue:") + "</p>" +
+            (isVi ? "We received a request to reset the password for your HMS Hotel account. Click the button below to proceed:" : "We received a request to reset your HMS Hotel account password. Click the button below to continue:") + "</p>" +
 
             // CTA Button
             "<table cellpadding=\"0\" cellspacing=\"0\" style=\"margin:0 auto 24px;\"><tr>" +
             "<td style=\"background:#bfa15f;border-radius:8px;\">" +
             "<a href=\"" + resetLink + "\" style=\"display:inline-block;padding:14px 32px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.5px;\">" +
-            (isVi ? "ĐẶT LẠI MẬT KHẨU" : "RESET PASSWORD") + "</a>" +
+            (isVi ? "RESET PASSWORD" : "RESET PASSWORD") + "</a>" +
             "</td></tr></table>" +
 
             "<p style=\"margin:0 0 0;font-size:13px;color:#a8a29e;\">" +
-            (isVi ? "Liên kết này sẽ hết hạn sau 15 phút." : "This link will expire in 15 minutes.") + "</p>" +
+            (isVi ? "Liên kết này sẽ hết hạn sau 15 minutes." : "This link will expire in 15 minutes.") + "</p>" +
             "</td></tr>" +
 
             // ── Footer ──

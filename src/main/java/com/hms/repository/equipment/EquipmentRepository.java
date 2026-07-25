@@ -15,7 +15,7 @@ public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
 
 
     // GIỮ:
-    // Kiểm tra trùng mã với thiết bị đang ACTIVE.
+    // Kiểm tra trùng mã với equipment đang ACTIVE.
     boolean existsByEquipmentCodeAndStatus(
             String equipmentCode,
             EquipmentStatus status

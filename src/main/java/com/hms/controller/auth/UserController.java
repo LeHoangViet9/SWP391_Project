@@ -118,7 +118,7 @@ public class UserController {
         ));
     }
 
-    // ✅ THÊM MỚI: Xóa quyền riêng khỏi user
+    // ✅ NEW: Delete quyền riêng khỏi user
     @DeleteMapping("/{userId}/permissions")
     @PreAuthorize("hasAuthority('USER_AUTHORIZE')")
     public ResponseEntity<Map<String, Object>> removePermissionsFromUser(

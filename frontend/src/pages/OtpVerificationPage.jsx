@@ -47,9 +47,9 @@ function CircularTimer({ countdown, total }) {
 // Progress stepper component
 function ProgressStepper({ currentStep, locale }) {
   const steps = [
-    { icon: UserPlus, label: locale === 'vi' ? 'Đăng ký' : 'Register' },
-    { icon: Mail, label: locale === 'vi' ? 'Xác thực' : 'Verify' },
-    { icon: CheckCircle2, label: locale === 'vi' ? 'Hoàn tất' : 'Done' },
+    { icon: UserPlus, label: 'Register' },
+    { icon: Mail, label: 'Verify' },
+    { icon: CheckCircle2, label: 'Done' },
   ];
 
   return (
@@ -176,12 +176,12 @@ export default function OtpVerificationPage() {
     e.preventDefault();
 
     if (!email) {
-      setError(locale === 'vi' ? 'Không tìm thấy email. Vui lòng đăng ký lại.' : 'Email not found. Please register again.');
+      setError('Email not found. Please register again.');
       return;
     }
 
     if (otp.length < OTP_LENGTH) {
-      setError(locale === 'vi' ? 'Vui lòng nhập đủ 6 chữ số.' : 'Please enter all 6 digits.');
+      setError('Please enter all 6 digits.');
       return;
     }
 
@@ -191,15 +191,13 @@ export default function OtpVerificationPage() {
       await verifyOtp({ email, otpCode: otp.trim() }, locale);
       setVerifyStep(3);
       setSuccess(
-        locale === 'vi'
-          ? 'Xác thực thành công! Đang chuyển về trang đăng nhập...'
-          : 'Verified successfully! Redirecting to login...'
+        'Verified successfully! Redirecting to login...'
       );
       setTimeout(() => {
         navigate(`/login?email=${encodeURIComponent(email)}`, { replace: true });
       }, 2000);
     } catch (err) {
-      setError(err.message || (locale === 'vi' ? 'Mã xác thực không hợp lệ.' : 'Invalid verification code.'));
+      setError(err.message || ('Invalid verification code.'));
       // Shake animation — clear digits
       setDigits(Array(OTP_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
@@ -212,7 +210,7 @@ export default function OtpVerificationPage() {
     if (!canResend) return;
 
     if (!email) {
-      setError(locale === 'vi' ? 'Không tìm thấy email. Vui lòng đăng ký lại.' : 'Email not found. Please register again.');
+      setError('Email not found. Please register again.');
       return;
     }
 
@@ -222,26 +220,22 @@ export default function OtpVerificationPage() {
     try {
       await resendOtp(email, locale);
       setSuccess(
-        locale === 'vi'
-          ? 'Mã xác thực mới đã được gửi về email của bạn.'
-          : 'A new code has been sent to your email.'
+        'A new code has been sent to your email.'
       );
       setCanResend(false);
       setCountdown(RESEND_COOLDOWN);
       setDigits(Array(OTP_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
     } catch (err) {
-      setError(err.message || (locale === 'vi' ? 'Không thể gửi lại mã.' : 'Failed to resend code.'));
+      setError(err.message || ('Failed to resend code.'));
     } finally {
       setResending(false);
     }
   }, [canResend, email, locale]);
 
-  const title = locale === 'vi' ? 'Xác thực Email' : 'Email Verification';
+  const title = 'Email Verification';
   const subtitle =
-    locale === 'vi'
-      ? 'Nhập mã 6 chữ số đã được gửi tới email của bạn'
-      : 'Enter the 6-digit code sent to your email';
+    'Enter the 6-digit code sent to your email';
 
   return (
     <AuthLayout title={title} subtitle={subtitle}>
@@ -253,7 +247,7 @@ export default function OtpVerificationPage() {
         {email ? (
           <div className="bg-stone-50 border border-stone-200 rounded-lg px-4 py-3 text-center">
             <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">
-              {locale === 'vi' ? 'Mã gửi tới' : 'Code sent to'}
+              {'Code sent to'}
             </p>
             <p className="text-sm font-semibold text-slate-700 truncate flex items-center justify-center gap-2">
               <Mail size={14} className="text-[#bfa15f]" />
@@ -263,15 +257,13 @@ export default function OtpVerificationPage() {
         ) : (
           <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-lg text-center">
             <p className="font-semibold mb-1">
-              {locale === 'vi' ? '⚠️ Không tìm thấy email' : '⚠️ Email not found'}
+              {'⚠️ Email not found'}
             </p>
             <p className="text-xs">
-              {locale === 'vi'
-                ? 'Vui lòng quay lại và đăng ký để nhận mã xác thực.'
-                : 'Please go back and register to receive a verification code.'}
+              {'Please go back and register to receive a verification code.'}
             </p>
             <a href="/register" className="text-amber-700 underline font-semibold text-xs mt-1 inline-block">
-              {locale === 'vi' ? '→ Đăng ký ngay' : '→ Register now'}
+              {'→ Register now'}
             </a>
           </div>
         )}
@@ -294,7 +286,7 @@ export default function OtpVerificationPage() {
           <>
             <div>
               <label className="block text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-3 text-center">
-                {locale === 'vi' ? 'Mã xác thực (6 chữ số)' : 'Verification Code (6 digits)'}
+                {'Verification Code (6 digits)'}
               </label>
               <div className="flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
                 {digits.map((digit, idx) => (
@@ -317,9 +309,7 @@ export default function OtpVerificationPage() {
                 ))}
               </div>
               <p className="text-xs text-slate-400 mt-3 text-center">
-                {locale === 'vi'
-                  ? 'Mã có hiệu lực trong 5 phút kể từ khi đăng ký.'
-                  : 'Code is valid for 5 minutes from registration.'}
+                {'Code is valid for 5 minutes from registration.'}
               </p>
             </div>
 
@@ -331,8 +321,8 @@ export default function OtpVerificationPage() {
             >
               <ShieldCheck size={18} />
               {loading
-                ? locale === 'vi' ? 'Đang xác thực...' : 'Verifying...'
-                : locale === 'vi' ? 'Xác nhận mã' : 'Verify Code'}
+                ? 'Verifying...'
+                : 'Verify Code'}
             </button>
 
             {/* Resend OTP section with circular timer */}
@@ -350,14 +340,12 @@ export default function OtpVerificationPage() {
                 >
                   <RotateCcw size={14} className={resending ? 'animate-spin' : ''} />
                   {resending
-                    ? locale === 'vi' ? 'Đang gửi...' : 'Sending...'
-                    : locale === 'vi' ? 'Gửi lại mã xác thực' : 'Resend Verification Code'}
+                    ? 'Sending...'
+                    : 'Resend Verification Code'}
                 </button>
               ) : (
                 <p className="text-sm text-slate-400">
-                  {locale === 'vi'
-                    ? `Gửi lại mã sau ${countdown} giây`
-                    : `Resend code in ${countdown} seconds`}
+                  {`Resend code in ${countdown} seconds`}
                 </p>
               )}
             </div>
@@ -371,12 +359,10 @@ export default function OtpVerificationPage() {
               <Sparkles size={36} className="text-emerald-500" />
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-2">
-              {locale === 'vi' ? 'Xác thực thành công!' : 'Verification Complete!'}
+              {'Verification Complete!'}
             </h3>
             <p className="text-sm text-slate-500">
-              {locale === 'vi'
-                ? 'Tài khoản đã được kích hoạt. Đang chuyển về trang đăng nhập...'
-                : 'Your account is now active. Redirecting to login...'}
+              {'Your account is now active. Redirecting to login...'}
             </p>
             <div className="mt-4 flex justify-center">
               <div className="w-6 h-6 border-2 border-[#bfa15f] border-t-transparent rounded-full animate-spin" />
@@ -391,7 +377,7 @@ export default function OtpVerificationPage() {
             className="text-sm text-slate-500 hover:text-slate-800 transition-colors flex items-center justify-center gap-1"
           >
             <ArrowLeft size={14} />
-            {locale === 'vi' ? 'Quay lại đăng nhập' : 'Back to Login'}
+            {'Back to Login'}
           </Link>
         </p>
       </form>

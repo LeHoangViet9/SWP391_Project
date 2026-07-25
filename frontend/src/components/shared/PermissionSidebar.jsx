@@ -161,7 +161,7 @@ function UserProfile({ user, collapsed, onLogout }) {
               className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
             >
               <LogOut size={14} />
-              Đăng xuất
+              Logout
             </button>
           </div>
         </>
@@ -292,7 +292,7 @@ export default function PermissionSidebar({ mobileOpen = false, onMobileClose })
               </div>
               {!collapsed && (
                 <p className="text-xs text-white/30 leading-relaxed">
-                  Chưa có quyền truy cập.<br />Liên hệ quản trị viên.
+                  No permission.<br />Contact administrator.
                 </p>
               )}
             </div>
@@ -329,7 +329,7 @@ export default function PermissionSidebar({ mobileOpen = false, onMobileClose })
           <Link
             to="/"
             onClick={handleNavClick}
-            title={collapsed ? 'Trang chủ' : undefined}
+            title={collapsed ? 'Home' : undefined}
             className={`
               flex items-center gap-3 px-3 py-2 rounded-xl
               text-white/50 hover:text-white hover:bg-white/8
@@ -338,7 +338,7 @@ export default function PermissionSidebar({ mobileOpen = false, onMobileClose })
             `}
           >
             <Home size={16} className="text-[#bfa15f] shrink-0" />
-            {!collapsed && <span>Trang Chủ</span>}
+            {!collapsed && <span>Home</span>}
           </Link>
 
           {/* User profile with dropdown */}
@@ -355,7 +355,7 @@ export default function PermissionSidebar({ mobileOpen = false, onMobileClose })
             text-white/60 hover:text-white hover:bg-[#243a54]
             shadow-lg transition-all duration-200 hover:scale-110
           `}
-          title={collapsed ? 'Mở rộng' : 'Thu gọn'}
+          title={collapsed ? 'Expand' : 'Collapse'}
         >
           {collapsed
             ? <ChevronRight size={12} />

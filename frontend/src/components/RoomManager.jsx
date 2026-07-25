@@ -30,15 +30,15 @@ const STATUS_COLORS = {
 
 const STATUS_LABELS = {
   vi: {
-    AVAILABLE: 'Phòng trống',
-    READY: 'Sẵn sàng',
-    RESERVED: 'Đã đặt',
-    OCCUPIED: 'Đang ở',
-    CLEANING: 'Đang dọn',
-    DIRTY: 'Chờ dọn',
-    MAINTENANCE: 'Bảo trì',
-    CHECKOUT_PENDING: 'Chờ trả phòng',
-    INACTIVE: 'Ngừng hoạt động',
+    AVAILABLE: 'Available rooms',
+    READY: 'Available',
+    RESERVED: 'Reserved',
+    OCCUPIED: 'Occupied',
+    CLEANING: 'Cleaning',
+    DIRTY: 'Dirty',
+    MAINTENANCE: 'Maintenance',
+    CHECKOUT_PENDING: 'Pending Check-out',
+    INACTIVE: 'Inactive',
   },
   en: {
     AVAILABLE: 'Available',
@@ -235,18 +235,18 @@ export default function RoomManager({ readOnly = false }) {
                 {deleteConfirmId === item.id ? (
                   <div className="flex items-center gap-2 justify-center">
                     <button onClick={() => handleDelete(item)} className="bg-red-500 text-white px-2 py-1 rounded text-xs font-medium hover:bg-red-600 transition-colors">
-                      {locale === 'vi' ? 'Xác nhận' : 'Confirm'}
+                      {'Confirm'}
                     </button>
                     <button onClick={() => setDeleteConfirmId(null)} className="border border-stone-300 bg-white px-2 py-1 rounded text-xs font-medium text-slate-600 hover:bg-stone-100 transition-colors">
-                      {locale === 'vi' ? 'Hủy' : 'Cancel'}
+                      {'Cancel'}
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-3 justify-center">
-                    <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={locale === 'vi' ? 'Chỉnh sửa' : 'Edit'}>
+                    <button onClick={() => openEdit(item)} className="text-blue-500 hover:text-blue-700" title={'Edit'}>
                       <Edit2 size={15} />
                     </button>
-                    <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title={locale === 'vi' ? 'Xóa' : 'Delete'}>
+                    <button onClick={() => setDeleteConfirmId(item.id)} className="text-red-500 hover:text-red-700" title={'Delete'}>
                       <Trash2 size={15} />
                     </button>
                   </div>
@@ -274,11 +274,11 @@ export default function RoomManager({ readOnly = false }) {
                 }}
                 className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700"
             >
-              <option value="roomNumber">{t('room.searchOptions.roomNumber') || 'Số phòng'}</option>
-              <option value="id">{t('room.searchOptions.id') || 'Mã (ID)'}</option>
-              <option value="roomTypeId">{t('room.searchOptions.roomTypeId') || 'Loại phòng'}</option>
-              <option value="floor">{t('room.searchOptions.floor') || 'Tầng'}</option>
-              <option value="status">{t('room.searchOptions.status') || 'Trạng thái'}</option>
+              <option value="roomNumber">{t('room.searchOptions.roomNumber') || 'Room Number'}</option>
+              <option value="id">{t('room.searchOptions.id') || 'ID'}</option>
+              <option value="roomTypeId">{t('room.searchOptions.roomTypeId') || 'Room Type'}</option>
+              <option value="floor">{'Floor'}</option>
+              <option value="status">{t('room.searchOptions.status') || 'Status'}</option>
             </select>
 
             {searchOpt === 'roomTypeId' ? (
@@ -290,7 +290,7 @@ export default function RoomManager({ readOnly = false }) {
                     }}
                     className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700 max-w-xs flex-1"
                 >
-                  <option value="">{t('room.modal.selectType') || 'Chọn loại phòng'}</option>
+                  <option value="">{'Select room type'}</option>
                   {roomTypes.map(rt => (
                       <option key={rt.id} value={rt.id}>{rt.typeName}</option>
                   ))}
@@ -304,9 +304,9 @@ export default function RoomManager({ readOnly = false }) {
                     }}
                     className="border border-stone-300 rounded px-3 py-2 text-sm focus:border-[#bfa15f] outline-none bg-white font-medium text-slate-700 max-w-xs flex-1"
                 >
-                  <option value="">{t('booking.filters.all') || 'Tất cả'}</option>
-                  <option value="AVAILABLE">{t('room.status.available') || STATUS_LABELS[locale]?.AVAILABLE || 'Sẵn sàng'}</option>
-                  <option value="MAINTENANCE">{t('room.status.maintenance') || STATUS_LABELS[locale]?.MAINTENANCE || 'Đang bảo trì'}</option>
+                  <option value="">{t('booking.filters.all') || 'All'}</option>
+                  <option value="AVAILABLE">{t('room.status.available') || STATUS_LABELS[locale]?.AVAILABLE || 'Available'}</option>
+                  <option value="MAINTENANCE">{t('room.status.maintenance') || 'Under Maintenance'}</option>
                 </select>
             ) : (
                 <div className="relative flex-1 max-w-xs">
@@ -317,9 +317,9 @@ export default function RoomManager({ readOnly = false }) {
                       onChange={e => setSearch(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && fetchData(0)}
                       placeholder={
-                        searchOpt === 'id' ? (t('room.placeholders.id') || 'Nhập mã ID...') :
-                            searchOpt === 'floor' ? (t('room.placeholders.floor') || 'Nhập số tầng...') :
-                                (t('room.placeholders.roomNumber') || t('room.searchPlaceholder') || 'Nhập số phòng...')
+                        searchOpt === 'id' ? (t('room.placeholders.id') || 'Enter ID...') :
+                            searchOpt === 'floor' ? ('Enter floor number...') :
+                                ('Enter room number...')
                       }
                       className="w-full pl-8 pr-3 py-2 text-sm border border-stone-300 rounded focus:border-[#bfa15f] outline-none"
                   />

@@ -258,7 +258,7 @@ public class HouseKeepingTaskController {
 
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
-                .message("room.report.minibar")
+                .message(messageSource.getMessage("room.report.minibar",null,locale))
                 .status(HttpStatus.OK)
                 .build();
 

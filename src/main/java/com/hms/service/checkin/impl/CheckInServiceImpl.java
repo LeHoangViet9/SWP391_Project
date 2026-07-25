@@ -158,14 +158,14 @@ public class CheckInServiceImpl implements CheckInService {
             );
         }
 
-        // 5. Update Status (Xử lý gán phòng thực tế tại quầy)
+        // 5. Update Status (Xử lý gán room thực tế tại quầy)
         booking.setBookingStatus(BookingStatus.CHECKED_IN);
         booking.setActualCheckInTime(now);
 
-        // Gán phòng đơn (Single Room) cho trường hợp booking lưu ở thực thể Room
+        // Gán room đơn (Single Room) cho trường hợp booking lưu ở thực thể Room
         booking.setRoom(assignedRoom);
 
-        // Nếu hệ thống quản lý danh sách phòng (Multi-room), ta bổ sung phòng được gán vào list tránh lỗi Unmodifiable List
+        // Nếu hệ thống quản lý danh sách room (Multi-room), ta bổ sung room được gán vào list tránh lỗi Unmodifiable List
         if (booking.getRooms() == null) {
             booking.setRooms(new java.util.ArrayList<>(List.of(assignedRoom)));
         } else {
@@ -182,17 +182,17 @@ public class CheckInServiceImpl implements CheckInService {
             }
         }
 
-        // Xác định danh sách phòng cần chuyển trạng thái sang OCCUPIED
+        // Xác định danh sách room cần chuyển trạng thái sang OCCUPIED
         List<Room> roomsToProcess = booking.getRooms() != null && !booking.getRooms().isEmpty()
                 ? booking.getRooms()
                 : List.of(assignedRoom);
 
-        // Lưu lại trạng thái cũ ĐỘNG của từng phòng trước khi ghi đè
+        // Lưu lại trạng thái cũ ĐỘNG của từng room trước khi ghi đè
         List<RoomStatus> previousStatuses = roomsToProcess.stream()
                 .map(Room::getRoomStatus)
                 .toList();
 
-        // Chuyển toàn bộ phòng được gán sang trạng thái OCCUPIED (Đang có khách ở)
+        // Chuyển toàn bộ room được gán sang trạng thái OCCUPIED (Đang có khách ở)
         roomsToProcess.forEach(room -> room.setRoomStatus(RoomStatus.OCCUPIED));
 
         bookingRepository.save(booking);
