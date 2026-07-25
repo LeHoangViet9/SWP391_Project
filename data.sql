@@ -780,27 +780,46 @@ INSERT INTO customer_feedback (booking_id, customer_id, rating, category, commen
 -- =============================================================================
 -- 11. EQUIPMENTS & IMAGES
 -- =============================================================================
-INSERT INTO equipments (equipment_name, equipment_code, description, status, created_at) VALUES
-('Tivi Samsung 65 inch', 'EQ-1', 'Mô tả Tivi Samsung 65 inch', 'ACTIVE', NOW()),
-('Tivi Samsung 65 inch', 'EQ-2', 'Mô tả Tivi Samsung 65 inch', 'INACTIVE', NOW()),
-('Tivi Samsung 65 inch', 'EQ-3', 'Mô tả Tivi Samsung 65 inch', 'MAINTENANCE', NOW()),
-('Tủ lạnh mini', 'EQ-4', 'Mô tả Tủ lạnh mini', 'INACTIVE', NOW()),
-('Điều hòa Daikin', 'EQ-5', 'Mô tả Điều hòa Daikin', 'INACTIVE', NOW()),
-('Máy sấy tóc', 'EQ-6', 'Mô tả Máy sấy tóc', 'INACTIVE', NOW()),
-('Tivi Samsung 65 inch', 'EQ-7', 'Mô tả Tivi Samsung 65 inch', 'MAINTENANCE', NOW()),
-('Tivi Samsung 65 inch', 'EQ-8', 'Mô tả Tivi Samsung 65 inch', 'MAINTENANCE', NOW()),
-('Tivi Samsung 65 inch', 'EQ-9', 'Mô tả Tivi Samsung 65 inch', 'ACTIVE', NOW()),
-('Điều hòa Daikin', 'EQ-10', 'Mô tả Điều hòa Daikin', 'MAINTENANCE', NOW()),
-('Ấm siêu tốc', 'EQ-11', 'Mô tả Ấm siêu tốc', 'INACTIVE', NOW()),
-('Máy sấy tóc', 'EQ-12', 'Mô tả Máy sấy tóc', 'INACTIVE', NOW()),
-('Tủ lạnh mini', 'EQ-13', 'Mô tả Tủ lạnh mini', 'INACTIVE', NOW()),
-('Điều hòa Daikin', 'EQ-14', 'Mô tả Điều hòa Daikin', 'MAINTENANCE', NOW()),
-('Tủ lạnh mini', 'EQ-15', 'Mô tả Tủ lạnh mini', 'MAINTENANCE', NOW()),
-('Tivi Samsung 65 inch', 'EQ-16', 'Mô tả Tivi Samsung 65 inch', 'MAINTENANCE', NOW()),
-('Tivi Sony 55 inch', 'EQ-17', 'Mô tả Tivi Sony 55 inch', 'INACTIVE', NOW()),
-('Điều hòa Daikin', 'EQ-18', 'Mô tả Điều hòa Daikin', 'MAINTENANCE', NOW()),
-('Máy sấy tóc', 'EQ-19', 'Mô tả Máy sấy tóc', 'INACTIVE', NOW()),
-('Điều hòa Daikin', 'EQ-20', 'Mô tả Điều hòa Daikin', 'INACTIVE', NOW());
+INSERT INTO equipments (equipment_name, equipment_code, description, total_quantity, status, created_at) VALUES
+('Tivi Samsung 65 inch', 'EQ-1', 'Tivi thông minh Samsung 4K QLED 65 inch', 20, 'ACTIVE', NOW()),
+('Tivi Sony 55 inch', 'EQ-2', 'Tivi thông minh Sony 4K Ultra HD 55 inch', 15, 'ACTIVE', NOW()),
+('Điều hòa Daikin 1.5 HP', 'EQ-3', 'Điều hòa Daikin Inverter 1.5 HP tiết kiệm điện', 30, 'ACTIVE', NOW()),
+('Tủ lạnh mini Electrolux', 'EQ-4', 'Tủ lạnh mini Electrolux 50 lít', 25, 'ACTIVE', NOW()),
+('Máy sấy tóc Panasonic', 'EQ-5', 'Máy sấy tóc Panasonic 1200W', 40, 'ACTIVE', NOW()),
+('Điều hòa Panasonic 2 HP', 'EQ-6', 'Điều hòa Inverter Panasonic 2 HP công suất lớn', 18, 'ACTIVE', NOW()),
+('Tivi Samsung 75 inch', 'EQ-7', 'Tivi QLED Samsung 75 inch cao cấp', 10, 'ACTIVE', NOW()),
+('Điều hòa Daikin 2.5 HP', 'EQ-8', 'Điều hòa Daikin 2.5 HP phòng VIP', 12, 'ACTIVE', NOW()),
+('Bình nóng lạnh Rossi', 'EQ-9', 'Bình nước nóng Rossi 30 lít', 35, 'ACTIVE', NOW()),
+('Tivi Sony 75 inch', 'EQ-10', 'Tivi Sony Bravia OLED 75 inch 4K', 8, 'ACTIVE', NOW()),
+('Ấm siêu tốc Philips 1.8L', 'EQ-11', 'Ấm siêu tốc inox Philips 1.8 lít', 50, 'ACTIVE', NOW()),
+('Máy sấy tóc Philips 1500W', 'EQ-12', 'Máy sấy tóc tạo kiểu Philips 1500W', 30, 'ACTIVE', NOW()),
+('Tủ lạnh Aqua 90L', 'EQ-13', 'Tủ lạnh mini Aqua 90L cho phòng Suite', 20, 'ACTIVE', NOW()),
+('Điều hòa LG Inverter 1.5 HP', 'EQ-14', 'Điều hòa LG Inverter 1.5 HP khánh tiết', 22, 'ACTIVE', NOW()),
+('Bình nóng lạnh Ariston 30L', 'EQ-15', 'Bình nóng lạnh gián tiếp Ariston 30L', 25, 'MAINTENANCE', NOW()),
+('Tivi LG OLED 65 inch', 'EQ-16', 'Tivi LG OLED 4K 65 inch siêu mỏng', 15, 'ACTIVE', NOW()),
+('Tivi Sony 4K 65 inch', 'EQ-17', 'Tivi Sony 4K Smart HDR 65 inch', 10, 'ACTIVE', NOW()),
+('Điều hòa Mitsubishi 2 HP', 'EQ-18', 'Điều hòa Mitsubishi Heavy 2 HP', 14, 'ACTIVE', NOW()),
+('Máy sấy tóc Dyson Supersonic', 'EQ-19', 'Máy sấy tóc cao cấp Dyson Supersonic', 10, 'BROKEN', NOW()),
+('Tủ lạnh Toshiba 180L', 'EQ-20', 'Tủ lạnh Toshiba Inverter 180L', 8, 'INACTIVE', NOW());
+
+INSERT INTO room_equipments (room_id, equipment_id, quantity, assigned_at) VALUES
+(1, 1, 1, NOW()),
+(2, 1, 1, NOW()),
+(3, 1, 1, NOW()),
+(1, 3, 1, NOW()),
+(2, 3, 1, NOW()),
+(1, 4, 1, NOW()),
+(3, 4, 1, NOW()),
+(1, 5, 1, NOW()),
+(2, 5, 1, NOW()),
+(4, 5, 1, NOW()),
+(4, 2, 1, NOW()),
+(5, 2, 1, NOW()),
+(1, 9, 1, NOW()),
+(2, 9, 1, NOW()),
+(3, 9, 1, NOW()),
+(1, 11, 1, NOW()),
+(2, 11, 1, NOW());
 
 INSERT INTO equipment_images (image_url, is_primary, equipment_id, created_at) VALUES
 ('/uploads/equipments/samsung_tv.jpg', TRUE, 1, NOW()),
