@@ -18,5 +18,4 @@ public class CustomerResponse {
     private IdType idType;
     private String status;
     private String nationality;
-    private LocalDateTime createdAt;
 }

@@ -33,9 +33,6 @@ public class Customer {
     @Column(name = "id_number_card", nullable = false, unique = true)
     private String idNumberCard;
     private String nationality;
-    @Column(name = "created_at")
-    @CreationTimestamp
-    private LocalDateTime createdAt;
     @Enumerated(EnumType.STRING)
     private AccountStatus status;
 }
