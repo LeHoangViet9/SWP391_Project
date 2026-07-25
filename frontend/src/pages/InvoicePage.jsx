@@ -38,51 +38,6 @@ function formatCountdown(totalSeconds) {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// Generate a simple QR-like pattern placeholder using SVG
-function QrPlaceholder({ value }) {
-    return (
-        <div className="inline-flex flex-col items-center gap-2">
-            <div className="w-44 h-44 bg-white border-2 border-stone-200 rounded-lg flex items-center justify-center relative overflow-hidden">
-                {/* SVG QR Pattern placeholder */}
-                <svg viewBox="0 0 100 100" className="w-40 h-40">
-                    {/* Corner squares */}
-                    <rect x="5" y="5" width="25" height="25" fill="#1a2332" rx="3" />
-                    <rect x="8" y="8" width="19" height="19" fill="white" rx="2" />
-                    <rect x="11" y="11" width="13" height="13" fill="#1a2332" rx="1" />
-
-                    <rect x="70" y="5" width="25" height="25" fill="#1a2332" rx="3" />
-                    <rect x="73" y="8" width="19" height="19" fill="white" rx="2" />
-                    <rect x="76" y="11" width="13" height="13" fill="#1a2332" rx="1" />
-
-                    <rect x="5" y="70" width="25" height="25" fill="#1a2332" rx="3" />
-                    <rect x="8" y="73" width="19" height="19" fill="white" rx="2" />
-                    <rect x="11" y="76" width="13" height="13" fill="#1a2332" rx="1" />
-
-                    {/* Random data cells */}
-                    {[
-                        [35,5],[40,5],[50,5],[55,5],[60,5],
-                        [35,10],[45,10],[55,10],[65,10],
-                        [5,35],[10,35],[15,35],[25,35],[35,35],[40,35],[55,35],[60,35],[70,35],[80,35],[90,35],
-                        [5,40],[20,40],[35,40],[50,40],[65,40],[75,40],[85,40],
-                        [10,45],[25,45],[40,45],[45,45],[55,45],[70,45],[80,45],[90,45],
-                        [5,50],[15,50],[30,50],[45,50],[60,50],[75,50],[85,50],
-                        [5,55],[20,55],[35,55],[50,55],[65,55],[80,55],[90,55],
-                        [10,60],[25,60],[40,60],[55,60],[70,60],[85,60],
-                        [5,65],[15,65],[30,65],[45,65],[60,65],[75,65],
-                        [35,70],[45,70],[55,70],[65,70],[80,70],[90,70],
-                        [35,75],[50,75],[60,75],[75,75],[85,75],
-                        [35,80],[40,80],[55,80],[70,80],[90,80],
-                        [35,85],[45,85],[60,85],[75,85],[80,85],[90,85],
-                        [35,90],[50,90],[65,90],[85,90],[90,90],
-                    ].map(([x, y], i) => (
-                        <rect key={i} x={x} y={y} width="4" height="4" fill="#1a2332" rx="0.5" />
-                    ))}
-                </svg>
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono">{value}</span>
-        </div>
-    );
-}
 
 export default function InvoicePage() {
     const { bookingId } = useParams();
@@ -287,12 +242,18 @@ export default function InvoicePage() {
                         <div className="bg-gradient-to-r from-blue-700 to-cyan-600 px-6 py-5 text-white">
                             <h2 className="text-xl font-bold">{isVi ? 'Thanh toán chuyển khoản' : 'Bank transfer payment'}</h2>
                             <p className="mt-1 text-sm text-blue-50">
-                                {isVi ? 'Quét mã QR giả hoặc sao chép thông tin bên dưới để thử luồng thanh toán.' : 'Scan the demo QR or copy the details below to test the payment flow.'}
+                                {isVi ? 'Quét mã QR bằng ứng dụng ngân hàng hoặc sao chép thông tin bên dưới để thanh toán.' : 'Scan the QR code with your banking app or copy the details below.'}
                             </p>
                         </div>
                         <div className="grid gap-6 p-6 md:grid-cols-[210px_1fr]">
                             <div className="flex flex-col items-center justify-center rounded-xl bg-stone-50 p-4">
-                                <QrPlaceholder value={transferContent} />
+                                {invoice?.qrCodeUrl ? (
+                                    <img src={invoice.qrCodeUrl} alt="VietQR" className="w-44 h-44 object-contain rounded-lg bg-white" />
+                                ) : (
+                                    <div className="w-44 h-44 bg-stone-100 rounded-lg flex items-center justify-center text-sm text-slate-400 border-2 border-stone-200 border-dashed">
+                                        {isVi ? 'Không có mã QR' : 'No QR Code'}
+                                    </div>
+                                )}
                                 <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700 tabular-nums">
                                     {paymentSecondsLeft > 0
                                         ? `${isVi ? 'Đang chờ thanh toán' : 'Awaiting payment'} · ${formatCountdown(paymentSecondsLeft)}`
@@ -411,7 +372,13 @@ export default function InvoicePage() {
                             <div className="mt-5 rounded-xl border border-blue-100 bg-blue-50 p-5">
                                 <div className="grid gap-5 md:grid-cols-[190px_1fr]">
                                     <div className="flex flex-col items-center justify-center rounded-xl bg-white p-3">
-                                        <QrPlaceholder value={transferContent} />
+                                        {invoice?.qrCodeUrl ? (
+                                            <img src={invoice.qrCodeUrl} alt="VietQR" className="w-40 h-40 object-contain rounded-lg bg-white" />
+                                        ) : (
+                                            <div className="w-40 h-40 bg-stone-100 rounded-lg flex items-center justify-center text-xs text-slate-400 border-2 border-stone-200 border-dashed">
+                                                {isVi ? 'Không có mã QR' : 'No QR Code'}
+                                            </div>
+                                        )}
                                         <span className="mt-2 text-xs font-bold text-blue-700">
                                             {isVi ? 'Quét để chuyển khoản' : 'Scan to transfer'}
                                         </span>
