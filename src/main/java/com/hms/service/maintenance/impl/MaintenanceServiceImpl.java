@@ -86,7 +86,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         if (dto.getEquipmentId() != null) {
             var equipment = equipmentRepository.findById(dto.getEquipmentId())
                     .orElseThrow(() -> new ResourceNotFoundException(
-                            messageSource.getMessage(ERROR_EQUIPMENT_NOTFOUND, new Object[] { dto.getEquipmentId() }, locale)));
+                            messageSource.getMessage(ERROR_EQUIPMENT_NOTFOUND, new Object[] { dto.getEquipmentId() },
+                                    locale)));
             if (equipment.getStatus() == EquipmentStatus.INACTIVE) {
                 throw new ConflictException("Cannot create a maintenance request for an inactive equipment");
             }
@@ -175,7 +176,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             String roomInfo = request.getRoomId() != null
                     ? messageSource.getMessage("maintenance.room.info", new Object[] { request.getRoomId() }, locale)
                     : messageSource.getMessage("maintenance.equipment.info", new Object[] { request.getEquipmentId() },
-                    locale);
+                            locale);
 
             String notifTitle = messageSource.getMessage("maintenance.notification.new.title", null, locale);
             String notifMsg = messageSource.getMessage("maintenance.notification.new.message",
@@ -408,9 +409,9 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             userRepository.findById(updated.getAssignedTo()).ifPresent(assignee -> {
                 String roomInfo = updated.getRoomId() != null
                         ? messageSource.getMessage("maintenance.room.info", new Object[] { updated.getRoomId() },
-                        notifLocale)
+                                notifLocale)
                         : messageSource.getMessage("maintenance.equipment.info",
-                        new Object[] { updated.getEquipmentId() }, notifLocale);
+                                new Object[] { updated.getEquipmentId() }, notifLocale);
                 String notifTitle = messageSource.getMessage("maintenance.notification.new.title", null, notifLocale);
                 String notifMsg = messageSource.getMessage("maintenance.notification.assigned_by_manager.message",
                         new Object[] { updated.getId(), roomInfo }, notifLocale);
@@ -564,7 +565,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     private void reconcileEquipmentStatus(Long equipmentId) {
-        if (equipmentId == null || maintenanceRepository.existsByEquipmentIdAndStatusIn(equipmentId, ACTIVE_MAINTENANCE_STATUSES)) {
+        if (equipmentId == null
+                || maintenanceRepository.existsByEquipmentIdAndStatusIn(equipmentId, ACTIVE_MAINTENANCE_STATUSES)) {
             return;
         }
         equipmentRepository.findById(equipmentId).ifPresent(equipment -> {
@@ -593,8 +595,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      * Cảnh báo một lần khi ETA đã qua. Không tự hoàn thành phiếu, không đổi trạng
      * thái phòng hay thiết bị.
      */
-    @org.springframework.scheduling.annotation.Scheduled(
-            fixedDelayString = "${app.maintenance.overdue-notification-ms:300000}")
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelayString = "${app.maintenance.overdue-notification-ms:300000}")
     @Transactional
     public void notifyOverdueMaintenanceRequests() {
         LocalDateTime now = LocalDateTime.now();

@@ -336,7 +336,7 @@ export default function MaintenanceManager({ readOnly = false }) {
         notify(t('maintenance.toast.updateSuccess'));
       } else {
         if (!form.reportedBy) {
-          notify('Vui lòng chọn nhân viên báo cáo từ danh sách.', 'error');
+          notify(t('maintenance.toast.selectReporter') || 'Vui lòng chọn nhân viên báo cáo từ danh sách.', 'error');
           setSaving(false);
           return;
         }
@@ -378,10 +378,10 @@ export default function MaintenanceManager({ readOnly = false }) {
     setActionLoading(item.id);
     try {
       await maintenanceService.acceptRequest(item.id);
-      notify('✅ Đã chấp nhận yêu cầu sửa chữa!');
+      notify(t('maintenance.toast.acceptSuccess') || '✅ Đã chấp nhận yêu cầu sửa chữa!');
       fetchData();
     } catch (e) {
-      notify(e.message || 'Không thể chấp nhận yêu cầu', 'error');
+      notify(e.message || t('maintenance.toast.acceptError') || 'Không thể chấp nhận yêu cầu', 'error');
     } finally {
       setActionLoading(null);
     }
@@ -399,10 +399,10 @@ export default function MaintenanceManager({ readOnly = false }) {
     setActionLoading(item.id);
     try {
       await maintenanceService.denyRequest(item.id, reason);
-      notify('Đã từ chối. Hệ thống đang tìm người thay thế...');
+      notify(t('maintenance.toast.denySuccess') || 'Đã từ chối. Hệ thống đang tìm người thay thế...');
       fetchData();
     } catch (e) {
-      notify(e.message || 'Không thể từ chối yêu cầu', 'error');
+      notify(e.message || t('maintenance.toast.denyError') || 'Không thể từ chối yêu cầu', 'error');
     } finally {
       setActionLoading(null);
     }
@@ -518,19 +518,19 @@ export default function MaintenanceManager({ readOnly = false }) {
   });
 
   const cols = [
-    t('maintenance.columns.id'),
-    t('maintenance.columns.title'),
-    t('maintenance.columns.description'),
-    t('maintenance.columns.room'),
-    t('maintenance.columns.equipment'),
-    t('maintenance.columns.reportedBy'),
-    t('maintenance.columns.assignedTo'),
-    t('maintenance.columns.severity'),
-    t('maintenance.columns.status'),
-    t('maintenance.columns.createdAt'),
-    'Dự kiến xong',
-    'Hoàn thành',
-    ...(!isReadOnly ? [t('maintenance.columns.actions')] : [])
+    t('maintenance.columns.id') || '#',
+    t('maintenance.columns.issueTitle') || 'Tiêu đề',
+    t('maintenance.columns.description') || 'Mô tả',
+    t('maintenance.columns.room') || 'Phòng',
+    t('maintenance.columns.equipment') || 'Thiết bị',
+    t('maintenance.columns.reportedBy') || 'Người báo',
+    t('maintenance.columns.assignedTo') || 'Người sửa',
+    t('maintenance.columns.severity') || 'Mức độ',
+    t('maintenance.columns.status') || 'Trạng thái',
+    t('maintenance.columns.createdAt') || 'Ngày tạo',
+    t('maintenance.columns.estimatedCompletion') || 'Dự kiến xong',
+    t('maintenance.columns.completedAt') || 'Hoàn thành',
+    ...(!isReadOnly ? [t('maintenance.columns.actions') || 'Thao tác'] : [])
   ];
 
   return (
@@ -703,7 +703,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Thời gian dự kiến hoàn thành</label>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.modal.estimatedCompletion') || 'Thời gian dự kiến hoàn thành'}</label>
                       <input
                           type="datetime-local"
                           value={form.estimatedCompletionTime}
@@ -713,7 +713,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                     </div>
                     {modal.editing?.completedAt && (
                         <div>
-                          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Thời gian hoàn thành thực tế</label>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{t('maintenance.columns.completedAt') || 'Thời gian hoàn thành thực tế'}</label>
                           <input
                               disabled
                               type="text"

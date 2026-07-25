@@ -310,7 +310,9 @@ export default function EquipmentManager() {
           </td>
 
           <td className="px-4 py-3 text-sm text-slate-500">
-            {assignedRoomCount > 0 ? `${assignedRoomCount} phòng` : 'Chưa gán phòng'}
+            {assignedRoomCount > 0
+              ? `${assignedRoomCount} ${t('equipment.columns.assignedRooms') || 'phòng'}`
+              : (t('equipment.status.notAssigned') || 'Chưa gán phòng')}
           </td>
 
           <td className="px-4 py-3">
@@ -371,7 +373,7 @@ export default function EquipmentManager() {
     t('equipment.columns.name') || 'Tên thiết bị',
     t('equipment.columns.code') || 'Mã thiết bị',
     t('equipment.columns.description') || 'Mô tả',
-    'Phòng đã gán',
+    t('equipment.columns.assignedRooms') || 'Phòng đã gán',
     t('equipment.columns.status') || 'Trạng thái',
     t('equipment.columns.actions') || 'Thao tác',
   ];
@@ -515,7 +517,7 @@ export default function EquipmentManager() {
 
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                Ảnh thiết bị
+                {t('equipment.modal.images') || 'Ảnh thiết bị'}
               </label>
 
               <input
@@ -527,8 +529,8 @@ export default function EquipmentManager() {
                     const allowedExtensions = /(\.jpg|\.jpeg|\.png|\.webp|\.gif)$/i;
                     const invalidFiles = files.filter(file => !allowedExtensions.test(file.name));
                     if (invalidFiles.length > 0) {
-                      notify('Định dạng file không hợp lệ. Chỉ chấp nhận: .jpg, .jpeg, .png, .webp, .gif', 'error');
-                      event.target.value = ''; // Reset input
+                      notify(t('equipment.toast.invalidFormat') || 'Định dạng file không hợp lệ. Chỉ chấp nhận: .jpg, .jpeg, .png, .webp, .gif', 'error');
+                      event.target.value = '';
                       setImageFiles([]);
                       return;
                     }
@@ -539,14 +541,14 @@ export default function EquipmentManager() {
 
               {imageFiles.length > 0 && (
                   <p className="mt-1 text-xs text-slate-500">
-                    Đã chọn {imageFiles.length} ảnh
+                    {(t('equipment.modal.selectedImages') || 'Đã chọn {count} ảnh').replace('{count}', imageFiles.length)}
                   </p>
               )}
 
               <p className="mt-1 text-xs text-slate-400">
                 {modal.editing
-                    ? 'Nếu chọn ảnh mới, hệ thống sẽ upload thêm các ảnh cho thiết bị này.'
-                    : 'Các ảnh sẽ được upload sau khi tạo thiết bị thành công.'}
+                    ? t('equipment.modal.imagesNote') || 'Nếu chọn ảnh mới, hệ thống sẽ upload thêm các ảnh cho thiết bị này.'
+                    : t('equipment.modal.imagesNoteCreate') || 'Các ảnh sẽ được upload sau khi tạo thiết bị thành công.'}
               </p>
             </div>
 

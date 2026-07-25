@@ -9,17 +9,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-
 @Repository
 public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
-
 
     // GIỮ:
     // Kiểm tra trùng mã với thiết bị đang ACTIVE.
     boolean existsByEquipmentCodeAndStatus(
             String equipmentCode,
-            EquipmentStatus status
-    );
+            EquipmentStatus status);
 
     boolean existsByEquipmentCodeIgnoreCase(String equipmentCode);
 
@@ -30,27 +27,25 @@ public interface EquipmentRepository extends JpaRepository<Equipment, Long> {
     boolean existsByEquipmentCodeAndIdNotAndStatus(
             String equipmentCode,
             Long id,
-            EquipmentStatus status
-    );
+            EquipmentStatus status);
 
     @Query("""
-SELECT DISTINCT e
-FROM Equipment e
-LEFT JOIN e.roomEquipments re
-LEFT JOIN re.room r
-WHERE (:status IS NULL OR e.status = :status)
-AND (
-    CAST(:keyword AS string) IS NULL
-    OR LOWER(e.equipmentName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-    OR LOWER(e.equipmentCode) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-    OR CAST(e.id AS string) LIKE CONCAT('%', CAST(:keyword AS string), '%')
-    OR LOWER(r.roomNumber) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-)
-""")
+            SELECT DISTINCT e
+            FROM Equipment e
+            LEFT JOIN e.roomEquipments re
+            LEFT JOIN re.room r
+            WHERE (:status IS NULL OR e.status = :status)
+            AND (
+                CAST(:keyword AS string) IS NULL
+                OR LOWER(e.equipmentName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                OR LOWER(e.equipmentCode) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                OR CAST(e.id AS string) LIKE CONCAT('%', CAST(:keyword AS string), '%')
+                OR LOWER(r.roomNumber) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+            )
+            """)
     Page<Equipment> searchEquipment(
             @Param("keyword") String keyword,
             @Param("status") EquipmentStatus status,
-            Pageable pageable
-    );
+            Pageable pageable);
 
 }

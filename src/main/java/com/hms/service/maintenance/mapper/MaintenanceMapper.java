@@ -18,14 +18,13 @@ public interface MaintenanceMapper {
 
     MaintenanceResponse toResponse(RepairRequest repairRequest);
 
-    // Khi cập nhật, bỏ qua các trường null trong DTO để không ghi đè dữ liệu hiện có
+    // Khi cập nhật, bỏ qua các trường null trong DTO để không ghi đè dữ liệu hiện
+    // có
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void updateFromDto(
             MaintenanceRequestUpdateDTO dto,
-            @MappingTarget RepairRequest repairRequest
-    );
+            @MappingTarget RepairRequest repairRequest);
 
     List<MaintenanceResponse> toResponseList(
-            List<RepairRequest> repairRequests
-    );
+            List<RepairRequest> repairRequests);
 }
