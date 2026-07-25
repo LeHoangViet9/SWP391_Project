@@ -803,26 +803,26 @@ INSERT INTO equipments (equipment_name, equipment_code, description, status, cre
 ('Điều hòa Daikin', 'EQ-20', 'Mô tả Điều hòa Daikin', 'INACTIVE', NOW());
 
 INSERT INTO equipment_images (image_url, is_primary, equipment_id, created_at) VALUES
-('/uploads/equipments/eq_1.jpg', TRUE, 1, NOW()),
-('/uploads/equipments/eq_2.jpg', TRUE, 2, NOW()),
-('/uploads/equipments/eq_3.jpg', TRUE, 3, NOW()),
-('/uploads/equipments/eq_4.jpg', TRUE, 4, NOW()),
-('/uploads/equipments/eq_5.jpg', TRUE, 5, NOW()),
-('/uploads/equipments/eq_6.jpg', TRUE, 6, NOW()),
-('/uploads/equipments/eq_7.jpg', TRUE, 7, NOW()),
-('/uploads/equipments/eq_8.jpg', TRUE, 8, NOW()),
-('/uploads/equipments/eq_9.jpg', TRUE, 9, NOW()),
-('/uploads/equipments/eq_10.jpg', TRUE, 10, NOW()),
-('/uploads/equipments/eq_11.jpg', TRUE, 11, NOW()),
-('/uploads/equipments/eq_12.jpg', TRUE, 12, NOW()),
-('/uploads/equipments/eq_13.jpg', TRUE, 13, NOW()),
-('/uploads/equipments/eq_14.jpg', TRUE, 14, NOW()),
-('/uploads/equipments/eq_15.jpg', TRUE, 15, NOW()),
-('/uploads/equipments/eq_16.jpg', TRUE, 16, NOW()),
-('/uploads/equipments/eq_17.jpg', TRUE, 17, NOW()),
-('/uploads/equipments/eq_18.jpg', TRUE, 18, NOW()),
-('/uploads/equipments/eq_19.jpg', TRUE, 19, NOW()),
-('/uploads/equipments/eq_20.jpg', TRUE, 20, NOW());
+('/uploads/equipments/samsung_tv.jpg', TRUE, 1, NOW()),
+('/uploads/equipments/sony_tv.jpg', TRUE, 2, NOW()),
+('/uploads/equipments/daikin_ac.jpg', TRUE, 3, NOW()),
+('/uploads/equipments/electrolux_fridge.jpg', TRUE, 4, NOW()),
+('/uploads/equipments/panasonic_dryer.jpg', TRUE, 5, NOW()),
+('/uploads/equipments/panasonic_ac.jpg', TRUE, 6, NOW()),
+('/uploads/equipments/samsung_tv.jpg', TRUE, 7, NOW()),
+('/uploads/equipments/daikin_ac_large.jpg', TRUE, 8, NOW()),
+('/uploads/equipments/rossi_heater.jpg', TRUE, 9, NOW()),
+('/uploads/equipments/sony_oled.jpg', TRUE, 10, NOW()),
+('/uploads/equipments/philips_kettle.jpg', TRUE, 11, NOW()),
+('/uploads/equipments/panasonic_dryer.jpg', TRUE, 12, NOW()),
+('/uploads/equipments/panasonic_fridge.jpg', TRUE, 13, NOW()),
+('/uploads/equipments/midea_ac.jpg', TRUE, 14, NOW()),
+('/uploads/equipments/rossi_heater.jpg', TRUE, 15, NOW()),
+('/uploads/equipments/lg_tv.jpg', TRUE, 16, NOW()),
+('/uploads/equipments/sony_tv.jpg', TRUE, 17, NOW()),
+('/uploads/equipments/daikin_central.jpg', TRUE, 18, NOW()),
+('/uploads/equipments/panasonic_dryer.jpg', TRUE, 19, NOW()),
+('/uploads/equipments/electrolux_fridge.jpg', TRUE, 20, NOW());
 
 -- =============================================================================
 -- 12. ROOM IMAGES
