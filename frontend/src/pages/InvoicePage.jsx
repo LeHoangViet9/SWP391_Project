@@ -689,7 +689,7 @@ export default function InvoicePage() {
                                     {isReceptionistPayment && invoice?.qrCodeUrl ? (
                                         <img src={invoice.qrCodeUrl} alt="Mã QR chuyển khoản" className="h-40 w-40 rounded-lg border border-stone-200 bg-white object-contain" />
                                     ) : (
-                                        <QrPlaceholder value={invoiceNumber} />
+                                        <div className="h-40 w-40 flex items-center justify-center rounded-lg border border-stone-200 bg-stone-50 text-stone-400 text-xs">QR Code</div>
                                     )}
                                     {isReceptionistPayment && invoice?.paymentContent && (
                                         <p className="mt-2 text-xs font-bold text-slate-600">{invoice.paymentContent}</p>
