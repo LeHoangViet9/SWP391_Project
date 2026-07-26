@@ -153,10 +153,11 @@ function validateRoomSelection(booking, guestCounts, maxGuests, locale) {
   if (!booking.quantity || booking.quantity < 1) errors.quantity = isVi ? 'Phải chọn ít nhất một phòng.' : 'Select at least one room.';
 
   guestCounts.forEach((guests, index) => {
-    const adults = Number(guests.adults || 0);
-    const totalGuests = adults + Number(guests.children || 0) + Number(guests.infants || 0);
-    if (adults < 1) {
-      errors[`guests.${index}`] = isVi ? `Phòng ${index + 1} phải có ít nhất 1 người lớn.` : `Room ${index + 1} must have at least 1 adult.`;
+    const totalGuests = Number(guests.adults || 0)
+      + Number(guests.children || 0)
+      + Number(guests.infants || 0);
+    if (totalGuests < 1) {
+      errors[`guests.${index}`] = isVi ? `Phòng ${index + 1} phải có ít nhất 1 khách.` : `Room ${index + 1} must have at least 1 guest.`;
     } else if (Number(maxGuests) > 0 && totalGuests > Number(maxGuests)) {
       errors[`guests.${index}`] = isVi
         ? `Phòng ${index + 1} tối đa ${maxGuests} người, hiện đang chọn ${totalGuests} người.`
@@ -899,34 +900,35 @@ function BookingContent() {
             </div>
             <div className="space-y-4 border-y border-dashed border-stone-300 py-5">
               {guestCounts.map((guests, roomIndex) => (
-                <div key={roomIndex} className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_1fr_1fr_1fr] sm:items-end">
+                <div key={roomIndex} className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_1fr] sm:items-end">
                   <h4 className="font-bold text-slate-800">
                     {locale === 'vi' ? `Số người phòng ${roomIndex + 1}` : `Guests in room ${roomIndex + 1}`}
                     <span className="mt-1 block text-xs font-normal text-slate-500">
                       {locale === 'vi' ? `Tối đa ${roomType.maxGuests} người` : `Up to ${roomType.maxGuests} guests`}
                     </span>
                   </h4>
-                  {[
-                    ['adults', locale === 'vi' ? 'Người lớn' : 'Adults', 4],
-                    ['children', locale === 'vi' ? 'Trẻ em (6-11 tuổi)' : 'Children (6-11)', 3],
-                    ['infants', locale === 'vi' ? 'Em bé (0-5 tuổi)' : 'Infants (0-5)', 2],
-                  ].map(([key, label, max]) => (
-                    <label key={key} className="text-sm text-slate-600">
-                      <span className="mb-1 block">{label}</span>
-                      <select
-                        value={guests[key]}
-                        onChange={(e) => {
-                          touchSelectionField(`guests.${roomIndex}`);
-                          setGuestCounts((current) => current.map((item, index) => index === roomIndex ? { ...item, [key]: Number(e.target.value) } : item));
-                        }}
-                        className={`w-full rounded border bg-white px-3 py-2.5 outline-none ${touchedSelectionFields[`guests.${roomIndex}`] && selectionErrors[`guests.${roomIndex}`] ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-stone-300 focus:border-[#f2a900]'}`}
-                      >
-                        {Array.from({ length: max + 1 }, (_, value) => <option key={value} value={value}>{value}</option>)}
-                      </select>
-                    </label>
-                  ))}
+                  <label className="text-sm text-slate-600">
+                    <span className="mb-1 block">{locale === 'vi' ? 'Số khách' : 'Guests'}</span>
+                    <select
+                      value={Number(guests.adults || 0) + Number(guests.children || 0) + Number(guests.infants || 0)}
+                      onChange={(e) => {
+                        touchSelectionField(`guests.${roomIndex}`);
+                        setGuestCounts((current) => current.map((item, index) => (
+                          index === roomIndex
+                            ? { adults: Number(e.target.value), children: 0, infants: 0 }
+                            : item
+                        )));
+                      }}
+                      className={`w-full rounded border bg-white px-3 py-2.5 outline-none ${touchedSelectionFields[`guests.${roomIndex}`] && selectionErrors[`guests.${roomIndex}`] ? 'border-red-400 bg-red-50 focus:border-red-500' : 'border-stone-300 focus:border-[#f2a900]'}`}
+                    >
+                      {Array.from({ length: Number(roomType.maxGuests) || 1 }, (_, index) => {
+                        const value = index + 1;
+                        return <option key={value} value={value}>{value}</option>;
+                      })}
+                    </select>
+                  </label>
                   {touchedSelectionFields[`guests.${roomIndex}`] && selectionErrors[`guests.${roomIndex}`] && (
-                    <p className="text-xs font-medium text-red-600 sm:col-start-2 sm:col-span-3">{selectionErrors[`guests.${roomIndex}`]}</p>
+                    <p className="text-xs font-medium text-red-600 sm:col-start-2">{selectionErrors[`guests.${roomIndex}`]}</p>
                   )}
                 </div>
               ))}
