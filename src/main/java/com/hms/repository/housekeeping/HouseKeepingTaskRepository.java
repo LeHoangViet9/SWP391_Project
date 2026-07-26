@@ -57,8 +57,8 @@ public interface HouseKeepingTaskRepository extends JpaRepository<HouseKeepingTa
 
         List<HouseKeepingTask> findByTaskStatusInAndCreatedAtBefore(List<TaskStatus> statuses, LocalDateTime dateTime);
 
-        // Tìm các task đang chờ kiểm phòng (checkout inspection) chưa hoàn thành.
-        // Dùng cho scheduled job theo dõi timeout 5 phút và 10 phút.
+        // Tìm các task đang chờ kiểm room (checkout inspection) chưa hoàn thành.
+        // Dùng cho scheduled job theo dõi timeout 5 minutes và 10 minutes.
         @Query("SELECT t FROM HouseKeepingTask t " +
                 "JOIN FETCH t.room " +
                 "JOIN FETCH t.assignedTo " +

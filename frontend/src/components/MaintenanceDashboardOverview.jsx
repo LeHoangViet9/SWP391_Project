@@ -1,9 +1,9 @@
-import { RefreshCw, Activity } from 'lucide-react';
+﻿import { RefreshCw, Activity } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
 import DashboardCard from './DashboardCard';
 import { maintenanceDashboardCards } from '../data/dashboardData';
 
-function formatVND(value, locale = 'vi') {
+function formatVND(value, locale = 'en') {
   if (!value && value !== 0) return '0';
   const num = Number(value);
   if (locale === 'en') {
@@ -41,9 +41,9 @@ export default function MaintenanceDashboardOverview({ data, refetch }) {
   const totalSeverityCount = Object.values(severityMap).reduce((a, b) => a + Number(b), 0) || 1;
 
   const SEVERITY_DETAILS = [
-    { key: 'CRITICAL', label: 'Khẩn cấp (CRITICAL)', color: '#ef4444' },
-    { key: 'HIGH', label: 'Mức độ cao (HIGH)', color: '#f97316' },
-    { key: 'MEDIUM', label: 'Trung bình (MEDIUM)', color: '#eab308' },
+    { key: 'CRITICAL', label: 'Critical (CRITICAL)', color: '#ef4444' },
+    { key: 'HIGH', label: 'Severity cao (HIGH)', color: '#f97316' },
+    { key: 'MEDIUM', label: 'Medium (MEDIUM)', color: '#eab308' },
     { key: 'LOW', label: 'Thấp (LOW)', color: '#10b981' }
   ];
 
@@ -52,7 +52,7 @@ export default function MaintenanceDashboardOverview({ data, refetch }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-slate-800">Bảng điều khiển bảo trì</h3>
+          <h3 className="text-lg font-bold text-slate-800">Dashboard bảo trì</h3>
           <p className="text-xs text-slate-400 mt-0.5">Theo dõi chi phí sửa chữa và các mức độ nghiêm trọng của sự cố</p>
         </div>
         <button
@@ -60,7 +60,7 @@ export default function MaintenanceDashboardOverview({ data, refetch }) {
           className="flex items-center gap-1.5 text-xs px-3 py-2 border border-stone-200 rounded-lg hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors text-slate-500"
         >
           <RefreshCw size={13} />
-          Làm mới
+          Refresh
         </button>
       </div>
 

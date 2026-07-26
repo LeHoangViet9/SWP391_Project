@@ -11,10 +11,10 @@ export default function AssignEquipmentToRoom() {
     const [rooms, setRooms] = useState([]);
     const [equipments, setEquipments] = useState([]);
     
-    // THAY ĐỔI: Lưu trữ số lượng thiết bị đang chỉnh sửa của phòng dưới dạng map { [equipmentId]: quantity }
+    // FIX: Save trữ số lượng thiết bị đang chỉnh sửa của phòng dưới dạng map { [equipmentId]: quantity }
     const [quantities, setQuantities] = useState({});
     
-    // THAY ĐỔI: Lưu trữ số lượng thiết bị ban đầu của phòng để đối chiếu sự thay đổi
+    // FIX: Save trữ số lượng thiết bị ban đầu của phòng để đối chiếu sự thay đổi
     const [initialQuantities, setInitialQuantities] = useState({});
 
     const [roomId, setRoomId] = useState('');
@@ -39,7 +39,7 @@ export default function AssignEquipmentToRoom() {
             setRooms(response?.data?.content ?? []);
         } catch {
             setRooms([]);
-            notify('Không tải được danh sách phòng', 'error');
+            notify('No tải được danh sách phòng', 'error');
         }
     }, [locale]);
 
@@ -53,7 +53,7 @@ export default function AssignEquipmentToRoom() {
             setEquipments(response?.data?.content ?? []);
         } catch {
             setEquipments([]);
-            notify('Không tải được danh sách thiết bị', 'error');
+            notify('No tải được danh sách thiết bị', 'error');
         }
     }, [locale]);
 
@@ -86,7 +86,7 @@ export default function AssignEquipmentToRoom() {
             setQuantities(newQuantities);
             setInitialQuantities({ ...newQuantities });
         } catch {
-            notify('Không tải được thiết bị trong phòng', 'error');
+            notify('No tải được thiết bị trong phòng', 'error');
         } finally {
             setLoading(false);
         }
@@ -108,7 +108,7 @@ export default function AssignEquipmentToRoom() {
         [rooms, roomId]
     );
 
-    // Lọc danh sách thiết bị theo từ khóa tìm kiếm
+    // Filter danh sách thiết bị theo từ khóa tìm kiếm
     const filteredEquipments = useMemo(() => {
         if (!searchKeyword.trim()) return equipments;
         const kw = searchKeyword.toLowerCase();
@@ -154,14 +154,14 @@ export default function AssignEquipmentToRoom() {
     // Gửi yêu cầu lưu thay đổi hàng loạt lên Backend
     const handleSaveChanges = async () => {
         if (!roomId) {
-            notify('Vui lòng chọn phòng trước khi lưu', 'error');
+            notify('Please chọn phòng trước khi lưu', 'error');
             return;
         }
 
         setSaving(true);
 
         try {
-            // Lọc ra danh sách thiết bị có số lượng bị chỉnh sửa so với ban đầu
+            // Filter ra danh sách thiết bị có số lượng bị chỉnh sửa so với ban đầu
             const payload = [];
             Object.keys(quantities).forEach((id) => {
                 if (quantities[id] !== initialQuantities[id]) {
@@ -173,18 +173,18 @@ export default function AssignEquipmentToRoom() {
             });
 
             if (payload.length === 0) {
-                notify('Không có thay đổi nào để lưu', 'info');
+                notify('No có thay đổi nào để lưu', 'info');
                 setSaving(false);
                 return;
             }
 
             await equipmentService.assignBulkToRoom(roomId, payload, locale);
-            notify('Cập nhật thiết bị trong phòng thành công!');
+            notify('Update thiết bị trong phòng successful!');
             
             // Load lại dữ liệu mới nhất
             await fetchRoomEquipments();
         } catch (error) {
-            notify(error?.message || 'Cập nhật thất bại', 'error');
+            notify(error?.message || 'Update failed', 'error');
         } finally {
             setSaving(false);
         }
@@ -203,7 +203,7 @@ export default function AssignEquipmentToRoom() {
                 <div className="flex flex-col gap-4 md:flex-row md:items-end justify-between">
                     <div className="w-full md:w-1/3">
                         <label className="mb-1 block text-xs font-semibold uppercase text-slate-500">
-                            Chọn phòng cần gán
+                            Select phòng cần gán
                         </label>
                         <select
                             required
@@ -211,7 +211,7 @@ export default function AssignEquipmentToRoom() {
                             onChange={(e) => setRoomId(e.target.value)}
                             className="w-full rounded border border-stone-300 px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
                         >
-                            <option value="">-- Chọn phòng --</option>
+                            <option value="">-- Select phòng --</option>
                             {rooms.map((room) => (
                                 <option key={room.id} value={room.id}>
                                     Phòng {room.roomNumber} {room.roomTypeName ? `(${room.roomTypeName})` : ''}
@@ -261,7 +261,7 @@ export default function AssignEquipmentToRoom() {
                 <div className="rounded border border-stone-200 bg-white p-4 shadow-sm">
                     <div className="mb-4 flex items-center justify-between border-b pb-3">
                         <h3 className="font-semibold text-slate-700">
-                            Danh sách thiết bị trong phòng {selectedRoom ? selectedRoom.roomNumber : ''}
+                            List thiết bị trong phòng {selectedRoom ? selectedRoom.roomNumber : ''}
                         </h3>
                         <button
                             type="button"
@@ -274,23 +274,23 @@ export default function AssignEquipmentToRoom() {
                             }`}
                         >
                             <Save size={16} />
-                            {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                            {saving ? 'Saving...' : 'Save thay đổi'}
                         </button>
                     </div>
 
                     {loading ? (
-                        <p className="py-8 text-center text-sm text-slate-500">Đang tải danh sách thiết bị...</p>
+                        <p className="py-8 text-center text-sm text-slate-500">Loading danh sách thiết bị...</p>
                     ) : filteredEquipments.length === 0 ? (
-                        <p className="py-8 text-center text-sm text-slate-500">Không tìm thấy thiết bị nào.</p>
+                        <p className="py-8 text-center text-sm text-slate-500">No tìm thấy thiết bị nào.</p>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-left text-sm">
                                 <thead className="border-b bg-stone-50 text-xs uppercase text-slate-500">
                                     <tr>
-                                        <th className="px-4 py-3">Tên thiết bị</th>
-                                        <th className="px-4 py-3">Mã thiết bị</th>
-                                        <th className="px-4 py-3 text-center">Trạng thái gán</th>
-                                        <th className="px-4 py-3 text-center w-36">Số lượng</th>
+                                        <th className="px-4 py-3">Equipment Name</th>
+                                        <th className="px-4 py-3">Equipment Code</th>
+                                        <th className="px-4 py-3 text-center">Status gán</th>
+                                        <th className="px-4 py-3 text-center w-36">Quantity</th>
                                     </tr>
                                 </thead>
 
@@ -319,7 +319,7 @@ export default function AssignEquipmentToRoom() {
                                                         </span>
                                                     ) : (
                                                         <span className="inline-block rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-500">
-                                                            Chưa gán
+                                                            Unassigned
                                                         </span>
                                                     )}
                                                 </td>
@@ -361,7 +361,7 @@ export default function AssignEquipmentToRoom() {
 
             {!roomId && (
                 <div className="rounded border border-stone-200 bg-white p-8 text-center shadow-sm">
-                    <p className="text-slate-500 text-sm">Vui lòng chọn phòng để bắt đầu quản lý và gán nhanh thiết bị.</p>
+                    <p className="text-slate-500 text-sm">Please chọn phòng để bắt đầu quản lý và gán nhanh thiết bị.</p>
                 </div>
             )}
         </div>

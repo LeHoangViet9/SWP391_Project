@@ -1,11 +1,11 @@
-/**
+﻿/**
  * PermissionLayout — Shell layout dùng PermissionSidebar.
  *
  * Dùng thay thế cho DashboardLayout ở các trang cần sidebar
  * tự động hiện/ẩn menu theo quyền hạn (permission-based).
  *
  * Usage:
- *   <PermissionLayout title="Báo Cáo" subtitle="...">
+ *   <PermissionLayout title="Reports" subtitle="...">
  *     <YourPageContent />
  *   </PermissionLayout>
  */
@@ -127,7 +127,7 @@ export default function PermissionLayout({ title, subtitle, children }) {
                   <div className="fixed inset-0 z-[50]" onClick={() => setNotificationOpen(false)} />
                   <div className="absolute right-0 mt-2 bg-white border border-stone-200 rounded-xl shadow-xl z-[60] w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden">
                     <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
-                      <p className="text-sm font-bold text-slate-800">Thông báo</p>
+                      <p className="text-sm font-bold text-slate-800">Notification</p>
                       {unreadCount > 0 && (
                         <span className="text-[11px] font-bold text-red-500">{unreadCount} mới</span>
                       )}
@@ -135,7 +135,7 @@ export default function PermissionLayout({ title, subtitle, children }) {
                     <div className="max-h-[360px] overflow-y-auto">
                       {notifications.length === 0 ? (
                         <div className="px-4 py-8 text-center text-sm text-slate-400">
-                          Chưa có thông báo
+                          None yet thông báo
                         </div>
                       ) : (
                         notifications.map((item) => (
@@ -151,7 +151,7 @@ export default function PermissionLayout({ title, subtitle, children }) {
                                 <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{item.message}</p>
                                 {item.createdAt && (
                                   <p className="text-[10px] text-slate-400 mt-1">
-                                    {new Date(item.createdAt).toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US')}
+                                    {new Date(item.createdAt).toLocaleString('en-US')}
                                   </p>
                                 )}
                               </div>
@@ -171,7 +171,7 @@ export default function PermissionLayout({ title, subtitle, children }) {
                 onClick={() => { setLangOpen(!langOpen); setUserMenuOpen(false); setNotificationOpen(false); }}
                 className="flex items-center gap-1 px-2.5 py-1.5 border border-stone-200 rounded-lg text-xs font-bold text-slate-700 hover:border-[#bfa15f] transition-colors"
               >
-                {locale === 'vi' ? '🇻🇳 VI' : '🇬🇧 EN'}
+                {'🇬🇧 EN'}
                 <ChevronDown size={11} className="text-slate-400" />
               </button>
               {langOpen && (
@@ -180,7 +180,7 @@ export default function PermissionLayout({ title, subtitle, children }) {
                   <div className="absolute right-0 mt-1 bg-white border border-stone-200 rounded-xl shadow-lg z-[60] overflow-hidden text-xs min-w-[110px]">
                     <button
                       onClick={() => { setLocale('vi'); setLangOpen(false); }}
-                      className={`w-full text-left px-4 py-2.5 hover:bg-stone-50 font-medium ${locale === 'vi' ? 'text-[#bfa15f]' : 'text-slate-700'}`}
+                      className={`w-full text-left px-4 py-2.5 hover:bg-stone-50 font-medium ${'text-slate-700'}`}
                     >
                       🇻🇳 Tiếng Việt
                     </button>
@@ -225,7 +225,7 @@ export default function PermissionLayout({ title, subtitle, children }) {
                       onClick={() => { setUserMenuOpen(false); handleLogout(); }}
                       className="w-full text-left px-4 py-2 text-red-500 font-semibold hover:bg-red-50 transition-colors"
                     >
-                      Đăng xuất
+                      Logout
                     </button>
                   </div>
                 </>

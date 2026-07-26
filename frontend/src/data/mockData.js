@@ -32,7 +32,7 @@ export const heroSlides = [
     id: 3,
     imageUrl:
       'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=1920&q=80',
-    titleVi: 'Không gian nghỉ dưỡng tinh tế',
+    titleVi: 'No gian nghỉ dưỡng tinh tế',
     titleEn: 'Refined Retreat Space',
   },
   {
@@ -141,7 +141,7 @@ export const hotelServices = [
 
 export const footerBranches = [
   { city: 'Hà Nội', phone: '024 3836 3636', address: '78 Thanh Nhàn, Hai Bà Trưng' },
-  { city: 'Đà Nẵng', phone: '0236 3777 999', address: '962 Ngô Quyền, Sơn Trà' },
-  { city: 'Nha Trang', phone: '0258 3522 999', address: '60 Trần Phú, Lộc Thọ' },
-  { city: 'TP.HCM', phone: '028 3822 8888', address: '136 Lê Thánh Tôn, Quận 1' },
+  { city: 'Đà Nẵng', phone: '0236 3777 999', address: '962 Ngô Permission, Sơn Trà' },
+  { city: 'Nha Trang', phone: '0258 3522 999', address: '60 Tran Phu, Loc Tho' },
+  { city: 'TP.HCM', phone: '028 3822 8888', address: '136 Le Thanh Ton, District 1' },
 ];

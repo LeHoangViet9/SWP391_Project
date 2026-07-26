@@ -32,9 +32,9 @@ public class RoleServiceImpl implements IRoleService {
     private final MessageSource messageSource;
 
     /**
-     * Lấy danh sách tất cả các vai trò (Role) trong hệ thống.
+     * Get all vai trò (Role) trong hệ thống.
      * 
-     * @return danh sách đối tượng RoleResponse đại diện cho các vai trò
+     * @return list of RoleResponse objects representing roles
      */
     @Override
     public List<RoleResponse> getAllRoles() {
@@ -44,11 +44,11 @@ public class RoleServiceImpl implements IRoleService {
     }
 
     /**
-     * Lấy thông tin chi tiết của một vai trò dựa trên ID.
+     * Get details of a vai trò dựa trên ID.
      * 
-     * @param id của vai trò cần tìm
-     * @return đối tượng RoleResponse chứa thông tin vai trò
-     * @throws ResourceNotFoundException nếu không tìm thấy vai trò với ID cung cấp
+     * @param id of role to find
+     * @return RoleResponse object containing role info
+     * @throws ResourceNotFoundException if role not found with provided ID
      */
     @Override
     public RoleResponse getRoleById(Long id) {
@@ -61,11 +61,11 @@ public class RoleServiceImpl implements IRoleService {
     }
 
     /**
-     * Tạo mới một vai trò trong hệ thống kèm theo danh sách các quyền được gán.
+     * Create a new vai trò trong hệ thống kèm theo danh sách các quyền được gán.
      * 
-     * @param request chứa thông tin tên vai trò và danh sách ID quyền hạn
-     * @return đối tượng RoleResponse của vai trò mới tạo
-     * @throws ConflictException nếu tên vai trò đã tồn tại trong hệ thống
+     * @param request containing role name and permission IDs
+     * @return RoleResponse object of created role
+     * @throws ConflictException if role name already exists in system
      */
     @Override
     @Transactional
@@ -89,13 +89,13 @@ public class RoleServiceImpl implements IRoleService {
     }
 
     /**
-     * Cập nhật thông tin của một vai trò hiện có (tên vai trò và danh sách quyền).
+     * Update information of a vai trò hiện có (tên vai trò và danh sách quyền).
      * 
      * @param id của vai trò cần cập nhật
-     * @param request chứa thông tin cập nhật mới của vai trò
-     * @return đối tượng RoleResponse của vai trò sau khi cập nhật
-     * @throws ResourceNotFoundException nếu không tìm thấy vai trò với ID cung cấp
-     * @throws ConflictException nếu tên vai trò mới trùng lặp với một vai trò khác đã có
+     * @param request containing new update info for role
+     * @return RoleResponse object of updated role
+     * @throws ResourceNotFoundException if role not found with provided ID
+     * @throws ConflictException if new role name duplicates another existing role
      */
     @Override
     @Transactional
@@ -123,10 +123,10 @@ public class RoleServiceImpl implements IRoleService {
     }
 
     /**
-     * Xóa một vai trò khỏi hệ thống dựa trên ID.
+     * Delete a vai trò khỏi hệ thống dựa trên ID.
      * 
-     * @param id của vai trò cần xóa
-     * @throws ResourceNotFoundException nếu không tìm thấy vai trò với ID cung cấp
+     * @param id of role to delete
+     * @throws ResourceNotFoundException if role not found with provided ID
      */
     @Override
     @Transactional
@@ -142,12 +142,12 @@ public class RoleServiceImpl implements IRoleService {
     }
 
     /**
-     * Gán danh sách quyền hạn (Permissions) trực tiếp cho một vai trò.
+     * Assign list of quyền hạn (Permissions) trực tiếp cho một vai trò.
      * 
-     * @param roleId của vai trò cần gán quyền
-     * @param permissionIds danh sách ID quyền hạn cần gán
-     * @return đối tượng RoleResponse của vai trò sau khi gán lại quyền
-     * @throws ResourceNotFoundException nếu không tìm thấy vai trò với ID cung cấp
+     * @param roleId of role to assign permissions
+     * @param permissionIds list of permission IDs to assign
+     * @return RoleResponse object of role after assigning permissions
+     * @throws ResourceNotFoundException if role not found with provided ID
      */
     @Override
     @Transactional

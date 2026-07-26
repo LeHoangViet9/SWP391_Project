@@ -24,7 +24,7 @@ export default function ReceptionistDashboardOverview({ data, refetch }) {
   const totalRooms = Object.values(roomStatus).reduce((a, b) => a + Number(b), 0) || 1;
 
   const STATUS_DETAILS = [
-    { key: 'AVAILABLE', label: 'Phòng trống sẵn sàng', color: '#10b981' },
+    { key: 'AVAILABLE', label: 'Available rooms sẵn sàng', color: '#10b981' },
     { key: 'READY', label: 'Phòng dọn xong (chờ duyệt)', color: '#22c55e' },
     { key: 'OCCUPIED', label: 'Phòng đang có khách', color: '#3b82f6' },
     { key: 'RESERVED', label: 'Phòng đã đặt trước', color: '#6366f1' },
@@ -39,7 +39,7 @@ export default function ReceptionistDashboardOverview({ data, refetch }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-slate-800">Bảng điều khiển lễ tân</h3>
+          <h3 className="text-lg font-bold text-slate-800">Dashboard lễ tân</h3>
           <p className="text-xs text-slate-400 mt-0.5">Theo dõi hoạt động check-in, check-out và trạng thái phòng</p>
         </div>
         <button
@@ -47,7 +47,7 @@ export default function ReceptionistDashboardOverview({ data, refetch }) {
           className="flex items-center gap-1.5 text-xs px-3 py-2 border border-stone-200 rounded-lg hover:border-[#bfa15f] hover:text-[#bfa15f] transition-colors text-slate-500"
         >
           <RefreshCw size={13} />
-          Làm mới
+          Refresh
         </button>
       </div>
 
@@ -69,7 +69,7 @@ export default function ReceptionistDashboardOverview({ data, refetch }) {
       <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-6">
           <BedDouble size={18} className="text-[#bfa15f]" />
-          <h4 className="text-sm font-bold text-slate-800">Trạng thái phòng hiện tại</h4>
+          <h4 className="text-sm font-bold text-slate-800">Status phòng hiện tại</h4>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
           {STATUS_DETAILS.map(status => {

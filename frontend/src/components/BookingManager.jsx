@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Eye, RefreshCw, Search, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getAllBookings, createBooking, updateBooking, searchBookings, updateBookingStatus } from '../services/bookingService';
@@ -12,12 +12,12 @@ import Toast from './shared/Toast';
 import ReceptionistPaymentModal from './ReceptionistPaymentModal';
 
 const STATUS_OPTIONS = [
-  { value: 'PENDING_PAYMENT', label: 'Chờ thanh toán', color: 'bg-amber-100 text-amber-700' },
-  { value: 'CONFIRMED', label: 'Chờ check-in', color: 'bg-blue-100 text-blue-700' },
+  { value: 'PENDING_PAYMENT', label: 'Pending Payment', color: 'bg-amber-100 text-amber-700' },
+  { value: 'CONFIRMED', label: 'Pending Check-in', color: 'bg-blue-100 text-blue-700' },
   { value: 'CHECKED_IN', label: 'Đã Check-in', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'CHECKED_OUT', label: 'Đã Check-out', color: 'bg-slate-100 text-slate-700' },
-  { value: 'CANCELLED', label: 'Đã hủy', color: 'bg-red-100 text-red-700' },
-  { value: 'NO_SHOW', label: 'Không đến', color: 'bg-orange-100 text-orange-700' },
+  { value: 'CANCELLED', label: 'Cancelled', color: 'bg-red-100 text-red-700' },
+  { value: 'NO_SHOW', label: 'No Show', color: 'bg-orange-100 text-orange-700' },
 ];
 
 const EMPTY = {
@@ -53,7 +53,7 @@ function getBookingStatus(item) {
 
 export default function BookingManager({ readOnly = false }) {
   const { t, locale } = useLocale();
-  const isVi = locale === 'vi';
+  const isVi = false;
   const { hasPermission, hasAnyPermission } = usePermission();
   
   const canView = hasAnyPermission(['BOOKING_VIEW', 'BOOKING_VIEW_OWN']);
@@ -86,10 +86,10 @@ export default function BookingManager({ readOnly = false }) {
     open: false,
     type: null,
     booking: null,
-    reason: 'Khách thay đổi kế hoạch',
+    reason: 'Guest changed plans',
   });
 
-  const openCancelConfirm = (item) => setConfirmModal({ open: true, type: 'CANCEL', booking: item, reason: 'Khách thay đổi kế hoạch' });
+  const openCancelConfirm = (item) => setConfirmModal({ open: true, type: 'CANCEL', booking: item, reason: 'Guest changed plans' });
   const handleExecuteConfirm = async () => {
     const { type, booking } = confirmModal;
     if (!booking) return;
@@ -97,12 +97,12 @@ export default function BookingManager({ readOnly = false }) {
     try {
       if (type === 'CANCEL') {
         await updateBookingStatus(booking.id, { status: 'CANCELLED' });
-        notify(locale === 'vi' ? `Hủy thành công đơn đặt phòng #${booking.id}` : `Cancelled booking #${booking.id} successfully`);
+        notify(locale === 'en' ? `Cancel successful đơn đặt phòng #${booking.id}` : `Cancelled booking #${booking.id} successfully`);
       }
-      setConfirmModal({ open: false, type: null, booking: null, reason: 'Khách thay đổi kế hoạch' });
+      setConfirmModal({ open: false, type: null, booking: null, reason: 'Guest changed plans' });
       fetchData(page);
     } catch (err) {
-      notify(err.message || (locale === 'vi' ? 'Lỗi thao tác, vui lòng thử lại' : 'Action failed, please try again'), 'error');
+      notify(err.message || ('Action failed, please try again'), 'error');
     } finally {
       setSaving(false);
     }
@@ -120,7 +120,7 @@ export default function BookingManager({ readOnly = false }) {
   const closeToast = () => setToast(t => ({ ...t, message: '' }));
 
   const validateField = (fieldName, value) => {
-    const isVi = locale === 'vi';
+    const isVi = false;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^0[0-9]{9}$/;
     const idCardRegex = /^[A-Za-z0-9-]{6,20}$/;
@@ -131,31 +131,31 @@ export default function BookingManager({ readOnly = false }) {
     let errorMsg = '';
 
     if (fieldName === 'fullName') {
-      if (!value || !value.trim()) errorMsg = isVi ? 'Vui lòng nhập họ và tên.' : 'Full name is required.';
-      else if (!nameRegex.test(value.trim())) errorMsg = isVi ? 'Họ tên chỉ được chứa chữ cái, khoảng trắng và dấu hợp lệ.' : 'Full name contains invalid characters.';
+      if (!value || !value.trim()) errorMsg = 'Full name is required.';
+      else if (!nameRegex.test(value.trim())) errorMsg = 'Full name contains invalid characters.';
     } else if (fieldName === 'email') {
-      if (!value || !value.trim()) errorMsg = isVi ? 'Vui lòng nhập email.' : 'Email is required.';
-      else if (!emailRegex.test(value.trim())) errorMsg = isVi ? 'Email không đúng định dạng.' : 'Invalid email format.';
+      if (!value || !value.trim()) errorMsg = 'Email is required.';
+      else if (!emailRegex.test(value.trim())) errorMsg = 'Invalid email format.';
     } else if (fieldName === 'phone') {
-      if (!value || !value.trim()) errorMsg = isVi ? 'Vui lòng nhập số điện thoại.' : 'Phone number is required.';
-      else if (!phoneRegex.test(value.trim())) errorMsg = isVi ? 'Số điện thoại phải có 10 số và bắt đầu bằng 0.' : 'Phone number must have 10 digits and start with 0.';
+      if (!value || !value.trim()) errorMsg = 'Phone number is required.';
+      else if (!phoneRegex.test(value.trim())) errorMsg = 'Phone number must have 10 digits and start with 0.';
     } else if (fieldName === 'idType') {
-      if (!value) errorMsg = isVi ? 'Vui lòng chọn loại giấy tờ.' : 'ID type is required.';
+      if (!value) errorMsg = 'ID type is required.';
     } else if (fieldName === 'idNumberCard') {
-      if (!value || !value.trim()) errorMsg = isVi ? 'Vui lòng nhập số giấy tờ.' : 'ID/Passport number is required.';
-      else if (form.idType === 'CCCD' && !cccdRegex.test(value.trim())) errorMsg = isVi ? 'CCCD phải gồm đúng 12 chữ số.' : 'CCCD must contain exactly 12 digits.';
-      else if (form.idType !== 'CCCD' && !idCardRegex.test(value.trim())) errorMsg = isVi ? 'Số Passport/giấy tờ phải có 6–20 ký tự chữ, số hoặc dấu gạch ngang.' : 'ID/Passport must contain 6–20 letters, numbers, or hyphens.';
+      if (!value || !value.trim()) errorMsg = 'ID/Passport number is required.';
+      else if (form.idType === 'CCCD' && !cccdRegex.test(value.trim())) errorMsg = 'CCCD must contain exactly 12 digits.';
+      else if (form.idType !== 'CCCD' && !idCardRegex.test(value.trim())) errorMsg = 'ID/Passport must contain 6–20 letters, numbers, or hyphens.';
     } else if (fieldName === 'nationality') {
-      if (!value || !value.trim()) errorMsg = isVi ? 'Vui lòng nhập quốc tịch.' : 'Nationality is required.';
-      else if (!nationalityRegex.test(value.trim())) errorMsg = isVi ? 'Quốc tịch chỉ được chứa chữ cái, khoảng trắng hoặc dấu gạch ngang.' : 'Nationality contains invalid characters.';
+      if (!value || !value.trim()) errorMsg = 'Nationality is required.';
+      else if (!nationalityRegex.test(value.trim())) errorMsg = 'Nationality contains invalid characters.';
     } else if (fieldName === 'roomTypeId') {
-      if (!value) errorMsg = isVi ? 'Vui lòng chọn hạng phòng.' : 'Please select a room type.';
+      if (!value) errorMsg = 'Please select a room type.';
     } else if (fieldName === 'quantity') {
-      if (!value || Number(value) < 1) errorMsg = isVi ? 'Số lượng phòng phải ít nhất là 1.' : 'Quantity must be at least 1.';
+      if (!value || Number(value) < 1) errorMsg = 'Quantity must be at least 1.';
     } else if (fieldName === 'checkInDate') {
-      if (!value) errorMsg = isVi ? 'Vui lòng chọn ngày nhận phòng.' : 'Please select check-in date.';
+      if (!value) errorMsg = 'Please select check-in date.';
     } else if (fieldName === 'checkOutDate') {
-      if (!value) errorMsg = isVi ? 'Vui lòng chọn ngày trả phòng.' : 'Please select check-out date.';
+      if (!value) errorMsg = 'Please select check-out date.';
     }
 
     setFormErrors(prev => ({ ...prev, [fieldName]: errorMsg }));
@@ -173,7 +173,7 @@ export default function BookingManager({ readOnly = false }) {
       if (err) errors[field] = err;
     });
 
-    const isVi = locale === 'vi';
+    const isVi = false;
     if (form.checkInDate && form.checkOutDate) {
       const checkInDate = new Date(form.checkInDate);
       const checkOutDate = new Date(form.checkOutDate);
@@ -184,11 +184,11 @@ export default function BookingManager({ readOnly = false }) {
 
       if (!modal.editing || toInputDateTime(modal.editing.checkInDate) !== form.checkInDate) {
         if (checkInDate < todayDate) {
-          errors.checkInDate = isVi ? 'Ngày nhận phòng không được ở quá khứ.' : 'Check-in date cannot be in the past.';
+          errors.checkInDate = 'Check-in date cannot be in the past.';
         }
       }
       if (checkOutDate <= checkInDate) {
-        errors.checkOutDate = isVi ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.';
+        errors.checkOutDate = 'Check-out date must be after check-in date.';
       }
     }
 
@@ -269,7 +269,7 @@ export default function BookingManager({ readOnly = false }) {
     e.preventDefault();
 
     if (!validateForm()) {
-      notify(locale === 'vi' ? 'Vui lòng điền đúng và đầy đủ thông tin.' : 'Please enter correct and complete information.', 'error');
+      notify('Please enter correct and complete information.', 'error');
       return;
     }
 
@@ -286,7 +286,7 @@ export default function BookingManager({ readOnly = false }) {
       
       const customerId = customerRes?.data?.id;
       if (!customerId) {
-        throw new Error(locale === 'vi' ? 'Không thể tạo hoặc tải thông tin khách hàng.' : 'Could not create/load customer.');
+        throw new Error('Could not create/load customer.');
       }
 
       const payload = {
@@ -386,7 +386,7 @@ export default function BookingManager({ readOnly = false }) {
           {item.roomNumber && (
             <div className="mt-1">
               <span className="inline-flex items-center bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-bold border border-emerald-100">
-                Phòng: {item.roomNumber}
+                Room: {item.roomNumber}
               </span>
             </div>
           )}
@@ -401,7 +401,7 @@ export default function BookingManager({ readOnly = false }) {
         {!readOnly && isReceptionistOrAbove && (
           <td className="px-4 py-3">
             <div className="flex flex-wrap items-center gap-1.5">
-              <button onClick={() => openView(item)} className="text-slate-500 hover:text-slate-800 p-1" title="Xem chi tiết" aria-label="Xem chi tiết">
+              <button onClick={() => openView(item)} className="text-slate-500 hover:text-slate-800 p-1" title="View Details" aria-label="View Details">
                 <Eye size={15} />
               </button>
               {status === 'PENDING_PAYMENT' && (
@@ -410,13 +410,13 @@ export default function BookingManager({ readOnly = false }) {
                     onClick={() => setPaymentModal({ open: true, booking: item })}
                     className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-bold transition-colors shadow-sm"
                   >
-                    Thanh toán
+                    Payment
                   </button>
                   <button
                     onClick={() => openCancelConfirm(item)}
                     className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold transition-colors"
                   >
-                    Hủy đơn
+                    Cancel Order
                   </button>
                 </>
               )}
@@ -426,7 +426,7 @@ export default function BookingManager({ readOnly = false }) {
                     onClick={() => openCancelConfirm(item)}
                     className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold transition-colors"
                   >
-                    Hủy đơn
+                    Cancel Order
                   </button>
                 </>
               )}
@@ -470,14 +470,14 @@ export default function BookingManager({ readOnly = false }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-stone-50 rounded-xl border border-stone-200 shadow-xs">
             {/* Từ khóa tìm kiếm */}
             <div className="lg:col-span-2">
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{isVi ? 'Từ khóa tìm kiếm' : 'Search Keyword'}</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{'Search Keyword'}</label>
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={searchKeyword}
                   onChange={e => setSearchKeyword(e.target.value)}
-                  placeholder={isVi ? 'Mã đơn (#ID), Tên khách, Số ĐT, Số phòng...' : 'Booking ID, Customer Name, Phone, Room #...'}
+                  placeholder={'Booking ID, Customer Name, Phone, Room #...'}
                   className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]"
                 />
                 {searchKeyword && (
@@ -486,7 +486,7 @@ export default function BookingManager({ readOnly = false }) {
               </div>
             </div>
 
-            {/* Trạng thái */}
+            {/* Status */}
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.filters.status')}</label>
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
@@ -495,7 +495,7 @@ export default function BookingManager({ readOnly = false }) {
               </select>
             </div>
 
-            {/* Hạng phòng */}
+            {/* Room Type */}
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.filters.roomType')}</label>
               <select value={filterRoomTypeId} onChange={e => setFilterRoomTypeId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
@@ -506,7 +506,7 @@ export default function BookingManager({ readOnly = false }) {
 
 
 
-            {/* Số phòng */}
+            {/* Room Number */}
             <div>
               <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{t('booking.filters.roomNumber')}</label>
               <select value={filterRoomId} onChange={e => setFilterRoomId(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#bfa15f]">
@@ -517,7 +517,7 @@ export default function BookingManager({ readOnly = false }) {
 
             {/* Ngày Check-in từ ngày */}
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{isVi ? 'Check-in từ ngày' : 'Check-in From'}</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{'Check-in From'}</label>
               <input
                 type="date"
                 value={filterStartDate}
@@ -528,7 +528,7 @@ export default function BookingManager({ readOnly = false }) {
 
             {/* Ngày Check-in đến ngày */}
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{isVi ? 'Check-in đến ngày' : 'Check-in To'}</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1 uppercase tracking-wider">{'Check-in To'}</label>
               <input
                 type="date"
                 value={filterEndDate}
@@ -551,11 +551,11 @@ export default function BookingManager({ readOnly = false }) {
           {/* Customer Info Section */}
           <div className="border-b border-stone-200 pb-4 mb-4">
             <h3 className="text-sm font-bold text-slate-800 mb-3">
-              {locale === 'vi' ? 'Thông tin khách hàng' : 'Customer Information'}
+              {'Customer Information'}
             </h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{locale === 'vi' ? 'Họ và tên khách hàng *' : 'Customer Full Name *'}</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{'Customer Full Name *'}</label>
                 <input
                   required
                   type="text"
@@ -607,7 +607,7 @@ export default function BookingManager({ readOnly = false }) {
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{locale === 'vi' ? 'Số điện thoại *' : 'Phone Number *'}</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{'Phone Number *'}</label>
                 <input
                   required
                   type="tel"
@@ -633,7 +633,7 @@ export default function BookingManager({ readOnly = false }) {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{locale === 'vi' ? 'Loại giấy tờ *' : 'ID Type *'}</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{'ID Type *'}</label>
                 <select
                   required
                   value={form.idType || ''}
@@ -658,7 +658,7 @@ export default function BookingManager({ readOnly = false }) {
                       : 'border-stone-300 focus:border-[#bfa15f]'
                   }`}
                 >
-                  <option value="">{locale === 'vi' ? '-- Chọn loại giấy tờ --' : '-- Select ID type --'}</option>
+                  <option value="">{'-- Select ID type --'}</option>
                   <option value="CCCD">CCCD</option>
                   <option value="PASSPORT">Passport</option>
                   <option value="OTHER">Other</option>
@@ -671,7 +671,7 @@ export default function BookingManager({ readOnly = false }) {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{locale === 'vi' ? 'Số giấy tờ *' : 'ID/Passport Number *'}</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{'ID/Passport Number *'}</label>
                 <input
                   required
                   type="text"
@@ -697,7 +697,7 @@ export default function BookingManager({ readOnly = false }) {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{locale === 'vi' ? 'Quốc tịch *' : 'Nationality *'}</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">{'Nationality *'}</label>
                 <input
                   required
                   type="text"
@@ -726,7 +726,7 @@ export default function BookingManager({ readOnly = false }) {
           {/* Booking Info Section */}
           <div className="space-y-4">
             <h3 className="text-sm font-bold text-slate-800 border-b pb-1">
-              {locale === 'vi' ? 'Thông tin đặt phòng' : 'Booking Information'}
+              {'Booking Information'}
             </h3>
             
             <div className="grid grid-cols-2 gap-4">
@@ -850,7 +850,7 @@ export default function BookingManager({ readOnly = false }) {
 
       <Modal
         open={Boolean(viewBooking)}
-        title={viewBooking ? `Chi tiết booking #${viewBooking.id}` : 'Chi tiết booking'}
+        title={viewBooking ? `Details booking #${viewBooking.id}` : 'Details booking'}
         onClose={closeViewModal}
         size="md"
       >
@@ -859,27 +859,27 @@ export default function BookingManager({ readOnly = false }) {
             <section>
               <h3 className="mb-3 border-b border-stone-200 pb-2 font-bold text-slate-800">Thông tin khách hàng</h3>
               <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-                <div><p className="text-xs text-slate-500">Họ và tên</p><p className="font-semibold">{viewBooking.guestFullName || viewBooking.customer?.fullName || viewBooking.customerName || '-'}</p></div>
-                <div><p className="text-xs text-slate-500">Số điện thoại</p><p className="font-semibold">{viewBooking.guestPhone || viewBooking.customer?.phone || viewBooking.customerPhone || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Full Name</p><p className="font-semibold">{viewBooking.guestFullName || viewBooking.customer?.fullName || viewBooking.customerName || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Phone Number</p><p className="font-semibold">{viewBooking.guestPhone || viewBooking.customer?.phone || viewBooking.customerPhone || '-'}</p></div>
                 <div><p className="text-xs text-slate-500">Email</p><p className="break-words font-semibold">{viewBooking.guestEmail || viewBooking.customer?.email || viewBooking.customerEmail || '-'}</p></div>
-                <div><p className="text-xs text-slate-500">Quốc tịch</p><p className="font-semibold">{viewBooking.guestNationality || viewBooking.customer?.nationality || '-'}</p></div>
-                <div><p className="text-xs text-slate-500">Loại giấy tờ</p><p className="font-semibold">{viewBooking.guestIdType || viewBooking.customer?.idType || '-'}</p></div>
-                <div><p className="text-xs text-slate-500">Số giấy tờ</p><p className="font-semibold">{viewBooking.guestIdNumberCard || viewBooking.customer?.idNumberCard || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Nationality</p><p className="font-semibold">{viewBooking.guestNationality || viewBooking.customer?.nationality || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">ID Type</p><p className="font-semibold">{viewBooking.guestIdType || viewBooking.customer?.idType || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">ID Number</p><p className="font-semibold">{viewBooking.guestIdNumberCard || viewBooking.customer?.idNumberCard || '-'}</p></div>
               </div>
             </section>
 
             <section>
               <h3 className="mb-3 border-b border-stone-200 pb-2 font-bold text-slate-800">Thông tin đặt phòng</h3>
               <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-                <div><p className="text-xs text-slate-500">Loại phòng</p><p className="font-semibold">{viewBooking.roomTypeName || viewBooking.roomType?.typeName || '-'}</p></div>
+                <div><p className="text-xs text-slate-500">Room Type</p><p className="font-semibold">{viewBooking.roomTypeName || viewBooking.roomType?.typeName || '-'}</p></div>
                 <div><p className="text-xs text-slate-500">Phòng</p><p className="font-semibold">{viewBooking.roomNumbers?.join(', ') || viewBooking.roomNumber || '-'}</p></div>
-                <div><p className="text-xs text-slate-500">Số lượng</p><p className="font-semibold">{viewBooking.quantity || 0}</p></div>
-                <div><p className="text-xs text-slate-500">Trạng thái</p>{renderStatusBadge(getBookingStatus(viewBooking))}</div>
+                <div><p className="text-xs text-slate-500">Quantity</p><p className="font-semibold">{viewBooking.quantity || 0}</p></div>
+                <div><p className="text-xs text-slate-500">Status</p>{renderStatusBadge(getBookingStatus(viewBooking))}</div>
                 <div><p className="text-xs text-slate-500">Check-in</p><p className="font-semibold">{formatDate(viewBooking.checkInDate)}</p></div>
                 <div><p className="text-xs text-slate-500">Check-out</p><p className="font-semibold">{formatDate(viewBooking.checkOutDate)}</p></div>
               </div>
               <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3">
-                <span className="font-bold text-slate-700">Tổng tiền</span>
+                <span className="font-bold text-slate-700">Total Price</span>
                 <span className="font-bold text-[#bfa15f]">
                   {viewBooking.totalPrice != null
                     ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(viewBooking.totalPrice)
@@ -903,18 +903,18 @@ export default function BookingManager({ readOnly = false }) {
         booking={paymentModal.booking}
         onClose={() => setPaymentModal({ open: false, booking: null })}
         onSuccess={() => {
-          notify(locale === 'vi' ? 'Thanh toán thành công! Đơn đã chuyển sang chờ check-in.' : 'Payment successful! Booking moved to pending check-in.');
+          notify('Payment successful! Booking moved to pending check-in.');
           fetchData(page);
         }}
       />
 
-      {/* Action Confirmation Modal (Hủy đơn) */}
+      {/* Action Confirmation Modal (Cancel Order) */}
       <Modal
         open={confirmModal.open}
         title={
-          `Xác Nhận Hủy Đơn Đặt Phòng #${confirmModal.booking?.id}`
+          `Confirm Cancel Đơn Bookings #${confirmModal.booking?.id}`
         }
-        onClose={() => setConfirmModal({ open: false, type: null, booking: null, reason: 'Khách thay đổi kế hoạch' })}
+        onClose={() => setConfirmModal({ open: false, type: null, booking: null, reason: 'Guest changed plans' })}
         size="md"
       >
         {confirmModal.booking && (
@@ -923,9 +923,9 @@ export default function BookingManager({ readOnly = false }) {
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
                 <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-bold text-amber-900">Xác nhận hủy đơn đặt phòng?</h4>
+                  <h4 className="text-sm font-bold text-amber-900">Confirm hủy đơn đặt phòng?</h4>
                   <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                    Đơn đặt phòng sẽ chuyển sang trạng thái <strong>ĐÃ HỦY</strong> và phòng sẽ ngay lập tức được giải phóng trên hệ thống.
+                    Booking sẽ chuyển sang trạng thái <strong>ĐÃ HỦY</strong> và phòng sẽ ngay lập tức được giải phóng trên hệ thống.
                   </p>
                 </div>
               </div>
@@ -934,36 +934,36 @@ export default function BookingManager({ readOnly = false }) {
             {/* Booking Overview Details */}
             <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-2 text-xs">
               <div className="flex justify-between py-1 border-b border-stone-200">
-                <span className="text-slate-500">Mã đơn:</span>
+                <span className="text-slate-500">Booking ID:</span>
                 <span className="font-mono font-bold text-slate-800">#{confirmModal.booking.id}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-stone-200">
-                <span className="text-slate-500">Khách hàng:</span>
+                <span className="text-slate-500">Customer:</span>
                 <span className="font-semibold text-slate-800">
-                  {confirmModal.booking.customerName || confirmModal.booking.customer?.fullName || 'Khách lẻ'}
+                  {confirmModal.booking.customerName || confirmModal.booking.customer?.fullName || 'Walk-in guest'}
                 </span>
               </div>
               <div className="flex justify-between py-1 border-b border-stone-200">
-                <span className="text-slate-500">Số điện thoại:</span>
+                <span className="text-slate-500">Phone Number:</span>
                 <span className="font-mono font-medium text-slate-700">
                   {confirmModal.booking.customerPhone || confirmModal.booking.customer?.phone || '-'}
                 </span>
               </div>
               <div className="flex justify-between py-1 border-b border-stone-200">
-                <span className="text-slate-500">Loại phòng:</span>
+                <span className="text-slate-500">Room Type:</span>
                 <span className="font-semibold text-slate-800">
                   {confirmModal.booking.roomTypeName || confirmModal.booking.roomType?.typeName}
-                  {confirmModal.booking.roomNumber && ` (Phòng: ${confirmModal.booking.roomNumber})`}
+                  {confirmModal.booking.roomNumber && ` (Room: ${confirmModal.booking.roomNumber})`}
                 </span>
               </div>
               <div className="flex justify-between py-1 border-b border-stone-200">
-                <span className="text-slate-500">Thời gian lưu trú:</span>
+                <span className="text-slate-500">Time lưu trú:</span>
                 <span className="font-medium text-slate-700">
                   {formatDate(confirmModal.booking.checkInDate)} - {formatDate(confirmModal.booking.checkOutDate)}
                 </span>
               </div>
               <div className="flex justify-between py-1 pt-1 text-sm font-bold">
-                <span className="text-slate-700">Tổng tiền đơn:</span>
+                <span className="text-slate-700">Booking Total:</span>
                 <span className="text-[#bfa15f]">
                   {confirmModal.booking.totalPrice != null
                     ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(confirmModal.booking.totalPrice)
@@ -975,16 +975,16 @@ export default function BookingManager({ readOnly = false }) {
             {/* Optional Cancellation Reason input */}
             {confirmModal.type === 'CANCEL' && (
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Lý do hủy phòng:</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Reason hủy phòng:</label>
                 <select
                   value={confirmModal.reason}
                   onChange={(e) => setConfirmModal((prev) => ({ ...prev, reason: e.target.value }))}
                   className="w-full text-xs p-2.5 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white"
                 >
-                  <option value="Khách thay đổi kế hoạch">Khách thay đổi kế hoạch chuyến đi</option>
-                  <option value="Khách đặt nhầm ngày / loại phòng">Khách đặt nhầm ngày / loại phòng</option>
-                  <option value="Khách không đến (No-show)">Khách không đến (No-show)</option>
-                  <option value="Lý do cá nhân khác">Lý do cá nhân khác</option>
+                  <option value="Guest changed plans">Guest changed plans chuyến đi</option>
+                  <option value="Guest booked wrong date / room type">Guest booked wrong date / room type</option>
+                  <option value="Guest did not show up (No-show)">Guest did not show up (No-show)</option>
+                  <option value="Reason cá nhân khác">Reason cá nhân khác</option>
                 </select>
               </div>
             )}
@@ -993,11 +993,11 @@ export default function BookingManager({ readOnly = false }) {
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-200">
               <button
                 type="button"
-                onClick={() => setConfirmModal({ open: false, type: null, booking: null, reason: 'Khách thay đổi kế hoạch' })}
+                onClick={() => setConfirmModal({ open: false, type: null, booking: null, reason: 'Guest changed plans' })}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors"
                 disabled={saving}
               >
-                Hủy bỏ
+                Cancel
               </button>
 
               <button
@@ -1012,10 +1012,10 @@ export default function BookingManager({ readOnly = false }) {
               >
                 {saving ? (
                   <>
-                    <RefreshCw size={14} className="animate-spin" /> Đang xử lý...
+                    <RefreshCw size={14} className="animate-spin" /> Processing...
                   </>
                 ) : (
-                  'Xác Nhận Hủy Đơn'
+                  'Confirm Cancel Đơn'
                 )}
               </button>
             </div>

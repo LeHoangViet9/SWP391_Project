@@ -14,16 +14,16 @@ public final class BillingUtils {
     private BillingUtils() { }
 
     private static BigDecimal requireNonNegative(BigDecimal value, String name) {
-        Objects.requireNonNull(value, name + " không được null");
+        Objects.requireNonNull(value, name + " must not be null");
         if (value.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException(name + " không được âm: " + value);
+            throw new IllegalArgumentException(name + " must not be negative: " + value);
         }
         return value;
     }
 
     private static long requirePositive(long value, String name) {
         if (value <= 0) {
-            throw new IllegalArgumentException(name + " phải là số nguyên dương, nhận được: " + value);
+            throw new IllegalArgumentException(name + " must be a positive integer, got: " + value);
         }
         return value;
     }

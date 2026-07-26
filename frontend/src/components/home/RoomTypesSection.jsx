@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Wifi, Wind, Coffee, Bath, Star, X, ShieldCheck, Sparkles, Car, Compass, Tv } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
@@ -20,7 +20,7 @@ const amenityIcons = {
 };
 
 function formatPrice(price, locale) {
-  return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'VND',
     maximumFractionDigits: 0,
@@ -112,11 +112,11 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
           <div className="text-center py-16 bg-white border border-stone-200 shadow-md max-w-lg mx-auto rounded-lg px-6">
             <Users size={48} className="text-[#bfa15f] mx-auto mb-4 opacity-80 animate-pulse" />
             <h3 className="font-display text-lg font-bold text-slate-800 mb-2">
-              {locale === 'vi' ? 'Không có phòng phù hợp' : 'No matching rooms'}
+              {'No matching rooms'}
             </h3>
             <p className="text-slate-600 text-sm">
-              {locale === 'vi'
-                ? `Không có hạng phòng nào của chúng tôi hỗ trợ tối đa ${guestFilter} khách. Vui lòng chọn số lượng khách ít hơn hoặc chia thành nhiều phòng.`
+              {locale === 'en'
+                ? `No có hạng phòng nào của chúng tôi hỗ trợ tối đa ${guestFilter} khách. Please chọn số lượng khách ít hơn hoặc chia thành nhiều phòng.`
                 : `None of our room categories support up to ${guestFilter} guests. Please select fewer guests or split your group into multiple rooms.`}
             </p>
           </div>
@@ -143,8 +143,8 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                       <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                         <span className="bg-red-600 text-white font-bold text-sm px-4 py-2 uppercase tracking-widest rounded-sm">
                           {room.availabilityError
-                            ? (locale === 'vi' ? 'Không thể kiểm tra' : 'Availability unavailable')
-                            : (locale === 'vi' ? 'Hết phòng' : 'Sold Out')}
+                            ? ('Availability unavailable')
+                            : ('Sold Out')}
                         </span>
                       </div>
                     )}
@@ -160,12 +160,12 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                           <div className="flex items-center gap-1 text-amber-500 font-bold text-xs mt-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 w-fit">
                             <Star size={11} fill="#f59e0b" className="text-amber-500" />
                             <span>{room.averageRating}</span>
-                            <span className="text-slate-400 font-normal">({room.reviewCount} {locale === 'vi' ? 'đánh giá' : 'reviews'})</span>
+                            <span className="text-slate-400 font-normal">({room.reviewCount} {'reviews'})</span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-1 text-slate-400 font-medium text-[10px] mt-1 bg-stone-100 px-2 py-0.5 rounded border border-stone-200/50 w-fit">
                             <Star size={11} className="text-slate-300" />
-                            <span>{locale === 'vi' ? 'Chưa có đánh giá' : 'No reviews'}</span>
+                            <span>{'No reviews'}</span>
                           </div>
                         )}
                       </div>
@@ -217,8 +217,8 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                             className="px-4 py-2 text-sm bg-stone-300 text-stone-500 cursor-not-allowed rounded font-medium"
                           >
                             {room.availabilityError
-                              ? (locale === 'vi' ? 'Không thể kiểm tra' : 'Unavailable')
-                              : (locale === 'vi' ? 'Hết phòng' : 'Sold Out')}
+                              ? ('Unavailable')
+                              : ('Sold Out')}
                           </button>
                         ) : (
                           <button
@@ -272,7 +272,7 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
               {/* Description */}
               <div>
                 <h4 className="text-xs uppercase tracking-wider text-[#bfa15f] font-bold mb-2">
-                  {locale === 'vi' ? 'Mô tả hạng phòng' : 'Room Category Description'}
+                  {'Room Category Description'}
                 </h4>
                 <p className="text-slate-600 text-sm leading-relaxed">
                   {selectedRoom.description}
@@ -283,7 +283,7 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-stone-50 p-4 border border-stone-200/50 rounded-md">
                 <div>
                   <span className="text-xs text-slate-400 block uppercase tracking-wider font-semibold">
-                    {locale === 'vi' ? 'Sức chứa tối đa' : 'Maximum Capacity'}
+                    {'Maximum Capacity'}
                   </span>
                   <span className="font-semibold text-slate-800 flex items-center gap-1.5 mt-1 text-sm">
                     <Users size={16} className="text-[#bfa15f]" />
@@ -292,24 +292,24 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                 </div>
                 <div>
                   <span className="text-xs text-slate-400 block uppercase tracking-wider font-semibold">
-                    {locale === 'vi' ? 'Đánh giá từ khách' : 'Guest Rating'}
+                    {'Guest Rating'}
                   </span>
                   <span className="font-semibold text-slate-800 flex items-center gap-1.5 mt-1 text-sm">
                     <Star size={16} fill={selectedRoom.reviewCount > 0 ? "#f59e0b" : "none"} className={selectedRoom.reviewCount > 0 ? "text-amber-500" : "text-slate-300"} />
                     {selectedRoom.reviewCount > 0 ? (
                       <span>
-                        {selectedRoom.averageRating} <span className="text-xs text-slate-500 font-normal">({selectedRoom.reviewCount} {locale === 'vi' ? 'đánh giá' : 'reviews'})</span>
+                        {selectedRoom.averageRating} <span className="text-xs text-slate-500 font-normal">({selectedRoom.reviewCount} {'reviews'})</span>
                       </span>
                     ) : (
                       <span className="text-xs text-slate-400 font-normal">
-                        {locale === 'vi' ? 'Chưa có' : 'None yet'}
+                        {'None yet'}
                       </span>
                     )}
                   </span>
                 </div>
                 <div>
                   <span className="text-xs text-slate-400 block uppercase tracking-wider font-semibold">
-                    {locale === 'vi' ? 'Giá phòng tiêu chuẩn' : 'Standard Rate'}
+                    {'Standard Rate'}
                   </span>
                   <span className="font-semibold text-slate-800 block mt-1 text-sm">
                     <span className="text-[#bfa15f] font-bold text-base">
@@ -349,7 +349,7 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                   onClick={() => setSelectedRoom(null)}
                   className="px-5 py-2.5 text-xs border border-stone-300 text-slate-600 hover:border-slate-400 hover:text-slate-800 transition-colors font-medium rounded-sm uppercase tracking-wider"
                 >
-                  {locale === 'vi' ? 'Đóng' : 'Close'}
+                  {'Close'}
                 </button>
                 {isRoomUnavailable(selectedRoom) ? (
                   <button
@@ -357,8 +357,8 @@ export default function RoomTypesSection({ guestFilter = 0, checkIn = '', checkO
                     className="px-6 py-2.5 text-xs bg-stone-300 text-stone-500 cursor-not-allowed font-medium rounded-sm uppercase tracking-wider"
                   >
                     {selectedRoom.availabilityError
-                      ? (locale === 'vi' ? 'Không thể kiểm tra' : 'Unavailable')
-                      : (locale === 'vi' ? 'Hết phòng' : 'Sold Out')}
+                      ? ('Unavailable')
+                      : ('Sold Out')}
                   </button>
                 ) : (
                   <button

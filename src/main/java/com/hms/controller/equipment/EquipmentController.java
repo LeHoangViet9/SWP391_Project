@@ -216,8 +216,8 @@ public class EquipmentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // THAY ĐỔI: Thêm REST API gán thiết bị vào phòng hàng loạt
-    // Nhận vào ID phòng (roomId) và danh sách thiết bị kèm số lượng (BulkAssignEquipmentDTO)
+    // CHANGE: Thêm REST API gán equipment vào room hàng loạt
+    // Nhận vào ID room (roomId) và danh sách equipment kèm số lượng (BulkAssignEquipmentDTO)
     @PostMapping("/rooms/{roomId}/assign-bulk")
     @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
     public ResponseEntity<ApiResponse<List<RoomEquipmentResponse>>> assignBulkToRoom(

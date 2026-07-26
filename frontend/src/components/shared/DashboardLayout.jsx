@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Crown,
@@ -111,7 +111,7 @@ export default function DashboardLayout({
                     Vì đó vẫn là string nên || label không chạy.
 
                     Bản mới dùng trực tiếp label trong TABS.
-                    Ví dụ: label: "Gán Thiết Bị"
+                    Ví dụ: label: "Gán Equipment"
                 */}
                 <span>{label}</span>
               </button>
@@ -158,7 +158,7 @@ export default function DashboardLayout({
                 onClick={() => setLangOpen(!langOpen)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 border border-stone-200 rounded text-xs hover:border-[#bfa15f] transition-colors bg-white font-semibold text-slate-700"
               >
-                <span>{locale === 'vi' ? 'VI' : 'EN'}</span>
+                <span>{'EN'}</span>
                 <ChevronDown size={12} className="text-slate-400" />
               </button>
 
@@ -166,7 +166,7 @@ export default function DashboardLayout({
                 <div className="absolute right-0 mt-1.5 bg-white text-slate-800 rounded shadow-lg overflow-hidden min-w-[110px] z-[60] border border-stone-200 text-xs">
                   <button
                     onClick={() => toggleLocale('vi')}
-                    className={`block w-full text-left px-4 py-2 hover:bg-stone-100 ${locale === 'vi'
+                    className={`block w-full text-left px-4 py-2 hover:bg-stone-100 ${locale === 'en'
                         ? 'text-[#bfa15f] font-semibold'
                         : ''
                       }`}
@@ -280,7 +280,7 @@ export default function DashboardLayout({
               {activeTab === 'room-types' &&
                 tabs.find((tab) => tab.key === 'room-types')?.readOnly && (
                   <span className="text-xs text-slate-400 font-normal ml-2">
-                    {locale === 'vi' ? '(Chỉ xem)' : '(Read only)'}
+                    {'(Read only)'}
                   </span>
                 )}
             </h2>

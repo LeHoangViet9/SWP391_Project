@@ -10,30 +10,30 @@ function buildQuery(params) {
 }
 
 /** GET /api/v1/housekeeping/dirty-rooms */
-export async function getDirtyRooms(params = {}, locale = 'vi') {
+export async function getDirtyRooms(params = {}, locale = 'en') {
   return apiFetch(`/housekeeping/dirty-rooms${buildQuery(params)}`, {}, locale);
 }
 
 /** GET /api/v1/housekeeping/cleaning-rooms */
-export async function getCleaningRooms(params = {}, locale = 'vi') {
+export async function getCleaningRooms(params = {}, locale = 'en') {
   return apiFetch(`/housekeeping/cleaning-rooms${buildQuery(params)}`, {}, locale);
 }
 
 /**
  * PATCH /api/v1/housekeeping/rooms/{id}/status?status=CLEANING|READY|AVAILABLE
- * Cập nhật trạng thái phòng trong luồng dọn phòng
+ * Update room status in the cleaning workflow
  */
-export async function updateRoomCleaningStatus(roomId, status, locale = 'vi') {
+export async function updateRoomCleaningStatus(roomId, status, locale = 'en') {
   return apiFetch(`/housekeeping/rooms/${roomId}/status?status=${status}`, { method: 'PATCH' }, locale);
 }
 
 /** GET /api/v1/invoices/booking/{bookingId} */
-export async function getInvoiceByBookingId(bookingId, locale = 'vi') {
+export async function getInvoiceByBookingId(bookingId, locale = 'en') {
   return apiFetch(`/invoices/booking/${bookingId}`, {}, locale);
 }
 
 /** POST /api/v1/invoices/{id}/pay */
-export async function payInvoice(invoiceId, paymentMethod, locale = 'vi') {
+export async function payInvoice(invoiceId, paymentMethod, locale = 'en') {
   return apiFetch(`/invoices/${invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({ paymentMethod }),
@@ -41,54 +41,54 @@ export async function payInvoice(invoiceId, paymentMethod, locale = 'vi') {
 }
 
 // Housekeeping Tasks API calls
-export async function searchTasks(params = {}, locale = 'vi') {
+export async function searchTasks(params = {}, locale = 'en') {
   return apiFetch(`/housekeeping-tasks/search${buildQuery(params)}`, {}, locale);
 }
 
-export async function getTaskById(id, locale = 'vi') {
+export async function getTaskById(id, locale = 'en') {
   return apiFetch(`/housekeeping-tasks/${id}`, {}, locale);
 }
 
-export async function getPendingTasksByRoom(roomId, locale = 'vi') {
+export async function getPendingTasksByRoom(roomId, locale = 'en') {
   return apiFetch(`/housekeeping-tasks/pending/room/${roomId}`, {}, locale);
 }
 
-export async function getUncompletedByUser(userId, locale = 'vi') {
+export async function getUncompletedByUser(userId, locale = 'en') {
   return apiFetch(`/housekeeping-tasks/uncompleted/user/${userId}`, {}, locale);
 }
 
-export async function getRoomStateHistory(roomId, params = {}, locale = 'vi') {
+export async function getRoomStateHistory(roomId, params = {}, locale = 'en') {
   return apiFetch(`/housekeeping-tasks/rooms/${roomId}/state-history${buildQuery(params)}`, {}, locale);
 }
 
-export async function createTask(payload, locale = 'vi') {
+export async function createTask(payload, locale = 'en') {
   return apiFetch('/housekeeping-tasks', {
     method: 'POST',
     body: JSON.stringify(payload)
   }, locale);
 }
 
-export async function updateTask(id, payload, locale = 'vi') {
+export async function updateTask(id, payload, locale = 'en') {
   return apiFetch(`/housekeeping-tasks/updateTask/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload)
   }, locale);
 }
 
-export async function deleteTask(id, locale = 'vi') {
+export async function deleteTask(id, locale = 'en') {
   return apiFetch(`/housekeeping-tasks/deleteTask/${id}`, {
     method: 'DELETE'
   }, locale);
 }
 
-export async function reportRoomIssue(roomId, payload, locale = 'vi') {
+export async function reportRoomIssue(roomId, payload, locale = 'en') {
   return apiFetch(`/housekeeping-tasks/rooms/${roomId}/report-issue`, {
     method: 'POST',
     body: JSON.stringify(payload)
   }, locale);
 }
 
-export async function reportMinibar(taskId, payload, locale = 'vi') {
+export async function reportMinibar(taskId, payload, locale = 'en') {
   return apiFetch(`/housekeeping-tasks/${taskId}/report-minibar`, {
     method: 'POST',
     body: JSON.stringify(payload)

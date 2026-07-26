@@ -10,8 +10,8 @@ import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * Annotation xác thực mật khẩu và xác nhận mật khẩu phải khớp nhau.
- * Dùng cho bất kỳ class nào implement {@link PasswordConfirmable}.
+ * Annotation validating password and password confirmation match.
+ * Used for any class implementing {@link PasswordConfirmable}.
  */
 @Constraint(validatedBy = PasswordMatchValidator.class)
 @Target({

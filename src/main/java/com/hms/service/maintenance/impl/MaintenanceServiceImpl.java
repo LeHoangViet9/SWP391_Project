@@ -70,19 +70,19 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     public MaintenanceResponse createRequest(MaintenanceRequestCreateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        // Không cho tạo maintenance request nếu không gắn với phòng hoặc thiết bị.
+        // Không cho tạo maintenance request nếu không gắn với room hoặc thiết bị.
         if (dto.getRoomId() == null && dto.getEquipmentId() == null) {
             throw new ConflictException(
                     messageSource.getMessage(ERROR_MAINTENANCE_ROOM_OR_EQUIPMENT_REQUIRED, null, locale));
         }
 
-        // Kiểm tra phòng tồn tại
+        // Kiểm tra room tồn tại
         if (dto.getRoomId() != null && !roomRepository.existsById(dto.getRoomId())) {
             throw new ResourceNotFoundException(
                     messageSource.getMessage(ERROR_ROOM_NOTFOUND, new Object[] { dto.getRoomId() }, locale));
         }
 
-        // Kiểm tra thiết bị tồn tại
+        // Kiểm tra equipment tồn tại
         if (dto.getEquipmentId() != null) {
             var equipment = equipmentRepository.findById(dto.getEquipmentId())
                     .orElseThrow(() -> new ResourceNotFoundException(
@@ -96,7 +96,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             }
         }
 
-        // Nếu có cả roomId và equipmentId, thiết bị phải được gán đúng phòng
+        // Nếu có cả roomId và equipmentId, equipment phải được gán đúng phòng
         if (dto.getRoomId() != null && dto.getEquipmentId() != null) {
             boolean assigned = roomEquipmentRepository.existsByRoomIdAndEquipmentId(
                     dto.getRoomId(), dto.getEquipmentId());
@@ -114,7 +114,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         // Lưu lần đầu để có ID
         RepairRequest saved = maintenanceRepository.save(repairRequest);
 
-        // Chuyển trạng thái phòng sang MAINTENANCE (nếu chưa ở trạng thái đó)
+        // Chuyển trạng thái room sang MAINTENANCE (nếu chưa ở trạng thái đó)
         if (saved.getRoomId() != null) {
             roomRepository.findById(saved.getRoomId()).ifPresent(room -> {
                 if (room.getRoomStatus() != com.hms.common.enums.RoomStatus.MAINTENANCE) {
@@ -133,11 +133,11 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     /**
      * Tìm maintenance staff AVAILABLE và giao việc, gửi notification.
      *
-     * THAY ĐỔI: Bổ sung loại trừ người tạo phiếu (reportedBy) khỏi danh sách ứng
+     * CHANGE: Bổ sung loại trừ người tạo phiếu (reportedBy) khỏi danh sách ứng
      * viên.
-     * Trước đây: Chỉ loại trừ người đã từ chối → nhân viên tự tạo phiếu có thể bị
+     * Previously: Chỉ loại trừ người đã từ chối → nhân viên tự tạo phiếu có thể bị
      * hệ thống giao lại cho chính họ (vô nghĩa).
-     * Sau khi sửa: Danh sách loại trừ = deniedByIds + reportedBy (nếu là
+     * After fix: Danh sách loại trừ = deniedByIds + reportedBy (nếu là
      * MAINTENANCE staff).
      * Đảm bảo người tạo phiếu không bao giờ tự nhận việc của chính mình.
      */
@@ -145,9 +145,9 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         List<Long> deniedIds = new ArrayList<>(parseDeniedIds(request.getDeniedByIds()));
 
         /*
-         * THÊM MỚI: Loại trừ người tạo phiếu (reportedBy) để tránh tự giao việc.
-         * Trước đây: excludeIds = deniedIds (chỉ loại người đã từ chối)
-         * Sau khi sửa: excludeIds = deniedIds + reportedBy
+         * NEW: Loại trừ người tạo phiếu (reportedBy) để tránh tự giao việc.
+         * Previously: excludeIds = deniedIds (chỉ loại người đã từ chối)
+         * After fix: excludeIds = deniedIds + reportedBy
          * Lý do: Nếu nhân viên bảo trì A tự tạo phiếu, không được giao lại cho A.
          */
         if (request.getReportedBy() != null && !deniedIds.contains(request.getReportedBy())) {
@@ -163,10 +163,10 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             request.setStatus(MaintenanceStatus.ASSIGNED);
 
             /*
-             * THÊM MỚI: Ghi lại thời điểm giao việc (assignedAt).
-             * Trước đây: Không lưu → không biết phiếu bị treo bao lâu.
-             * Sau khi thêm: Scheduler sẽ so sánh assignedAt với now để tự động thu hồi sau
-             * 15 phút.
+             * NEW: Ghi lại thời điểm giao việc (assignedAt).
+             * Previously: Không lưu → không biết phiếu bị treo bao lâu.
+             * After adding: Scheduler sẽ so sánh assignedAt với now để tự động thu hồi sau
+             * 15 minutes.
              */
             request.setAssignedAt(LocalDateTime.now());
 
@@ -266,10 +266,10 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                     messageSource.getMessage("error.maintenance.invalid.status.assigned", null, locale));
         }
 
-        // THAY ĐỔI: Lưu lý do từ chối vào trường diagnosis
+        // CHANGE: Lưu lý do từ chối vào trường diagnosis
         if (reason != null && !reason.isBlank()) {
             String existingDiagnosis = request.getDiagnosis() != null ? request.getDiagnosis() : "";
-            String reasonEntry = "[Từ chối] " + reason;
+            String reasonEntry = "[Denied] " + reason;
             request.setDiagnosis(existingDiagnosis.isBlank() ? reasonEntry : existingDiagnosis + "\n" + reasonEntry);
         }
 
@@ -285,9 +285,9 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         request.setStatus(MaintenanceStatus.PENDING);
 
         /*
-         * THÊM MỚI: Xóa assignedAt khi nhân viên từ chối.
-         * Trước đây: Trường này chưa tồn tại.
-         * Sau khi thêm: Đảm bảo phiếu trả về PENDING không bị scheduler thu hồi nhầm.
+         * NEW: Delete assignedAt khi nhân viên từ chối.
+         * Previously: Trường này chưa tồn tại.
+         * After adding: Đảm bảo phiếu trả về PENDING không bị scheduler thu hồi nhầm.
          */
         request.setAssignedAt(null);
         maintenanceRepository.save(request);
@@ -315,7 +315,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     /*
-     * Cập nhật yêu cầu bảo trì (dành cho manager/admin chỉnh sửa thủ công).
+     * Update yêu cầu bảo trì (dành cho manager/admin chỉnh sửa thủ công).
      */
     @Override
     @Transactional
@@ -338,7 +338,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         maintenanceMapper.updateFromDto(dto, repairRequest);
 
-        // Khi COMPLETED hoặc CANCELLED → cập nhật lại phòng về AVAILABLE
+        // Khi COMPLETED hoặc CANCELLED → cập nhật lại room về AVAILABLE
         if (dto.getStatus() == MaintenanceStatus.COMPLETED || dto.getStatus() == MaintenanceStatus.CANCELLED) {
             if (dto.getStatus() == MaintenanceStatus.COMPLETED) {
                 repairRequest.setCompletedAt(LocalDateTime.now());
@@ -352,23 +352,23 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         }
 
         /*
-         * THÊM MỚI: Gửi thông báo cho Quản lý & Lễ tân khi nhân viên bảo trì hoàn thành
+         * NEW: Gửi thông báo cho Quản lý & Lễ tân khi nhân viên bảo trì hoàn thành
          * công việc.
-         * Trước đây: Chỉ có tác vụ tự động quá hạn mới gửi thông báo hoàn thành. Hoàn
+         * Previously: Chỉ có tác vụ tự động quá hạn mới gửi thông báo hoàn thành. Hoàn
          * thành thủ công không thông báo.
-         * Sau khi sửa: Khi trạng thái vừa được đổi sang COMPLETED → Gửi thông báo hiển
+         * After fix: Khi trạng thái vừa được đổi sang COMPLETED → Gửi thông báo hiển
          * thị tên người làm và mã phòng/thiết bị.
          */
         if (updated.getStatus() == MaintenanceStatus.COMPLETED && oldStatus != MaintenanceStatus.COMPLETED) {
             String locationName = "";
             if (updated.getRoomId() != null) {
                 locationName = roomRepository.findById(updated.getRoomId())
-                        .map(r -> "phòng " + r.getRoomNumber())
-                        .orElse("phòng #" + updated.getRoomId());
+                        .map(r -> "room " + r.getRoomNumber())
+                        .orElse("room #" + updated.getRoomId());
             } else if (updated.getEquipmentId() != null) {
                 locationName = equipmentRepository.findById(updated.getEquipmentId())
-                        .map(e -> "thiết bị " + e.getEquipmentName())
-                        .orElse("thiết bị #" + updated.getEquipmentId());
+                        .map(e -> "equipment " + e.getEquipmentName())
+                        .orElse("equipment #" + updated.getEquipmentId());
             }
 
             String staffName = "N/A";
@@ -381,12 +381,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             String notifTitle = messageSource.getMessage(
                     "maintenance.notification.manual_complete.title",
                     new Object[] { locationName },
-                    "🔧 Bảo trì hoàn thành cho " + locationName,
+                    "🔧 Maintenance completed for " + locationName,
                     locale);
             String notifMsg = messageSource.getMessage(
                     "maintenance.notification.manual_complete.message",
                     new Object[] { updated.getId(), staffName },
-                    "Yêu cầu bảo trì #" + updated.getId() + " đã hoàn thành bởi nhân viên " + staffName + ".",
+                    "Maintenance request #" + updated.getId() + " completed by staff " + staffName + ".",
                     locale);
 
             notificationService.notifyReceptionistsAndManagers(
@@ -403,7 +403,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         if (updated.getAssignedTo() != null && !updated.getAssignedTo().equals(previousAssignee)) {
             syncMaintenanceWorkStatus(updated.getAssignedTo(), updated.getStatus());
 
-            // THAY ĐỔI: Gửi notification cho nhân viên bảo trì mới được gán bởi manager
+            // CHANGE: Gửi notification cho nhân viên bảo trì mới được gán bởi manager
             final Locale notifLocale = locale;
             userRepository.findById(updated.getAssignedTo()).ifPresent(assignee -> {
                 String roomInfo = updated.getRoomId() != null
@@ -586,12 +586,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     /**
-     * Tự động hoàn thành bảo trì & giải phóng phòng sang AVAILABLE khi thời gian dự
+     * Tự động hoàn thành bảo trì & giải phóng room sang AVAILABLE khi thời gian dự
      * kiến hoàn thành trôi qua
      */
     /**
      * Cảnh báo một lần khi ETA đã qua. Không tự hoàn thành phiếu, không đổi trạng
-     * thái phòng hay thiết bị.
+     * thái room hay thiết bị.
      */
     @org.springframework.scheduling.annotation.Scheduled(
             fixedDelayString = "${app.maintenance.overdue-notification-ms:300000}")
@@ -602,9 +602,9 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                 List.of(MaintenanceStatus.PENDING, MaintenanceStatus.ASSIGNED, MaintenanceStatus.IN_PROGRESS), now);
 
         for (RepairRequest request : overdueRequests) {
-            String title = "Bảo trì quá ETA";
-            String message = "Phiếu bảo trì #" + request.getId()
-                    + " đã quá thời gian dự kiến hoàn thành. Vui lòng kiểm tra và xử lý.";
+            String title = "Maintenance overdue ETA";
+            String message = "Maintenance ticket #" + request.getId()
+                    + " has passed estimated completion time. Please review and resolve.";
             String targetUrl = "/dashboard/maintenance";
 
             notificationService.notifyManagersAndAdmins(title, message, targetUrl);
@@ -635,12 +635,12 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         for (RepairRequest request : expiredRequests) {
             if (request.getRoomId() != null) {
                 roomRepository.findById(request.getRoomId()).ifPresent(room -> {
-                    // Nếu phòng đang ở trạng thái MAINTENANCE, tự động chuyển về AVAILABLE
+                    // Nếu room đang ở trạng thái MAINTENANCE, tự động chuyển về AVAILABLE
                     if (room.getRoomStatus() == com.hms.common.enums.RoomStatus.MAINTENANCE) {
                         room.setRoomStatus(com.hms.common.enums.RoomStatus.AVAILABLE);
                         roomRepository.save(room);
 
-                        // Cập nhật RepairRequest thành COMPLETED
+                        // Update RepairRequest thành COMPLETED
                         request.setStatus(MaintenanceStatus.COMPLETED);
                         request.setCompletedAt(now);
                         maintenanceRepository.save(request);
@@ -668,14 +668,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     /*
-     * THÊM MỚI: Scheduler tự động thu hồi việc nếu nhân viên KHÔNG bấm Nhận sau 15
-     * phút.
+     * NEW: Scheduler tự động thu hồi việc nếu nhân viên KHÔNG bấm Nhận sau 15
+     * minutes.
      * Chức năng: Thay thế cho việc Quản lý phải vào gán lại bằng tay khi nhân viên
      * bỏ quên.
-     * Trước đây: Phiếu ASSIGNED bị treo vô thời hạn nếu nhân viên không phản hồi.
-     * Sau khi thêm:
+     * Previously: Phiếu ASSIGNED bị treo vô thời hạn nếu nhân viên không phản hồi.
+     * After adding:
      * - Chạy mỗi 60 giây (fixedRate = 60000).
-     * - Tìm các phiếu ASSIGNED có assignedAt quá 15 phút.
+     * - Tìm các phiếu ASSIGNED có assignedAt quá 15 minutes.
      * - Tự động thêm nhân viên đó vào danh sách từ chối (deniedByIds).
      * - Reset phiếu về PENDING và giao lại cho người tiếp theo qua
      * autoAssignToMaintenance.
@@ -684,7 +684,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     @org.springframework.scheduling.annotation.Scheduled(fixedRate = 60000)
     @Transactional
     public void autoRevokeStaleAssignments() {
-        // Ngưỡng thời gian: phiếu giao quá 15 phút mà chưa được nhân viên bấm Nhận
+        // Ngưỡng thời gian: phiếu giao quá 15 minutes mà chưa được nhân viên bấm Nhận
         LocalDateTime threshold = LocalDateTime.now().minusMinutes(15);
         List<RepairRequest> staleRequests = maintenanceRepository.findStaleAssignedRequests(threshold);
 

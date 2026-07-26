@@ -233,7 +233,7 @@ public class CheckoutServiceImpl implements CheckoutService {
             }
 
             List<Room> rooms = roomsOf(booking);
-            String historyReason = "Hệ thống tự động check-out sau 12:00 ngày trả phòng.";
+            String historyReason = "System automatic check-out after 12:00 on check-out date.";
             rooms.forEach(room -> changeRoom(room, RoomStatus.DIRTY, null, historyReason));
             assignHousekeepingTasks(rooms, null);
 
@@ -263,7 +263,7 @@ public class CheckoutServiceImpl implements CheckoutService {
 
     private void validateCheckoutTime(Booking booking) {
         if (isCheckoutDeadlinePassed(booking, LocalDateTime.now())) {
-            throw new ConflictException("Chỉ được check-out từ 12:00 ngày trả phòng trở về trước.");
+            throw new ConflictException("Check-out is only allowed from 12:00 on the check-out date onwards.");
         }
     }
 
@@ -335,7 +335,7 @@ public class CheckoutServiceImpl implements CheckoutService {
             finalRoomStatus = rooms.isEmpty() ? null : rooms.get(0).getRoomStatus();
         }
 
-        // Lấy thời điểm lễ tân bấm "Yêu cầu kiểm phòng" từ task housekeeping gần nhất có flag checkoutInspectionRequestedAt.
+        // Lấy thời điểm lễ tân bấm "Room inspection request" từ task housekeeping gần nhất có flag checkoutInspectionRequestedAt.
         LocalDateTime inspectionRequestedAt = null;
         if (!rooms.isEmpty()) {
             inspectionRequestedAt = houseKeepingTaskRepository

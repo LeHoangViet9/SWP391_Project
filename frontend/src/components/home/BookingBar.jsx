@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Calendar, Search, Users } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
@@ -95,10 +95,10 @@ export default function BookingBar({ onSearchGuests }) {
           <div className="text-left">
             <label className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-1.5">
               <Users size={14} />
-              {locale === 'vi' ? 'Số lượng khách' : 'Number of Guests'}
+              {'Number of Guests'}
             </label>
             <span className="text-xs text-stone-400 block">
-              {locale === 'vi' ? 'Tìm phòng phù hợp nhất' : 'Find the perfect fit'}
+              {'Find the perfect fit'}
             </span>
           </div>
 
@@ -121,7 +121,7 @@ export default function BookingBar({ onSearchGuests }) {
               +
             </button>
             <span className="text-xs font-semibold text-[#bfa15f] uppercase ml-1">
-              {locale === 'vi' ? 'Khách' : adults === 1 ? 'Guest' : 'Guests'}
+              {locale === 'en' ? 'Khách' : adults === 1 ? 'Guest' : 'Guests'}
             </span>
           </div>
         </div>

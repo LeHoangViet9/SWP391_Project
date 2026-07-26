@@ -15,17 +15,17 @@ import { Tag, BedDouble, Users, CalendarCheck, Wrench, Hammer, UserCheck, KeyRou
 import { useLocale } from '../context/LocaleContext';
 
 const TABS = [
-  { key: 'reports', label: 'Báo Cáo', Icon: BarChart2, component: <ReportManager /> },
-  { key: 'room-types', label: 'Loại Phòng', Icon: Tag, component: <RoomTypeManager /> },
-  { key: 'rooms', label: 'Phòng', Icon: BedDouble, component: <RoomManager /> },
-  //  { key: 'housekeeping', label: 'Buồng Phòng',        Icon: ClipboardList, component: <HousekeepingManager /> },
-  { key: 'customers', label: 'Khách Hàng', Icon: Users, component: <CustomerManager /> },
-  { key: 'bookings', label: 'Đặt Phòng', Icon: CalendarCheck, component: <BookingManager /> },
-  { key: 'equipments', label: 'Thiết Bị', Icon: Wrench, component: <EquipmentManager /> },
-  { key: 'maintenance', label: 'Bảo Trì', Icon: Hammer, component: <MaintenanceManager /> },
-  { key: 'staffs', label: 'Nhân Viên', Icon: UserCheck, component: <StaffManager /> },
-  { key: 'account', label: 'Thông Tin Tài Khoản', Icon: UserCircle, component: <AccountInfo /> },
-  { key: 'password', label: 'Đổi Mật Khẩu', Icon: KeyRound, component: <ChangePassword /> },
+  { key: 'reports', label: 'Reports', Icon: BarChart2, component: <ReportManager /> },
+  { key: 'room-types', label: 'Room Types', Icon: Tag, component: <RoomTypeManager /> },
+  { key: 'rooms', label: 'Rooms', Icon: BedDouble, component: <RoomManager /> },
+  //  { key: 'housekeeping', label: 'Housekeeping',        Icon: ClipboardList, component: <HousekeepingManager /> },
+  { key: 'customers', label: 'Customers', Icon: Users, component: <CustomerManager /> },
+  { key: 'bookings', label: 'Bookings', Icon: CalendarCheck, component: <BookingManager /> },
+  { key: 'equipments', label: 'Equipment', Icon: Wrench, component: <EquipmentManager /> },
+  { key: 'maintenance', label: 'Maintenance', Icon: Hammer, component: <MaintenanceManager /> },
+  { key: 'staffs', label: 'Staff', Icon: UserCheck, component: <StaffManager /> },
+  { key: 'account', label: 'Account Info', Icon: UserCircle, component: <AccountInfo /> },
+  { key: 'password', label: 'Change Password', Icon: KeyRound, component: <ChangePassword /> },
 ];
 
 export default function AdminDashboard() {

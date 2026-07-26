@@ -23,20 +23,20 @@ public class RoomEquipment {
     private Long id;
 
     // SỬA MỚI:
-    // Một phòng có thể được gán nhiều loại thiết bị.
+    // Một room có thể được gán nhiều loại thiết bị.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
     // SỬA MỚI:
-    // Một loại thiết bị có thể xuất hiện ở nhiều phòng.
+    // Một loại equipment có thể xuất hiện ở nhiều phòng.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "equipment_id", nullable = false)
     private Equipment equipment;
 
     // SỬA MỚI:
-    // Số lượng thiết bị trong phòng.
-    // Ví dụ: phòng 101 có 2 đèn ngủ.
+    // Số lượng equipment trong phòng.
+    // Ví dụ: room 101 có 2 đèn ngủ.
     @Builder.Default
     @Column(name = "quantity", nullable = false)
     private Integer quantity = 1;

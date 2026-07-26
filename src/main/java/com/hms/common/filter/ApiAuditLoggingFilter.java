@@ -24,7 +24,7 @@ public class ApiAuditLoggingFilter extends OncePerRequestFilter {
 
     private final AuditLogService auditLogService;
 
-    /** Các HTTP method chỉ đọc – không ghi audit log */
+    /** Read-only HTTP methods - skip audit log */
     private static final Set<String> READ_ONLY_METHODS = Set.of("GET", "HEAD", "OPTIONS");
 
     @Override
@@ -33,7 +33,7 @@ public class ApiAuditLoggingFilter extends OncePerRequestFilter {
         if (!path.startsWith(API_PREFIX) || path.startsWith(AUDIT_LOG_PATH)) {
             return true;
         }
-        // Chỉ log các thao tác thay đổi dữ liệu (CUD), bỏ qua READ operations
+        // Only log data modification operations (CUD), skip READ operations
         String method = request.getMethod().toUpperCase(Locale.ROOT);
         return READ_ONLY_METHODS.contains(method);
     }

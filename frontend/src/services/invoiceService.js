@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+﻿import { apiFetch } from './api';
 
 function buildQuery(params) {
   const searchParams = new URLSearchParams();
@@ -10,7 +10,7 @@ function buildQuery(params) {
 }
 
 /** GET /api/v1/invoices/booking/{bookingId} */
-export async function getInvoiceByBookingId(bookingId, locale = 'vi') {
+export async function getInvoiceByBookingId(bookingId, locale = 'en') {
   return apiFetch(`/invoices/booking/${bookingId}`, {}, locale);
 }
 
@@ -21,26 +21,26 @@ function buildBookingIdsQuery(bookingIds) {
 }
 
 /** GET one combined payment invoice for multiple bookings. */
-export async function getCombinedInvoice(bookingIds, locale = 'vi') {
+export async function getCombinedInvoice(bookingIds, locale = 'en') {
   return apiFetch(`/invoices/batch?${buildBookingIdsQuery(bookingIds)}`, {}, locale);
 }
 
 /** Confirm one payment for every booking in a combined invoice. */
-export async function confirmCombinedInvoicePayment(bookingIds, locale = 'vi') {
+export async function confirmCombinedInvoicePayment(bookingIds, locale = 'en') {
   return apiFetch(`/invoices/batch/webhook/payment-success?${buildBookingIdsQuery(bookingIds)}`, {
     method: 'POST',
   }, locale);
 }
 
 /** Complete a local demo transfer without calling an external payment gateway. */
-export async function simulateCombinedInvoicePayment(bookingIds, locale = 'vi') {
+export async function simulateCombinedInvoicePayment(bookingIds, locale = 'en') {
   return apiFetch(`/invoices/batch/simulate-payment-success?${buildBookingIdsQuery(bookingIds)}`, {
     method: 'POST',
   }, locale);
 }
 
 /** POST /api/v1/invoices/{id}/pay */
-export async function payInvoice(invoiceId, paymentMethod, locale = 'vi') {
+export async function payInvoice(invoiceId, paymentMethod, locale = 'en') {
   return apiFetch(`/invoices/${invoiceId}/pay`, {
     method: 'POST',
     body: JSON.stringify({ paymentMethod }),
@@ -48,17 +48,17 @@ export async function payInvoice(invoiceId, paymentMethod, locale = 'vi') {
 }
 
 /** GET /api/v1/invoices/{id} */
-export async function getInvoiceById(invoiceId, locale = 'vi') {
+export async function getInvoiceById(invoiceId, locale = 'en') {
   return apiFetch(`/invoices/${invoiceId}`, {}, locale);
 }
 
 /** GET /api/v1/invoices/search */
-export async function searchInvoices(params = {}, locale = 'vi') {
+export async function searchInvoices(params = {}, locale = 'en') {
   return apiFetch(`/invoices/search${buildQuery(params)}`, {}, locale);
 }
 
 /** POST /api/v1/invoices/{id}/mark-as-paid */
-export async function markAsPaid(id, paymentMethod, locale = 'vi') {
+export async function markAsPaid(id, paymentMethod, locale = 'en') {
   return apiFetch(`/invoices/${id}/mark-as-paid`, {
     method: 'POST',
     body: JSON.stringify({ paymentMethod }),
@@ -66,7 +66,7 @@ export async function markAsPaid(id, paymentMethod, locale = 'vi') {
 }
 
 /** POST /api/v1/invoices/{id}/process-payments */
-export async function processPayments(id, paymentMethod, locale = 'vi') {
+export async function processPayments(id, paymentMethod, locale = 'en') {
   return apiFetch(`/invoices/${id}/process-payments`, {
     method: 'POST',
     body: JSON.stringify({ paymentMethod }),
@@ -82,7 +82,7 @@ export async function processPayments(id, paymentMethod, locale = 'vi') {
  * @param {number|null} cashReceived - required for CASH
  * @param {boolean} paymentConfirmed - required for CARD/TRANSFER
  */
-export async function processReceptionistPayment(bookingIds, paymentMethod, cashReceived = null, paymentConfirmed = false, locale = 'vi') {
+export async function processReceptionistPayment(bookingIds, paymentMethod, cashReceived = null, paymentConfirmed = false, locale = 'en') {
   const params = new URLSearchParams();
   bookingIds.forEach(id => params.append('bookingIds', id));
   return apiFetch(`/invoices/batch/pay-at-desk?${params.toString()}`, {

@@ -22,6 +22,6 @@ public class EquipmentResponse {
     private List<EquipmentImageResponse> images;
     //  MỚI:
     // Equipment không còn thuộc trực tiếp 1 phòng.
-    // Trả về danh sách phòng đang dùng thiết bị này.
+    // Trả về danh sách room đang dùng equipment này.
     private List<RoomEquipmentResponse> assignedRooms;
 }

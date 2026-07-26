@@ -133,11 +133,11 @@ public class EquipmentServiceImpl implements EquipmentService {
     public void deleteEquipment(Long id) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        // Kiểm tra thiết bị có tồn tại và đang ACTIVE
+        // Kiểm tra equipment có tồn tại và đang ACTIVE
         Equipment equipment = findActiveEquipment(id, locale);
 
         // ==========================================================
-        // Không cho phép xóa nếu thiết bị vẫn đang được gán cho phòng
+        // Không cho phép xóa nếu equipment vẫn đang được gán cho phòng
         // ==========================================================
         if (roomEquipmentRepository.existsByEquipment_Id(id)) {
             throw new ConflictException(
@@ -150,7 +150,7 @@ public class EquipmentServiceImpl implements EquipmentService {
         }
 
         // ==========================================================
-        // Không cho phép xóa nếu thiết bị đang có yêu cầu bảo trì
+        // Không cho phép xóa nếu equipment đang có yêu cầu bảo trì
         // ==========================================================
         if (maintenanceRepository.existsByEquipmentId(id)) {
             throw new ConflictException(
@@ -251,7 +251,7 @@ public class EquipmentServiceImpl implements EquipmentService {
             );
         }
 
-        // THAY ĐỔI: Tắt cờ isPrimary (ảnh chính) ở các ảnh cũ
+        // CHANGE: Tắt cờ isPrimary (ảnh chính) ở các ảnh cũ
         // để khi lưu ảnh mới, ảnh mới sẽ được làm ảnh chính duy nhất hiển thị trên giao diện
         if (equipment.getImages() != null) {
             for (EquipmentImage img : equipment.getImages()) {
@@ -301,7 +301,7 @@ public class EquipmentServiceImpl implements EquipmentService {
                     );
                 }
 
-                // THAY ĐỔI (Cách 2): Đặt tên file gọn gàng theo mã thiết bị và short UUID
+                // THAY ĐỔI (Cách 2): Đặt tên file gọn gàng theo mã equipment và short UUID
                 String fileName = equipment.getEquipmentCode().toLowerCase() + "_"
                         + UUID.randomUUID().toString().substring(0, 8) + extension;
 
@@ -353,7 +353,7 @@ public class EquipmentServiceImpl implements EquipmentService {
                 ));
     }
 
-    // THAY ĐỔI: Triển khai phương thức gán thiết bị theo lô (Bulk Assign) vào phòng
+    // CHANGE: Triển khai phương thức gán equipment theo lô (Bulk Assign) vào phòng
     @Override
     @Transactional
     public List<RoomEquipmentResponse> assignBulkToRoom(Long roomId, List<BulkAssignEquipmentDTO> dtos) {
@@ -389,11 +389,11 @@ public class EquipmentServiceImpl implements EquipmentService {
             Equipment equipment = findActiveEquipment(equipmentId, locale);
 
             if (quantity == 0) {
-                // THAY ĐỔI: Nếu số lượng = 0, thực hiện gỡ thiết bị khỏi phòng (xóa)
+                // CHANGE: Nếu số lượng = 0, thực hiện gỡ equipment khỏi room (xóa)
                 roomEquipmentRepository.findByRoomIdAndEquipmentId(roomId, equipmentId)
                         .ifPresent(roomEquipmentRepository::delete);
             } else {
-                // THAY ĐỔI: Nếu số lượng > 0, thực hiện thêm mới hoặc cập nhật số lượng
+                // CHANGE: Nếu số lượng > 0, thực hiện thêm mới hoặc cập nhật số lượng
                 RoomEquipment roomEquipment = roomEquipmentRepository
                         .findByRoomIdAndEquipmentId(roomId, equipmentId)
                         .orElse(RoomEquipment.builder()

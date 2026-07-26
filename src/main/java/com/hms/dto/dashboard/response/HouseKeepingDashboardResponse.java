@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 public class HouseKeepingDashboardResponse {
-    private long dirtyRoomsCount;       // Số lượng phòng đang ở trạng thái bẩn (DIRTY) cần dọn gấp
-    private long cleaningRoomsCount;    // Số lượng phòng đang được dọn (IN_PROGRESS)
-    private long availableRoomsCount;   // Số lượng phòng đã dọn xong sạch sẽ (AVAILABLE)
-    private long myAssignedTasksCount;  // Số lượng task dọn phòng được giao riêng cho user này hôm nay
+    private long dirtyRoomsCount;       // Số lượng room đang ở trạng thái bẩn (DIRTY) cần dọn gấp
+    private long cleaningRoomsCount;    // Số lượng room đang được dọn (IN_PROGRESS)
+    private long availableRoomsCount;   // Số lượng room đã dọn xong sạch sẽ (AVAILABLE)
+    private long myAssignedTasksCount;  // Số lượng task dọn room được giao riêng cho user này hôm nay
 
 }

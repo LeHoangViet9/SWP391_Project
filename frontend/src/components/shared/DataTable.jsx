@@ -25,8 +25,8 @@ export default function DataTable({
   emptyText,
 }) {
   const { t } = useLocale();
-  const defaultEmptyText = emptyText || t('common.noData') || 'Không có dữ liệu.';
-  const loadingText = t('common.loading') || 'Đang tải...';
+  const defaultEmptyText = emptyText || t('common.noData') || 'No data available.';
+  const loadingText = t('common.loading') || 'Loading...';
 
   return (
     <div>

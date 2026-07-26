@@ -5,14 +5,14 @@ import jakarta.validation.ConstraintValidatorContext;
 
 /**
  * Validator generic cho annotation {@link PasswordMatch}.
- * Hoạt động với bất kỳ DTO nào implement {@link PasswordConfirmable}.
+ * Works with any DTO implementing {@link PasswordConfirmable}.
  */
 public class PasswordMatchValidator implements ConstraintValidator<PasswordMatch, PasswordConfirmable> {
 
     @Override
     public boolean isValid(PasswordConfirmable value, ConstraintValidatorContext context) {
         if (value.getPassword() == null || value.getPassword().isBlank()) {
-            return true; // Để @NotBlank trên field tự xử lý lỗi này
+            return true; // Let @NotBlank on field handle this error
         }
         return value.getPassword().equals(value.getConfirmPassword());
     }

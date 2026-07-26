@@ -3,13 +3,13 @@ package com.hms.common.enums;
 public enum MaintenanceStatus {
 
 
-        PENDING,       // Mới tạo yêu cầu
+        PENDING,       // New request created
 
-        ASSIGNED,      // Đã giao cho nhân viên kỹ thuật
+        ASSIGNED,      // Assigned to technical staff
 
-        IN_PROGRESS,   // Đang sửa chữa
+        IN_PROGRESS,   // Under repair
 
-        COMPLETED,     // Đã sửa xong
+        COMPLETED,     // Repair finished
 
-        CANCELLED      // Hủy yêu cầu
+        CANCELLED      // Request cancelled
 }

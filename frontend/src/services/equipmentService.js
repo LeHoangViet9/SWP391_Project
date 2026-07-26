@@ -1,7 +1,7 @@
 import { apiFetch, apiFormData } from './api';
 
 export const equipmentService = {
-    getAll: (params = {}, locale = 'vi') => {
+    getAll: (params = {}, locale = 'en') => {
         const q = new URLSearchParams();
 
         if (params.keyword) q.set('keyword', params.keyword);
@@ -16,29 +16,29 @@ export const equipmentService = {
         return apiFetch(`/equipments?${q}`, {}, locale);
     },
 
-    getById: (id, locale = 'vi') =>
+    getById: (id, locale = 'en') =>
         apiFetch(`/equipments/${id}`, {}, locale),
 
-    create: (dto, locale = 'vi') =>
+    create: (dto, locale = 'en') =>
         apiFetch('/equipments', {
             method: 'POST',
             body: JSON.stringify(dto),
         }, locale),
 
-    update: (id, dto, locale = 'vi') =>
+    update: (id, dto, locale = 'en') =>
         apiFetch(`/equipments/${id}`, {
             method: 'PUT',
             body: JSON.stringify(dto),
         }, locale),
 
-    delete: (id, locale = 'vi') =>
+    delete: (id, locale = 'en') =>
         apiFetch(`/equipments/${id}`, {
             method: 'DELETE',
         }, locale),
 
-    // Upload nhiều ảnh local cho equipment.
-    // Backend nhận key là "images".
-    uploadImages: (equipmentId, imageFiles = [], locale = 'vi') => {
+    // Upload multiple local images for equipment.
+    // Backend accepts key "images".
+    uploadImages: (equipmentId, imageFiles = [], locale = 'en') => {
         const formData = new FormData();
 
         imageFiles.forEach((file) => {
@@ -53,25 +53,25 @@ export const equipmentService = {
         );
     },
 
-    // Gán equipment vào phòng.
-    assignToRoom: (equipmentId, dto, locale = 'vi') =>
+    // Assign equipment to a room.
+    assignToRoom: (equipmentId, dto, locale = 'en') =>
         apiFetch(`/equipments/${equipmentId}/assign-room`, {
             method: 'POST',
             body: JSON.stringify(dto),
         }, locale),
 
-    // Lấy danh sách equipment theo phòng.
-    getByRoom: (roomId, locale = 'vi') =>
+    // Get equipment list by room.
+    getByRoom: (roomId, locale = 'en') =>
         apiFetch(`/equipments/rooms/${roomId}`, {}, locale),
 
-    // Gỡ equipment khỏi phòng.
-    removeFromRoom: (equipmentId, roomId, locale = 'vi') =>
+    // Remove equipment from a room.
+    removeFromRoom: (equipmentId, roomId, locale = 'en') =>
         apiFetch(`/equipments/${equipmentId}/rooms/${roomId}`, {
             method: 'DELETE',
         }, locale),
 
-    // Gán thiết bị vào phòng hàng loạt.
-    assignBulkToRoom: (roomId, dtos = [], locale = 'vi') =>
+    // Bulk assign equipment to a room.
+    assignBulkToRoom: (roomId, dtos = [], locale = 'en') =>
         apiFetch(`/equipments/rooms/${roomId}/assign-bulk`, {
             method: 'POST',
             body: JSON.stringify(dtos),

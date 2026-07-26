@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+﻿import { apiFetch } from './api';
 
 function buildQuery(params) {
   const searchParams = new URLSearchParams();
@@ -10,27 +10,27 @@ function buildQuery(params) {
 }
 
 /** GET /api/v1/bookings */
-export async function getAllBookings(params = {}, locale = 'vi') {
+export async function getAllBookings(params = {}, locale = 'en') {
   return apiFetch(`/bookings${buildQuery(params)}`, {}, locale);
 }
 
 /** GET /api/v1/bookings/search */
-export async function searchBookings(params = {}, locale = 'vi') {
+export async function searchBookings(params = {}, locale = 'en') {
   return apiFetch(`/bookings/search${buildQuery(params)}`, {}, locale);
 }
 
 /** GET /api/v1/bookings/my-history */
-export async function getMyBookingHistory(params = {}, locale = 'vi') {
+export async function getMyBookingHistory(params = {}, locale = 'en') {
   return apiFetch(`/bookings/my-history${buildQuery(params)}`, {}, locale);
 }
 
 /** GET /api/v1/bookings/{id} */
-export async function getBookingById(id, locale = 'vi') {
+export async function getBookingById(id, locale = 'en') {
   return apiFetch(`/bookings/${id}`, {}, locale);
 }
 
 /** POST /api/v1/bookings */
-export async function createBooking(payload, locale = 'vi') {
+export async function createBooking(payload, locale = 'en') {
   return apiFetch('/bookings', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -38,7 +38,7 @@ export async function createBooking(payload, locale = 'vi') {
 }
 
 /** POST /api/v1/cart-holds */
-export async function createCartHold(payload, locale = 'vi') {
+export async function createCartHold(payload, locale = 'en') {
   return apiFetch('/cart-holds', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -46,7 +46,7 @@ export async function createCartHold(payload, locale = 'vi') {
 }
 
 /** PUT /api/v1/cart-holds/{holdToken} */
-export async function updateCartHold(holdToken, payload, locale = 'vi') {
+export async function updateCartHold(holdToken, payload, locale = 'en') {
   return apiFetch(`/cart-holds/${encodeURIComponent(holdToken)}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
@@ -54,17 +54,17 @@ export async function updateCartHold(holdToken, payload, locale = 'vi') {
 }
 
 /** GET /api/v1/cart-holds/{holdToken} */
-export async function getCartHold(holdToken, locale = 'vi') {
+export async function getCartHold(holdToken, locale = 'en') {
   return apiFetch(`/cart-holds/${encodeURIComponent(holdToken)}`, {}, locale);
 }
 
 /** DELETE /api/v1/cart-holds/{holdToken} */
-export async function deleteCartHold(holdToken, locale = 'vi') {
+export async function deleteCartHold(holdToken, locale = 'en') {
   return apiFetch(`/cart-holds/${encodeURIComponent(holdToken)}`, { method: 'DELETE' }, locale);
 }
 
 /** POST /api/v1/cart-holds/{holdToken}/checkout */
-export async function checkoutCartHold(holdToken, payload, locale = 'vi') {
+export async function checkoutCartHold(holdToken, payload, locale = 'en') {
   return apiFetch(`/cart-holds/${encodeURIComponent(holdToken)}/checkout`, {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -72,17 +72,17 @@ export async function checkoutCartHold(holdToken, payload, locale = 'vi') {
 }
 
 /** GET /api/v1/bookings/check-availability */
-export async function checkAvailability(params, locale = 'vi') {
+export async function checkAvailability(params, locale = 'en') {
   return apiFetch(`/bookings/check-availability${buildQuery(params)}`, {}, locale);
 }
 
 /** GET concrete rooms that can be added to the cart for the selected stay. */
-export async function getAvailableRooms(params, locale = 'vi') {
+export async function getAvailableRooms(params, locale = 'en') {
   return apiFetch(`/bookings/available-rooms${buildQuery(params)}`, {}, locale);
 }
 
 /** PUT /api/v1/bookings/{id} */
-export async function updateBooking(id, payload, locale = 'vi') {
+export async function updateBooking(id, payload, locale = 'en') {
   return apiFetch(`/bookings/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
@@ -90,12 +90,12 @@ export async function updateBooking(id, payload, locale = 'vi') {
 }
 
 /** DELETE /api/v1/bookings/{id} */
-export async function deleteBooking(id, locale = 'vi') {
+export async function deleteBooking(id, locale = 'en') {
   return apiFetch(`/bookings/${id}`, { method: 'DELETE' }, locale);
 }
 
 /** PATCH /api/v1/bookings/{id}/status */
-export async function updateBookingStatus(id, payload, locale = 'vi') {
+export async function updateBookingStatus(id, payload, locale = 'en') {
   return apiFetch(`/bookings/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
@@ -103,7 +103,7 @@ export async function updateBookingStatus(id, payload, locale = 'vi') {
 }
 
 /** PATCH /api/v1/bookings/{id}/assign-room */
-export async function assignRoom(id, payload, locale = 'vi') {
+export async function assignRoom(id, payload, locale = 'en') {
   return apiFetch(`/bookings/${id}/assign-room`, {
     method: 'PATCH',
     body: JSON.stringify(payload),

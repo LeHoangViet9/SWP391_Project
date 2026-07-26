@@ -25,17 +25,11 @@ const NAV_ITEMS = [
 ];
 
 export default function Header() {
-  const { locale, setLocale, t } = useLocale();
+  const { t } = useLocale();
   const { user, isAuthenticated, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const dashboardPath = getDefaultDashboardPath(user?.roleName);
-
-  const toggleLocale = (lang) => {
-    setLocale(lang);
-    setLangOpen(false);
-  };
 
   return (
     <header className="sticky top-0 z-50 shadow-md">
@@ -56,35 +50,6 @@ export default function Header() {
               <MapPin size={14} className="text-[#bfa15f]" />
               {t('branches')}: 63+
             </span>
-          </div>
-
-          {/* Language Switcher */}
-          <div className="relative">
-            <button
-              onClick={() => setLangOpen(!langOpen)}
-              className="flex items-center gap-1 px-3 py-1 border border-[#bfa15f]/40 rounded hover:border-[#bfa15f] transition-colors"
-            >
-              <span className={locale === 'vi' ? 'text-[#bfa15f] font-semibold' : 'text-white/60'}>VI</span>
-              <span className="text-white/40">|</span>
-              <span className={locale === 'en' ? 'text-[#bfa15f] font-semibold' : 'text-white/60'}>EN</span>
-              <ChevronDown size={14} className="ml-1" />
-            </button>
-            {langOpen && (
-              <div className="absolute right-0 mt-1 bg-white text-slate-800 rounded shadow-lg overflow-hidden min-w-[120px] z-[60] border border-stone-200">
-                <button
-                  onClick={() => toggleLocale('vi')}
-                  className={`block w-full text-left px-4 py-2 hover:bg-stone-100 ${locale === 'vi' ? 'text-[#bfa15f] font-semibold' : ''}`}
-                >
-                  Tiếng Việt
-                </button>
-                <button
-                  onClick={() => toggleLocale('en')}
-                  className={`block w-full text-left px-4 py-2 hover:bg-stone-100 ${locale === 'en' ? 'text-[#bfa15f] font-semibold' : ''}`}
-                >
-                  English
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>

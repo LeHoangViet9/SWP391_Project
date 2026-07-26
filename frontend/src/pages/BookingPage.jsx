@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Calendar, Users, Building2, CreditCard, CheckCircle, ArrowLeft, ShoppingCart, Clock, X,
@@ -72,7 +72,7 @@ function toCheckOut(date) {
 }
 
 function formatPrice(price, locale) {
-  return new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'VND',
     maximumFractionDigits: 0,
@@ -91,7 +91,7 @@ function formatHoldCountdown(seconds) {
 }
 
 function validateGuestForms(customer, stayGuest, bookingForOther, locale) {
-  const isVi = locale === 'vi';
+  const isVi = false;
   const errors = {};
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegex = /^0[0-9]{9}$/;
@@ -100,66 +100,66 @@ function validateGuestForms(customer, stayGuest, bookingForOther, locale) {
   const nameRegex = /^[\p{L}][\p{L}\s'.-]{1,99}$/u;
   const nationalityRegex = /^[\p{L}][\p{L}\s-]{1,59}$/u;
 
-  if (!customer.fullName.trim()) errors['customer.fullName'] = isVi ? 'Vui lòng nhập họ và tên.' : 'Full name is required.';
-  else if (!nameRegex.test(customer.fullName.trim())) errors['customer.fullName'] = isVi ? 'Họ tên chỉ được chứa chữ cái, khoảng trắng và dấu hợp lệ.' : 'Full name contains invalid characters.';
-  if (!customer.email.trim()) errors['customer.email'] = isVi ? 'Vui lòng nhập email.' : 'Email is required.';
-  else if (!emailRegex.test(customer.email.trim())) errors['customer.email'] = isVi ? 'Email không đúng định dạng.' : 'Invalid email format.';
-  if (!customer.phone.trim()) errors['customer.phone'] = isVi ? 'Vui lòng nhập số điện thoại.' : 'Phone number is required.';
-  else if (!phoneRegex.test(customer.phone.trim())) errors['customer.phone'] = isVi ? 'Số điện thoại phải có 10 số và bắt đầu bằng 0.' : 'Phone number must have 10 digits and start with 0.';
-  if (!customer.idType) errors['customer.idType'] = isVi ? 'Vui lòng chọn loại giấy tờ.' : 'ID type is required.';
-  if (!customer.idNumberCard.trim()) errors['customer.idNumberCard'] = isVi ? 'Vui lòng nhập số giấy tờ.' : 'ID/Passport number is required.';
-  else if (customer.idType === 'CCCD' && !cccdRegex.test(customer.idNumberCard.trim())) errors['customer.idNumberCard'] = isVi ? 'CCCD phải gồm đúng 12 chữ số.' : 'CCCD must contain exactly 12 digits.';
-  else if (customer.idType !== 'CCCD' && !idCardRegex.test(customer.idNumberCard.trim())) errors['customer.idNumberCard'] = isVi ? 'Số Passport/giấy tờ phải có 6–20 ký tự chữ, số hoặc dấu gạch ngang.' : 'ID/Passport must contain 6–20 letters, numbers, or hyphens.';
-  if (!customer.nationality.trim()) errors['customer.nationality'] = isVi ? 'Vui lòng nhập quốc tịch.' : 'Nationality is required.';
-  else if (!nationalityRegex.test(customer.nationality.trim())) errors['customer.nationality'] = isVi ? 'Quốc tịch chỉ được chứa chữ cái, khoảng trắng hoặc dấu gạch ngang.' : 'Nationality contains invalid characters.';
+  if (!customer.fullName.trim()) errors['customer.fullName'] = 'Full name is required.';
+  else if (!nameRegex.test(customer.fullName.trim())) errors['customer.fullName'] = 'Full name contains invalid characters.';
+  if (!customer.email.trim()) errors['customer.email'] = 'Email is required.';
+  else if (!emailRegex.test(customer.email.trim())) errors['customer.email'] = 'Invalid email format.';
+  if (!customer.phone.trim()) errors['customer.phone'] = 'Phone number is required.';
+  else if (!phoneRegex.test(customer.phone.trim())) errors['customer.phone'] = 'Phone number must have 10 digits and start with 0.';
+  if (!customer.idType) errors['customer.idType'] = 'ID type is required.';
+  if (!customer.idNumberCard.trim()) errors['customer.idNumberCard'] = 'ID/Passport number is required.';
+  else if (customer.idType === 'CCCD' && !cccdRegex.test(customer.idNumberCard.trim())) errors['customer.idNumberCard'] = 'CCCD must contain exactly 12 digits.';
+  else if (customer.idType !== 'CCCD' && !idCardRegex.test(customer.idNumberCard.trim())) errors['customer.idNumberCard'] = 'ID/Passport must contain 6–20 letters, numbers, or hyphens.';
+  if (!customer.nationality.trim()) errors['customer.nationality'] = 'Nationality is required.';
+  else if (!nationalityRegex.test(customer.nationality.trim())) errors['customer.nationality'] = 'Nationality contains invalid characters.';
 
   if (bookingForOther) {
-    if (!stayGuest.fullName.trim()) errors['stayGuest.fullName'] = isVi ? 'Vui lòng nhập họ tên người lưu trú.' : 'Stay guest full name is required.';
-    if (stayGuest.email.trim() && !emailRegex.test(stayGuest.email.trim())) errors['stayGuest.email'] = isVi ? 'Email không đúng định dạng.' : 'Invalid email format.';
-    if (!stayGuest.phone.trim()) errors['stayGuest.phone'] = isVi ? 'Vui lòng nhập số điện thoại người lưu trú.' : 'Stay guest phone number is required.';
-    else if (!phoneRegex.test(stayGuest.phone.trim())) errors['stayGuest.phone'] = isVi ? 'Số điện thoại phải có 10 số và bắt đầu bằng 0.' : 'Phone number must have 10 digits and start with 0.';
-    if (!stayGuest.idNumberCard.trim()) errors['stayGuest.idNumberCard'] = isVi ? 'Vui lòng nhập số giấy tờ người lưu trú.' : 'Stay guest ID/Passport is required.';
-    else if (stayGuest.idType === 'CCCD' && !cccdRegex.test(stayGuest.idNumberCard.trim())) errors['stayGuest.idNumberCard'] = isVi ? 'CCCD phải gồm đúng 12 chữ số.' : 'CCCD must contain exactly 12 digits.';
-    else if (stayGuest.idType !== 'CCCD' && !idCardRegex.test(stayGuest.idNumberCard.trim())) errors['stayGuest.idNumberCard'] = isVi ? 'Số Passport/giấy tờ phải có 6–20 ký tự hợp lệ.' : 'ID/Passport must contain 6–20 valid characters.';
-    else if (customer.idType === 'CCCD' && stayGuest.idType === 'CCCD' && customer.idNumberCard.trim() === stayGuest.idNumberCard.trim()) errors['stayGuest.idNumberCard'] = isVi ? 'CCCD người lưu trú không được trùng với người đặt.' : 'Stay guest CCCD must differ from the booker CCCD.';
-    if (!stayGuest.nationality.trim()) errors['stayGuest.nationality'] = isVi ? 'Vui lòng nhập quốc tịch người lưu trú.' : 'Stay guest nationality is required.';
+    if (!stayGuest.fullName.trim()) errors['stayGuest.fullName'] = 'Stay guest full name is required.';
+    if (stayGuest.email.trim() && !emailRegex.test(stayGuest.email.trim())) errors['stayGuest.email'] = 'Invalid email format.';
+    if (!stayGuest.phone.trim()) errors['stayGuest.phone'] = 'Stay guest phone number is required.';
+    else if (!phoneRegex.test(stayGuest.phone.trim())) errors['stayGuest.phone'] = 'Phone number must have 10 digits and start with 0.';
+    if (!stayGuest.idNumberCard.trim()) errors['stayGuest.idNumberCard'] = 'Stay guest ID/Passport is required.';
+    else if (stayGuest.idType === 'CCCD' && !cccdRegex.test(stayGuest.idNumberCard.trim())) errors['stayGuest.idNumberCard'] = 'CCCD must contain exactly 12 digits.';
+    else if (stayGuest.idType !== 'CCCD' && !idCardRegex.test(stayGuest.idNumberCard.trim())) errors['stayGuest.idNumberCard'] = 'ID/Passport must contain 6–20 valid characters.';
+    else if (customer.idType === 'CCCD' && stayGuest.idType === 'CCCD' && customer.idNumberCard.trim() === stayGuest.idNumberCard.trim()) errors['stayGuest.idNumberCard'] = 'Stay guest CCCD must differ from the booker CCCD.';
+    if (!stayGuest.nationality.trim()) errors['stayGuest.nationality'] = 'Stay guest nationality is required.';
   }
 
   return errors;
 }
 
 function validateRoomSelection(booking, guestCounts, maxGuests, locale) {
-  const isVi = locale === 'vi';
+  const isVi = false;
   const errors = {};
   const todayDate = new Date(today());
   todayDate.setHours(0, 0, 0, 0);
 
   if (!booking.checkIn) {
-    errors.checkIn = isVi ? 'Vui lòng chọn ngày nhận phòng.' : 'Please select a check-in date.';
+    errors.checkIn = 'Please select a check-in date.';
   } else {
     const checkInDate = new Date(booking.checkIn);
     checkInDate.setHours(0, 0, 0, 0);
-    if (checkInDate < todayDate) errors.checkIn = isVi ? 'Ngày nhận phòng không được ở quá khứ.' : 'Check-in date cannot be in the past.';
+    if (checkInDate < todayDate) errors.checkIn = 'Check-in date cannot be in the past.';
   }
 
   if (!booking.checkOut) {
-    errors.checkOut = isVi ? 'Vui lòng chọn ngày trả phòng.' : 'Please select a check-out date.';
+    errors.checkOut = 'Please select a check-out date.';
   } else if (booking.checkIn) {
     const checkInDate = new Date(booking.checkIn);
     const checkOutDate = new Date(booking.checkOut);
-    if (checkOutDate <= checkInDate) errors.checkOut = isVi ? 'Ngày trả phòng phải sau ngày nhận phòng.' : 'Check-out date must be after check-in date.';
+    if (checkOutDate <= checkInDate) errors.checkOut = 'Check-out date must be after check-in date.';
   }
 
-  if (!booking.quantity || booking.quantity < 1) errors.quantity = isVi ? 'Phải chọn ít nhất một phòng.' : 'Select at least one room.';
+  if (!booking.quantity || booking.quantity < 1) errors.quantity = 'Select at least one room.';
 
   guestCounts.forEach((guests, index) => {
     const adults = Number(guests.adults || 0);
     const totalGuests = adults + Number(guests.children || 0) + Number(guests.infants || 0);
     if (adults < 1) {
-      errors[`guests.${index}`] = isVi ? `Phòng ${index + 1} phải có ít nhất 1 người lớn.` : `Room ${index + 1} must have at least 1 adult.`;
+      errors[`guests.${index}`] = false ? `Room ${index + 1} must have at least 1 adult.` : `Room ${index + 1} must have at least 1 adult.`;
     } else if (Number(maxGuests) > 0 && totalGuests > Number(maxGuests)) {
-      errors[`guests.${index}`] = isVi
-        ? `Phòng ${index + 1} tối đa ${maxGuests} người, hiện đang chọn ${totalGuests} người.`
+      errors[`guests.${index}`] = false
+        ? `Room ${index + 1} max ${maxGuests} guests, currently ${totalGuests} selected.`
         : `Room ${index + 1} allows up to ${maxGuests} guests; ${totalGuests} are selected.`;
     }
   });
@@ -203,7 +203,7 @@ function BookingContent() {
     phone: isReceptionist ? '' : (user?.phone || ''),
     idType: isReceptionist ? '' : 'CCCD',
     idNumberCard: '',
-    nationality: isReceptionist ? '' : (locale === 'vi' ? 'Việt Nam' : 'Vietnam'),
+    nationality: isReceptionist ? '' : ('Vietnam'),
   });
 
   const [bookingForOther, setBookingForOther] = useState(false);
@@ -213,7 +213,7 @@ function BookingContent() {
     phone: '',
     idType: 'CCCD',
     idNumberCard: '',
-    nationality: locale === 'vi' ? 'Việt Nam' : 'Vietnam',
+    nationality: 'Vietnam',
   });
   const [touchedFields, setTouchedFields] = useState({});
   const [serverFieldErrors, setServerFieldErrors] = useState({});
@@ -267,8 +267,8 @@ function BookingContent() {
               : { ...current, quantity: nextQuantity };
           });
           if (availableCount === 0) {
-            setError(locale === 'vi'
-              ? 'Loại phòng này đã hết phòng trong khoảng thời gian đã chọn.'
+            setError(locale === 'en'
+              ? 'This Room Type is out of rooms for selected dates.'
               : 'This room type is sold out for the selected dates.');
           }
         }
@@ -331,8 +331,8 @@ function BookingContent() {
           setCartItems([]);
         }
         setStep(1);
-        setError(locale === 'vi'
-          ? 'Phòng trong giỏ chưa còn được giữ. Vui lòng bấm tiếp tục để giữ lại.'
+        setError(locale === 'en'
+          ? 'Cart rooms are not held yet. Please click continue to hold.'
           : 'The rooms in your cart are no longer held. Continue to hold them again.');
       });
     return () => { mounted = false; };
@@ -363,7 +363,7 @@ function BookingContent() {
         setHoldExpiresAt(null);
         setCartItems([]);
         setStep(1);
-        setError(locale === 'vi' ? 'Thời gian giữ phòng đã hết. Vui lòng chọn lại.' : 'The room hold expired. Please select again.');
+        setError('The room hold expired. Please select again.');
       };
       const expirationTimer = window.setInterval(checkExpiration, 1000);
       checkExpiration();
@@ -377,7 +377,7 @@ function BookingContent() {
 
   useEffect(() => {
     if (!user || isReceptionist) return;
-    // Dùng /customers/me — endpoint self-service, không cần CUSTOMER_VIEW permission
+    // Use /customers/me - self-service endpoint, no CUSTOMER_VIEW permission required
     apiFetch('/customers/me', {}, locale)
       .then((res) => {
         const found = res?.data;
@@ -389,10 +389,10 @@ function BookingContent() {
             phone:    found.phone    || user.phone    || '',
             idType:      found.idType      || 'CCCD',
             idNumberCard: found.idNumberCard || '',
-            nationality:  found.nationality  || (locale === 'vi' ? 'Việt Nam' : 'Vietnam'),
+            nationality:  found.nationality  || ('Vietnam'),
           });
         } else {
-          // Chưa có customer profile — điền sẵn thông tin từ tài khoản
+          // No customer profile yet - auto-fill from account info
           setCustomerForm((prev) => ({
             ...prev,
             fullName: user.fullName || prev.fullName,
@@ -469,10 +469,10 @@ function BookingContent() {
         nationality: customerForm.nationality.trim(),
       }, locale);
       if (res?.data?.id) return Number(res.data.id);
-      throw new Error(locale === 'vi' ? 'Không thể tạo hồ sơ khách hàng.' : 'Could not create customer profile.');
+      throw new Error('Could not create customer profile.');
     }
-    // ── Bước 1: Nếu user đăng nhập, gọi /customers/me để lấy profile
-    // Endpoint này chỉ cần isAuthenticated() — không phụ thuộc vào CUSTOMER_VIEW permission
+    // -- Step 1: If user logged in, call /customers/me to get profile
+    // This endpoint only requires isAuthenticated()
     if (user) {
       try {
         const meRes = await apiFetch('/customers/me', {}, locale);
@@ -498,17 +498,17 @@ function BookingContent() {
           return Number(profile.id);
         }
       } catch (_) {
-        // chưa có profile — tiếp tục tạo mới
+        // no profile yet - proceed to create new
       }
     }
 
-    // ── Bước 2: Nếu không đăng nhập, kiểm tra localStorage
+    // -- Step 2: If not logged in, check localStorage
     if (!user) {
       const stored = getStoredCustomerId();
       if (stored) return Number(stored);
     }
 
-    // ── Bước 3: Tạo mới customer profile (cần CUSTOMER_CREATE permission)
+    // -- Step 3: Create customer profile (requires CUSTOMER_CREATE permission)
     const res = await createCustomer({
       fullName: customerForm.fullName,
       email: user?.email || customerForm.email,
@@ -522,7 +522,7 @@ function BookingContent() {
       saveCustomerId(res.data.id);
       return Number(res.data.id);
     }
-    throw new Error(locale === 'vi' ? 'Không thể xác định thông tin khách hàng' : 'Could not resolve customer profile');
+    throw new Error('Could not resolve customer profile');
   };
 
   const syncCartHold = async (nextItems) => {
@@ -550,7 +550,7 @@ function BookingContent() {
         ? await updateCartHold(cartHoldToken, payload, locale)
         : await createCartHold(payload, locale);
       const hold = response?.data;
-      if (!hold?.holdToken) throw new Error(locale === 'vi' ? 'Không thể giữ phòng.' : 'Could not hold rooms.');
+      if (!hold?.holdToken) throw new Error('Could not hold rooms.');
 
       const serverItems = hold.items || [];
       const mappedItems = nextItems.map((item, index) => ({
@@ -563,7 +563,7 @@ function BookingContent() {
       localStorage.setItem(CART_HOLD_TOKEN_KEY, hold.holdToken);
       return hold;
     } catch (err) {
-      setError(err.message || (locale === 'vi' ? 'Không thể giữ phòng trong giỏ hàng.' : 'Could not hold the cart rooms.'));
+      setError(err.message || ('Could not hold the cart rooms.'));
       throw err;
     } finally {
       setLoading(false);
@@ -581,7 +581,7 @@ function BookingContent() {
   const handleSubmit = async () => {
     setError('');
     if (cartItems.length === 0) {
-      setError(locale === 'vi' ? 'Giỏ hàng chưa có phòng.' : 'Your cart is empty.');
+      setError('Your cart is empty.');
       return;
     }
     const todayDate = new Date(today());
@@ -594,8 +594,8 @@ function BookingContent() {
       return checkInDate < todayDate || checkOutDate <= checkInDate || !item.quantity;
     });
     if (invalidCartItem) {
-      setError(locale === 'vi'
-        ? `Thời gian lưu trú của ${invalidCartItem.roomTypeName} không còn hợp lệ. Vui lòng xóa phòng này và chọn lại.`
+      setError(locale === 'en'
+        ? `Stay duration for ${invalidCartItem.roomTypeName} is no longer valid. Please remove and re-select.`
         : `The stay dates for ${invalidCartItem.roomTypeName} are no longer valid. Please remove it and select again.`);
       return;
     }
@@ -609,7 +609,7 @@ function BookingContent() {
       return;
     }
     if (!cartHoldToken || cartItems.some((item) => !item.holdItemId)) {
-      setError(locale === 'vi' ? 'Giỏ phòng chưa được giữ trên máy chủ. Vui lòng thêm lại phòng.' : 'The cart is not held on the server. Please add the rooms again.');
+      setError('The cart is not held on the server. Please add the rooms again.');
       return;
     }
 
@@ -632,7 +632,7 @@ function BookingContent() {
       };
       const checkoutResponse = await checkoutCartHold(cartHoldToken, checkoutPayload, locale);
       const createdBookings = checkoutResponse?.data?.bookings || [];
-      if (createdBookings.length === 0) throw new Error(locale === 'vi' ? 'Không tạo được booking.' : 'No booking was created.');
+      if (createdBookings.length === 0) throw new Error('No booking was created.');
 
       const createdBookingIds = createdBookings.map((created) => created.id);
       const fallbackTotal = createdBookings.reduce((total, created) => total + Number(created.totalPrice || 0), 0);
@@ -691,7 +691,7 @@ function BookingContent() {
       return;
     }
     if (availableRoomsCount !== null && booking.quantity > availableRoomsCount) {
-      setError(locale === 'vi' ? 'Số phòng chọn vượt quá số phòng đang trống.' : 'Selected quantity exceeds available rooms.');
+      setError('Selected quantity exceeds available rooms.');
       return;
     }
     const nextItem = {
@@ -719,7 +719,7 @@ function BookingContent() {
     setError('');
     if (step === 1) {
       if (cartItems.length === 0) {
-        setError(locale === 'vi' ? 'Vui lòng chọn phòng và thêm vào giỏ trước.' : 'Please select a room and add it to the cart first.');
+        setError('Please select a room and add it to the cart first.');
         return;
       }
       if (!cartHoldToken || cartItems.some((item) => !item.holdItemId)) {
@@ -784,16 +784,16 @@ function BookingContent() {
               </div>
               <div className="mt-8">
                 <div>
-                  <p className="text-sm text-slate-500">{locale === 'vi' ? 'Giá chỉ từ' : 'Price from'}</p>
-                  <p className="mt-1 text-2xl font-bold text-[#f2a900]">{formatPrice(pricePerNight, locale)} <span className="text-sm font-normal text-slate-600">/ {locale === 'vi' ? 'đêm' : 'night'}</span></p>
+                  <p className="text-sm text-slate-500">{'Price from'}</p>
+                  <p className="mt-1 text-2xl font-bold text-[#f2a900]">{formatPrice(pricePerNight, locale)} <span className="text-sm font-normal text-slate-600">/ {'night'}</span></p>
                 </div>
               </div>
             </div>
           </div>
           <div className="border-t border-dashed border-stone-300 px-6 py-5 text-sm">
             <p className="font-semibold text-red-500">FREE CANCELLATION DKDT</p>
-            <p className="mt-3 text-slate-600">✓ {locale === 'vi' ? 'Đã bao gồm ăn sáng' : 'Breakfast included'}</p>
-            <p className="mt-2 text-emerald-600">★ {locale === 'vi' ? 'Miễn phí hồ bơi và phòng gym' : 'Free pool and gym access'}</p>
+            <p className="mt-3 text-slate-600">✓ {'Breakfast included'}</p>
+            <p className="mt-2 text-emerald-600">★ {'Free pool and gym access'}</p>
           </div>
         </div>
 
@@ -867,7 +867,7 @@ function BookingContent() {
               </div>
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">
-                  {locale === 'vi' ? 'Số lượng phòng' : 'Number of rooms'}
+                  {'Number of rooms'}
                 </label>
                 <select
                   value={availableRoomsCount === 0 ? '' : booking.quantity}
@@ -878,17 +878,17 @@ function BookingContent() {
                     : 'disabled:bg-stone-100 disabled:text-slate-400'} disabled:cursor-not-allowed`}
                 >
                   {availableRoomsCount === 0 ? (
-                    <option value="">{locale === 'vi' ? 'Đã hết phòng' : 'Sold out'}</option>
+                    <option value="">{'Sold out'}</option>
                   ) : Array.from({ length: availableRoomsCount ?? 0 }, (_, index) => index + 1).map((quantity) => (
-                    <option key={quantity} value={quantity}>{quantity} {locale === 'vi' ? 'phòng' : 'rooms'}</option>
+                    <option key={quantity} value={quantity}>{quantity} {'rooms'}</option>
                   ))}
                 </select>
                 <p className={`mt-1 text-xs font-medium ${availableRoomsCount === 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                   {checkingAvailability || availableRoomsCount === null
-                    ? (locale === 'vi' ? 'Đang kiểm tra phòng trống...' : 'Checking available rooms...')
+                    ? ('Checking available rooms...')
                     : availableRoomsCount === 0
-                      ? (locale === 'vi' ? 'Đã hết phòng trong thời gian đã chọn' : 'Sold out for the selected dates')
-                      : (locale === 'vi' ? `Còn ${availableRoomsCount} phòng trống` : `${availableRoomsCount} rooms available`)}
+                      ? ('Sold out for the selected dates')
+                      : (locale === 'en' ? `${availableRoomsCount} rooms available` : `${availableRoomsCount} rooms available`)}
                 </p>
                 {renderSelectionError('quantity')}
               </div>
@@ -901,15 +901,15 @@ function BookingContent() {
               {guestCounts.map((guests, roomIndex) => (
                 <div key={roomIndex} className="grid grid-cols-1 gap-4 sm:grid-cols-[180px_1fr_1fr_1fr] sm:items-end">
                   <h4 className="font-bold text-slate-800">
-                    {locale === 'vi' ? `Số người phòng ${roomIndex + 1}` : `Guests in room ${roomIndex + 1}`}
+                    {locale === 'en' ? `Guests in room ${roomIndex + 1}` : `Guests in room ${roomIndex + 1}`}
                     <span className="mt-1 block text-xs font-normal text-slate-500">
-                      {locale === 'vi' ? `Tối đa ${roomType.maxGuests} người` : `Up to ${roomType.maxGuests} guests`}
+                      {locale === 'en' ? `Up to ${roomType.maxGuests} guests` : `Up to ${roomType.maxGuests} guests`}
                     </span>
                   </h4>
                   {[
-                    ['adults', locale === 'vi' ? 'Người lớn' : 'Adults', 4],
-                    ['children', locale === 'vi' ? 'Trẻ em (6-11 tuổi)' : 'Children (6-11)', 3],
-                    ['infants', locale === 'vi' ? 'Em bé (0-5 tuổi)' : 'Infants (0-5)', 2],
+                    ['adults', 'Adults', 4],
+                    ['children', 'Children (6-11)', 3],
+                    ['infants', 'Infants (0-5)', 2],
                   ].map(([key, label, max]) => (
                     <label key={key} className="text-sm text-slate-600">
                       <span className="mb-1 block">{label}</span>
@@ -938,14 +938,14 @@ function BookingContent() {
               className="w-full btn-gold py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading
-                ? (locale === 'vi' ? 'Đang giữ phòng...' : 'Holding rooms...')
+                ? ('Holding rooms...')
                 : checkingAvailability
-                ? (locale === 'vi' ? 'Đang kiểm tra phòng trống...' : 'Checking availability...')
+                ? ('Checking availability...')
                 : currentSelectionInCart
-                  ? (locale === 'vi' ? 'Đã thêm vào giỏ' : 'Added to cart')
+                  ? ('Added to cart')
                   : currentCartItem
-                    ? (locale === 'vi' ? 'Cập nhật giỏ hàng' : 'Update cart')
-                    : (locale === 'vi' ? 'Chọn phòng' : 'Select room')}
+                    ? ('Update cart')
+                    : ('Select room')}
             </button>
           </div>
         )}
@@ -974,7 +974,7 @@ function BookingContent() {
                   readOnly={!isReceptionist && !!user?.email}
                   className={fieldClassName('customer.email', !isReceptionist && user?.email ? 'bg-stone-50 text-slate-500 cursor-not-allowed' : '')}
                 />
-                {!isReceptionist && user?.email && <p className="text-xs text-slate-400 mt-0.5">{locale === 'vi' ? 'Email tài khoản đăng nhập' : 'Logged-in account email'}</p>}
+                {!isReceptionist && user?.email && <p className="text-xs text-slate-400 mt-0.5">{'Logged-in account email'}</p>}
                 {renderFieldError('customer.email')}
               </div>
               <div>
@@ -985,7 +985,7 @@ function BookingContent() {
               <div>
                 <label className="text-xs uppercase tracking-wider text-[#bfa15f] font-semibold">{t('bookingPage.idType')}</label>
                 <select value={customerForm.idType} onChange={(e) => updateCustomerField('idType', e.target.value)} onBlur={() => touchField('customer.idType')} className={fieldClassName('customer.idType')}>
-                  <option value="">{locale === 'vi' ? '-- Chọn loại giấy tờ --' : '-- Select ID type --'}</option>
+                  <option value="">{'-- Select ID type --'}</option>
                   <option value="CCCD">CCCD</option>
                   <option value="PASSPORT">Passport</option>
                   <option value="OTHER">Other</option>
@@ -1023,11 +1023,11 @@ function BookingContent() {
               />
               <span>
                 <span className="block font-semibold text-slate-800">
-                  {locale === 'vi' ? 'Đặt hộ người khác' : 'Book for another guest'}
+                  {'Book for another guest'}
                 </span>
                 <span className="text-slate-500">
-                  {locale === 'vi'
-                    ? 'Thông tin bên dưới là người sẽ trực tiếp lưu trú và cần được lễ tân kiểm tra khi check-in.'
+                  {locale === 'en'
+                    ? 'The guest information below is for stay check-in verification.'
                     : 'The information below is for the actual stay guest and will be verified at check-in.'}
                 </span>
               </span>
@@ -1036,7 +1036,7 @@ function BookingContent() {
             {bookingForOther && (
               <div className="rounded border border-amber-200 bg-amber-50 p-4">
                 <h4 className="mb-3 text-sm font-bold text-amber-800">
-                  {locale === 'vi' ? 'Thông tin người được đặt hộ' : 'Stay guest information'}
+                  {'Stay guest information'}
                 </h4>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
@@ -1113,8 +1113,8 @@ function BookingContent() {
             <CheckCircle size={56} className="text-green-500 mx-auto mb-4" />
             <h3 className="font-display text-2xl font-bold text-slate-800 mb-2">{t('bookingPage.successTitle')}</h3>
             <p className="text-slate-500 mb-6">
-              {locale === 'vi'
-                ? `${bookingResults.length} đơn đặt phòng đã được tạo và gộp vào một hóa đơn.`
+              {locale === 'en'
+                ? `${bookingResults.length} bookings created and combined into one invoice.`
                 : `${bookingResults.length} bookings were created and combined into one invoice.`}
             </p>
             <div className="mb-6 space-y-3 text-left">
@@ -1133,10 +1133,10 @@ function BookingContent() {
             </div>
             <div className="mb-5 flex items-center justify-center gap-2 text-amber-700">
               <Clock size={18} />
-              <strong>{locale === 'vi' ? 'Phòng được giữ trong' : 'Room held for'} {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}</strong>
+              <strong>{'Room held for'} {String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:{String(remainingSeconds % 60).padStart(2, '0')}</strong>
             </div>
             <div className="mb-5 rounded-xl border border-[#bfa15f]/30 bg-[#bfa15f]/10 p-5">
-              <p className="text-sm font-semibold text-slate-600">{locale === 'vi' ? 'Tổng tiền cần thanh toán' : 'Total amount due'}</p>
+              <p className="text-sm font-semibold text-slate-600">{'Total amount due'}</p>
               <p className="mt-1 text-3xl font-bold text-[#bfa15f]">{formatPrice(combinedInvoiceTotal, locale)}</p>
             </div>
             <Link
@@ -1144,8 +1144,8 @@ function BookingContent() {
               className="btn-gold inline-block rounded px-8 py-3"
             >
               {isReceptionist
-                ? (locale === 'vi' ? 'Chọn hình thức thanh toán' : 'Choose payment method')
-                : (locale === 'vi' ? 'Tiếp tục thanh toán' : 'Continue to payment')}
+                ? ('Choose payment method')
+                : ('Continue to payment')}
             </Link>
           </div>
         )}
@@ -1153,13 +1153,13 @@ function BookingContent() {
 
         {step < 3 && (
           <aside className="sticky top-5 rounded-md border border-stone-200 bg-white p-6 shadow-lg">
-            <h2 className="text-xl font-bold text-slate-800">{locale === 'vi' ? 'Thông tin đặt phòng' : 'Booking information'}</h2>
+            <h2 className="text-xl font-bold text-slate-800">{'Booking information'}</h2>
             <div className="my-4 border-t border-stone-200" />
             <p className="font-bold text-slate-800">HMS Luxury Hotel</p>
 
             <div className="my-5 border-t border-dashed border-stone-300" />
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-800">{locale === 'vi' ? `Giỏ phòng (${cartItems.length})` : `Room cart (${cartItems.length})`}</h3>
+              <h3 className="font-bold text-slate-800">{locale === 'en' ? `Room cart (${cartItems.length})` : `Room cart (${cartItems.length})`}</h3>
             </div>
 
             <div className="mt-3 max-h-[360px] space-y-2 overflow-y-auto pr-1">
@@ -1169,7 +1169,7 @@ function BookingContent() {
                     <div>
                       <p className="font-bold text-slate-800">{item.roomTypeName} × {item.quantity}</p>
                       <p className="mt-1 text-xs text-slate-500">
-                        {item.checkIn} - {item.checkOut} ({nightsBetween(item.checkIn, item.checkOut)} {locale === 'vi' ? 'đêm' : 'nights'})
+                        {item.checkIn} - {item.checkOut} ({nightsBetween(item.checkIn, item.checkOut)} {'nights'})
                       </p>
                       <p className="mt-2 text-sm font-bold text-[#bfa15f]">
                         {formatPrice(Number(item.pricePerNight) * nightsBetween(item.checkIn, item.checkOut) * item.quantity, locale)}
@@ -1180,7 +1180,7 @@ function BookingContent() {
                         type="button"
                         onClick={() => handleRemoveCartItem(item.key)}
                         className="text-slate-400 transition-colors hover:text-red-500"
-                        title={locale === 'vi' ? 'Xóa khỏi giỏ' : 'Remove from cart'}
+                        title={'Remove from cart'}
                       >
                         <X size={18} />
                       </button>
@@ -1190,21 +1190,21 @@ function BookingContent() {
               )) : (
                 <div className="rounded border border-dashed border-stone-300 bg-stone-50 px-4 py-8 text-center text-sm text-slate-500">
                   <ShoppingCart size={24} className="mx-auto mb-2 text-stone-400" />
-                  {locale === 'vi' ? 'Giỏ hàng chưa có phòng' : 'Your cart is empty'}
+                  {'Your cart is empty'}
                 </div>
               )}
             </div>
 
             <div className="mt-6 flex items-center justify-between text-lg font-bold">
-              <span>{locale === 'vi' ? 'Tổng cộng' : 'Total'}</span>
+              <span>{'Total'}</span>
               <span className="text-[#f2a900]">{formatPrice(cartTotal, locale)}</span>
             </div>
             {cartItems.length > 0 && (
               <div className={`mt-3 flex items-center justify-center gap-2 rounded border px-3 py-2 text-xs font-semibold ${cartHoldToken && remainingSeconds <= 60 ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
                 <Clock size={15} />
                 {cartHoldToken && holdExpiresAt
-                  ? `${locale === 'vi' ? 'Đang giữ phòng' : 'Rooms held'} ${formatHoldCountdown(remainingSeconds)}`
-                  : (locale === 'vi' ? 'Chưa giữ phòng trên máy chủ' : 'Rooms are not held on the server')}
+                  ? `${'Rooms held'} ${formatHoldCountdown(remainingSeconds)}`
+                  : ('Rooms are not held on the server')}
               </div>
             )}
             <button
@@ -1214,15 +1214,15 @@ function BookingContent() {
               className="mt-4 w-full rounded bg-[#f2a900] py-3 text-lg font-bold text-white transition hover:bg-[#d89500] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? '...' : (step === 1
-                ? (locale === 'vi' ? 'TIẾP TỤC' : 'CONTINUE')
-                : (locale === 'vi' ? 'ĐẶT NGAY' : 'BOOK NOW'))}
+                ? ('CONTINUE')
+                : ('BOOK NOW'))}
             </button>
             {step === 1 && cartItems.length > 0 && (
               <Link to="/#room-types" className="mt-3 block text-center text-sm font-semibold text-[#bfa15f] hover:text-[#a3854a]">
-                {locale === 'vi' ? '+ Đặt thêm loại phòng khác' : '+ Add another room type'}
+                {'+ Add another room type'}
               </Link>
             )}
-            <p className="mt-3 text-center text-xs text-slate-500">{locale === 'vi' ? `Phòng được giữ ${BOOKING_HOLD_MINUTES} phút sau khi thêm vào giỏ.` : `Rooms are held for ${BOOKING_HOLD_MINUTES} minutes after being added to the cart.`}</p>
+            <p className="mt-3 text-center text-xs text-slate-500">{locale === 'en' ? `Rooms are held for ${BOOKING_HOLD_MINUTES} minutes after being added to cart.` : `Rooms are held for ${BOOKING_HOLD_MINUTES} minutes after being added to the cart.`}</p>
           </aside>
         )}
         </div>

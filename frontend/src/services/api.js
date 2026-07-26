@@ -1,7 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
+﻿const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
 
 function buildAuthHeaders(locale, extraHeaders = {}, includeJson = true) {
-  const acceptLanguage = locale === 'vi' ? 'vi-VN' : 'en-US';
+  const acceptLanguage = 'en-US';
   const token = localStorage.getItem('hms_token');
   return {
     ...(includeJson ? { 'Content-Type': 'application/json' } : {}),
@@ -25,7 +25,7 @@ async function handleResponse(response) {
 /**
  * Central fetch wrapper — attaches Accept-Language header for Spring Boot i18n.
  */
-export async function apiFetch(endpoint, options = {}, locale = 'vi') {
+export async function apiFetch(endpoint, options = {}, locale = 'en') {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: buildAuthHeaders(locale, options.headers, true),
@@ -36,7 +36,7 @@ export async function apiFetch(endpoint, options = {}, locale = 'vi') {
 /**
  * Multipart POST (e.g. Room create with @ModelAttribute).
  */
-export async function apiFormData(endpoint, formData, locale = 'vi', method = 'POST') {
+export async function apiFormData(endpoint, formData, locale = 'en', method = 'POST') {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method,
     headers: buildAuthHeaders(locale, {}, false),

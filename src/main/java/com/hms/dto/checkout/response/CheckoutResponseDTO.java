@@ -28,6 +28,6 @@ public class CheckoutResponseDTO {
     private boolean minibarChecked;
     private String chargeNote;
     private LocalDateTime checkoutTime;
-    // Thời điểm lễ tân bấm "Yêu cầu kiểm phòng" — frontend dùng để hiển thị đồng hồ đếm & badge cảnh báo.
+    // Thời điểm lễ tân bấm "Room inspection request" — frontend dùng để hiển thị đồng hồ đếm & badge cảnh báo.
     private LocalDateTime inspectionRequestedAt;
 }

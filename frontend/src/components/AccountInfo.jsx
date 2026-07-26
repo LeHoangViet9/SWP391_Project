@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Mail, Phone, ShieldCheck, Clock, BadgeCheck, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocale } from '../context/LocaleContext';
@@ -7,7 +7,7 @@ function formatDateTime(value, locale) {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(locale === 'vi' ? 'vi-VN' : 'en-US', {
+  return date.toLocaleString('en-US', {
     dateStyle: 'short',
     timeStyle: 'short',
   });

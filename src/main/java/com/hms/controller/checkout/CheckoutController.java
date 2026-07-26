@@ -23,21 +23,21 @@ public class CheckoutController {
     @GetMapping("/{bookingId}/bill")
     @PreAuthorize("hasAuthority('CHECKOUT_VIEW')")
     public ResponseEntity<ApiResponse<CheckoutResponseDTO>> bill(@PathVariable Long bookingId) {
-        return ok("Đã tạo hóa đơn check-out", checkoutService.getBill(bookingId));
+        return ok("Checkout invoice created", checkoutService.getBill(bookingId));
     }
 
     @PostMapping("/confirm-payment")
     @PreAuthorize("hasAuthority('CHECKOUT_VIEW')")
     public ResponseEntity<ApiResponse<CheckoutResponseDTO>> confirmPayment(
             @Valid @RequestBody CheckoutRequestDTO request, @AuthenticationPrincipal String email) {
-        return ok("Đã xác nhận thanh toán, phòng đang chờ trả", checkoutService.confirmPayment(request, userId(email)));
+        return ok("Payment confirmed, room awaiting checkout", checkoutService.confirmPayment(request, userId(email)));
     }
 
     @PostMapping("/{bookingId}/release-room")
     @PreAuthorize("hasAuthority('CHECKOUT_VIEW')")
     public ResponseEntity<ApiResponse<CheckoutResponseDTO>> release(
             @PathVariable Long bookingId, @AuthenticationPrincipal String email) {
-        return ok("Check-out thành công, phòng đã chuyển sang DIRTY", checkoutService.releaseRoom(bookingId, userId(email)));
+        return ok("Check-out successful, room status changed to DIRTY", checkoutService.releaseRoom(bookingId, userId(email)));
     }
 
     private Long userId(String email) {

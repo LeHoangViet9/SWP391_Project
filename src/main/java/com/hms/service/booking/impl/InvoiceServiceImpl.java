@@ -431,7 +431,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             return String.format(vietQrApiUrl, bankId, bankAccountNo,
                     amount.toBigInteger().toString(), encodedContent, encodedAccountName);
         } catch (Exception e) {
-            log.error("Không thể tạo VietQR cho nội dung {}", paymentContent, e);
+            log.error("Cannot generate VietQR for content {}", paymentContent, e);
             return null;
         }
     }
@@ -447,7 +447,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
             InvoiceResponse response = buildInvoiceResponse(invoice, booking, numberOfNights, roomPricePerNight,
                     roomPriceSubTotal, additionalCharges, vatAmount, correctTotalAmount);
-            response.setRoomTypeName("Phụ thu dịch vụ");
+            response.setRoomTypeName("Service surcharge");
             return response;
         }
 

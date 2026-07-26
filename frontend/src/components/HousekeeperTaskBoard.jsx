@@ -13,13 +13,13 @@ import { useLocale } from '../context/LocaleContext';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
     PENDING: {
-        label: 'Chờ xử lý', labelEn: 'Pending',
+        label: 'Pending', labelEn: 'Pending',
         bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700',
         badge: 'bg-red-100 text-red-700', dot: 'bg-red-500',
         icon: Clock,
         nextStatus: 'IN_PROGRESS', nextLabel: 'Nhận việc', nextLabelEn: 'Accept',
         nextBtnClass: 'bg-amber-500 hover:bg-amber-600 text-white',
-        canDeny: true, // Có thể từ chối khi ở PENDING
+        canDeny: true, // Yes thể từ chối khi ở PENDING
     },
     IN_PROGRESS: {
         label: 'Đang làm', labelEn: 'In Progress',
@@ -39,7 +39,7 @@ const STATUS_CONFIG = {
         canDeny: false,
     },
     CANCELLED: {
-        label: 'Đã hủy', labelEn: 'Cancelled',
+        label: 'Cancelled', labelEn: 'Cancelled',
         bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-500',
         badge: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400',
         icon: XCircle,
@@ -55,7 +55,7 @@ function ReportIssueMiniModal({ roomId, onSubmit, onClose, loading }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!form.issueDescription.trim()) { setErr('Vui lòng mô tả sự cố'); return; }
+        if (!form.issueDescription.trim()) { setErr('Please mô tả sự cố'); return; }
         onSubmit(roomId, { issueDescription: form.issueDescription, severity: form.severity });
     };
 
@@ -70,24 +70,24 @@ function ReportIssueMiniModal({ roomId, onSubmit, onClose, loading }) {
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-3">
                     <div>
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-1">Mức độ</label>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-1">Severity</label>
                         <select value={form.severity} onChange={e => setForm(p => ({ ...p, severity: e.target.value }))}
                             className="w-full px-3 py-2.5 border border-stone-200 rounded-xl text-sm outline-none focus:border-[#bfa15f]">
                             <option value="LOW">🟢 Thấp</option>
-                            <option value="MEDIUM">🟡 Trung bình</option>
+                            <option value="MEDIUM">🟡 Medium</option>
                             <option value="HIGH">🟠 Cao</option>
-                            <option value="CRITICAL">🔴 Khẩn cấp</option>
+                            <option value="CRITICAL">🔴 Critical</option>
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-1">Mô tả sự cố *</label>
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-1">Description sự cố *</label>
                         <textarea value={form.issueDescription} onChange={e => { setForm(p => ({ ...p, issueDescription: e.target.value })); setErr(''); }}
                             rows={3} placeholder="Ví dụ: Điều hòa hỏng, tắc bồn tắm..."
                             className={`w-full px-3 py-2.5 border rounded-xl text-sm outline-none resize-none focus:border-[#bfa15f] ${err ? 'border-red-400 bg-red-50' : 'border-stone-200'}`} />
                         {err && <p className="text-red-500 text-xs mt-1">{err}</p>}
                     </div>
                     <div className="flex gap-3 pt-1">
-                        <button type="button" onClick={onClose} className="flex-1 py-3 border border-stone-200 rounded-xl text-sm font-bold text-slate-600">Hủy</button>
+                        <button type="button" onClick={onClose} className="flex-1 py-3 border border-stone-200 rounded-xl text-sm font-bold text-slate-600">Cancel</button>
                         <button type="submit" disabled={loading}
                             className="flex-1 py-3 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700 disabled:opacity-60 flex items-center justify-center gap-2">
                             {loading ? <Loader size={16} className="animate-spin" /> : <Wrench size={16} />} Gửi
@@ -125,7 +125,7 @@ function MinibarReportMiniModal({ task, onSubmit, onClose, loading }) {
                     <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-stone-100 text-slate-400"><X size={18} /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <p className="text-xs text-slate-500">Vui lòng kiểm tra thực tế trong phòng và nhập số lượng đồ uống đã tiêu thụ.</p>
+                    <p className="text-xs text-slate-500">Please kiểm tra thực tế trong phòng và nhập số lượng đồ uống đã tiêu thụ.</p>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                         <div className="flex items-center justify-between p-2 border rounded-xl bg-white">
                             <div>
@@ -176,7 +176,7 @@ function MinibarReportMiniModal({ task, onSubmit, onClose, loading }) {
                         </div>
                     </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={onClose} className="flex-1 py-3 border border-stone-200 rounded-xl text-sm font-bold text-slate-600">Hủy</button>
+                        <button type="button" onClick={onClose} className="flex-1 py-3 border border-stone-200 rounded-xl text-sm font-bold text-slate-600">Cancel</button>
                         <button type="submit" disabled={loading}
                             className="flex-1 py-3 bg-[#bfa15f] hover:bg-[#a3874c] text-white rounded-xl text-sm font-bold disabled:opacity-60 flex items-center justify-center gap-2">
                             {loading ? <Loader size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Gửi báo cáo
@@ -228,7 +228,7 @@ function TaskCard({ task, onUpdateStatus, onDenyTask, updating, onReportIssue, o
                             className={`py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 ${cfg.nextBtnClass}`}
                         >
                             {updating === task.id
-                                ? <><Loader size={16} className="animate-spin" /> Đang cập nhật...</>
+                                ? <><Loader size={16} className="animate-spin" /> Updating...</>
                                 : <><Check size={16} /> {locale === 'en' ? cfg.nextLabelEn : cfg.nextLabel}</>
                             }
                         </button>
@@ -263,7 +263,7 @@ function TaskCard({ task, onUpdateStatus, onDenyTask, updating, onReportIssue, o
                 onClick={() => setExpanded(e => !e)}
                 className="w-full flex items-center justify-between px-4 py-2.5 bg-black/5 text-xs font-semibold text-slate-500 hover:bg-black/10 transition-colors"
             >
-                <span>Chi tiết tác vụ</span>
+                <span>Details tác vụ</span>
                 {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
             </button>
 
@@ -275,7 +275,7 @@ function TaskCard({ task, onUpdateStatus, onDenyTask, updating, onReportIssue, o
                             <p className="text-sm font-semibold text-slate-700">{task.assignedByName || `#${task.assignedById}` || '—'}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wide mb-0.5">Ngày tạo</p>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wide mb-0.5">Created At</p>
                             <p className="text-sm font-semibold text-slate-700">
                                 {task.createdAt ? new Date(task.createdAt).toLocaleDateString('vi-VN') : '—'}
                             </p>
@@ -283,7 +283,7 @@ function TaskCard({ task, onUpdateStatus, onDenyTask, updating, onReportIssue, o
                     </div>
                     {task.notes && (
                         <div className="bg-white/70 rounded-xl p-3 border border-black/5">
-                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wide mb-1">Ghi chú</p>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wide mb-1">Notes</p>
                             <p className="text-sm text-slate-700 leading-relaxed">{task.notes}</p>
                         </div>
                     )}
@@ -323,7 +323,7 @@ function toDateInputValue(date) {
 }
 
 function formatDateLabel(date) {
-    if (!date) return 'Tất cả ngày';
+    if (!date) return 'All ngày';
     const today = new Date();
     if (isSameDay(date, today)) return 'Hôm nay';
     if (isSameDay(date, addDays(today, -1))) return 'Hôm qua';
@@ -375,7 +375,7 @@ function DateNavigationBar({ selectedDate, onSelectDate }) {
                     }`}
                 >
                     <Calendar size={14} />
-                    Tất cả
+                    All
                 </button>
 
                 {/* Date picker */}
@@ -418,10 +418,10 @@ function EmptyState({ selectedDate }) {
             <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
                 <CheckCircle2 size={40} className="text-emerald-500" />
             </div>
-            <h3 className="font-bold text-slate-800 text-lg mb-1">Không có tác vụ nào!</h3>
+            <h3 className="font-bold text-slate-800 text-lg mb-1">No có tác vụ nào!</h3>
             <p className="text-slate-500 text-sm">
                 {label
-                    ? `Không có công việc cho ${label.toLowerCase()} 📋`
+                    ? `No có công việc cho ${label.toLowerCase()} 📋`
                     : 'Bạn đã hoàn thành tất cả công việc 🎉'}
             </p>
         </div>
@@ -507,7 +507,7 @@ export default function HousekeeperTaskBoard() {
             setAllTasks(all);
             setTasks(applyFilters(all, selectedDate, filterStatus));
         } catch (err) {
-            notify(err?.message || 'Không thể tải danh sách công việc', 'error');
+            notify(err?.message || 'Unable to load danh sách công việc', 'error');
         } finally {
             setLoading(false);
         }
@@ -527,7 +527,7 @@ export default function HousekeeperTaskBoard() {
         setUpdating(taskId);
         try {
             const res = await housekeepingService.updateTask(taskId, { status: newStatus }, locale);
-            notify(res?.message || 'Cập nhật trạng thái thành công!');
+            notify(res?.message || 'Update trạng thái successful!');
             // Optimistic UI: update locally first, then refetch
             setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
             // Remove from uncompleted list if completed/cancelled
@@ -537,7 +537,7 @@ export default function HousekeeperTaskBoard() {
                 }, 1500);
             }
         } catch (err) {
-            notify(err?.message || 'Cập nhật thất bại', 'error');
+            notify(err?.message || 'Update failed', 'error');
         } finally {
             setUpdating(null);
         }
@@ -549,17 +549,17 @@ export default function HousekeeperTaskBoard() {
         const roomNum = task?.roomNumber || task?.roomId || taskId;
         const confirmed = window.confirm(
             `Bạn có chắc muốn từ chối nhiệm vụ phòng ${roomNum}?\n\n` +
-            `→ Hệ thống sẽ tự động giao nhiệm vụ này cho nhân viên khác đang sẵn sàng.`
+            `→ System sẽ tự động giao nhiệm vụ này cho nhân viên khác đang sẵn sàng.`
         );
         if (!confirmed) return;
 
         setUpdating(taskId);
         try {
             await housekeepingService.updateTask(taskId, { status: 'CANCELLED' }, locale);
-            notify('Đã từ chối nhiệm vụ. Hệ thống đang giao cho nhân viên khác...');
+            notify('Đã từ chối nhiệm vụ. System đang giao cho nhân viên khác...');
             setTasks(prev => prev.filter(t => t.id !== taskId));
         } catch (err) {
-            notify(err?.message || 'Không thể từ chối nhiệm vụ', 'error');
+            notify(err?.message || 'No thể từ chối nhiệm vụ', 'error');
         } finally {
             setUpdating(null);
         }
@@ -578,7 +578,7 @@ export default function HousekeeperTaskBoard() {
             notify(res?.message || 'Đã gửi báo cáo sự cố!');
             setReportRoomId(null);
         } catch (err) {
-            notify(err?.message || 'Gửi báo cáo thất bại', 'error');
+            notify(err?.message || 'Gửi báo cáo failed', 'error');
         } finally {
             setActionLoading(false);
         }
@@ -589,10 +589,10 @@ export default function HousekeeperTaskBoard() {
         setActionLoading(true);
         try {
             const res = await housekeepingService.reportMinibar(taskId, quantities, locale);
-            notify(res?.message || 'Đã gửi báo cáo tiêu dùng Minibar thành công!');
+            notify(res?.message || 'Đã gửi báo cáo tiêu dùng Minibar successful!');
             setMinibarTask(null);
         } catch (err) {
-            notify(err?.message || 'Không tìm thấy đặt phòng hoặc gửi thất bại.', 'error');
+            notify(err?.message || 'No tìm thấy đặt phòng hoặc gửi failed.', 'error');
         } finally {
             setActionLoading(false);
         }

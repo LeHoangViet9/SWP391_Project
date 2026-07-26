@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { Crown } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
 
@@ -27,13 +27,13 @@ export default function AuthLayout({ children, title, subtitle }) {
           </Link>
           <div>
             <h2 className="font-display text-4xl font-bold leading-tight mb-4">
-              {locale === 'vi'
+              {locale === 'en'
                 ? 'Chào mừng đến với\nđẳng cấp 5 sao'
                 : 'Welcome to\n5-Star Luxury'}
             </h2>
             <p className="text-white/70 max-w-md">
-              {locale === 'vi'
-                ? 'Đăng nhập để đặt phòng, quản lý đơn đặt và tận hưởng ưu đãi độc quyền.'
+              {locale === 'en'
+                ? 'Login để đặt phòng, quản lý đơn đặt và tận hưởng ưu đãi độc quyền.'
                 : 'Sign in to book rooms, manage reservations and enjoy exclusive offers.'}
             </p>
           </div>
@@ -45,12 +45,12 @@ export default function AuthLayout({ children, title, subtitle }) {
       <div className="flex-1 flex flex-col bg-stone-50">
         <div className="flex items-center justify-between p-4 md:p-6">
           <Link to="/" className="text-sm text-slate-500 hover:text-[#bfa15f] transition-colors">
-            ← {locale === 'vi' ? 'Trang chủ' : 'Home'}
+            ← {'Home'}
           </Link>
           <div className="flex gap-1 text-sm">
             <button
               onClick={() => setLocale('vi')}
-              className={locale === 'vi' ? 'text-[#bfa15f] font-semibold' : 'text-slate-400'}
+              className={'text-slate-400'}
             >
               VI
             </button>

@@ -74,7 +74,7 @@ public class CustomerFeedbackController {
         ), HttpStatus.OK);
     }
 
-    // 4. Xóa feedback của bản thân -> Quyền (FEEDBACK_DELETE_OWN)
+    // 4. Delete feedback của bản thân -> Quyền (FEEDBACK_DELETE_OWN)
     @DeleteMapping("/my/{id}")
     @PreAuthorize("hasAuthority('FEEDBACK_DELETE_OWN')")
     public ResponseEntity<ApiResponse<Void>> deleteMyFeedback(
@@ -124,7 +124,7 @@ public class CustomerFeedbackController {
         ), HttpStatus.OK);
     }
 
-    // 4. Xóa đánh giá -> Quyền xóa (FEEDBACK_DELETE)
+    // 4. Delete đánh giá -> Quyền xóa (FEEDBACK_DELETE)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('FEEDBACK_DELETE')")
     public ResponseEntity<ApiResponse<Void>> deleteFeedback(@PathVariable Long id) {
@@ -154,7 +154,7 @@ public class CustomerFeedbackController {
         ), HttpStatus.OK);
      }
 
-    // 6. Lấy danh sách feedback công khai hiển thị trên trang chủ -> Không cần PreAuthorize
+    // 6. Get list of feedback công khai hiển thị trên trang chủ -> Không cần PreAuthorize
     @GetMapping("/public")
     public ResponseEntity<ApiResponse<List<CustomerFeedbackResponse>>> getPublicFeedbacks() {
         Locale locale = LocaleContextHolder.getLocale();

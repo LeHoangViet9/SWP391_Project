@@ -262,9 +262,9 @@ export default function MaintenanceManager({ readOnly = false }) {
         status: statusVal || undefined,
       };
 
-      // THAY ĐỔI: Gộp tất cả loại tìm kiếm vào param 'keyword' duy nhất khớp với backend.
-      // Trước đây: Tách thành id, issueTitle, roomId... riêng lẻ → backend không nhận được (bỏ qua hết)
-      // Sau khi sửa: Tất cả đều gửi vào 'keyword' → backend dùng ILIKE để tìm theo title/id/roomId/equipmentId
+      // FIX: Gộp tất cả loại tìm kiếm vào param 'keyword' duy nhất khớp với backend.
+      // Before đây: Tách thành id, issueTitle, roomId... riêng lẻ → backend không nhận được (bỏ qua hết)
+      // After khi sửa: All đều gửi vào 'keyword' → backend dùng ILIKE để tìm theo title/id/roomId/equipmentId
       const trimmed = val ? String(val).trim() : '';
       if (trimmed) {
         params.keyword = trimmed;
@@ -336,7 +336,7 @@ export default function MaintenanceManager({ readOnly = false }) {
         notify(t('maintenance.toast.updateSuccess'));
       } else {
         if (!form.reportedBy) {
-          notify('Vui lòng chọn nhân viên báo cáo từ danh sách.', 'error');
+          notify('Please chọn nhân viên báo cáo từ danh sách.', 'error');
           setSaving(false);
           return;
         }
@@ -373,7 +373,7 @@ export default function MaintenanceManager({ readOnly = false }) {
   };
 
   // ── Accept: xác nhận trực tiếp, không cần checklist modal ──────────────────────
-  // THAY ĐỔI: Trước đây mở checklist 5 mục → Sau khi sửa: bấm Nhận là nhận luôn (1 click)
+  // FIX: Before đây mở checklist 5 mục → After khi sửa: bấm Nhận là nhận luôn (1 click)
   const handleAccept = async (item) => {
     setActionLoading(item.id);
     try {
@@ -381,7 +381,7 @@ export default function MaintenanceManager({ readOnly = false }) {
       notify('✅ Đã chấp nhận yêu cầu sửa chữa!');
       fetchData();
     } catch (e) {
-      notify(e.message || 'Không thể chấp nhận yêu cầu', 'error');
+      notify(e.message || 'No thể chấp nhận yêu cầu', 'error');
     } finally {
       setActionLoading(null);
     }
@@ -399,10 +399,10 @@ export default function MaintenanceManager({ readOnly = false }) {
     setActionLoading(item.id);
     try {
       await maintenanceService.denyRequest(item.id, reason);
-      notify('Đã từ chối. Hệ thống đang tìm người thay thế...');
+      notify('Đã từ chối. System đang tìm người thay thế...');
       fetchData();
     } catch (e) {
-      notify(e.message || 'Không thể từ chối yêu cầu', 'error');
+      notify(e.message || 'No thể từ chối yêu cầu', 'error');
     } finally {
       setActionLoading(null);
     }
@@ -495,19 +495,19 @@ export default function MaintenanceManager({ readOnly = false }) {
                             <button
                                 onClick={() => handleDelete(item)}
                                 className="text-[10px] px-2 py-0.5 bg-red-500 text-white rounded hover:bg-red-600 font-semibold"
-                                title="Xác nhận xóa"
+                                title="Confirm xóa"
                             >
-                              Xác nhận
+                              Confirm
                             </button>
                             <button
                                 onClick={() => setConfirmId(null)}
                                 className="text-[10px] px-2 py-0.5 border border-stone-300 rounded hover:bg-stone-100 text-slate-600"
                             >
-                              Hủy
+                              Cancel
                             </button>
                           </div>
                       ) : (
-                          <button onClick={() => setConfirmId(item.id)} className="text-red-500 hover:text-red-700" title="Xóa"><Trash2 size={15} /></button>
+                          <button onClick={() => setConfirmId(item.id)} className="text-red-500 hover:text-red-700" title="Delete"><Trash2 size={15} /></button>
                       )
                   )}
                 </div>
@@ -559,7 +559,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                 }}
                 className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
             >
-              <option value="">{t('maintenance.status.all') || 'Tất cả trạng thái'}</option>
+              <option value="">{t('maintenance.status.all') || 'All Statuses'}</option>
               {STATUS_OPTIONS.map(opt => (
                   <option key={opt} value={opt}>
                     {t(`maintenance.status.${opt}`) || opt}
@@ -617,7 +617,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                 setForm((current) => ({ ...current, assignedTo: '' }));
                               }
                             }}
-                            placeholder="Chọn nhân viên..."
+                            placeholder="Select nhân viên..."
                             className="w-full border border-stone-300 rounded pl-3 pr-8 py-2 text-sm focus:border-[#bfa15f] outline-none"
                         />
                         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -653,7 +653,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                       !form.assignedTo ? 'bg-stone-100 font-semibold text-[#bfa15f]' : 'text-slate-600'
                                   }`}
                               >
-                                <span>Không chọn</span>
+                                <span>No chọn</span>
                                 {!form.assignedTo && <Check size={12} className="text-[#bfa15f]" />}
                               </div>
                               {filteredAssignees.length > 0 ? (
@@ -679,7 +679,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                   })
                               ) : (
                                   <div className="px-3 py-1.5 text-xs text-slate-400 italic">
-                                    Không tìm thấy nhân viên
+                                    No tìm thấy nhân viên
                                   </div>
                               )}
                             </div>
@@ -703,7 +703,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Thời gian dự kiến hoàn thành</label>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Time dự kiến hoàn thành</label>
                       <input
                           type="datetime-local"
                           value={form.estimatedCompletionTime}
@@ -713,7 +713,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                     </div>
                     {modal.editing?.completedAt && (
                         <div>
-                          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Thời gian hoàn thành thực tế</label>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Time hoàn thành thực tế</label>
                           <input
                               disabled
                               type="text"
@@ -763,7 +763,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                 setForm((current) => ({ ...current, roomId: '' }));
                               }
                             }}
-                            placeholder="Chọn phòng..."
+                            placeholder="Select phòng..."
                             className="w-full border border-stone-300 rounded pl-3 pr-8 py-2 text-sm focus:border-[#bfa15f] outline-none"
                         />
                         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -799,7 +799,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                       !form.roomId ? 'bg-stone-100 font-semibold text-[#bfa15f]' : 'text-slate-600'
                                   }`}
                               >
-                                <span>Không chọn</span>
+                                <span>No chọn</span>
                                 {!form.roomId && <Check size={12} className="text-[#bfa15f]" />}
                               </div>
                               {filteredRooms.length > 0 ? (
@@ -835,7 +835,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                   })
                               ) : (
                                   <div className="px-3 py-1.5 text-xs text-slate-400 italic">
-                                    Không tìm thấy phòng
+                                    No tìm thấy phòng
                                   </div>
                               )}
                             </div>
@@ -871,7 +871,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                 setForm((current) => ({ ...current, equipmentId: '' }));
                               }
                             }}
-                            placeholder="Chọn thiết bị..."
+                            placeholder="Select thiết bị..."
                             className="w-full border border-stone-300 rounded pl-3 pr-8 py-2 text-sm focus:border-[#bfa15f] outline-none"
                         />
                         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -907,7 +907,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                       !form.equipmentId ? 'bg-stone-100 font-semibold text-[#bfa15f]' : 'text-slate-600'
                                   }`}
                               >
-                                <span>Không chọn</span>
+                                <span>No chọn</span>
                                 {!form.equipmentId && <Check size={12} className="text-[#bfa15f]" />}
                               </div>
                               {filteredEquipments.length > 0 ? (
@@ -940,7 +940,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                   })
                               ) : (
                                   <div className="px-3 py-1.5 text-xs text-slate-400 italic">
-                                    Không tìm thấy thiết bị
+                                    No tìm thấy thiết bị
                                   </div>
                               )}
                             </div>
@@ -970,7 +970,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                 setForm((current) => ({ ...current, reportedBy: '' }));
                               }
                             }}
-                            placeholder="Chọn nhân viên..."
+                            placeholder="Select nhân viên..."
                             className="w-full border border-stone-300 rounded pl-3 pr-8 py-2 text-sm focus:border-[#bfa15f] outline-none"
                         />
                         <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -1020,7 +1020,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                                   })
                               ) : (
                                   <div className="px-3 py-1.5 text-xs text-slate-400 italic">
-                                    Không tìm thấy nhân viên
+                                    No tìm thấy nhân viên
                                   </div>
                               )}
                             </div>
@@ -1037,7 +1037,7 @@ export default function MaintenanceManager({ readOnly = false }) {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Thời gian dự kiến hoàn thành</label>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Time dự kiến hoàn thành</label>
                       <input
                           type="datetime-local"
                           value={form.estimatedCompletionTime}
@@ -1076,19 +1076,19 @@ export default function MaintenanceManager({ readOnly = false }) {
                     </div>
                     <div>
                       <h3 className="text-white font-bold text-lg">Từ chối yêu cầu</h3>
-                      <p className="text-red-100 text-sm">Yêu cầu #{denyModal.item?.id}</p>
+                      <p className="text-red-100 text-sm">Request #{denyModal.item?.id}</p>
                     </div>
                   </div>
                 </div>
                 {/* Body */}
                 <div className="p-6 space-y-4">
                   <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-sm text-red-700">
-                    <p className="font-semibold mb-1">⚠️ Lưu ý:</p>
-                    <p>Sau khi từ chối, hệ thống sẽ tự động tìm nhân viên khác thay thế. Bạn sẽ không còn thấy yêu cầu này.</p>
+                    <p className="font-semibold mb-1">⚠️ Save ý:</p>
+                    <p>After khi từ chối, hệ thống sẽ tự động tìm nhân viên khác thay thế. Bạn sẽ không còn thấy yêu cầu này.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Lý do từ chối <span className="text-slate-400 font-normal">(không bắt buộc)</span>
+                      Reason từ chối <span className="text-slate-400 font-normal">(không bắt buộc)</span>
                     </label>
                     <textarea
                         rows={3}
@@ -1105,13 +1105,13 @@ export default function MaintenanceManager({ readOnly = false }) {
                       onClick={() => setDenyModal({ open: false, item: null, reason: '' })}
                       className="flex-1 px-4 py-2.5 text-sm border-2 border-slate-200 rounded-xl hover:bg-slate-50 font-semibold text-slate-600 transition-colors"
                   >
-                    Hủy bỏ
+                    Cancel
                   </button>
                   <button
                       onClick={handleConfirmDeny}
                       className="flex-1 px-4 py-2.5 text-sm bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl font-semibold shadow transition-all"
                   >
-                    Xác nhận từ chối
+                    Confirm từ chối
                   </button>
                 </div>
               </div>

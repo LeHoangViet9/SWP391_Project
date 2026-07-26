@@ -1,6 +1,6 @@
-import { apiFetch } from './api';
+﻿import { apiFetch } from './api';
 
-export function getAuditLogs(filters = {}, locale = 'vi') {
+export function getAuditLogs(filters = {}, locale = 'en') {
   const params = new URLSearchParams();
 
   Object.entries(filters).forEach(([key, value]) => {

@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+﻿import { apiFetch } from './api';
 
 function buildQuery(params) {
   const searchParams = new URLSearchParams();
@@ -9,24 +9,24 @@ function buildQuery(params) {
   return query ? `?${query}` : '';
 }
 
-export function getUsers(params = {}, locale = 'vi') {
+export function getUsers(params = {}, locale = 'en') {
   return apiFetch(`/users${buildQuery(params)}`, {}, locale);
 }
 
-export function createUser(payload, locale = 'vi') {
+export function createUser(payload, locale = 'en') {
   return apiFetch('/users', {
     method: 'POST',
     body: JSON.stringify(payload),
   }, locale);
 }
 
-export function updateUser(id, payload, locale = 'vi') {
+export function updateUser(id, payload, locale = 'en') {
   return apiFetch(`/users/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   }, locale);
 }
 
-export function deleteUser(id, locale = 'vi') {
+export function deleteUser(id, locale = 'en') {
   return apiFetch(`/users/${id}`, { method: 'DELETE' }, locale);
 }

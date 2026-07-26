@@ -14,22 +14,22 @@ const EMPTY_FORM = {
 };
 
 const STATUS_LABELS = {
-  ACTIVE: { label: 'Hoạt động', className: 'bg-emerald-100 text-emerald-700' },
+  ACTIVE: { label: 'Active', className: 'bg-emerald-100 text-emerald-700' },
   MAINTENANCE: { label: 'Bảo trì', className: 'bg-amber-100 text-amber-700' },
-  BROKEN: { label: 'Hỏng', className: 'bg-red-100 text-red-700' },
-  INACTIVE: { label: 'Ngừng dùng', className: 'bg-stone-100 text-stone-600' },
+  BROKEN: { label: 'Broken', className: 'bg-red-100 text-red-700' },
+  INACTIVE: { label: 'Inactive', className: 'bg-stone-100 text-stone-600' },
 };
 
 function getErrorMessage(error, fallback) {
   if (error?.status === 403) {
-    return 'Bạn không có quyền thực hiện thao tác này.';
+    return 'You do not have permission thực hiện thao tác này.';
   }
 
   return (
       error?.data?.message ||
       error?.message ||
       fallback ||
-      'Có lỗi xảy ra.'
+      'An error occurred.'
   );
 }
 
@@ -49,7 +49,7 @@ function getImageUrl(item) {
   if (!imageUrl) return null;
   if (imageUrl.startsWith('http')) return imageUrl;
 
-  // THAY ĐỔI: Thay vì hardcode cổng 9999 sai, trả về relative path để chạy qua Vite proxy
+  // FIX: Thay vì hardcode cổng 9999 sai, trả về relative path để chạy qua Vite proxy
   return imageUrl;
 }
 
@@ -153,7 +153,7 @@ export default function EquipmentManager() {
     }
 
     setForm(EMPTY_FORM);
-    // THAY ĐỔI: Reset state tệp ảnh cũ khi mở form tạo mới
+    // FIX: Reset state tệp ảnh cũ khi mở form tạo mới
     setImageFiles([]);
     setModal({ open: true, editing: null });
   };
@@ -164,7 +164,7 @@ export default function EquipmentManager() {
       return;
     }
     setForm(mapEquipmentToForm(item));
-    // THAY ĐỔI: Reset state tệp ảnh cũ khi mở form chỉnh sửa
+    // FIX: Reset state tệp ảnh cũ khi mở form chỉnh sửa
     setImageFiles([]);
     setModal({ open: true, editing: item });
   };
@@ -172,7 +172,7 @@ export default function EquipmentManager() {
   const closeModal = () => {
     setModal({ open: false, editing: null });
     setForm(EMPTY_FORM);
-    // THAY ĐỔI: Reset state tệp ảnh khi đóng modal để tránh gửi đè lên các thao tác sau
+    // FIX: Reset state tệp ảnh khi đóng modal để tránh gửi đè lên các thao tác sau
     setImageFiles([]);
   };
 
@@ -200,7 +200,7 @@ export default function EquipmentManager() {
           );
         }
 
-        notify(t('equipment.toast.updateSuccess') || 'Cập nhật thiết bị thành công');
+        notify(t('equipment.toast.updateSuccess') || 'Update thiết bị successful');
       } else {
         const created = await equipmentService.create(payload, locale);
         const equipmentId = created?.data?.id;
@@ -213,7 +213,7 @@ export default function EquipmentManager() {
           );
         }
 
-        notify(t('equipment.toast.addSuccess') || 'Thêm thiết bị thành công');
+        notify(t('equipment.toast.addSuccess') || 'Add thiết bị successful');
       }
 
       closeModal();
@@ -234,7 +234,7 @@ export default function EquipmentManager() {
 
     try {
       await equipmentService.delete(item.id, locale);
-      notify(t('equipment.toast.deleteSuccess') || 'Xóa thiết bị thành công');
+      notify(t('equipment.toast.deleteSuccess') || 'Delete thiết bị successful');
       setConfirmId(null);
       fetchData(page);
       fetchSuggestions();
@@ -243,7 +243,7 @@ export default function EquipmentManager() {
       notify(
           getErrorMessage(
               error,
-              'Không thể xóa thiết bị.'
+              'No thể xóa thiết bị.'
           ),
           'error'
       );
@@ -310,7 +310,7 @@ export default function EquipmentManager() {
           </td>
 
           <td className="px-4 py-3 text-sm text-slate-500">
-            {assignedRoomCount > 0 ? `${assignedRoomCount} phòng` : 'Chưa gán phòng'}
+            {assignedRoomCount > 0 ? `${assignedRoomCount} phòng` : 'Unassigned room'}
           </td>
 
           <td className="px-4 py-3">
@@ -326,16 +326,16 @@ export default function EquipmentManager() {
                             type="button"
                             onClick={() => handleDelete(item)}
                             className="text-[10px] px-2 py-0.5 bg-red-500 text-white rounded hover:bg-red-600 font-semibold"
-                            title="Xác nhận xóa"
+                            title="Confirm xóa"
                         >
-                          Xác nhận
+                          Confirm
                         </button>
                         <button
                             type="button"
                             onClick={() => setConfirmId(null)}
                             className="text-[10px] px-2 py-0.5 border border-stone-300 rounded hover:bg-stone-100 text-slate-600"
                         >
-                          Hủy
+                          Cancel
                         </button>
                       </div>
                   ) : (
@@ -353,7 +353,7 @@ export default function EquipmentManager() {
                             type="button"
                             onClick={() => setConfirmId(item.id)}
                             className="text-red-500 hover:text-red-700"
-                            title="Xóa thiết bị"
+                            title="Delete thiết bị"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -368,12 +368,12 @@ export default function EquipmentManager() {
 
   const columns = [
     t('equipment.columns.id') || 'ID',
-    t('equipment.columns.name') || 'Tên thiết bị',
-    t('equipment.columns.code') || 'Mã thiết bị',
-    t('equipment.columns.description') || 'Mô tả',
+    t('equipment.columns.name') || 'Equipment Name',
+    t('equipment.columns.code') || 'Equipment Code',
+    t('equipment.columns.description') || 'Description',
     'Phòng đã gán',
-    t('equipment.columns.status') || 'Trạng thái',
-    t('equipment.columns.actions') || 'Thao tác',
+    t('equipment.columns.status') || 'Status',
+    t('equipment.columns.actions') || 'Actions',
   ];
 
   return (
@@ -391,10 +391,10 @@ export default function EquipmentManager() {
                 className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
             >
               <option value="equipmentName">
-                {t('equipment.searchOptions.name') || 'Tên thiết bị'}
+                {t('equipment.searchOptions.name') || 'Equipment Name'}
               </option>
               <option value="equipmentCode">
-                {t('equipment.searchOptions.code') || 'Mã thiết bị'}
+                {t('equipment.searchOptions.code') || 'Equipment Code'}
               </option>
               <option value="id">
                 {t('equipment.searchOptions.id') || 'Mã ID'}
@@ -414,7 +414,7 @@ export default function EquipmentManager() {
                   placeholder={
                       t(`equipment.placeholders.${searchOpt}`) ||
                       t('equipment.searchPlaceholder') ||
-                      'Tìm kiếm'
+                      'Search'
                   }
                   className="w-full rounded border border-stone-300 py-2 pl-8 pr-3 text-sm outline-none focus:border-[#bfa15f]"
               />
@@ -428,11 +428,11 @@ export default function EquipmentManager() {
                 }}
                 className="rounded border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#bfa15f]"
             >
-              <option value="ACTIVE">{t('equipment.status.ACTIVE') || 'Hoạt động'}</option>
+              <option value="ACTIVE">{t('equipment.status.ACTIVE') || 'Active'}</option>
               <option value="MAINTENANCE">{t('equipment.status.MAINTENANCE') || 'Bảo trì'}</option>
-              <option value="BROKEN">{t('equipment.status.BROKEN') || 'Hỏng'}</option>
-              <option value="INACTIVE">{t('equipment.status.INACTIVE') || 'Ngừng dùng'}</option>
-              <option value="">{t('equipment.status.all') || 'Tất cả trạng thái'}</option>
+              <option value="BROKEN">{t('equipment.status.BROKEN') || 'Broken'}</option>
+              <option value="INACTIVE">{t('equipment.status.INACTIVE') || 'Inactive'}</option>
+              <option value="">{t('equipment.status.all') || 'All Statuses'}</option>
             </select>
 
             <button
@@ -452,7 +452,7 @@ export default function EquipmentManager() {
                   className="flex items-center gap-2 rounded bg-[#bfa15f] px-4 py-2 text-sm font-semibold text-white shadow transition-colors hover:bg-[#a3854a]"
               >
                 <Plus size={16} />
-                {t('equipment.addBtn') || 'Thêm thiết bị'}
+                {t('equipment.addBtn') || 'Add thiết bị'}
               </button>
           )}
         </div>
@@ -471,14 +471,14 @@ export default function EquipmentManager() {
             title={
               modal.editing
                   ? t('equipment.modal.editTitle') || 'Sửa thiết bị'
-                  : t('equipment.modal.addTitle') || 'Thêm thiết bị'
+                  : t('equipment.modal.addTitle') || 'Add thiết bị'
             }
             onClose={closeModal}
         >
           <form onSubmit={handleSave} className="space-y-4">
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                {t('equipment.modal.name') || 'Tên thiết bị'}
+                {t('equipment.modal.name') || 'Equipment Name'}
               </label>
               <input
                   required
@@ -493,7 +493,7 @@ export default function EquipmentManager() {
 
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                {t('equipment.modal.code') || 'Mã thiết bị'}
+                {t('equipment.modal.code') || 'Equipment Code'}
               </label>
               <input
                   required
@@ -546,13 +546,13 @@ export default function EquipmentManager() {
               <p className="mt-1 text-xs text-slate-400">
                 {modal.editing
                     ? 'Nếu chọn ảnh mới, hệ thống sẽ upload thêm các ảnh cho thiết bị này.'
-                    : 'Các ảnh sẽ được upload sau khi tạo thiết bị thành công.'}
+                    : 'Các ảnh sẽ được upload sau khi tạo thiết bị successful.'}
               </p>
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                {t('equipment.modal.description') || 'Mô tả'}
+                {t('equipment.modal.description') || 'Description'}
               </label>
               <textarea
                   rows={3}
@@ -571,7 +571,7 @@ export default function EquipmentManager() {
                   disabled={saving}
                   className="rounded border border-stone-300 px-4 py-2 text-sm hover:bg-stone-50 disabled:opacity-60"
               >
-                {t('equipment.modal.cancel') || 'Hủy'}
+                {t('equipment.modal.cancel') || 'Cancel'}
               </button>
 
               <button
@@ -580,10 +580,10 @@ export default function EquipmentManager() {
                   className="rounded bg-[#bfa15f] px-5 py-2 text-sm font-semibold text-white shadow hover:bg-[#a3854a] disabled:opacity-60"
               >
                 {saving
-                    ? t('equipment.modal.saving') || 'Đang lưu...'
+                    ? t('equipment.modal.saving') || 'Saving...'
                     : modal.editing
-                        ? t('equipment.modal.update') || 'Cập nhật'
-                        : t('equipment.modal.save') || 'Lưu'}
+                        ? t('equipment.modal.update') || 'Update'
+                        : t('equipment.modal.save') || 'Save'}
               </button>
             </div>
           </form>

@@ -128,7 +128,7 @@ public class InvoiceController {
             @RequestParam List<Long> bookingIds) {
         return ResponseEntity.ok(ApiResponse.<CombinedInvoiceResponse>builder()
                 .success(true)
-                .message("Thanh toán mô phỏng thành công")
+                .message("Simulated payment successful")
                 .data(invoiceService.confirmCombinedPaymentSuccess(bookingIds))
                 .status(HttpStatus.OK)
                 .build());
@@ -142,7 +142,7 @@ public class InvoiceController {
             @Valid @RequestBody ReceptionistPaymentRequest request) {
         return ResponseEntity.ok(ApiResponse.<CombinedInvoiceResponse>builder()
                 .success(true)
-                .message("Thanh toán thành công. Đơn đặt phòng đã chuyển sang chờ check-in.")
+                .message("Payment successful. Booking status changed to pending check-in.")
                 .data(invoiceService.processReceptionistPayment(bookingIds, request))
                 .status(HttpStatus.OK)
                 .build());

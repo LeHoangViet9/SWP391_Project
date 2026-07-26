@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router-dom';
+﻿import { useSearchParams } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import BookingBar from '../components/home/BookingBar';
@@ -25,14 +25,14 @@ export default function RoomsPage() {
         
         <div className="relative max-w-7xl mx-auto px-4 text-center z-10">
           <span className="text-xs uppercase tracking-widest text-[#bfa15f] font-semibold mb-3 block">
-            {locale === 'vi' ? 'Lựa chọn hoàn hảo' : 'The Perfect Stay'}
+            {'The Perfect Stay'}
           </span>
           <h1 className="font-display text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-            {locale === 'vi' ? 'Tìm Kiếm Phòng Trống' : 'Search Available Rooms'}
+            {'Search Available Rooms'}
           </h1>
           <p className="text-stone-300 max-w-2xl mx-auto text-sm sm:text-base">
-            {locale === 'vi' 
-              ? 'Khám phá không gian nghỉ dưỡng sang trọng và đẳng cấp, được thiết kế tinh tế cho sự thoải mái tối đa của bạn.' 
+            {locale === 'en' 
+              ? 'Explore luxury accommodation designed for your ultimate comfort.' 
               : 'Explore our luxury accommodations, meticulously designed for your ultimate comfort and relaxation.'}
           </p>
         </div>

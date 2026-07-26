@@ -28,17 +28,17 @@ export default function VerifyOTPPage() {
     setSuccess('');
 
     if (otp.length < 6) {
-      setError(t('auth.errOtpLength') || 'Mã OTP phải có ít nhất 6 ký tự');
+      setError(t('auth.errOtpLength') || 'OTP code must be at least 6 characters');
       return;
     }
 
     setLoading(true);
     try {
       const res = await activeAccount({ email, otp });
-      setSuccess(res.message || t('auth.activeSuccess') || 'Kích hoạt tài khoản thành công!');
+      setSuccess(res.message || t('auth.activeSuccess') || 'Account activated successfully!');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError(err.message || t('auth.activeFailed') || 'Mã OTP không chính xác hoặc đã hết hạn');
+      setError(err.message || t('auth.activeFailed') || 'OTP code is invalid or expired');
     } finally {
       setLoading(false);
     }
@@ -49,11 +49,11 @@ export default function VerifyOTPPage() {
   const labelClass = 'block text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2 text-center';
 
   return (
-    <AuthLayout title={t('auth.verifyEmail') || 'Xác thực Email'} subtitle={t('auth.verifySubtitle') || 'Vui lòng nhập mã OTP đã được gửi đến email của bạn'}>
+    <AuthLayout title={t('auth.verifyEmail') || 'Email Verification'} subtitle={t('auth.verifySubtitle') || 'Please enter the OTP code sent to your email'}>
       <form onSubmit={handleSubmit} className="bg-white border border-stone-200 shadow-lg p-8 space-y-6">
         <div className="text-center mb-4">
           <p className="text-sm text-slate-600">
-            {t('auth.otpSentTo') || 'Mã OTP đã được gửi đến:'} <br />
+            {t('auth.otpSentTo') || 'OTP code sent to:'} <br />
             <span className="font-semibold text-slate-800">{email}</span>
           </p>
         </div>
@@ -66,7 +66,7 @@ export default function VerifyOTPPage() {
         )}
 
         <div>
-          <label className={labelClass}>{t('auth.otpCode') || 'Mã OTP'}</label>
+          <label className={labelClass}>{t('auth.otpCode') || 'OTP Code'}</label>
           <input
             type="text"
             required
@@ -85,13 +85,13 @@ export default function VerifyOTPPage() {
           className="w-full btn-gold py-3.5 rounded flex items-center justify-center gap-2 disabled:opacity-60"
         >
           <CheckCircle size={18} />
-          {loading ? '...' : t('auth.verify') || 'Xác nhận'}
+          {loading ? '...' : t('auth.verify') || 'Confirm'}
         </button>
 
         <p className="text-center text-sm text-slate-500">
-          {t('auth.noOtp') || 'Không nhận được mã?'}{' '}
+          {t('auth.noOtp') || 'Didn't receive code?'}{' '}
           <button type="button" onClick={() => window.location.reload()} className="text-[#bfa15f] font-semibold hover:underline">
-            {t('auth.resendOtp') || 'Gửi lại'}
+            {t('auth.resendOtp') || 'Resend'}
           </button>
         </p>
       </form>

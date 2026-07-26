@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+﻿import { useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout';
@@ -36,35 +36,35 @@ export default function RegisterPage() {
         if (name === 'fullName') {
             const trimmed = value ? value.trim() : '';
             if (!trimmed) {
-                err = locale === 'vi' ? 'Họ và tên không được để trống.' : 'Full name is required.';
+                err = 'Full name is required.';
             } else if (/^\s|\s$/.test(value)) {
-                err = locale === 'vi' ? 'Họ và tên không được chứa khoảng trắng ở đầu hoặc cuối.' : 'Full name cannot have leading or trailing spaces.';
+                err = 'Full name cannot have leading or trailing spaces.';
             } else if (/\s{2,}/.test(value)) {
-                err = locale === 'vi' ? 'Họ và tên không được chứa nhiều khoảng trắng liên tiếp.' : 'Full name cannot have consecutive spaces.';
+                err = 'Full name cannot have consecutive spaces.';
             }
         } else if (name === 'email') {
             const trimmed = value ? value.trim() : '';
             if (!trimmed) {
-                err = locale === 'vi' ? 'Email không được để trống.' : 'Email is required.';
+                err = 'Email is required.';
             } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-                err = locale === 'vi' ? 'Email không hợp lệ.' : 'Email format is invalid.';
+                err = 'Email format is invalid.';
             }
         } else if (name === 'phone') {
             const trimmed = value ? value.trim() : '';
             if (!trimmed) {
-                err = locale === 'vi' ? 'Số điện thoại không được để trống.' : 'Phone number is required.';
+                err = 'Phone number is required.';
             } else if (!PHONE_RE.test(trimmed)) {
                 err = t('auth.errPhone');
             }
         } else if (name === 'password') {
             if (!value) {
-                err = locale === 'vi' ? 'Mật khẩu không được để trống.' : 'Password is required.';
+                err = 'Password is required.';
             } else if (!PASSWORD_RE.test(value)) {
                 err = t('auth.errPassword');
             }
         } else if (name === 'rePassword') {
             if (!value) {
-                err = locale === 'vi' ? 'Vui lòng xác nhận mật khẩu.' : 'Please confirm your password.';
+                err = 'Please confirm your password.';
             } else if (value !== form.password) {
                 err = t('auth.errPasswordMatch');
             }
@@ -89,13 +89,13 @@ export default function RegisterPage() {
         const errRePassword = validateField('rePassword', form.rePassword);
 
         if (errFullName || errEmail || errPhone || errPassword || errRePassword) {
-            setError(locale === 'vi' ? 'Vui lòng điền đúng thông tin đăng ký!' : 'Please fill in correct registration details!');
+            setError('Please fill in correct registration details!');
             return;
         }
 
         setLoading(true);
         try {
-            // Trim whitespace trước khi gửi lên server
+            // Trim whitespace before sending to server
             const payload = {
                 ...form,
                 fullName: form.fullName.trim(),
@@ -105,7 +105,7 @@ export default function RegisterPage() {
             const res = await register(payload);
             setSuccess(res.message || t('auth.registerSuccess'));
 
-            // Sau đăng ký → chuyển tới trang xác thực OTP kèm email
+            // After registration -> navigate to OTP verification page with email
             setTimeout(() => {
                 navigate(
                     `/verify-otp?email=${encodeURIComponent(payload.email)}`

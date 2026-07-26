@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
 import { heroSlides } from '../../data/mockData';
@@ -19,7 +19,7 @@ export default function HeroSection({ onSearchGuests }) {
   const next = () => setCurrent((c) => (c + 1) % heroSlides.length);
 
   const slide = heroSlides[current];
-  const slideTitle = locale === 'vi' ? slide.titleVi : slide.titleEn;
+  const slideTitle = locale === 'en' ? slide.titleVi : slide.titleEn;
 
   return (
     <section id="home" className="relative">
@@ -34,7 +34,7 @@ export default function HeroSection({ onSearchGuests }) {
           >
             <img
               src={s.imageUrl}
-              alt={locale === 'vi' ? s.titleVi : s.titleEn}
+              alt={locale === 'en' ? s.titleVi : s.titleEn}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />

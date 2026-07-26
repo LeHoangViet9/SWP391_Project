@@ -65,12 +65,12 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
     private final BookingRepository bookingRepository;
 
     /*
-     * THAY ĐỔI: Chuyển MaintenanceService từ final field (inject qua Lombok constructor)
+     * CHANGE: Chuyển MaintenanceService từ final field (inject qua Lombok constructor)
      * sang @Autowired @Lazy để phá vỡ circular dependency:
      *   HouseKeepingTaskServiceImpl → MaintenanceService
      *   MaintenanceServiceImpl (cần @Scheduled, không inject HouseKeepingTask)
-     * Trước đây: Lỗi "required a bean of type MaintenanceService that could not be found"
-     * Sau khi sửa: Spring tạo proxy lười, không bị vòng tròn phụ thuộc.
+     * Previously: Lỗi "required a bean of type MaintenanceService that could not be found"
+     * After fix: Spring tạo proxy lười, không bị vòng tròn phụ thuộc.
      */
     @Autowired
     @Lazy
@@ -149,7 +149,7 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                     RoomStatus.CLEANING,
                     assignedBy,
                     saved,
-                    "Task bắt đầu dọn phòng",
+                    "Task started room cleaning",
                     ProcessTrigger.TASK_CLEANING
             );
         }
@@ -188,7 +188,7 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
 
         HouseKeepingTask updated = taskRepository.save(task);
 
-        // Cập nhật trạng thái phòng dựa trên trạng thái task mới
+        // Update trạng thái room dựa trên trạng thái task mới
         updateRoomStatusByTaskStatus(updated, newStatus);
         syncHousekeeperWorkStatus(updated.getAssignedTo(), newStatus);
         if (newStatus == TaskStatus.CANCELLED) {
@@ -310,16 +310,16 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         Room room = task.getRoom();
         switch (newStatus) {
             case IN_PROGRESS:
-                changeRoomStatus(room, RoomStatus.CLEANING, task.getAssignedTo(), task, "Task bắt đầu dọn phòng", ProcessTrigger.TASK_CLEANING);
+                changeRoomStatus(room, RoomStatus.CLEANING, task.getAssignedTo(), task, "Task started room cleaning", ProcessTrigger.TASK_CLEANING);
                 break;
             case COMPLETED:
-                changeRoomStatus(room, RoomStatus.READY, task.getAssignedTo(), task, "Task hoàn thành", ProcessTrigger.TASK_COMPLETION);
+                changeRoomStatus(room, RoomStatus.READY, task.getAssignedTo(), task, "Task completed", ProcessTrigger.TASK_COMPLETION);
                 break;
             case CANCELLED:
-                changeRoomStatus(room, RoomStatus.DIRTY, task.getAssignedTo(), task, "Task bị hủy", ProcessTrigger.TASK_CANCELLATION);
+                changeRoomStatus(room, RoomStatus.DIRTY, task.getAssignedTo(), task, "Task cancelled", ProcessTrigger.TASK_CANCELLATION);
                 break;
             case SKIPPED:
-                changeRoomStatus(room, RoomStatus.DIRTY, task.getAssignedTo(), task, "Task bị bỏ qua", ProcessTrigger.TASK_SKIPPED);
+                changeRoomStatus(room, RoomStatus.DIRTY, task.getAssignedTo(), task, "Task skipped", ProcessTrigger.TASK_SKIPPED);
                 break;
             default:
                 break;
@@ -437,7 +437,7 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                     .orElse(null);
         }
 
-        // Đổi trạng thái phòng thành MAINTENANCE và ghi nhận lịch sử
+        // Đổi trạng thái room thành MAINTENANCE và ghi nhận lịch sử
         changeRoomStatus(room, RoomStatus.MAINTENANCE, reportedBy, null, request.getReason(), ProcessTrigger.TASK_MAINTENANCE);
 
         // Tạo RepairRequest và TỰ ĐỘNG giao cho maintenance AVAILABLE
@@ -455,14 +455,14 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
             MaintenanceRequestCreateDTO dto = MaintenanceRequestCreateDTO.builder()
                     .roomId(roomId)
                     .reportedBy(request.getReportedById() != null ? request.getReportedById() : 0L)
-                    .issueTitle("Sự cố phòng " + room.getRoomNumber())
+                    .issueTitle("Room issue " + room.getRoomNumber())
                     .issueDescription(request.getReason())
                     .severity(severity)
                     .build();
 
             maintenanceService.createRequest(dto);
         } catch (Exception ex) {
-            log.warn("[REPORT-ISSUE] Tạo RepairRequest thất bại cho phòng {}: {}", roomId, ex.getMessage());
+            log.warn("[REPORT-ISSUE] Failed to create RepairRequest for room {}: {}", roomId, ex.getMessage());
         }
     }
 
@@ -475,7 +475,7 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.room.notfound", null, locale)));
 
-        // Nếu đã có task dọn phòng đang chờ/đang làm, ta cập nhật checkoutInspectionRequestedAt cho nó để bắt đầu đếm giờ
+        // Nếu đã có task dọn room đang chờ/đang làm, ta cập nhật checkoutInspectionRequestedAt cho nó để bắt đầu đếm giờ
         List<HouseKeepingTask> existingTasks = taskRepository.findByRoom_IdAndTaskStatus(roomId, TaskStatus.PENDING);
         if (existingTasks.isEmpty()) {
             existingTasks = taskRepository.findByRoom_IdAndTaskStatus(roomId, TaskStatus.IN_PROGRESS);
@@ -596,9 +596,9 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         try {
             notificationService.notify(
                     housekeeper,
-                    "Bạn có nhiệm vụ buồng phòng mới",
-                    "Phòng " + roomNumber + " vừa được gán cho bạn."
-                            + (notes == null || notes.isBlank() ? "" : " Ghi chú: " + notes),
+                    "You have a new housekeeping task",
+                    "Room " + roomNumber + " has been assigned to you."
+                            + (notes == null || notes.isBlank() ? "" : " Note: " + notes),
                     "/dashboard/housekeeping"
             );
         } catch (Exception e) {
@@ -615,7 +615,7 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         Room room = task.getRoom();
 
         com.hms.entity.booking.Booking booking = bookingRepository.findActiveBookingByRoomId(room.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn đặt phòng đang hoạt động cho phòng này"));
+                .orElseThrow(() -> new ResourceNotFoundException("No active booking found for this room"));
 
         BigDecimal waterCost = BigDecimal.valueOf(request.getWater()).multiply(BigDecimal.valueOf(10000));
         BigDecimal colaCost = BigDecimal.valueOf(request.getCola()).multiply(BigDecimal.valueOf(20000));
@@ -624,10 +624,10 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         BigDecimal total = waterCost.add(colaCost).add(beerCost).add(snackCost);
 
         List<String> items = new java.util.ArrayList<>();
-        if (request.getWater() > 0) items.add(request.getWater() + " Nước suối Aquafina");
+        if (request.getWater() > 0) items.add(request.getWater() + " Aquafina Mineral Water");
         if (request.getCola() > 0) items.add(request.getCola() + " Coca-Cola / Pepsi");
         if (request.getBeer() > 0) items.add(request.getBeer() + " Bia Heineken");
-        if (request.getSnack() > 0) items.add(request.getSnack() + " Snack khoai tây");
+        if (request.getSnack() > 0) items.add(request.getSnack() + " Potato Chips");
         String note = String.join(", ", items);
 
         CheckoutRequestDTO checkoutRequest = new CheckoutRequestDTO();
@@ -637,7 +637,7 @@ public class  HouseKeepingTaskServiceImpl implements IHouseKeepingTaskService {
         String resolvedNoteText = note.isEmpty()
                 ? messageSource.getMessage("checkout.minibar.no_consumption", null, locale)
                 : note;
-        checkoutRequest.setChargeNote("Tiêu thụ Minibar: " + resolvedNoteText);
+        checkoutRequest.setChargeNote("Minibar consumption: " + resolvedNoteText);
         checkoutRequest.setPaymentMethod(null);
         checkoutRequest.setCashReceived(null);
         checkoutRequest.setPaymentConfirmed(false);

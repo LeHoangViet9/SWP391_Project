@@ -15,7 +15,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Map URL /uploads/** tới thư mục local để frontend có thể load ảnh
+        // Map URL /uploads/** to local directory for frontend image loading
         String uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize().toUri().toString();
         if (!uploadPath.endsWith("/")) {
             uploadPath = uploadPath + "/";

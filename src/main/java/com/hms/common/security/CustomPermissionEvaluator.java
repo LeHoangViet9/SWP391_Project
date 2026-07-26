@@ -18,8 +18,8 @@ public class CustomPermissionEvaluator implements PermissionEvaluator {
 
         String requiredPermission = (String) permission;
 
-        // Quyền đã được nạp sẵn vào SecurityContext bởi JwtAuthenticationFilter,
-        // nên chỉ cần đối chiếu trong authorities, không cần truy vấn DB lại.
+        // Permissions preloaded into SecurityContext bởi JwtAuthenticationFilter,
+        // so only check authorities, no DB query needed.
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .anyMatch(authority -> authority.equalsIgnoreCase(requiredPermission));

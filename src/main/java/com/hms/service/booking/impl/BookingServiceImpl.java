@@ -305,21 +305,21 @@ public class BookingServiceImpl implements BookingService {
 
         Booking booking = bookingRepository.findByIdWithPessimisticWrite(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage("error.booking.notfound", null, "Không tìm thấy đơn đặt phòng!",
+                        messageSource.getMessage("error.booking.notfound", null, "Booking not found!",
                                 locale)));
         Map<String, Object> before = bookingAuditSnapshot(booking);
 
         if (booking.getBookingStatus() == BookingStatus.CHECKED_IN) {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.cannot.delete.checkedin", null,
-                    "Không thể xóa đơn đặt phòng đã nhận phòng (Checked in)!", locale));
+                    "Cannot delete booking that is already checked in!", locale));
         }
         if (booking.getBookingStatus() == BookingStatus.CHECKED_OUT
                 || booking.getBookingStatus() == BookingStatus.CANCELLED
                 || booking.getBookingStatus() == BookingStatus.NO_SHOW) {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.cannot.delete.terminal", new Object[] { booking.getBookingStatus() },
-                    "Không thể hủy đơn đặt phòng ở trạng thái này!", locale));
+                    "Cannot cancel booking in this status!", locale));
         }
 
         org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -328,7 +328,7 @@ public class BookingServiceImpl implements BookingService {
         if (!hasBookingDelete && booking.getBookingStatus() == BookingStatus.CONFIRMED) {
             throw new BadRequestException(messageSource.getMessage(
                     "error.booking.cannot.delete.confirmed", null,
-                    "Đơn đặt phòng đã được xác nhận thanh toán. Vui lòng liên hệ Lễ tân hoặc Quản lý để được hỗ trợ hủy đơn và xử lý hoàn tiền!",
+                    "Booking payment is already confirmed. Please contact Reception or Management for cancellation and refund support!",
                     locale));
         }
 
@@ -448,14 +448,14 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // Release room at the end of stay + auto-create housekeeping task
-        // Khách Check-Out hoặc quá giờ không đến (No Show) -> Phòng chuyển thành bẩn
+        // Khách Check-Out hoặc quá giờ không đến (No Show) -> Room chuyển thành bẩn
         // (DIRTY) để đi dọn
         if (newStatus == BookingStatus.CHECKED_OUT || newStatus == BookingStatus.NO_SHOW) {
             List<Room> rooms = getAssignedRooms(booking);
             rooms.forEach(room -> room.setRoomStatus(RoomStatus.DIRTY));
             roomRepository.saveAll(rooms);
             booking.setActualCheckOutTime(LocalDateTime.now());
-            // Tự động tạo task dọn phòng khi checkout
+            // Tự động tạo task dọn room khi checkout
             if (newStatus == BookingStatus.CHECKED_OUT) {
                 for (Room room : rooms) {
                     try {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Star, Award, ShieldCheck, Heart } from 'lucide-react';
 import { useLocale } from '../../context/LocaleContext';
 import { getPublicFeedbackStats } from '../../services/feedbackService';
@@ -13,7 +13,7 @@ export default function FeedbackSection() {
   const { locale, t } = useLocale();
   const [stats, setStats] = useState(DEFAULT_STATS);
   const [loading, setLoading] = useState(true);
-  const isVi = locale === 'vi';
+  const isVi = false;
 
   useEffect(() => {
     async function fetchStats() {
@@ -42,11 +42,11 @@ export default function FeedbackSection() {
 
   // Determine feedback label based on rating
   const getRatingLabel = (rating) => {
-    if (totalReviews === 0) return isVi ? 'Chưa có đánh giá' : 'No reviews yet';
-    if (rating >= 4.5) return isVi ? 'Tuyệt vời' : 'Excellent';
-    if (rating >= 4.0) return isVi ? 'Rất tốt' : 'Very Good';
-    if (rating >= 3.0) return isVi ? 'Trung bình' : 'Good';
-    return isVi ? 'Cần cải thiện' : 'Needs Improvement';
+    if (totalReviews === 0) return 'No reviews yet';
+    if (rating >= 4.5) return 'Excellent';
+    if (rating >= 4.0) return 'Very Good';
+    if (rating >= 3.0) return 'Good';
+    return 'Needs Improvement';
   };
 
   return (
@@ -70,7 +70,7 @@ export default function FeedbackSection() {
               {/* Left Column: Big Average Rating Score */}
               <div className="col-span-1 md:col-span-5 text-center flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-stone-200/80 pb-8 md:pb-0 md:pr-8">
                 <span className="text-xs uppercase tracking-widest text-[#bfa15f] font-bold mb-3">
-                  {isVi ? 'Độ hài lòng chung' : 'Overall Guest Rating'}
+                  {'Overall Guest Rating'}
                 </span>
                 
                 {/* Big Score Display */}
@@ -116,7 +116,7 @@ export default function FeedbackSection() {
                 </span>
 
                 <p className="text-xs text-slate-400 mt-1">
-                  {isVi ? `Dựa trên ${totalReviews} lượt đánh giá thực tế` : `Based on ${totalReviews} verified guest reviews`}
+                  {false ? `Dựa trên ${totalReviews} lượt đánh giá thực tế` : `Based on ${totalReviews} verified guest reviews`}
                 </p>
               </div>
 
@@ -152,13 +152,13 @@ export default function FeedbackSection() {
                   <div className="flex items-center gap-2">
                     <ShieldCheck size={16} className="text-[#bfa15f]" />
                     <span className="text-[10px] md:text-xs font-medium text-slate-500">
-                      {isVi ? '100% Đánh giá thật' : '100% Verified Guests'}
+                      {'100% Verified Guests'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 justify-end">
                     <Heart size={16} className="text-[#bfa15f]" />
                     <span className="text-[10px] md:text-xs font-medium text-slate-500">
-                      {isVi ? 'Môi trường thân thiện' : 'Hospitality Standard'}
+                      {'Hospitality Standard'}
                     </span>
                   </div>
                 </div>

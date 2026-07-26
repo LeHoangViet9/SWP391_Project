@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+﻿import { apiFetch } from './api';
 
 const CUSTOMER_ID_KEY = 'hms_customer_id';
 
@@ -20,17 +20,17 @@ export function saveCustomerId(id) {
 }
 
 /** GET /api/v1/customers */
-export async function getCustomers(params = {}, locale = 'vi') {
+export async function getCustomers(params = {}, locale = 'en') {
   return apiFetch(`/customers${buildQuery(params)}`, {}, locale);
 }
 
 /** GET /api/v1/customers/{id} */
-export async function getCustomerById(id, locale = 'vi') {
+export async function getCustomerById(id, locale = 'en') {
   return apiFetch(`/customers/${id}`, {}, locale);
 }
 
 /** POST /api/v1/customers */
-export async function createCustomer(payload, locale = 'vi') {
+export async function createCustomer(payload, locale = 'en') {
   const res = await apiFetch('/customers', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -40,7 +40,7 @@ export async function createCustomer(payload, locale = 'vi') {
 }
 
 /** PUT /api/v1/customers/{id} */
-export async function updateCustomer(id, payload, locale = 'vi') {
+export async function updateCustomer(id, payload, locale = 'en') {
   return apiFetch(`/customers/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
@@ -48,23 +48,23 @@ export async function updateCustomer(id, payload, locale = 'vi') {
 }
 
 /** DELETE /api/v1/customers/{id} */
-export async function deleteCustomer(id, locale = 'vi') {
+export async function deleteCustomer(id, locale = 'en') {
   return apiFetch(`/customers/${id}`, { method: 'DELETE' }, locale);
 }
 
 /** PUT /api/v1/customers/{id}/restore */
-export async function restoreCustomer(id, locale = 'vi') {
+export async function restoreCustomer(id, locale = 'en') {
   return apiFetch(`/customers/${id}/restore`, { method: 'PUT' }, locale);
 }
 
 /** DELETE /api/v1/customers/{id}/force */
-export async function forceDeleteCustomer(id, locale = 'vi') {
+export async function forceDeleteCustomer(id, locale = 'en') {
   return apiFetch(`/customers/${id}/force`, { method: 'DELETE' }, locale);
 }
 
 
 /** GET /api/v1/customers?email=email */
-export async function searchCustomerByEmail(email, locale = 'vi') {
+export async function searchCustomerByEmail(email, locale = 'en') {
   const res = await apiFetch(`/customers?email=${encodeURIComponent(email)}&size=1`, {}, locale);
   return res?.data?.content?.[0] ?? null;
 }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ╔══════════════════════════════════════════════════════════════════╗
  * ║      HMS LUXURY — PERMISSION-BASED SIDEBAR NAVIGATION           ║
  * ╚══════════════════════════════════════════════════════════════════╝
@@ -37,7 +37,7 @@ function groupBy(array, keyFn) {
 // ─── Sub-component: Single nav item ─────────────────────────────────────────
 function NavItem({ item, collapsed, locale, onClick }) {
   const ItemIcon = item.icon;
-  const label = locale === 'vi' ? item.label : item.labelEn;
+  const label = locale === 'en' ? item.label : item.labelEn;
 
   return (
     <NavLink
@@ -97,7 +97,7 @@ function GroupHeader({ groupKey, collapsed, locale }) {
     return <div className="h-px bg-white/8 my-2 mx-2" />;
   }
   const groupLabel = GROUP_LABELS[groupKey];
-  const label = locale === 'vi' ? groupLabel?.vi : groupLabel?.en;
+  const label = locale === 'en' ? groupLabel?.vi : groupLabel?.en;
 
   return (
     <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] px-3 pt-4 pb-1.5 first:pt-0">
@@ -161,7 +161,7 @@ function UserProfile({ user, collapsed, onLogout }) {
               className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
             >
               <LogOut size={14} />
-              Đăng xuất
+              Logout
             </button>
           </div>
         </>
@@ -292,7 +292,7 @@ export default function PermissionSidebar({ mobileOpen = false, onMobileClose })
               </div>
               {!collapsed && (
                 <p className="text-xs text-white/30 leading-relaxed">
-                  Chưa có quyền truy cập.<br />Liên hệ quản trị viên.
+                  None yet quyền truy cập.<br />Contact quản trị viên.
                 </p>
               )}
             </div>
@@ -329,7 +329,7 @@ export default function PermissionSidebar({ mobileOpen = false, onMobileClose })
           <Link
             to="/"
             onClick={handleNavClick}
-            title={collapsed ? 'Trang chủ' : undefined}
+            title={collapsed ? 'Home' : undefined}
             className={`
               flex items-center gap-3 px-3 py-2 rounded-xl
               text-white/50 hover:text-white hover:bg-white/8
@@ -338,7 +338,7 @@ export default function PermissionSidebar({ mobileOpen = false, onMobileClose })
             `}
           >
             <Home size={16} className="text-[#bfa15f] shrink-0" />
-            {!collapsed && <span>Trang Chủ</span>}
+            {!collapsed && <span>Page Chủ</span>}
           </Link>
 
           {/* User profile with dropdown */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, MailCheck } from 'lucide-react';
 import AuthLayout from '../components/auth/AuthLayout';
@@ -6,7 +6,7 @@ import { useLocale } from '../context/LocaleContext';
 import { useAuth } from '../context/AuthContext';
 
 /**
- * Trang Đăng nhập (LoginPage Component).
+ * Page Login (LoginPage Component).
  * Cung cấp giao diện form đăng nhập và xử lý điều hướng người dùng dựa theo phân vai trò (Roles).
  */
 export default function LoginPage() {
@@ -15,7 +15,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Đọc email và flag registered từ URL (sau khi đăng ký xong)
+  // Read email and registered flag from URL after registration
   const emailFromUrl = searchParams.get('email') || '';
   const isJustRegistered = searchParams.get('registered') === '1';
 
@@ -26,7 +26,7 @@ export default function LoginPage() {
 
   /**
    * Effect tự động điền lại email vào form khi email trong search parameters thay đổi
-   * (phổ biến khi được chuyển tiếp từ trang Đăng ký thành công).
+   * (phổ biến khi được chuyển tiếp từ trang Registration successful).
    */
   useEffect(() => {
     if (emailFromUrl) {
@@ -35,7 +35,7 @@ export default function LoginPage() {
   }, [emailFromUrl]);
 
   /**
-   * Xử lý gửi form đăng nhập (Email & Mật khẩu).
+   * Xử lý gửi form đăng nhập (Email & Password).
    * Kiểm tra hợp lệ dữ liệu, gọi service đăng nhập, xử lý chuyển hướng dựa trên vai trò
    * hoặc chuyển hướng sang trang xác thực OTP nếu tài khoản đang ở trạng thái chờ kích hoạt (pending).
    *
@@ -45,23 +45,23 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
 
-    // Validate blank trước khi gửi
+    // Validate required fields before submitting
     const trimmedEmail = form.email.trim();
     const trimmedPassword = form.password.trim();
 
     if (!trimmedEmail) {
-      setError(locale === 'vi' ? 'Vui lòng nhập địa chỉ email.' : 'Please enter your email address.');
+      setError('Please enter your email address.');
       return;
     }
     if (!trimmedPassword) {
-      setError(locale === 'vi' ? 'Vui lòng nhập mật khẩu.' : 'Please enter your password.');
+      setError('Please enter your password.');
       return;
     }
 
     setLoading(true);
     try {
       const res = await login({ email: trimmedEmail, password: trimmedPassword });
-      // Điều hướng theo role sau khi đăng nhập thành công
+      // Redirect according to role after successful login
       const role = res?.data?.roleName;
       if (role === 'ADMIN' || role === 'MANAGER') navigate('/admin/dashboard', { replace: true });
       else if (role === 'RECEPTIONIST') navigate('/receptionist/dashboard', { replace: true });
@@ -70,7 +70,7 @@ export default function LoginPage() {
       else if (role === 'CUSTOMER') navigate('/', { replace: true });
       else navigate('/', { replace: true });
     } catch (err) {
-      // Nếu tài khoản chưa xác thực OTP → redirect sang trang verify
+      // If account is not OTP verified -> redirect to verify page
       const isPending =
         err.message &&
         (err.message.toLowerCase().includes('pending') ||
@@ -100,11 +100,11 @@ export default function LoginPage() {
             <MailCheck size={18} className="mt-0.5 shrink-0" />
             <div>
               <p className="font-semibold">
-                {locale === 'vi' ? 'Đăng ký thành công!' : 'Registration successful!'}
+                {'Registration successful!'}
               </p>
               <p className="text-xs mt-0.5">
-                {locale === 'vi'
-                  ? 'Mã OTP đã gửi về email. Nhập mật khẩu để đăng nhập — sau đó bạn sẽ được yêu cầu xác thực OTP.'
+                {locale === 'en'
+                  ? 'OTP code sent to email. Enter password to login — then complete OTP verification.'
                   : 'OTP was sent to your email. Enter your password to login — you will then be asked to verify OTP.'}
               </p>
             </div>
@@ -122,7 +122,7 @@ export default function LoginPage() {
                   to={`/verify-otp?email=${encodeURIComponent(form.email)}`}
                   className="text-red-600 underline font-semibold text-xs mt-1 inline-block"
                 >
-                  {locale === 'vi' ? '→ Đến trang xác thực OTP ngay' : '→ Go to OTP verification'}
+                  {'→ Go to OTP verification'}
                 </Link>
               )}
           </div>
@@ -154,7 +154,7 @@ export default function LoginPage() {
               }}
               className="text-xs text-slate-400 hover:text-[#bfa15f] mt-1 underline"
             >
-              {locale === 'vi' ? 'Dùng email khác' : 'Use a different email'}
+              {'Use a different email'}
             </button>
           )}
         </div>
@@ -189,7 +189,7 @@ export default function LoginPage() {
             to="/forgot-password"
             className="text-slate-500 hover:text-slate-800 transition-colors font-medium"
           >
-            {locale === 'vi' ? 'Quên mật khẩu?' : 'Forgot password?'}
+            {'Forgot password?'}
           </Link>
         </div>
 

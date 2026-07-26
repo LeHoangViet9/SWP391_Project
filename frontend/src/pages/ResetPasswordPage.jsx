@@ -20,7 +20,7 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.newPassword !== form.confirmPassword) {
-      return notify('Mật khẩu xác nhận không khớp!', 'warning');
+      return notify('Confirm password does not match!', 'warning');
     }
     setLoading(true);
     try {
@@ -28,23 +28,23 @@ export default function ResetPasswordPage() {
         method: 'POST',
         body: JSON.stringify({ token: form.token, newPassword: form.newPassword }),
       });
-      notify('Đặt lại mật khẩu thành công! Chuyển hướng đăng nhập...');
+      notify('Password reset successful! Redirecting to login...');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      notify(err.message || 'Đặt lại mật khẩu thất bại.', 'error');
+      notify(err.message || 'Password reset failed.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthLayout title="Đặt Lại Mật Khẩu" subtitle="Nhập mã xác thực và mật khẩu mới của bạn">
+    <AuthLayout title="Reset Password" subtitle="Enter the verification code and your new password">
       <Toast type={toast.type} message={toast.message} onClose={closeToast} />
       
       <form onSubmit={handleSubmit} className="bg-white border border-stone-200 shadow-lg p-8 space-y-5">
         <div>
           <label className="block text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2">
-            Mã xác thực (Token/OTP)
+            Verification Code (Token/OTP)
           </label>
           <input
             type="text"
@@ -52,13 +52,13 @@ export default function ResetPasswordPage() {
             value={form.token}
             onChange={(e) => setForm({ ...form, token: e.target.value })}
             className="w-full border border-stone-300 px-4 py-3 text-slate-800 outline-none focus:border-[#bfa15f] transition-colors"
-            placeholder="Nhập mã token từ email"
+            placeholder="Enter the token from your email"
           />
         </div>
 
         <div>
           <label className="block text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2">
-            Mật khẩu mới
+            New Password
           </label>
           <input
             type="password"
@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
 
         <div>
           <label className="block text-xs uppercase tracking-wider text-[#bfa15f] font-semibold mb-2">
-            Xác nhận mật khẩu mới
+            Confirm New Password
           </label>
           <input
             type="password"
@@ -90,12 +90,12 @@ export default function ResetPasswordPage() {
           className="w-full btn-gold py-3.5 rounded flex items-center justify-center gap-2 disabled:opacity-60"
         >
           <KeyRound size={18} />
-          {loading ? 'Đang thực hiện...' : 'Cập nhật mật khẩu'}
+          {loading ? 'Processing...' : 'Update Password'}
         </button>
 
         <div className="flex justify-between items-center text-sm">
           <Link to="/login" className="text-slate-500 hover:text-slate-800 flex items-center gap-1">
-            <ArrowLeft size={16} /> Quay lại đăng nhập
+            <ArrowLeft size={16} /> Back to Login
           </Link>
         </div>
       </form>

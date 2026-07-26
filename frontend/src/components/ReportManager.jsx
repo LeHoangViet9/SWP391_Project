@@ -1,4 +1,4 @@
-import {
+﻿import {
   TrendingUp, BarChart2, CreditCard, RefreshCw
 } from 'lucide-react';
 import { useLocale } from '../context/LocaleContext';
@@ -7,7 +7,7 @@ import { adminDashboardCards } from '../data/dashboardData';
 
 const COLORS = ['#bfa15f', '#0c192c', '#4f8ef7', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-function formatVND(value, locale = 'vi') {
+function formatVND(value, locale = 'en') {
   if (!value && value !== 0) return '—';
   const num = Number(value);
   if (locale === 'en') {
@@ -27,7 +27,7 @@ function formatDate(label) {
 }
 
 // ─── Bar Chart (pure CSS) ────────────────────────────────────────────────────
-function BarChart({ data, locale = 'vi' }) {
+function BarChart({ data, locale = 'en' }) {
   if (!data || data.length === 0) return <EmptyChart locale={locale} />;
   const max = Math.max(...data.map(d => Number(d.value)), 1);
   return (
@@ -60,7 +60,7 @@ function BarChart({ data, locale = 'vi' }) {
 }
 
 // ─── Horizontal Bar (for categories) ────────────────────────────────────────
-function HorizBar({ label, value, max, color, unit = '', locale = 'vi' }) {
+function HorizBar({ label, value, max, color, unit = '', locale = 'en' }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
     <div className="space-y-1">
@@ -78,10 +78,10 @@ function HorizBar({ label, value, max, color, unit = '', locale = 'vi' }) {
   );
 }
 
-function EmptyChart({ locale = 'vi' }) {
+function EmptyChart({ locale = 'en' }) {
   return (
     <div className="h-44 flex items-center justify-center text-slate-300 text-sm">
-      {locale === 'vi' ? 'Chưa có dữ liệu' : 'No data available'}
+      {'No data available'}
     </div>
   );
 }
@@ -112,7 +112,7 @@ export default function ReportManager({ data, refetch }) {
         </button>
       </div>
 
-      {/* KPI Cards — Doanh thu */}
+      {/* KPI Cards — Revenue */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {adminDashboardCards.slice(0, 4).map((card) => (
           <DashboardCard

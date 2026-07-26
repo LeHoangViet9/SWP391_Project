@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+﻿import { apiFetch } from './api';
 
 function buildQuery(params) {
   const searchParams = new URLSearchParams();
@@ -10,7 +10,7 @@ function buildQuery(params) {
 }
 
 /** POST /api/v1/feedbacks */
-export async function createFeedback(payload, locale = 'vi') {
+export async function createFeedback(payload, locale = 'en') {
   return apiFetch('/feedbacks', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -18,12 +18,12 @@ export async function createFeedback(payload, locale = 'vi') {
 }
 
 /** GET /api/v1/feedbacks */
-export async function searchFeedbacks(params = {}, locale = 'vi') {
+export async function searchFeedbacks(params = {}, locale = 'en') {
   return apiFetch(`/feedbacks${buildQuery(params)}`, {}, locale);
 }
 
 /** PUT /api/v1/feedbacks/{id}/reply */
-export async function replyFeedback(id, payload, locale = 'vi') {
+export async function replyFeedback(id, payload, locale = 'en') {
   return apiFetch(`/feedbacks/${id}/reply`, {
     method: 'PUT',
     body: JSON.stringify(payload),
@@ -31,19 +31,19 @@ export async function replyFeedback(id, payload, locale = 'vi') {
 }
 
 /** DELETE /api/v1/feedbacks/{id} */
-export async function deleteFeedback(id, locale = 'vi') {
+export async function deleteFeedback(id, locale = 'en') {
   return apiFetch(`/feedbacks/${id}`, {
     method: 'DELETE',
   }, locale);
 }
 
 /** GET /api/v1/feedbacks/my */
-export async function getMyFeedbacks(locale = 'vi') {
+export async function getMyFeedbacks(locale = 'en') {
   return apiFetch('/feedbacks/my', {}, locale);
 }
 
 /** PUT /api/v1/feedbacks/my/{id} */
-export async function updateMyFeedback(id, payload, locale = 'vi') {
+export async function updateMyFeedback(id, payload, locale = 'en') {
   return apiFetch(`/feedbacks/my/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
@@ -51,28 +51,28 @@ export async function updateMyFeedback(id, payload, locale = 'vi') {
 }
 
 /** DELETE /api/v1/feedbacks/my/{id} */
-export async function deleteMyFeedback(id, locale = 'vi') {
+export async function deleteMyFeedback(id, locale = 'en') {
   return apiFetch(`/feedbacks/my/${id}`, {
     method: 'DELETE',
   }, locale);
 }
 
 /** GET /api/v1/feedbacks/stats */
-export async function getFeedbackStats(params = {}, locale = 'vi') {
+export async function getFeedbackStats(params = {}, locale = 'en') {
   return apiFetch(`/feedbacks/stats${buildQuery(params)}`, {}, locale);
 }
 
 /** GET /api/v1/feedbacks/public */
-export async function getPublicFeedbacks(locale = 'vi') {
+export async function getPublicFeedbacks(locale = 'en') {
   return apiFetch('/feedbacks/public', {}, locale);
 }
 
 /** GET /api/v1/feedbacks/public/search */
-export async function searchPublicFeedbacks(params = {}, locale = 'vi') {
+export async function searchPublicFeedbacks(params = {}, locale = 'en') {
   return apiFetch(`/feedbacks/public/search${buildQuery(params)}`, {}, locale);
 }
 
 /** GET /api/v1/feedbacks/public/stats */
-export async function getPublicFeedbackStats(params = {}, locale = 'vi') {
+export async function getPublicFeedbackStats(params = {}, locale = 'en') {
   return apiFetch(`/feedbacks/public/stats${buildQuery(params)}`, {}, locale);
 }

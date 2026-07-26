@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+﻿import { apiFetch } from './api';
 
 const USER_KEY = 'hms_user';
 const TOKEN_KEY = 'hms_token';
@@ -28,7 +28,7 @@ export function clearAuth() {
 }
 
 /** POST /api/v1/auth/login */
-export async function login(credentials, locale = 'vi') {
+export async function login(credentials, locale = 'en') {
   const res = await apiFetch('/auth/login', {
     method: 'POST',
     body: JSON.stringify({
@@ -41,7 +41,7 @@ export async function login(credentials, locale = 'vi') {
 }
 
 /** POST /api/v1/auth/register */
-export async function register(payload, locale = 'vi') {
+export async function register(payload, locale = 'en') {
   const res = await apiFetch('/auth/register', {
     method: 'POST',
     body: JSON.stringify({
@@ -56,7 +56,7 @@ export async function register(payload, locale = 'vi') {
 }
 
 /** POST /api/v1/auth/verify-otp */
-export async function verifyOtp(payload, locale = 'vi') {
+export async function verifyOtp(payload, locale = 'en') {
   const res = await apiFetch('/auth/verify-otp', {
     method: 'POST',
     body: JSON.stringify({
@@ -68,7 +68,7 @@ export async function verifyOtp(payload, locale = 'vi') {
 }
 
 /** POST /api/v1/auth/resend-otp */
-export async function resendOtp(email, locale = 'vi') {
+export async function resendOtp(email, locale = 'en') {
   const res = await apiFetch(`/auth/resend-otp?email=${encodeURIComponent(email)}`, {
     method: 'POST',
   }, locale);
@@ -76,7 +76,7 @@ export async function resendOtp(email, locale = 'vi') {
 }
 
 /** GET /api/v1/auth/me */
-export async function getCurrentUser(locale = 'vi') {
+export async function getCurrentUser(locale = 'en') {
   const res = await apiFetch('/auth/me', {}, locale);
   if (res?.data) {
     saveAuth({ ...res.data, token: getStoredToken() });

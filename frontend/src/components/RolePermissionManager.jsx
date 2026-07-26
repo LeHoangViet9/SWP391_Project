@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Shield, Save, RefreshCw, Check } from 'lucide-react';
 import { getRoles, getPermissions, assignPermissionsToRole } from '../services/roleService';
 import { useLocale } from '../context/LocaleContext';
 import Toast from './shared/Toast';
 
 const PERMISSION_GROUPS = {
-  CHECKIN_CHECKOUT: { vi: 'Nhận / Trả phòng', en: 'Check-in & Check-out' },
-  USER: { vi: 'Quản lý Tài khoản', en: 'User Management' },
+  CHECKIN_CHECKOUT: { vi: 'Nhận / Check-out', en: 'Check-in & Check-out' },
+  USER: { vi: 'Quản lý Account', en: 'User Management' },
   ROOM: { vi: 'Quản lý Phòng', en: 'Room Management' },
-  ROOM_TYPE: { vi: 'Quản lý Loại Phòng', en: 'Room Type Management' },
-  CUSTOMER: { vi: 'Quản lý Khách hàng', en: 'Customer Management' },
-  BOOKING: { vi: 'Quản lý Đặt phòng', en: 'Booking Management' },
-  HOUSEKEEPING: { vi: 'Dọn phòng', en: 'Housekeeping' },
-  EQUIPMENT: { vi: 'Trang thiết bị', en: 'Equipment' },
+  ROOM_TYPE: { vi: 'Quản lý Room Types', en: 'Room Type Management' },
+  CUSTOMER: { vi: 'Quản lý Customer', en: 'Customer Management' },
+  BOOKING: { vi: 'Quản lý Booking', en: 'Booking Management' },
+  HOUSEKEEPING: { vi: 'Room Cleaning', en: 'Housekeeping' },
+  EQUIPMENT: { vi: 'Page thiết bị', en: 'Equipment' },
   MAINTENANCE: { vi: 'Bảo trì & Sửa chữa', en: 'Maintenance' },
-  FEEDBACK: { vi: 'Phản hồi', en: 'Feedback' },
-  INVOICE: { vi: 'Hóa đơn & Thanh toán', en: 'Invoice & Payment' },
+  FEEDBACK: { vi: 'Response', en: 'Feedback' },
+  INVOICE: { vi: 'Invoice & Payment', en: 'Invoice & Payment' },
   DASHBOARD: { vi: 'Báo cáo & Dashboard', en: 'Reports & Dashboard' },
   AUDIT_LOG: { vi: 'Audit Log', en: 'Audit Log' }
 };
@@ -25,45 +25,45 @@ const PERMISSION_DESCRIPTIONS = {
   CHECKOUT_VIEW: { vi: 'Cho phép truy cập màn hình check-out và thực hiện trả phòng cho khách', en: 'Allows access to the check-out screen and processing guest check-outs' },
   USER_VIEW: { vi: 'Xem danh sách tài khoản người dùng', en: 'View user accounts' },
   USER_CREATE: { vi: 'Tạo tài khoản người dùng mới', en: 'Create new user accounts' },
-  USER_UPDATE: { vi: 'Cập nhật thông tin tài khoản người dùng', en: 'Update user accounts' },
-  USER_DELETE: { vi: 'Xóa hoặc ngừng hoạt động tài khoản', en: 'Delete or deactivate user accounts' },
+  USER_UPDATE: { vi: 'Update thông tin tài khoản người dùng', en: 'Update user accounts' },
+  USER_DELETE: { vi: 'Delete hoặc ngừng hoạt động tài khoản', en: 'Delete or deactivate user accounts' },
   USER_AUTHORIZE: { vi: 'Phân quyền vai trò cho người dùng', en: 'Assign role permissions to users' },
   ROOM_VIEW: { vi: 'Xem danh sách và sơ đồ phòng', en: 'View rooms and room map' },
-  ROOM_CREATE: { vi: 'Thêm phòng mới', en: 'Create new rooms' },
-  ROOM_UPDATE: { vi: 'Cập nhật thông tin phòng', en: 'Update room information' },
-  ROOM_DELETE: { vi: 'Xóa phòng', en: 'Delete rooms' },
+  ROOM_CREATE: { vi: 'Add phòng mới', en: 'Create new rooms' },
+  ROOM_UPDATE: { vi: 'Update thông tin phòng', en: 'Update room information' },
+  ROOM_DELETE: { vi: 'Delete phòng', en: 'Delete rooms' },
   ROOM_TYPE_VIEW: { vi: 'Xem danh sách hạng phòng', en: 'View room types' },
-  ROOM_TYPE_CREATE: { vi: 'Thêm hạng phòng mới', en: 'Create new room types' },
-  ROOM_TYPE_UPDATE: { vi: 'Cập nhật thông tin hạng phòng', en: 'Update room types' },
-  ROOM_TYPE_DELETE: { vi: 'Xóa hạng phòng', en: 'Delete room types' },
+  ROOM_TYPE_CREATE: { vi: 'Add hạng phòng mới', en: 'Create new room types' },
+  ROOM_TYPE_UPDATE: { vi: 'Update thông tin hạng phòng', en: 'Update room types' },
+  ROOM_TYPE_DELETE: { vi: 'Delete hạng phòng', en: 'Delete room types' },
   CUSTOMER_VIEW: { vi: 'Xem danh sách khách hàng', en: 'View customers' },
-  CUSTOMER_CREATE: { vi: 'Đăng ký khách hàng mới', en: 'Create new customers' },
-  CUSTOMER_UPDATE: { vi: 'Cập nhật thông tin khách hàng', en: 'Update customer information' },
-  CUSTOMER_DELETE: { vi: 'Xóa thông tin khách hàng', en: 'Delete customers' },
+  CUSTOMER_CREATE: { vi: 'Register khách hàng mới', en: 'Create new customers' },
+  CUSTOMER_UPDATE: { vi: 'Update thông tin khách hàng', en: 'Update customer information' },
+  CUSTOMER_DELETE: { vi: 'Delete thông tin khách hàng', en: 'Delete customers' },
   BOOKING_VIEW: { vi: 'Xem toàn bộ đơn đặt phòng', en: 'View all booking records' },
   BOOKING_CREATE: { vi: 'Tạo đơn đặt phòng mới', en: 'Create new bookings' },
-  BOOKING_UPDATE: { vi: 'Cập nhật hoặc hủy đơn đặt phòng', en: 'Update or cancel bookings' },
-  BOOKING_DELETE: { vi: 'Xóa đơn đặt phòng', en: 'Delete bookings' },
+  BOOKING_UPDATE: { vi: 'Update hoặc hủy đơn đặt phòng', en: 'Update or cancel bookings' },
+  BOOKING_DELETE: { vi: 'Delete đơn đặt phòng', en: 'Delete bookings' },
   BOOKING_VIEW_OWN: { vi: 'Xem lịch sử đặt phòng của bản thân', en: 'View own booking history' },
   HOUSEKEEPING_VIEW: { vi: 'Xem nhiệm vụ dọn phòng', en: 'View housekeeping tasks' },
   HOUSEKEEPING_CREATE: { vi: 'Giao nhiệm vụ dọn phòng', en: 'Assign housekeeping tasks' },
-  HOUSEKEEPING_UPDATE: { vi: 'Cập nhật tiến độ dọn phòng', en: 'Update housekeeping task progress' },
-  HOUSEKEEPING_DELETE: { vi: 'Xóa nhiệm vụ dọn phòng', en: 'Delete housekeeping tasks' },
+  HOUSEKEEPING_UPDATE: { vi: 'Update tiến độ dọn phòng', en: 'Update housekeeping task progress' },
+  HOUSEKEEPING_DELETE: { vi: 'Delete nhiệm vụ dọn phòng', en: 'Delete housekeeping tasks' },
   EQUIPMENT_VIEW: { vi: 'Xem danh sách thiết bị', en: 'View equipment list' },
-  EQUIPMENT_CREATE: { vi: 'Thêm thiết bị mới', en: 'Add new equipment' },
-  EQUIPMENT_UPDATE: { vi: 'Cập nhật thông tin thiết bị', en: 'Update equipment info' },
-  EQUIPMENT_DELETE: { vi: 'Xóa thiết bị', en: 'Delete equipment' },
+  EQUIPMENT_CREATE: { vi: 'Add thiết bị mới', en: 'Add new equipment' },
+  EQUIPMENT_UPDATE: { vi: 'Update thông tin thiết bị', en: 'Update equipment info' },
+  EQUIPMENT_DELETE: { vi: 'Delete thiết bị', en: 'Delete equipment' },
   MAINTENANCE_VIEW: { vi: 'Xem yêu cầu sửa chữa bảo trì', en: 'View maintenance requests' },
   MAINTENANCE_CREATE: { vi: 'Tạo yêu cầu bảo trì mới', en: 'Create new maintenance requests' },
-  MAINTENANCE_UPDATE: { vi: 'Cập nhật tiến độ sửa chữa', en: 'Update maintenance progress' },
-  MAINTENANCE_DELETE: { vi: 'Xóa yêu cầu bảo trì', en: 'Delete maintenance requests' },
+  MAINTENANCE_UPDATE: { vi: 'Update tiến độ sửa chữa', en: 'Update maintenance progress' },
+  MAINTENANCE_DELETE: { vi: 'Delete yêu cầu bảo trì', en: 'Delete maintenance requests' },
   FEEDBACK_VIEW: { vi: 'Xem đánh giá phản hồi của khách hàng', en: 'View customer feedbacks' },
   FEEDBACK_CREATE: { vi: 'Gửi đánh giá dịch vụ', en: 'Submit feedback' },
   FEEDBACK_UPDATE: { vi: 'Chỉnh sửa phản hồi', en: 'Edit feedback' },
-  FEEDBACK_DELETE: { vi: 'Xóa phản hồi', en: 'Delete feedback' },
+  FEEDBACK_DELETE: { vi: 'Delete phản hồi', en: 'Delete feedback' },
   FEEDBACK_VIEW_OWN: { vi: 'Xem đánh giá phản hồi của bản thân', en: 'View own customer feedbacks' },
   FEEDBACK_UPDATE_OWN: { vi: 'Chỉnh sửa phản hồi của bản thân', en: 'Edit own feedback' },
-  FEEDBACK_DELETE_OWN: { vi: 'Xóa phản hồi của bản thân', en: 'Delete own feedback' },
+  FEEDBACK_DELETE_OWN: { vi: 'Delete phản hồi của bản thân', en: 'Delete own feedback' },
   INVOICE_VIEW: { vi: 'Xem danh sách hóa đơn', en: 'View invoices' },
   DASHBOARD_VIEW: { vi: 'Xem báo cáo doanh thu & dashboard', en: 'View financial reports & dashboard' },
   AUDIT_LOG_VIEW: { vi: 'Xem nhật ký hoạt động hệ thống', en: 'View system audit logs' }
@@ -71,7 +71,7 @@ const PERMISSION_DESCRIPTIONS = {
 
 export default function RolePermissionManager() {
   const { locale } = useLocale();
-  const isVi = locale === 'vi';
+  const isVi = false;
 
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
@@ -99,7 +99,7 @@ export default function RolePermissionManager() {
         handleSelectRole(rolesRes.data[0]);
       }
     } catch (e) {
-      notify(e.message || (isVi ? 'Lỗi tải phân quyền' : 'Failed to load permissions'), 'error');
+      notify(e.message || ('Failed to load permissions'), 'error');
     } finally {
       setLoading(false);
     }
@@ -156,9 +156,9 @@ export default function RolePermissionManager() {
       
       // Update local roles state
       setRoles(roles.map(r => r.id === selectedRole.id ? { ...r, permissions: res.data.permissions } : r));
-      notify(isVi ? 'Lưu cấu hình phân quyền thành công!' : 'Saved permissions successfully!');
+      notify('Saved permissions successfully!');
     } catch (e) {
-      notify(e.message || (isVi ? 'Lỗi khi lưu phân quyền' : 'Failed to save permissions'), 'error');
+      notify(e.message || ('Failed to save permissions'), 'error');
     } finally {
       setSaving(false);
     }
@@ -184,7 +184,7 @@ export default function RolePermissionManager() {
     return (
       <div className="flex items-center justify-center py-20 text-[#bfa15f]">
         <div className="w-8 h-8 border-2 border-[#bfa15f] border-t-transparent rounded-full animate-spin mr-3" />
-        <span>{isVi ? 'Đang tải thông tin phân quyền...' : 'Loading permissions...'}</span>
+        <span>{'Loading permissions...'}</span>
       </div>
     );
   }
@@ -197,17 +197,17 @@ export default function RolePermissionManager() {
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Shield className="text-[#bfa15f]" size={22} />
-            {isVi ? 'Cấu hình Phân quyền Hệ thống' : 'System Role Permissions'}
+            {'System Role Permissions'}
           </h2>
           <p className="text-xs text-white/50 mt-1">
-            {isVi ? 'Chọn một vai trò để tùy chỉnh danh sách các quyền truy cập.' : 'Select a role to customize its access rights.'}
+            {'Select a role to customize its access rights.'}
           </p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={loadData}
             className="p-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-white/70 hover:text-white transition-all"
-            title={isVi ? 'Làm mới' : 'Refresh'}
+            title={'Refresh'}
           >
             <RefreshCw size={16} />
           </button>
@@ -217,7 +217,7 @@ export default function RolePermissionManager() {
             className="flex items-center gap-2 btn-gold px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
           >
             <Save size={16} />
-            {saving ? (isVi ? 'Đang lưu...' : 'Saving...') : (isVi ? 'Lưu cấu hình' : 'Save Changes')}
+            {saving ? ('Saving...') : ('Save Changes')}
           </button>
         </div>
       </div>
@@ -226,7 +226,7 @@ export default function RolePermissionManager() {
         {/* Roles List */}
         <div className="lg:col-span-1 bg-[#112240] border border-white/[0.08] rounded-2xl p-4 space-y-2 h-fit">
           <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider px-2 mb-3">
-            {isVi ? 'Vai trò / Nhóm người dùng' : 'Roles / Groups'}
+            {'Roles / Groups'}
           </h3>
           {roles.map((role) => {
             const isSelected = selectedRole?.id === role.id;
@@ -264,7 +264,7 @@ export default function RolePermissionManager() {
                 return null;
               }
 
-              const label = isVi ? groupLabel.vi : groupLabel.en;
+              const label = false ? groupLabel.vi : groupLabel.en;
               const allChecked = groupPerms.every(p => rolePermissions.has(p.id));
 
               return (
@@ -277,7 +277,7 @@ export default function RolePermissionManager() {
                       onClick={() => handleToggleGroup(groupKey, !allChecked)}
                       className="text-xs font-semibold text-[#bfa15f] hover:text-[#d4b97f] transition-colors"
                     >
-                      {allChecked ? (isVi ? 'Bỏ chọn tất cả' : 'Deselect All') : (isVi ? 'Chọn tất cả' : 'Select All')}
+                      {allChecked ? ('Deselect All') : ('Select All')}
                     </button>
                   </div>
 
@@ -285,7 +285,7 @@ export default function RolePermissionManager() {
                   <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {groupPerms.map((perm) => {
                       const isChecked = rolePermissions.has(perm.id);
-                      const desc = PERMISSION_DESCRIPTIONS[perm.name]?.[isVi ? 'vi' : 'en'] || perm.description || (isVi ? 'Không có mô tả' : 'No description available');
+                      const desc = PERMISSION_DESCRIPTIONS[perm.name]?.['en'] || perm.description || ('No description available');
                       return (
                         <label
                           key={perm.id}
@@ -326,7 +326,7 @@ export default function RolePermissionManager() {
             <div className="bg-[#112240] border border-white/[0.08] rounded-2xl p-12 text-center">
               <Shield className="mx-auto text-white/20 mb-3" size={40} />
               <p className="text-sm text-white/40">
-                {isVi ? 'Hãy chọn một vai trò bên trái để hiển thị danh sách quyền.' : 'Select a role on the left to see permissions.'}
+                {'Select a role on the left to see permissions.'}
               </p>
             </div>
           )}

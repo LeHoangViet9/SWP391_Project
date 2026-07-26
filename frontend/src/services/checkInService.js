@@ -1,12 +1,12 @@
-import { apiFetch } from './api';
+﻿import { apiFetch } from './api';
 
 /** GET /api/v1/checkin/available-rooms/{bookingId} */
-export async function getAvailableRoomsForCheckIn(bookingId, locale = 'vi') {
+export async function getAvailableRoomsForCheckIn(bookingId, locale = 'en') {
   return apiFetch(`/checkin/available-rooms/${bookingId}`, {}, locale);
 }
 
 /** POST /api/v1/checkin */
-export async function processCheckIn(payload, locale = 'vi') {
+export async function processCheckIn(payload, locale = 'en') {
   return apiFetch('/checkin', {
     method: 'POST',
     body: JSON.stringify(payload),

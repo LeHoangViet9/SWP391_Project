@@ -63,7 +63,7 @@ function RoomCard({ room, onAction, updating }) {
           className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold transition-colors ${nextAction.btnClass} disabled:opacity-60`}
         >
           <StatusIcon size={15} />
-          {updating === room.id ? 'Đang cập nhật...' : nextAction.label}
+          {updating === room.id ? 'Updating...' : nextAction.label}
           <ArrowRight size={14} />
         </button>
       )}
@@ -113,7 +113,7 @@ export default function CleaningTaskList() {
     try {
       await updateRoomCleaningStatus(roomId, nextStatus);
       const statusLabels = { CLEANING: 'Đang dọn', READY: 'Đã hoàn thành' };
-      notify(`Cập nhật phòng thành "${statusLabels[nextStatus] || nextStatus}" thành công!`);
+      notify(`Update phòng thành "${statusLabels[nextStatus] || nextStatus}" successful!`);
       await fetchAll();
     } catch (e) {
       notify(e.message || 'Lỗi cập nhật trạng thái', 'error');
@@ -185,7 +185,7 @@ export default function CleaningTaskList() {
           onClick={fetchAll}
           disabled={loading}
           className="ml-auto mb-3 p-2 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
-          title="Làm mới danh sách"
+          title="Refresh danh sách"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin text-[#bfa15f]' : 'text-slate-500'} />
         </button>
@@ -195,16 +195,16 @@ export default function CleaningTaskList() {
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <RefreshCw size={24} className="animate-spin text-[#bfa15f]" />
-          <span className="ml-3 text-sm text-slate-500">Đang tải danh sách phòng...</span>
+          <span className="ml-3 text-sm text-slate-500">Loading danh sách phòng...</span>
         </div>
       ) : displayRooms.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-slate-400">
           <CheckCircle2 size={48} className="mb-3 text-emerald-300" />
           <p className="text-base font-semibold">
-            {activeTab === 'dirty' ? 'Không có phòng nào cần dọn!' : 'Không có phòng nào đang được dọn!'}
+            {activeTab === 'dirty' ? 'No có phòng nào cần dọn!' : 'No có phòng nào đang được dọn!'}
           </p>
           <p className="text-sm mt-1">
-            {activeTab === 'dirty' ? 'Tất cả phòng đều sạch sẽ 🎉' : 'Chưa có nhân viên nào bắt đầu dọn phòng'}
+            {activeTab === 'dirty' ? 'All phòng đều sạch sẽ 🎉' : 'None yet nhân viên nào bắt đầu dọn phòng'}
           </p>
         </div>
       ) : (
@@ -221,7 +221,7 @@ export default function CleaningTaskList() {
           <Clock size={14} className="mt-0.5 shrink-0" />
           <span>
             <strong>{dirtyRooms.length} phòng</strong> đang chờ dọn dẹp.
-            Ưu tiên dọn phòng có khách check-in sớm nhất trước.
+            Priority dọn phòng có khách check-in sớm nhất trước.
           </span>
         </div>
       )}

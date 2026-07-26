@@ -72,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
 
         User savedUser = userRepository.save(user);
 
-        // Tạo bản ghi Customer tương ứng — tách biệt dữ liệu Khách hàng khỏi Nhân viên
+        // Create corresponding Customer record - separate Customer data from Staff
         if (!customerRepository.existsByEmail(savedUser.getEmail())) {
             Customer customer = Customer.builder()
                     .fullName(savedUser.getFullName())
@@ -87,8 +87,8 @@ public class AuthServiceImpl implements AuthService {
             log.info("[REGISTER] Created Customer record for email={}", savedUser.getEmail());
         }
 
-        // Gửi email SAU KHI save thành công
-        // Nếu email lỗi → user đã được tạo → có thể dùng resend-otp
+        // Send email AFTER successful save
+        // If email fails -> user created -> can use resend-otp
         try {
             emailService.sendRegistrationOtp(savedUser.getEmail(), otp);
         } catch (Exception e) {

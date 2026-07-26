@@ -1,4 +1,4 @@
-import { apiFormData } from './api';
+﻿import { apiFormData } from './api';
 
 function appendRoomTypeFields(formData, roomType) {
   formData.append('typeName', String(roomType.typeName ?? ''));
@@ -7,14 +7,14 @@ function appendRoomTypeFields(formData, roomType) {
   formData.append('maxGuests', String(roomType.maxGuests ?? ''));
 }
 
-export function createRoomType(roomType, images = [], locale = 'vi') {
+export function createRoomType(roomType, images = [], locale = 'en') {
   const formData = new FormData();
   appendRoomTypeFields(formData, roomType);
   images.forEach((image) => formData.append('images', image));
   return apiFormData('/room-types', formData, locale, 'POST');
 }
 
-export function updateRoomType(id, roomType, images = [], locale = 'vi') {
+export function updateRoomType(id, roomType, images = [], locale = 'en') {
   const formData = new FormData();
   appendRoomTypeFields(formData, roomType);
   images.forEach((image) => formData.append('images', image));

@@ -1,8 +1,8 @@
 package com.hms.common.constant;
 
 /**
- * Interface đánh dấu cho các DTO cần xác thực mật khẩu xác nhận.
- * Implement interface này để dùng được annotation @PasswordMatch.
+ * Marker interface for DTOs needing confirm password validation.
+ * Implement this interface to use annotation @PasswordMatch.
  */
 public interface PasswordConfirmable {
     String getPassword();

@@ -1,12 +1,12 @@
 import { apiFetch } from './api';
 
 export const maintenanceService = {
-    getAll: (params = {}, locale = 'vi') => {
+    getAll: (params = {}, locale = 'en') => {
         const q = new URLSearchParams();
 
-        // THAY ĐỔI: Gộp tất cả loại tìm kiếm vào 1 param 'keyword' để khớp với backend.
-        // Trước đây: Gửi túng param riêng (id, issueTitle, roomId...) nhưng backend chỉ nhận 'keyword'
-        // Sau khi sửa: Thống nhất gửi 'keyword' cho mọi loại tìm kiếm.
+        // FIX: Consolidate all search types into a single 'keyword' param to match backend.
+        // Previously: Sent separate params (id, issueTitle, roomId...) but backend only accepts 'keyword'
+        // After fix: Unified 'keyword' for all search types.
         if (params.keyword) q.set('keyword', params.keyword);
         if (params.severity) q.set('severity', params.severity);
         if (params.status) q.set('status', params.status);
@@ -14,7 +14,7 @@ export const maintenanceService = {
         if (params.page != null) q.set('page', params.page);
         if (params.size != null) q.set('size', params.size);
 
-        // THAY ĐỔI: Sửa mặc định sắp xếp theo ngày tạo (CREATED_AT) và mới nhất trước (DESC)
+        // FIX: Default sort by creation date (CREATED_AT) with newest first (DESC)
         q.set('sortBy', params.sortBy || 'CREATED_AT');
         q.set('direction', params.direction || 'DESC');
 
@@ -27,10 +27,10 @@ export const maintenanceService = {
         );
     },
 
-    getById: (id, locale = 'vi') =>
+    getById: (id, locale = 'en') =>
         apiFetch(`/maintenance-requests/${id}`, {}, locale),
 
-    create: (dto, locale = 'vi') =>
+    create: (dto, locale = 'en') =>
         apiFetch(
             '/maintenance-requests',
             {
@@ -40,7 +40,7 @@ export const maintenanceService = {
             locale
         ),
 
-    update: (id, dto, locale = 'vi') =>
+    update: (id, dto, locale = 'en') =>
         apiFetch(
             `/maintenance-requests/${id}`,
             {
@@ -50,7 +50,7 @@ export const maintenanceService = {
             locale
         ),
 
-    delete: (id, locale = 'vi') =>
+    delete: (id, locale = 'en') =>
         apiFetch(
             `/maintenance-requests/${id}`,
             {
@@ -60,9 +60,9 @@ export const maintenanceService = {
         ),
 
     /**
-     * Maintenance staff chấp nhận yêu cầu → IN_PROGRESS
+     * Maintenance staff accepts request → IN_PROGRESS
      */
-    acceptRequest: (id, locale = 'vi') =>
+    acceptRequest: (id, locale = 'en') =>
         apiFetch(
             `/maintenance-requests/${id}/accept`,
             { method: 'POST' },
@@ -70,10 +70,10 @@ export const maintenanceService = {
         ),
 
     /**
-     * Maintenance staff từ chối yêu cầu → hệ thống giao cho người tiếp theo
+     * Maintenance staff denies request → system assigns to next person
      */
-    // THAY ĐỔI: Gửi kèm lý do từ chối (reason) nếu có lên server
-    denyRequest: (id, reason, locale = 'vi') => {
+    // FIX: Send denial reason to server if provided
+    denyRequest: (id, reason, locale = 'en') => {
         const params = new URLSearchParams();
         if (reason && reason.trim()) params.set('reason', reason.trim());
         return apiFetch(
