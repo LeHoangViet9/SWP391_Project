@@ -51,16 +51,28 @@ SELECT c FROM Customer c
 WHERE (:status IS NULL OR c.status = :status)
 AND (
     CAST(:keyword AS string) IS NULL
-    OR LOWER(c.fullName) LIKE LOWER(CAST(:keyword AS string))
-    OR LOWER(c.email) LIKE LOWER(CAST(:keyword AS string))
-    OR c.phone LIKE CAST(:keyword AS string)
-    OR c.idNumberCard LIKE CAST(:keyword AS string)
-    OR LOWER(c.nationality) LIKE LOWER(CAST(:keyword AS string))
-    OR CAST(c.id AS string) LIKE CAST(:keyword AS string)
+    OR (
+        CAST(:searchBy AS string) IS NULL
+        AND (
+            LOWER(c.fullName) LIKE LOWER(CAST(:keyword AS string))
+            OR LOWER(c.email) LIKE LOWER(CAST(:keyword AS string))
+            OR c.phone LIKE CAST(:keyword AS string)
+            OR c.idNumberCard LIKE CAST(:keyword AS string)
+            OR LOWER(c.nationality) LIKE LOWER(CAST(:keyword AS string))
+            OR CAST(c.id AS string) LIKE CAST(:keyword AS string)
+        )
+    )
+    OR (CAST(:searchBy AS string) = 'fullName' AND LOWER(c.fullName) LIKE LOWER(CAST(:keyword AS string)))
+    OR (CAST(:searchBy AS string) = 'email' AND LOWER(c.email) LIKE LOWER(CAST(:keyword AS string)))
+    OR (CAST(:searchBy AS string) = 'phone' AND c.phone LIKE CAST(:keyword AS string))
+    OR (CAST(:searchBy AS string) = 'idNumberCard' AND c.idNumberCard LIKE CAST(:keyword AS string))
+    OR (CAST(:searchBy AS string) = 'nationality' AND LOWER(c.nationality) LIKE LOWER(CAST(:keyword AS string)))
+    OR (CAST(:searchBy AS string) = 'id' AND CAST(c.id AS string) LIKE CAST(:keyword AS string))
 )
 """)
     Page<Customer> searchCustomer(
             @Param("keyword") String keyword,
+            @Param("searchBy") String searchBy,
             @Param("status") AccountStatus status,
             Pageable pageable
     );

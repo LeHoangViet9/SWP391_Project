@@ -45,6 +45,7 @@ public class CustomerController {
     @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<ApiResponse<Page<CustomerResponse>>> findAll(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String searchBy,
             @RequestParam(defaultValue = "ACTIVE") AccountStatus status,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
@@ -55,7 +56,7 @@ public class CustomerController {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 messageSource.getMessage("customer.getall.success", null, locale),
-                customerService.getCustomers(keyword, status, page, size, sortBy, direction),
+                customerService.getCustomers(keyword, searchBy, status, page, size, sortBy, direction),
                 HttpStatus.OK
         ),HttpStatus.OK);
     }

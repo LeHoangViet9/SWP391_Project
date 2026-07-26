@@ -6,7 +6,6 @@ import com.hms.common.utils.PageableUtils;
 import com.hms.dto.customer.request.CustomerCreateDTO;
 import com.hms.dto.customer.response.CustomerResponse;
 import com.hms.entity.customer.Customer;
-import com.hms.entity.auth.User;
 import com.hms.common.enums.AccountStatus;
 import com.hms.common.exception.ConflictException;
 import com.hms.common.exception.ResourceNotFoundException;
@@ -40,6 +39,10 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional
     public CustomerResponse createCustomer(CustomerCreateDTO customerDTO) {
         Locale locale = LocaleContextHolder.getLocale();
+
+        if (customerDTO.getIdType() == com.hms.common.enums.IdType.CCCD && !customerDTO.getIdNumberCard().matches("\\d{12}")) {
+            throw new com.hms.common.exception.BadRequestException(locale.getLanguage().equals("vi") ? "CCCD phải bao gồm đúng 12 chữ số!" : "CCCD must be exactly 12 digits!");
+        }
 
         // Nếu email đã tồn tại → cập nhật thông tin nếu có thay đổi và trả về customer hiện tại (self-service booking flow)
         if (customerRepository.existsByEmail(customerDTO.getEmail())) {
@@ -106,6 +109,10 @@ public class CustomerServiceImpl implements CustomerService {
     public CustomerResponse updateCustomer(Long id, CustomerCreateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
 
+        if (dto.getIdType() == com.hms.common.enums.IdType.CCCD && !dto.getIdNumberCard().matches("\\d{12}")) {
+            throw new com.hms.common.exception.BadRequestException(locale.getLanguage().equals("vi") ? "CCCD phải bao gồm đúng 12 chữ số!" : "CCCD must be exactly 12 digits!");
+        }
+
         Customer customer = customerRepository.findByIdAndStatus(id, AccountStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.customer.notfound", new Object[]{id}, locale)
@@ -169,6 +176,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public Page<CustomerResponse> getCustomers(
             String keyword,
+            String searchBy,
             AccountStatus status,
             Integer page,
             Integer size,
@@ -181,9 +189,10 @@ public class CustomerServiceImpl implements CustomerService {
         String searchKeyword = (keyword != null && !keyword.trim().isEmpty())
                 ? "%" + keyword.trim() + "%"
                 : null;
+        String searchCol = (searchBy != null && !searchBy.trim().isEmpty()) ? searchBy.trim() : null;
 
         return customerRepository
-                .searchCustomer(searchKeyword, status, pageable)
+                .searchCustomer(searchKeyword, searchCol, status, pageable)
                 .map(customerMapper::toResponse);
     }
 

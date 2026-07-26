@@ -51,9 +51,10 @@ export default function CustomerManager() {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const validateField = (name, value) => {
+  const validateField = (name, value, overrideIdType) => {
     let err = '';
     const trimmed = value ? value.trim() : '';
+    const currentIdType = overrideIdType || form.idType;
     if (name === 'fullName') {
       if (!trimmed) {
         err = locale === 'vi' ? 'Họ và tên không được chỉ chứa khoảng trắng!' : 'Full name cannot be empty or only spaces!';
@@ -77,6 +78,8 @@ export default function CustomerManager() {
     } else if (name === 'idNumberCard') {
       if (!trimmed) {
         err = locale === 'vi' ? 'Số giấy tờ không được chỉ chứa khoảng trắng!' : 'ID card number cannot be empty or only spaces!';
+      } else if (currentIdType === 'CCCD' && !/^\d{12}$/.test(trimmed)) {
+        err = locale === 'vi' ? 'CCCD phải bao gồm đúng 12 chữ số!' : 'CCCD must be exactly 12 digits!';
       } else if (!/^[A-Za-z0-9\-]{6,20}$/.test(trimmed)) {
         err = locale === 'vi' ? 'Số giấy tờ phải từ 6-20 ký tự!' : 'ID card number must be 6-20 characters!';
       }
@@ -99,6 +102,7 @@ export default function CustomerManager() {
       const trimmed = val ? String(val).trim() : '';
       if (trimmed) {
         params.keyword = trimmed;
+        if (opt) params.searchBy = opt;
       }
       const res = await getCustomers(params, locale);
       setItems(res?.data?.content ?? []);
