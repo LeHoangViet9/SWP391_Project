@@ -24,16 +24,30 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         @Query("""
                             SELECT b
                             FROM Booking b
+                            LEFT JOIN b.room assignedRoom
                             WHERE (:status IS NULL OR b.bookingStatus = :status)
                             AND (:customerId IS NULL OR b.customer.id = :customerId)
                             AND (:roomTypeId IS NULL OR b.roomType.id = :roomTypeId)
-                            AND (:roomId IS NULL OR b.room.id = :roomId)
+                            AND (:roomId IS NULL OR assignedRoom.id = :roomId)
+                            AND (:keyword IS NULL OR :keyword = ''
+                                OR LOWER(CAST(b.id AS string)) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(b.customer.fullName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(b.customer.phone, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(b.roomType.typeName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(assignedRoom.roomNumber, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(b.guestFullName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                                OR LOWER(COALESCE(b.guestPhone, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
+                            AND b.checkInDate >= :startDate
+                            AND b.checkInDate < :endDateExclusive
                         """)
         Page<Booking> searchBookings(
+                        @Param("keyword") String keyword,
                         @Param("status") BookingStatus status,
                         @Param("customerId") Long customerId,
                         @Param("roomTypeId") Long roomTypeId,
                         @Param("roomId") Long roomId,
+                        @Param("startDate") LocalDateTime startDate,
+                        @Param("endDateExclusive") LocalDateTime endDateExclusive,
                         Pageable pageable);
 
         @Query("""

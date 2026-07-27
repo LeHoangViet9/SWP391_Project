@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Edit2, Eye, RefreshCw, Search, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getAllBookings, createBooking, updateBooking, searchBookings, updateBookingStatus } from '../services/bookingService';
+import { createBooking, updateBooking, searchBookings, updateBookingStatus } from '../services/bookingService';
 import { createCustomer } from '../services/customerService';
 import { apiFetch } from '../services/api';
 import { useLocale } from '../context/LocaleContext';
@@ -201,19 +201,16 @@ export default function BookingManager({ readOnly = false }) {
     setLoading(true);
     try {
       const params = { page: p, size: 10 };
-      let res;
-      const hasServerFilters = filterStatus || filterCustomerId || filterRoomTypeId || filterRoomId;
-      if (hasServerFilters) {
-        res = await searchBookings({
-          ...params,
-          status: filterStatus || undefined,
-          customerId: filterCustomerId ? Number(filterCustomerId) : undefined,
-          roomTypeId: filterRoomTypeId ? Number(filterRoomTypeId) : undefined,
-          roomId: filterRoomId ? Number(filterRoomId) : undefined,
-        });
-      } else {
-        res = await getAllBookings(params);
-      }
+      const res = await searchBookings({
+        ...params,
+        keyword: searchKeyword.trim() || undefined,
+        status: filterStatus || undefined,
+        customerId: filterCustomerId ? Number(filterCustomerId) : undefined,
+        roomTypeId: filterRoomTypeId ? Number(filterRoomTypeId) : undefined,
+        roomId: filterRoomId ? Number(filterRoomId) : undefined,
+        startDate: filterStartDate || undefined,
+        endDate: filterEndDate || undefined,
+      });
       setItems(res?.data?.content ?? []);
       setTotalPages(res?.data?.totalPages ?? 1);
     } catch (e) {
@@ -221,7 +218,11 @@ export default function BookingManager({ readOnly = false }) {
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, filterCustomerId, filterRoomTypeId, filterRoomId, page]);
+  }, [filterStatus, filterCustomerId, filterRoomTypeId, filterRoomId, searchKeyword, filterStartDate, filterEndDate, page]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filterStatus, filterCustomerId, filterRoomTypeId, filterRoomId, searchKeyword, filterStartDate, filterEndDate]);
 
   useEffect(() => {
     fetchData(page);
@@ -335,47 +336,7 @@ export default function BookingManager({ readOnly = false }) {
     return <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${opt.color}`}>{t(`booking.status.${opt.value}`)}</span>;
   };
 
-  const getIsoDateString = (value) => {
-    if (!value) return '';
-    if (typeof value === 'string') return value.substring(0, 10);
-    if (Array.isArray(value)) {
-      const [y, m, d] = value;
-      return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    }
-    try {
-      const date = new Date(value);
-      if (!Number.isNaN(date.getTime())) {
-        return date.toISOString().substring(0, 10);
-      }
-    } catch (e) {}
-    return String(value).substring(0, 10);
-  };
-
-  const filteredItems = items.filter(item => {
-    if (searchKeyword.trim()) {
-      const q = searchKeyword.trim().toLowerCase();
-      const customerName = (item.customerName || item.customer?.fullName || '').toLowerCase();
-      const phone = (item.customerPhone || item.customer?.phone || '').toLowerCase();
-      const roomType = (item.roomTypeName || item.roomType?.typeName || '').toLowerCase();
-      const bookingId = String(item.id).toLowerCase();
-      const roomNumber = String(item.roomNumber || '').toLowerCase();
-
-      const matchesKeyword = bookingId.includes(q) || customerName.includes(q) || phone.includes(q) || roomType.includes(q) || roomNumber.includes(q);
-      if (!matchesKeyword) return false;
-    }
-
-    if (filterStartDate || filterEndDate) {
-      const dateStr = getIsoDateString(item.checkInDate);
-      if (dateStr) {
-        if (filterStartDate && dateStr < filterStartDate) return false;
-        if (filterEndDate && dateStr > filterEndDate) return false;
-      }
-    }
-
-    return true;
-  });
-
-  const rows = filteredItems.map((item) => {
+  const rows = items.map((item) => {
     const status = getBookingStatus(item);
     return (
       <tr key={item.id} className="hover:bg-stone-50">
@@ -396,7 +357,8 @@ export default function BookingManager({ readOnly = false }) {
         <td className="px-4 py-3 text-xs">{formatDate(item.checkOutDate)}</td>
         <td className="px-4 py-3">{renderStatusBadge(status)}</td>
         <td className="px-4 py-3 text-[#bfa15f] font-bold text-xs">
-          {item.totalPrice != null ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.totalPrice) : '-'}
+          {item.totalPriceWithVat != null ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.totalPriceWithVat) : '-'}
+          {item.totalPriceWithVat != null && <div className="mt-1 text-[10px] font-normal text-slate-400">{isVi ? 'Đã gồm VAT' : 'VAT included'}</div>}
         </td>
         {!readOnly && isReceptionistOrAbove && (
           <td className="px-4 py-3">
@@ -881,9 +843,10 @@ export default function BookingManager({ readOnly = false }) {
               <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3">
                 <span className="font-bold text-slate-700">Tổng tiền</span>
                 <span className="font-bold text-[#bfa15f]">
-                  {viewBooking.totalPrice != null
-                    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(viewBooking.totalPrice)
+                  {viewBooking.totalPriceWithVat != null
+                    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(viewBooking.totalPriceWithVat)
                     : '-'}
+                  {viewBooking.totalPriceWithVat != null && <span className="ml-2 text-[10px] font-normal text-slate-400">{isVi ? 'Đã gồm VAT' : 'VAT included'}</span>}
                 </span>
               </div>
             </section>
@@ -965,8 +928,8 @@ export default function BookingManager({ readOnly = false }) {
               <div className="flex justify-between py-1 pt-1 text-sm font-bold">
                 <span className="text-slate-700">Tổng tiền đơn:</span>
                 <span className="text-[#bfa15f]">
-                  {confirmModal.booking.totalPrice != null
-                    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(confirmModal.booking.totalPrice)
+                  {confirmModal.booking.totalPriceWithVat != null
+                    ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(confirmModal.booking.totalPriceWithVat)
                     : '-'}
                 </span>
               </div>

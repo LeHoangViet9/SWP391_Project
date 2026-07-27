@@ -37,6 +37,8 @@ public interface BookingMapper {
     @Mapping(source = "room.id", target = "roomId")
     @Mapping(source = "room.roomNumber", target = "roomNumber")
     @Mapping(target = "hasFeedback", ignore = true)
+    @Mapping(target = "vatAmount", ignore = true)
+    @Mapping(target = "totalPriceWithVat", ignore = true)
     @Mapping(target = "roomIds", expression = "java(booking.getRooms().stream().map(room -> room.getId()).toList())")
     @Mapping(target = "roomNumbers", expression = "java(booking.getRooms().stream().map(room -> room.getRoomNumber()).toList())")
     @Mapping(source = "guestAllocations", target = "roomGuests")

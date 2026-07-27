@@ -36,6 +36,7 @@ const today = () => getLocalDateString();
 const CART_STORAGE_KEY = 'hms_booking_cart';
 const CART_HOLD_TOKEN_KEY = 'hms_booking_cart_hold_token';
 const BOOKING_HOLD_MINUTES = 30;
+const VAT_RATE = 0.08;
 
 function loadBookingCart() {
   try {
@@ -415,6 +416,7 @@ function BookingContent() {
   const nights = nightsBetween(booking.checkIn, booking.checkOut);
   const pricePerNight = roomType?.basePrice || 0;
   const totalEstimate = pricePerNight * nights * booking.quantity;
+  const totalEstimateWithVat = Math.round(totalEstimate * (1 + VAT_RATE));
   const currentCartKey = createCartKey(roomTypeId, booking.checkIn, booking.checkOut);
   const currentCartItem = cartItems.find((item) => item.key === currentCartKey);
   const currentSelectionInCart = Boolean(
@@ -427,6 +429,7 @@ function BookingContent() {
       * nightsBetween(item.checkIn, item.checkOut)
       * Number(item.quantity || 0)
   ), 0);
+  const cartTotalWithVat = Math.round(cartTotal * (1 + VAT_RATE));
   const formErrors = {
     ...validateGuestForms(customerForm, stayGuestForm, bookingForOther, locale),
     ...serverFieldErrors,
@@ -636,7 +639,10 @@ function BookingContent() {
       if (createdBookings.length === 0) throw new Error(locale === 'vi' ? 'Không tạo được booking.' : 'No booking was created.');
 
       const createdBookingIds = createdBookings.map((created) => created.id);
-      const fallbackTotal = createdBookings.reduce((total, created) => total + Number(created.totalPrice || 0), 0);
+      const fallbackTotal = createdBookings.reduce(
+        (total, created) => total + Number(created.totalPriceWithVat ?? created.totalPrice ?? 0),
+        0,
+      );
       try {
         const combinedInvoiceRes = await getCombinedInvoice(createdBookingIds, locale);
         setCombinedInvoiceTotal(Number(combinedInvoiceRes?.data?.totalAmount ?? fallbackTotal));
@@ -896,7 +902,10 @@ function BookingContent() {
             </div>
             <div className="bg-stone-50 p-4 flex justify-between items-center">
               <span className="text-slate-600">{nights} {t('bookingPage.nights')} × {booking.quantity || 0} {t('booking.rooms')}</span>
-              <span className="text-xl font-bold text-[#bfa15f]">{formatPrice(totalEstimate, locale)}</span>
+              <div className="text-right">
+                <span className="block text-xl font-bold text-[#bfa15f]">{formatPrice(totalEstimateWithVat, locale)}</span>
+                <span className="text-[11px] text-slate-500">{locale === 'vi' ? 'Đã gồm VAT 8%' : 'VAT 8% included'}</span>
+              </div>
             </div>
             <div className="space-y-4 border-y border-dashed border-stone-300 py-5">
               {guestCounts.map((guests, roomIndex) => (
@@ -1096,7 +1105,7 @@ function BookingContent() {
               ))}
               <div className="flex justify-between font-bold text-slate-800">
                 <span>{t('bookingPage.total')}</span>
-                <span className="text-[#bfa15f]">{formatPrice(cartTotal, locale)}</span>
+                <span className="text-[#bfa15f]">{formatPrice(cartTotalWithVat, locale)}</span>
               </div>
             </div>
             <div className="flex gap-3">
@@ -1127,7 +1136,8 @@ function BookingContent() {
                       <p><span className="text-slate-500">{t('bookingPage.bookingId')}:</span> <strong>#{result.id}</strong></p>
                       <p><strong>{result.roomTypeName}</strong> × {result.quantity}</p>
                       <p className="text-slate-500">{result.checkInDate?.split('T')[0]} - {result.checkOutDate?.split('T')[0]}</p>
-                      <p className="font-bold text-[#bfa15f]">{formatPrice(Number(result.totalPrice), locale)}</p>
+                      <p className="font-bold text-[#bfa15f]">{formatPrice(Number(result.totalPriceWithVat ?? result.totalPrice), locale)}</p>
+                      <p className="text-[11px] text-slate-500">{locale === 'vi' ? 'Đã gồm VAT' : 'VAT included'}</p>
                     </div>
                   </div>
                 </div>
@@ -1199,7 +1209,7 @@ function BookingContent() {
 
             <div className="mt-6 flex items-center justify-between text-lg font-bold">
               <span>{locale === 'vi' ? 'Tổng cộng' : 'Total'}</span>
-              <span className="text-[#f2a900]">{formatPrice(cartTotal, locale)}</span>
+              <span className="text-[#f2a900]">{formatPrice(cartTotalWithVat, locale)}</span>
             </div>
             {cartItems.length > 0 && (
               <div className={`mt-3 flex items-center justify-center gap-2 rounded border px-3 py-2 text-xs font-semibold ${cartHoldToken && remainingSeconds <= 60 ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>

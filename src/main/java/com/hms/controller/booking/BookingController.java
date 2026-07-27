@@ -63,17 +63,20 @@ public class BookingController {
         @GetMapping("/search")
         @PreAuthorize("hasAuthority('BOOKING_VIEW') or hasAuthority('CHECKIN_VIEW')")
         public ResponseEntity<ApiResponse<Page<BookingResponse>>> searchBookings(
+                        @RequestParam(required = false) String keyword,
                         @RequestParam(required = false) BookingStatus status,
                         @RequestParam(required = false) Long customerId,
                         @RequestParam(required = false) Long roomTypeId,
                         @RequestParam(required = false) Long roomId,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
                         @RequestParam(required = false) Integer page,
                         @RequestParam(required = false) Integer size) {
 
                 Locale locale = LocaleContextHolder.getLocale();
 
-                Page<BookingResponse> data = bookingService.searchBookings(status, customerId, roomTypeId, roomId, page,
-                                size);
+                Page<BookingResponse> data = bookingService.searchBookings(keyword, status, customerId, roomTypeId,
+                                roomId, startDate, endDate, page, size);
 
                 String message = messageSource.getMessage("success.booking.getall", null, locale);
 

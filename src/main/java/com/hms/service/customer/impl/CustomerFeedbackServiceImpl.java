@@ -131,6 +131,29 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
 
     @Override
     @Transactional
+    public CustomerFeedbackResponse resolveMyFeedback(Long feedbackId, String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+        CustomerFeedback feedback = customerFeedbackRepository.findByIdAndCustomerEmail(feedbackId, email)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.feedback.notfound", null, locale)));
+
+        if (feedback.getStatus() == FeedbackStatus.RESOLVED) {
+            return customerFeedbackMapper.toResponse(feedback);
+        }
+        if (feedback.getStatus() != FeedbackStatus.REVIEWED
+                || feedback.getReply() == null
+                || feedback.getReply().isBlank()) {
+            throw new BadRequestException(locale.getLanguage().equals("vi")
+                    ? "Chỉ có thể xác nhận đã giải quyết sau khi quản lý phản hồi."
+                    : "Feedback can only be resolved after management has replied.");
+        }
+
+        feedback.setStatus(FeedbackStatus.RESOLVED);
+        return customerFeedbackMapper.toResponse(customerFeedbackRepository.save(feedback));
+    }
+
+    @Override
+    @Transactional
     public void deleteMyFeedback(Long feedbackId, String email) {
         Locale locale = LocaleContextHolder.getLocale();
 
@@ -158,6 +181,12 @@ public class CustomerFeedbackServiceImpl implements CustomerFeedbackService {
         CustomerFeedback feedback = customerFeedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         messageSource.getMessage("error.feedback.notfound", null, locale)));
+
+        if (feedback.getStatus() == FeedbackStatus.RESOLVED) {
+            throw new BadRequestException(locale.getLanguage().equals("vi")
+                    ? "Phản hồi đã được khách hàng xác nhận giải quyết."
+                    : "The customer has already marked this feedback as resolved.");
+        }
 
         feedback.setReply(request.getReply());
         feedback.setStatus(FeedbackStatus.REVIEWED);

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, RefreshCw, Star, MessageSquare, Trash2, Edit3, Clock, CreditCard, AlertTriangle, Search, Filter } from 'lucide-react';
+import { CalendarDays, RefreshCw, Star, MessageSquare, Trash2, Edit3, Clock, CreditCard, AlertTriangle, Search, Filter, CheckCircle } from 'lucide-react';
 import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import { useLocale } from '../context/LocaleContext';
 import { deleteBooking, getMyBookingHistory } from '../services/bookingService';
-import { createFeedback, getMyFeedbacks, updateMyFeedback, deleteMyFeedback } from '../services/feedbackService';
+import { createFeedback, getMyFeedbacks, updateMyFeedback, deleteMyFeedback, resolveMyFeedback } from '../services/feedbackService';
 import Toast from './shared/Toast';
 
 function formatDateTime(value, locale) {
@@ -254,6 +254,18 @@ export default function CustomerBookingHistory() {
     setViewReplyTarget(null);
   };
 
+  const handleResolveFromView = async (fbId) => {
+    try {
+      const response = await resolveMyFeedback(fbId, locale);
+      const resolvedFeedback = response?.data;
+      setFeedbacks(current => current.map(item => item.id === fbId ? resolvedFeedback : item));
+      setViewReplyTarget(resolvedFeedback);
+      notify(isVi ? 'Đã xác nhận phản hồi được giải quyết.' : 'Feedback marked as resolved.');
+    } catch (err) {
+      notify(err.message || (isVi ? 'Không thể xác nhận phản hồi.' : 'Could not resolve feedback.'), 'error');
+    }
+  };
+
   const columns = [
     t('bookingHistory.columns.id'),
     t('bookingHistory.columns.roomType'),
@@ -297,7 +309,10 @@ export default function CustomerBookingHistory() {
             ) : t(`booking.status.${status}`)}
           </span>
         </td>
-        <td className="px-4 py-3 text-xs font-bold text-[#bfa15f]">{formatMoney(item.totalPrice, locale)}</td>
+        <td className="px-4 py-3 text-xs font-bold text-[#bfa15f]">
+          {formatMoney(item.totalPriceWithVat ?? item.totalPrice, locale)}
+          <div className="mt-1 text-[10px] font-normal text-slate-400">{isVi ? 'Đã gồm VAT' : 'VAT included'}</div>
+        </td>
         <td className="px-4 py-3 text-xs text-slate-400">{formatDateTime(item.createdAt, locale)}</td>
         <td className="px-4 py-3">
           <div className="flex flex-col gap-2">
@@ -626,6 +641,19 @@ export default function CustomerBookingHistory() {
                     {formatDateTime(viewReplyTarget.createdAt, locale)}
                   </span>
                 </div>
+                <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                  viewReplyTarget.status === 'RESOLVED'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : viewReplyTarget.status === 'REVIEWED'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {viewReplyTarget.status === 'RESOLVED'
+                    ? (isVi ? 'Đã giải quyết' : 'Resolved')
+                    : viewReplyTarget.status === 'REVIEWED'
+                      ? (isVi ? 'Đã phản hồi' : 'Reviewed')
+                      : (isVi ? 'Chờ phản hồi' : 'Pending')}
+                </span>
 
                 <div className="flex items-center gap-2">
                   <div className="flex text-amber-500">
@@ -691,7 +719,7 @@ export default function CustomerBookingHistory() {
               </button>
 
               <div className="flex items-center gap-2">
-                {!viewReplyTarget.reply && (
+                {viewReplyTarget.status === 'PENDING' && (
                   <button
                     type="button"
                     onClick={() => handleEditFromView(viewReplyTarget)}
@@ -699,6 +727,16 @@ export default function CustomerBookingHistory() {
                   >
                     <Edit3 size={14} />
                     <span>{isVi ? 'Chỉnh sửa' : 'Edit'}</span>
+                  </button>
+                )}
+                {viewReplyTarget.status === 'REVIEWED' && viewReplyTarget.reply && (
+                  <button
+                    type="button"
+                    onClick={() => handleResolveFromView(viewReplyTarget.id)}
+                    className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-700"
+                  >
+                    <CheckCircle size={14} />
+                    <span>{isVi ? 'Đã giải quyết' : 'Mark resolved'}</span>
                   </button>
                 )}
                 
@@ -758,7 +796,7 @@ export default function CustomerBookingHistory() {
               </div>
               <div className="flex justify-between items-center text-slate-700 font-medium border-t border-stone-200 pt-2">
                 <span className="text-slate-500">{isVi ? 'Tổng tiền đơn phòng:' : 'Total Amount:'}</span>
-                <span className="font-bold text-[#bfa15f] text-sm">{formatMoney(cancelModalTarget.totalPrice, locale)}</span>
+                <span className="font-bold text-[#bfa15f] text-sm">{formatMoney(cancelModalTarget.totalPriceWithVat ?? cancelModalTarget.totalPrice, locale)}</span>
               </div>
             </div>
           )}

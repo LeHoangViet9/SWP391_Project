@@ -26,7 +26,9 @@ public interface BookingService {
 
     void deleteBooking(Long id);
 
-    Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId, Integer page, Integer size);
+    Page<BookingResponse> searchBookings(String keyword, BookingStatus status, Long customerId, Long roomTypeId,
+                                         Long roomId, LocalDate startDate, LocalDate endDate,
+                                         Integer page, Integer size);
 
     Page<BookingResponse> getMyBookingHistory(String email, String keyword, BookingStatus status,
                                               LocalDate startDate, LocalDate endDate, Integer page, Integer size);

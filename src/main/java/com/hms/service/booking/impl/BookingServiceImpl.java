@@ -62,6 +62,7 @@ import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.regex.Pattern;
@@ -120,11 +121,26 @@ public class BookingServiceImpl implements BookingService {
     private final CustomerFeedbackRepository customerFeedbackRepository;
     private final IHouseKeepingTaskService housekeepingTaskService;
 
+    @Value("${app.finance.vat-rate:0.08}")
+    private BigDecimal vatRate;
+
+    private void applyVatTotals(BookingResponse response) {
+        if (response == null || response.getTotalPrice() == null) {
+            return;
+        }
+        BigDecimal vatAmount = response.getTotalPrice()
+                .multiply(vatRate)
+                .setScale(0, RoundingMode.HALF_UP);
+        response.setVatAmount(vatAmount);
+        response.setTotalPriceWithVat(response.getTotalPrice().add(vatAmount));
+    }
+
     private BookingResponse mapToResponse(Booking booking) {
         if (booking == null)
             return null;
         BookingResponse response = bookingMapper.toResponse(booking);
         response.setHasFeedback(customerFeedbackRepository.existsByBookingId(booking.getId()));
+        applyVatTotals(response);
         return response;
     }
 
@@ -136,6 +152,7 @@ public class BookingServiceImpl implements BookingService {
         return bookingPage.map(b -> {
             BookingResponse r = bookingMapper.toResponse(b);
             r.setHasFeedback(feedbackedIds.contains(b.getId()));
+            applyVatTotals(r);
             return r;
         });
     }
@@ -355,10 +372,18 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BookingResponse> searchBookings(BookingStatus status, Long customerId, Long roomTypeId, Long roomId,
-            Integer page, Integer size) {
-        Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.ASC);
-        return mapPageToResponse(bookingRepository.searchBookings(status, customerId, roomTypeId, roomId, pageable));
+    public Page<BookingResponse> searchBookings(String keyword, BookingStatus status, Long customerId, Long roomTypeId,
+            Long roomId, LocalDate startDate, LocalDate endDate, Integer page, Integer size) {
+        Pageable pageable = pageableUtils.createPageable(page, size, "id", SortDirection.DESC);
+        return mapPageToResponse(bookingRepository.searchBookings(
+                normalizeKeyword(keyword),
+                status,
+                customerId,
+                roomTypeId,
+                roomId,
+                startDate == null ? HISTORY_MIN_DATE : startDate.atStartOfDay(),
+                endDate == null ? HISTORY_MAX_DATE : endDate.plusDays(1).atStartOfDay(),
+                pageable));
     }
 
     @Override

@@ -40,6 +40,10 @@ public class BookingResponse {
 
     private BigDecimal totalPrice;
 
+    private BigDecimal vatAmount;
+
+    private BigDecimal totalPriceWithVat;
+
     private BookingStatus bookingStatus;
 
     private LocalDateTime createdAt;

@@ -74,6 +74,22 @@ public class CustomerFeedbackController {
         ), HttpStatus.OK);
     }
 
+    @PatchMapping("/my/{id}/resolve")
+    @PreAuthorize("hasAuthority('FEEDBACK_UPDATE_OWN')")
+    public ResponseEntity<ApiResponse<CustomerFeedbackResponse>> resolveMyFeedback(
+            @PathVariable Long id,
+            @AuthenticationPrincipal String email) {
+        Locale locale = LocaleContextHolder.getLocale();
+        return ResponseEntity.ok(new ApiResponse<>(
+                true,
+                locale.getLanguage().equals("vi")
+                        ? "Đã xác nhận phản hồi được giải quyết."
+                        : "Feedback marked as resolved.",
+                customerFeedbackService.resolveMyFeedback(id, email),
+                HttpStatus.OK
+        ));
+    }
+
     // 4. Xóa feedback của bản thân -> Quyền (FEEDBACK_DELETE_OWN)
     @DeleteMapping("/my/{id}")
     @PreAuthorize("hasAuthority('FEEDBACK_DELETE_OWN')")

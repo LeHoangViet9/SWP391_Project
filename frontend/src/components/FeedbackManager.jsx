@@ -222,6 +222,7 @@ export default function FeedbackManager() {
             <option value="" className="bg-[#112240] text-white">{isVi ? 'Tất cả trạng thái' : 'All statuses'}</option>
             <option value="PENDING" className="bg-[#112240] text-white">{isVi ? 'Chờ xử lý' : 'Pending'}</option>
             <option value="REVIEWED" className="bg-[#112240] text-white">{isVi ? 'Đã phản hồi' : 'Reviewed'}</option>
+            <option value="RESOLVED" className="bg-[#112240] text-white">{isVi ? 'Đã giải quyết' : 'Resolved'}</option>
           </select>
         </div>
 
@@ -281,6 +282,19 @@ export default function FeedbackManager() {
                         'Staff': 'Nhân viên'
                       }[item.category] || item.category : item.category}
                     </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded border ${
+                      item.status === 'RESOLVED'
+                        ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                        : item.status === 'REVIEWED'
+                          ? 'bg-blue-500/10 text-blue-300 border-blue-500/20'
+                          : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                    }`}>
+                      {item.status === 'RESOLVED'
+                        ? (isVi ? 'Đã giải quyết' : 'Resolved')
+                        : item.status === 'REVIEWED'
+                          ? (isVi ? 'Đã phản hồi' : 'Reviewed')
+                          : (isVi ? 'Chờ xử lý' : 'Pending')}
+                    </span>
 
                   </div>
                   <p className="text-[11px] text-white/40 mt-1">
@@ -324,7 +338,7 @@ export default function FeedbackManager() {
                       <Reply size={12} className="scale-x-[-1]" />
                       {isVi ? 'Phản hồi từ Khách sạn' : 'Management Response'}
                     </span>
-                    {canReply && (
+                    {canReply && item.status !== 'RESOLVED' && (
                       <button
                         onClick={() => handleOpenReply(item)}
                         className="text-[10px] font-bold text-white/40 hover:text-white uppercase tracking-wider"

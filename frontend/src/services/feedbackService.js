@@ -50,6 +50,13 @@ export async function updateMyFeedback(id, payload, locale = 'vi') {
   }, locale);
 }
 
+/** PATCH /api/v1/feedbacks/my/{id}/resolve */
+export async function resolveMyFeedback(id, locale = 'vi') {
+  return apiFetch(`/feedbacks/my/${id}/resolve`, {
+    method: 'PATCH',
+  }, locale);
+}
+
 /** DELETE /api/v1/feedbacks/my/{id} */
 export async function deleteMyFeedback(id, locale = 'vi') {
   return apiFetch(`/feedbacks/my/${id}`, {
