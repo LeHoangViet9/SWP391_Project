@@ -195,18 +195,18 @@ export default function RolePermissionManager() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-xl font-bold text-black flex items-center gap-2">
             <Shield className="text-[#bfa15f]" size={22} />
             {isVi ? 'Cấu hình Phân quyền Hệ thống' : 'System Role Permissions'}
           </h2>
-          <p className="text-xs text-white/50 mt-1">
+          <p className="text-xs text-black/50 mt-1">
             {isVi ? 'Chọn một vai trò để tùy chỉnh danh sách các quyền truy cập.' : 'Select a role to customize its access rights.'}
           </p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={loadData}
-            className="p-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-white/70 hover:text-white transition-all"
+            className="p-2.5 rounded-xl border border-white/10 hover:bg-white/5 text-black70 hover:text-black transition-all"
             title={isVi ? 'Làm mới' : 'Refresh'}
           >
             <RefreshCw size={16} />

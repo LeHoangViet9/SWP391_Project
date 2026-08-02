@@ -51,28 +51,29 @@ public class AuthServiceImpl implements AuthService {
         if (registerRequest.getEmail() != null) {
             registerRequest.setEmail(registerRequest.getEmail().trim().toLowerCase());
         }
-        if(userRepository.existsUserByEmail(registerRequest.getEmail())) {
+        if (userRepository.existsUserByEmail(registerRequest.getEmail())) {
             throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
         }
-        if(userRepository.existsUserByPhone(registerRequest.getPhone())) {
+        if (userRepository.existsUserByPhone(registerRequest.getPhone())) {
             throw new ConflictException(messageSource.getMessage("error.phone.exists", null, locale));
         }
 
         Optional<Customer> existingCustomerByPhone = customerRepository.findByPhone(registerRequest.getPhone());
-        if (existingCustomerByPhone.isPresent() && !existingCustomerByPhone.get().getEmail().equalsIgnoreCase(registerRequest.getEmail())) {
+        if (existingCustomerByPhone.isPresent()
+                && !existingCustomerByPhone.get().getEmail().equalsIgnoreCase(registerRequest.getEmail())) {
             throw new ConflictException(messageSource.getMessage("error.phone.exists", null, locale));
         }
 
         Optional<Customer> existingCustomerByEmail = customerRepository.findByEmail(registerRequest.getEmail());
-        if (existingCustomerByEmail.isPresent() && !existingCustomerByEmail.get().getPhone().equals(registerRequest.getPhone())) {
+        if (existingCustomerByEmail.isPresent()
+                && !existingCustomerByEmail.get().getPhone().equals(registerRequest.getPhone())) {
             throw new ConflictException(messageSource.getMessage("error.email.exists", null, locale));
         }
 
         String defaultRole = "CUSTOMER";
         Role role = roleRepository.findByRoleNameIgnoreCase(defaultRole)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        messageSource.getMessage("error.role.invalid", new Object[]{defaultRole}, locale)
-                ));
+                        messageSource.getMessage("error.role.invalid", new Object[] { defaultRole }, locale)));
 
         User user = userMapper.toEntityRegister(registerRequest);
         user.setEmail(registerRequest.getEmail());
@@ -120,7 +121,8 @@ public class AuthServiceImpl implements AuthService {
 
         try {
             User user = userRepository.findUserByEmail(normalizedEmail)
-                    .orElseThrow(() -> new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale)));
+                    .orElseThrow(() -> new UnauthorizedException(
+                            messageSource.getMessage("error.login.failed", null, locale)));
 
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
                 throw new UnauthorizedException(messageSource.getMessage("error.login.failed", null, locale));
@@ -133,8 +135,7 @@ public class AuthServiceImpl implements AuthService {
 
             String accessToken = jwtTokenProvider.generateToken(
                     updatedUser.getEmail(),
-                    updatedUser.getRole().getRoleName()
-            );
+                    updatedUser.getRole().getRoleName());
 
             auditLogService.logSuccess(
                     "LOGIN_SUCCESS",
@@ -142,10 +143,9 @@ public class AuthServiceImpl implements AuthService {
                     "USER",
                     updatedUser.getId(),
                     updatedUser.getEmail(),
-                    auditLogService.message(null, userAuditSnapshot(updatedUser))
-            );
+                    auditLogService.message(null, userAuditSnapshot(updatedUser)));
 
-            return userMapper.toResponse(updatedUser,accessToken);
+            return userMapper.toResponse(updatedUser, accessToken);
         } catch (RuntimeException e) {
             auditLogService.logFailure(
                     "LOGIN_FAILED",
@@ -154,8 +154,7 @@ public class AuthServiceImpl implements AuthService {
                     null,
                     loginRequest.getEmail(),
                     loginAttemptChanges(loginRequest.getEmail()),
-                    e
-            );
+                    e);
             throw e;
         }
     }
@@ -165,7 +164,8 @@ public class AuthServiceImpl implements AuthService {
     public UserResponse getCurrentUser(String email) {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findUserByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.user.invalid", null, locale)));
         return userMapper.toResponse(user, null);
     }
 
@@ -175,7 +175,8 @@ public class AuthServiceImpl implements AuthService {
     public void changePassword(String email, ChangePasswordRequest changePasswordRequest) {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findUserByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.user.invalid", null, locale)));
         if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
             throw new UnauthorizedException(messageSource.getMessage("error.password.incorrect", null, locale));
         }
@@ -191,21 +192,23 @@ public class AuthServiceImpl implements AuthService {
                 "USER",
                 updated.getId(),
                 updated.getEmail(),
-                auditLogService.message(null, Map.of("passwordChanged", true))
-        );
+                auditLogService.message(null, Map.of("passwordChanged", true)));
     }
+
     @Transactional
     @Override
     public void forgotPassword(ForgotPasswordRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
-        User user = userRepository.findUserByEmail(request.getEmail()).orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
-        String token =  UUID.randomUUID().toString();
+        User user = userRepository.findUserByEmail(request.getEmail()).orElseThrow(
+                () -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+        String token = UUID.randomUUID().toString();
         user.setResetPasswordToken(token);
         user.setResetPasswordExpiredAt(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
         emailService.sendForgotPasswordMail(user.getEmail(), token);
 
     }
+
     @Transactional
     @Override
     @Auditable(action = "RESET_PASSWORD", module = "USER", logSuccess = false)
@@ -214,11 +217,12 @@ public class AuthServiceImpl implements AuthService {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new ConflictException(messageSource.getMessage("user.repassword.message", null, locale));
         }
-        User user=userRepository.findByResetPasswordToken(request.getToken()).orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.token.invalid", null, locale)));
-        if(user.getResetPasswordExpiredAt().isBefore(LocalDateTime.now())) {
+        User user = userRepository.findByResetPasswordToken(request.getToken()).orElseThrow(
+                () -> new ResourceNotFoundException(messageSource.getMessage("error.token.invalid", null, locale)));
+        if (user.getResetPasswordExpiredAt().isBefore(LocalDateTime.now())) {
             throw new UnauthorizedException(messageSource.getMessage("error.token.expired", null, locale));
         }
-        if(passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
             throw new ConflictException(messageSource.getMessage("error.password.invalid", null, locale));
         }
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
@@ -231,8 +235,7 @@ public class AuthServiceImpl implements AuthService {
                 "USER",
                 updated.getId(),
                 updated.getEmail(),
-                auditLogService.message(null, Map.of("passwordReset", true))
-        );
+                auditLogService.message(null, Map.of("passwordReset", true)));
     }
 
     private void validateAccountStatus(User user, Locale locale) {
@@ -253,7 +256,8 @@ public class AuthServiceImpl implements AuthService {
     public void verifyOtp(VerifyOtpRequest request) {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findUserByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.user.invalid", null, locale)));
 
         if (user.getAccountStatus() != AccountStatus.PENDING_VERIFICATION) {
             throw new BadRequestException(messageSource.getMessage("error.otp.alreadyVerified", null, locale));
@@ -278,7 +282,8 @@ public class AuthServiceImpl implements AuthService {
     public void resendOtp(String email) {
         Locale locale = LocaleContextHolder.getLocale();
         User user = userRepository.findUserByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException(messageSource.getMessage("error.user.invalid", null, locale)));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        messageSource.getMessage("error.user.invalid", null, locale)));
 
         if (user.getAccountStatus() != AccountStatus.PENDING_VERIFICATION) {
             throw new BadRequestException(messageSource.getMessage("error.otp.alreadyVerified", null, locale));
@@ -291,8 +296,6 @@ public class AuthServiceImpl implements AuthService {
 
         emailService.sendRegistrationOtp(user.getEmail(), otp);
     }
-
-
 
     private Map<String, Object> userAuditSnapshot(User user) {
         Map<String, Object> snapshot = new LinkedHashMap<>();
@@ -312,21 +315,21 @@ public class AuthServiceImpl implements AuthService {
         return auditLogService.message(null, changes);
     }
 
-//
-//    private String generateOtp(int length){
-//        StringBuilder otp = new StringBuilder();
-//        for(char c='0';c<='9';c++){
-//            otp.append(c);
-//        }
-//        for(char c='A';c<='Z';c++){
-//            otp.append(c);
-//        }
-//        String finalChar=otp.toString();
-//        SecureRandom random = new SecureRandom();
-//        StringBuilder sb = new StringBuilder(length);
-//        for(int i=0;i<length;i++){
-//            sb.append(finalChar.charAt(random.nextInt(finalChar.length())));
-//        }
-//        return sb.toString();
-//    }
+    //
+    // private String generateOtp(int length){
+    // StringBuilder otp = new StringBuilder();
+    // for(char c='0';c<='9';c++){
+    // otp.append(c);
+    // }
+    // for(char c='A';c<='Z';c++){
+    // otp.append(c);
+    // }
+    // String finalChar=otp.toString();
+    // SecureRandom random = new SecureRandom();
+    // StringBuilder sb = new StringBuilder(length);
+    // for(int i=0;i<length;i++){
+    // sb.append(finalChar.charAt(random.nextInt(finalChar.length())));
+    // }
+    // return sb.toString();
+    // }
 }

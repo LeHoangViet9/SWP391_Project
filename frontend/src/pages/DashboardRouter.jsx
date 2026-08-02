@@ -58,7 +58,7 @@ const ROUTE_COMPONENTS = {
   'invoices': { Component: InvoiceManager, title: 'Hóa Đơn', titleEn: 'Invoices' },
   'account': { Component: AccountInfo, title: 'Thông Tin Tài Khoản', titleEn: 'Account Info' },
   'password': { Component: ChangePassword, title: 'Đổi Mật Khẩu', titleEn: 'Change Password' }
-}; // <-- Đã thêm dấu đóng ngoặc ở đây
+};
 
 
 /**
