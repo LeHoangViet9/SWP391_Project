@@ -21,6 +21,7 @@ import com.hms.repository.auth.UserRepository;
 import com.hms.service.maintenance.MaintenanceService;
 import com.hms.service.maintenance.mapper.MaintenanceMapper;
 import com.hms.service.notification.NotificationService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -66,12 +67,14 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      * Gửi notification cho maintenance được giao.
      * Nếu không có ai sẵn sàng → trạng thái PENDING, thông báo manager.
      */
+    // bước1 Hàm tạo phiếu bảo trì -
     @Override
-    @Transactional
+    @Transactional // cho phép transaction rollback khi có lỗi
     public MaintenanceResponse createRequest(MaintenanceRequestCreateDTO dto) {
         Locale locale = LocaleContextHolder.getLocale();
 
-        // Không cho tạo maintenance request nếu không gắn với phòng hoặc thiết bị.
+        // b1.1. Kiểm tra không cho tạo maintenance request nếu không gắn với phòng hoặc
+        // thiết bị.
         if (dto.getRoomId() == null && dto.getEquipmentId() == null) {
             throw new ConflictException(
                     messageSource.getMessage(ERROR_MAINTENANCE_ROOM_OR_EQUIPMENT_REQUIRED, null, locale));
@@ -92,13 +95,9 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             if (equipment.getStatus() == EquipmentStatus.INACTIVE) {
                 throw new ConflictException("Cannot create a maintenance request for an inactive equipment");
             }
-            if (equipment.getStatus() == EquipmentStatus.ACTIVE) {
-                equipment.setStatus(EquipmentStatus.MAINTENANCE);
-                equipmentRepository.save(equipment);
-            }
         }
 
-        // Nếu có cả roomId và equipmentId, thiết bị phải được gán đúng phòng
+        // b1.2Nếu có cả roomId và equipmentId, thiết bị phải được gán đúng phòng
         if (dto.getRoomId() != null && dto.getEquipmentId() != null) {
             boolean assigned = roomEquipmentRepository.existsByRoomIdAndEquipmentId(
                     dto.getRoomId(), dto.getEquipmentId());
@@ -107,16 +106,18 @@ public class MaintenanceServiceImpl implements MaintenanceService {
                         messageSource.getMessage(ERROR_EQUIPMENT_NOT_ASSIGNED, null, locale));
             }
         }
+        // b1.3: Map DTO sang Entity và thiết lập thông tin ban đầu
+        // Map DTO sang Entity và thiết lập thông tin ban đầu
 
         RepairRequest repairRequest = maintenanceMapper.toEntity(dto);
-        repairRequest.setReportedBy(getCurrentUser().getId());
-        repairRequest.setStatus(MaintenanceStatus.PENDING);
-        repairRequest.setDeniedByIds("");
+        repairRequest.setReportedBy(getCurrentUser().getId()); // người tạo phiếu
+        repairRequest.setStatus(MaintenanceStatus.PENDING); // trạng thái PENDING
+        repairRequest.setDeniedByIds(""); // danh sách id người đã từ chối
 
         // Lưu lần đầu để có ID
         RepairRequest saved = maintenanceRepository.save(repairRequest);
 
-        // Chuyển trạng thái phòng sang MAINTENANCE (nếu chưa ở trạng thái đó)
+        // b1.4 Chuyển trạng thái phòng sang MAINTENANCE (nếu chưa ở trạng thái đó)
         if (saved.getRoomId() != null) {
             roomRepository.findById(saved.getRoomId()).ifPresent(room -> {
                 if (room.getRoomStatus() != com.hms.common.enums.RoomStatus.MAINTENANCE) {
@@ -126,9 +127,10 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             });
         }
 
-        // TỰ ĐỘNG giao việc cho maintenance AVAILABLE đầu tiên
+        // b1.5 TỰ ĐỘNG giao việc cho maintenance AVAILABLE đầu tiên
         autoAssignToMaintenance(saved);
-
+        // b1.6: Trả về MaintenanceResponse đã được làm giàu thông tin
+        // Convert sang Response DTO và nạp tên hiển thị
         return enrich(maintenanceMapper.toResponse(maintenanceRepository.save(saved)));
     }
 
@@ -143,6 +145,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      * MAINTENANCE staff).
      * Đảm bảo người tạo phiếu không bao giờ tự nhận việc của chính mình.
      */
+    // bước2:Thuật toán tự động giao việc
     private void autoAssignToMaintenance(RepairRequest request) {
         List<Long> deniedIds = new ArrayList<>(parseDeniedIds(request.getDeniedByIds()));
 
@@ -152,17 +155,19 @@ public class MaintenanceServiceImpl implements MaintenanceService {
          * Sau khi sửa: excludeIds = deniedIds + reportedBy
          * Lý do: Nếu nhân viên bảo trì A tự tạo phiếu, không được giao lại cho A.
          */
+        // Loại trừ người tạo phiếu ra (tránh kỹ thuật viên tự giao việc cho chính mình)
         if (request.getReportedBy() != null && !deniedIds.contains(request.getReportedBy())) {
             deniedIds.add(request.getReportedBy());
         }
-
+        // bước 2.1: Tìm danh sách kỹ thuật viên có thể nhận việc
         List<User> candidates = userRepository.findAvailableMaintenanceStaffExcluding(
                 deniedIds.isEmpty() ? null : deniedIds);
 
-        if (!candidates.isEmpty()) {
-            User assignee = candidates.get(0);
-            request.setAssignedTo(assignee.getId());
-            request.setStatus(MaintenanceStatus.ASSIGNED);
+        if (!candidates.isEmpty()) { // nếu có nhân viên bảo trì rảnh
+            User assignee = candidates.get(0); // Chọn người đầu tiên trong danh sách
+            request.setAssignedTo(assignee.getId()); // Gán người đó là người được giao
+            request.setStatus(MaintenanceStatus.ASSIGNED); // Chuyển trạng thái sang đã giao việc phiếu pending->
+                                                           // ASSIGNED
 
             /*
              * THÊM MỚI: Ghi lại thời điểm giao việc (assignedAt).
@@ -305,8 +310,10 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
     /**
      * Parse danh sách ID từ chuỗi CSV "5,8,12"
-     * THAY ĐỔI / CẢI TIẾN: Thêm try-catch an toàn khi parse chuỗi để loại bỏ các phần tử lỗi định dạng,
-     * tránh bị văng lỗi NumberFormatException hệ thống khi dữ liệu chứa ký tự bất thường.
+     * THAY ĐỔI / CẢI TIẾN: Thêm try-catch an toàn khi parse chuỗi để loại bỏ các
+     * phần tử lỗi định dạng,
+     * tránh bị văng lỗi NumberFormatException hệ thống khi dữ liệu chứa ký tự bất
+     * thường.
      */
     private List<Long> parseDeniedIds(String deniedByIds) {
         if (deniedByIds == null || deniedByIds.isBlank())
@@ -359,7 +366,6 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         RepairRequest updated = maintenanceRepository.save(repairRequest);
         if (updated.getStatus() == MaintenanceStatus.COMPLETED || updated.getStatus() == MaintenanceStatus.CANCELLED) {
             reconcileRoomStatus(updated.getRoomId());
-            reconcileEquipmentStatus(updated.getEquipmentId());
         }
 
         /*
@@ -500,7 +506,6 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         maintenanceRepository.save(repairRequest);
         syncMaintenanceWorkStatus(repairRequest.getAssignedTo(), MaintenanceStatus.CANCELLED);
         reconcileRoomStatus(repairRequest.getRoomId());
-        reconcileEquipmentStatus(repairRequest.getEquipmentId());
     }
 
     /**
@@ -541,16 +546,20 @@ public class MaintenanceServiceImpl implements MaintenanceService {
      * Bổ sung thông tin tên đầy đủ và vai trò của người báo cáo / người được phân
      * công
      */
+    // bước 3: Nạp tên người tạo & tên kỹ thuật viên vào DTO Response
     private MaintenanceResponse enrich(MaintenanceResponse res) {
         if (res == null) {
             return null;
         }
+        // Chuyển reportedBy (ID: 2) -> reportedByName ("Nguyễn Văn A (RECEPTIONIST)")
+        // gán tên cho người báo cáo
         if (res.getReportedBy() != null) {
             userRepository.findById(res.getReportedBy()).ifPresent(u -> {
                 String role = u.getRole() != null ? u.getRole().getRoleName() : "N/A";
                 res.setReportedByName(u.getFullName() + " (" + role + ")");
             });
         }
+        // gán tên cho người được giao
         if (res.getAssignedTo() != null) {
             userRepository.findById(res.getAssignedTo()).ifPresent(u -> {
                 res.setAssignedToName(u.getFullName());
@@ -574,18 +583,6 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         });
     }
 
-    private void reconcileEquipmentStatus(Long equipmentId) {
-        if (equipmentId == null
-                || maintenanceRepository.existsByEquipmentIdAndStatusIn(equipmentId, ACTIVE_MAINTENANCE_STATUSES)) {
-            return;
-        }
-        equipmentRepository.findById(equipmentId).ifPresent(equipment -> {
-            if (equipment.getStatus() == EquipmentStatus.MAINTENANCE) {
-                equipment.setStatus(EquipmentStatus.ACTIVE);
-                equipmentRepository.save(equipment);
-            }
-        });
-    }
 
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -633,50 +630,7 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         }
     }
 
-    /**
-     * Legacy method retained temporarily for compatibility. It is not scheduled.
-     */
-    @Deprecated(forRemoval = true)
-    private void autoReleaseExpiredMaintenanceRooms() {
-        LocalDateTime now = LocalDateTime.now();
-        List<RepairRequest> expiredRequests = maintenanceRepository.findActiveRequestsOverdueAndNotNotified(
-                List.of(MaintenanceStatus.COMPLETED, MaintenanceStatus.CANCELLED),
-                now);
 
-        for (RepairRequest request : expiredRequests) {
-            if (request.getRoomId() != null) {
-                roomRepository.findById(request.getRoomId()).ifPresent(room -> {
-                    // Nếu phòng đang ở trạng thái MAINTENANCE, tự động chuyển về AVAILABLE
-                    if (room.getRoomStatus() == com.hms.common.enums.RoomStatus.MAINTENANCE) {
-                        room.setRoomStatus(com.hms.common.enums.RoomStatus.AVAILABLE);
-                        roomRepository.save(room);
-
-                        // Cập nhật RepairRequest thành COMPLETED
-                        request.setStatus(MaintenanceStatus.COMPLETED);
-                        request.setCompletedAt(now);
-                        maintenanceRepository.save(request);
-
-                        // Đồng bộ lại trạng thái của nhân viên sửa chữa
-                        if (request.getAssignedTo() != null) {
-                            syncMaintenanceWorkStatus(request.getAssignedTo(), MaintenanceStatus.COMPLETED);
-                        }
-
-                        Locale locale = LocaleContextHolder.getLocale();
-                        String notifTitle = messageSource.getMessage("maintenance.notification.auto_complete.title",
-                                new Object[] { room.getRoomNumber() }, locale);
-                        String notifMsg = messageSource.getMessage("maintenance.notification.auto_complete.message",
-                                new Object[] { request.getId() }, locale);
-
-                        // Gửi thông báo cho lễ tân & quản lý
-                        notificationService.notifyReceptionistsAndManagers(
-                                notifTitle,
-                                notifMsg,
-                                "/dashboard/maintenance");
-                    }
-                });
-            }
-        }
-    }
 
     /*
      * THÊM MỚI: Scheduler tự động thu hồi việc nếu nhân viên KHÔNG bấm Nhận sau 15

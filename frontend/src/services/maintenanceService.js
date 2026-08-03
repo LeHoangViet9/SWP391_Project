@@ -29,13 +29,13 @@ export const maintenanceService = {
 
     getById: (id, locale = 'vi') =>
         apiFetch(`/maintenance-requests/${id}`, {}, locale),
-
+    // b1Hàm gửi API tạo bảo trì
     create: (dto, locale = 'vi') =>
         apiFetch(
-            '/maintenance-requests',
+            '/maintenance-requests',// gọi tới endpoint /api/v1/maintenance-requests
             {
-                method: 'POST',
-                body: JSON.stringify(dto),
+                method: 'POST', // gửi phương thức POST
+                body: JSON.stringify(dto), // chuyển đối tượng dto thành JSON
             },
             locale
         ),

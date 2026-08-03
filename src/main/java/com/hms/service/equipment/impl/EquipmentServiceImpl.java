@@ -334,6 +334,16 @@ public class EquipmentServiceImpl implements EquipmentService {
                     );
                 }
 
+                // BỔ SUNG / BẢO MẬT: Kiểm tra magic bytes (byte đầu tiên của file)
+                // getContentType() chỉ dựa vào header HTTP do browser khai — không đáng tin.
+                // Magic bytes mới là thứ xác định loại file THẬT SỰ bên trong.
+                // Ví dụ: đổi tên file.txt → file.png, browser vẫn khai image/png nhưng magic bytes sẽ lộ.
+                if (!isValidImageMagicBytes(image)) {
+                    throw new BadRequestException(
+                            messageSource.getMessage("error.equipment.image.invalid_extension", new Object[]{ALLOWED_MIME_TYPES}, locale)
+                    );
+                }
+
                 String originalName = image.getOriginalFilename() == null
                         ? "image.jpg"
                         : image.getOriginalFilename();
@@ -393,6 +403,58 @@ public class EquipmentServiceImpl implements EquipmentService {
                     messageSource.getMessage("error.equipment.image.save_failed", null, locale)
             );
         }
+    }
+
+    /**
+     * BỔ SUNG / BẢO MẬT: Đọc magic bytes (byte đầu tiên) của file để xác định loại thật.
+     * Lý do: getContentType() chỉ đọc header HTTP do browser tự khai dựa trên đuôi file,
+     * không đáng tin. Đổi tên file.exe → file.png vẫn bypass được MIME check.
+     * Magic bytes là dữ liệu nhị phân cứng trong file, không thể giả mạo dễ dàng.
+     *
+     * Các magic bytes được hỗ trợ:
+     *   JPEG : FF D8 FF
+     *   PNG  : 89 50 4E 47
+     *   GIF  : 47 49 46 38
+     *   WEBP : 52 49 46 46 (RIFF header)
+     */
+    private boolean isValidImageMagicBytes(MultipartFile file) throws IOException {
+        byte[] header = new byte[8];
+        int bytesRead = file.getInputStream().read(header);
+        if (bytesRead < 3) return false; // file quá nhỏ, không hợp lệ
+
+        // JPEG: FF D8 FF
+        if ((header[0] & 0xFF) == 0xFF
+                && (header[1] & 0xFF) == 0xD8
+                && (header[2] & 0xFF) == 0xFF) return true;
+
+        // PNG: 89 50 4E 47
+        if ((header[0] & 0xFF) == 0x89
+                && header[1] == 0x50
+                && header[2] == 0x4E
+                && header[3] == 0x47) return true;
+
+        // GIF: 47 49 46 38 ("GIF8")
+        if (header[0] == 0x47
+                && header[1] == 0x49
+                && header[2] == 0x46
+                && header[3] == 0x38) return true;
+
+        // WEBP: 52 49 46 46 ... 57 45 42 50 ("RIFF....WEBP")
+        if (bytesRead >= 8
+                && header[0] == 0x52 && header[1] == 0x49
+                && header[2] == 0x46 && header[3] == 0x46
+                && header[4] != 0) {
+            // bytes 4-7 là file size (variable), bỏ qua
+            // cần đọc thêm 4 bytes để check "WEBP" marker
+            byte[] webpMarker = new byte[4];
+            file.getInputStream().skip(4);
+            int read = file.getInputStream().read(webpMarker);
+            if (read == 4
+                    && webpMarker[0] == 0x57 && webpMarker[1] == 0x45
+                    && webpMarker[2] == 0x42 && webpMarker[3] == 0x50) return true;
+        }
+
+        return false; // không khớp magic bytes nào → không phải ảnh thật
     }
 
     private Equipment findActiveEquipment(Long id, Locale locale) {

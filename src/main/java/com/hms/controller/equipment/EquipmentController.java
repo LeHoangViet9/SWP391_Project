@@ -31,209 +31,214 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class EquipmentController {
 
-    private final EquipmentService equipmentService;
-    private final MessageSource messageSource;
+        private final EquipmentService equipmentService;
+        private final MessageSource messageSource;
 
-    @GetMapping
-    @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
-    public ResponseEntity<ApiResponse<Page<EquipmentResponse>>> getAllEquipments(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) EquipmentStatus status,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size,
-            @RequestParam(defaultValue = "ID") SortField sortBy,
-            @RequestParam(defaultValue = "ASC") SortDirection direction) {
+        @GetMapping
+        @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
+        public ResponseEntity<ApiResponse<Page<EquipmentResponse>>> getAllEquipments(
+                        @RequestParam(required = false) String keyword,
+                        @RequestParam(required = false) EquipmentStatus status,
+                        @RequestParam(required = false) Integer page,
+                        @RequestParam(required = false) Integer size,
+                        @RequestParam(defaultValue = "ID") SortField sortBy,
+                        @RequestParam(defaultValue = "ASC") SortDirection direction) {
 
-        Locale locale = LocaleContextHolder.getLocale();
+                Locale locale = LocaleContextHolder.getLocale();
 
-        Page<EquipmentResponse> data = equipmentService.getAllEquipments(
-               keyword,
-                status,
-                page,
-                size,
-                sortBy,
-                direction
-        );
+                Page<EquipmentResponse> data = equipmentService.getAllEquipments(
+                                keyword,
+                                status,
+                                page,
+                                size,
+                                sortBy,
+                                direction);
 
-        String message = messageSource.getMessage("equipment.getall.success", null, locale);
+                String message = messageSource.getMessage("equipment.getall.success", null, locale);
 
-        ApiResponse<Page<EquipmentResponse>> response = ApiResponse.<Page<EquipmentResponse>>builder()
-                .success(true)
-                .message(message)
-                .data(data)
-                .status(HttpStatus.OK)
-                .build();
+                ApiResponse<Page<EquipmentResponse>> response = ApiResponse.<Page<EquipmentResponse>>builder()
+                                .success(true)
+                                .message(message)
+                                .data(data)
+                                .status(HttpStatus.OK)
+                                .build();
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
-    public ResponseEntity<ApiResponse<EquipmentResponse>> findById(@PathVariable Long id) {
-        Locale locale = LocaleContextHolder.getLocale();
+        @GetMapping("/{id}")
+        @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
+        public ResponseEntity<ApiResponse<EquipmentResponse>> findById(@PathVariable Long id) {
+                Locale locale = LocaleContextHolder.getLocale();
 
-        EquipmentResponse data = equipmentService.findById(id);
-        String message = messageSource.getMessage("equipment.getbyid.success", null, locale);
+                EquipmentResponse data = equipmentService.findById(id);
+                String message = messageSource.getMessage("equipment.getbyid.success", null, locale);
 
-        ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
-                .success(true)
-                .message(message)
-                .data(data)
-                .status(HttpStatus.OK)
-                .build();
+                ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
+                                .success(true)
+                                .message(message)
+                                .data(data)
+                                .status(HttpStatus.OK)
+                                .build();
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    @PostMapping
-    @PreAuthorize("hasAuthority('EQUIPMENT_CREATE')")
-    public ResponseEntity<ApiResponse<EquipmentResponse>> createEquipment(
-            @Valid @RequestBody EquipmentCreateDTO dto) {
+        // b1 Dòng 88-107: API endpoint tạo thiết bị
+        @PostMapping // POST /api/v1/equipments
+        @PreAuthorize("hasAuthority('EQUIPMENT_CREATE')") // yêu cầu quyền
+        public ResponseEntity<ApiResponse<EquipmentResponse>> createEquipment(
+                        @Valid @RequestBody EquipmentCreateDTO dto) { // @Valid => tự động validate @NotNull, @Size...
 
-        Locale locale = LocaleContextHolder.getLocale();
+                Locale locale = LocaleContextHolder.getLocale(); // lấy locale
 
-        EquipmentResponse data = equipmentService.createEquipment(dto);
+                EquipmentResponse data = equipmentService.createEquipment(dto); // gọi service tạo gọi xuống service,
+                                                                                // nhận response về
 
-        String message = messageSource.getMessage("equipment.add.success", null, locale);
+                String message = messageSource.getMessage("equipment.add.success", null, locale); // lấy thông báo
+                                                                                                  // success
 
-        ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
-                .success(true)
-                .message(message)
-                .data(data)
-                .status(HttpStatus.CREATED)
-                .build();
+                ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
+                                .success(true)
+                                .message(message)
+                                .data(data) // chứa response equipment vừa tạo
+                                .status(HttpStatus.CREATED) // trả về 201 http
+                                .build();
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+                return ResponseEntity.status(HttpStatus.CREATED).body(response); // trả JSON: { success: true, message:
+                                                                                 // "...", data: { id, name, ... },
+                                                                                 // status: 201 }
+        }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
-    public ResponseEntity<ApiResponse<EquipmentResponse>> updateEquipment(
-            @PathVariable Long id,
-            @Valid @RequestBody EquipmentCreateDTO dto) {
+        @PutMapping("/{id}")
+        @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
+        public ResponseEntity<ApiResponse<EquipmentResponse>> updateEquipment(
+                        @PathVariable Long id,
+                        @Valid @RequestBody EquipmentCreateDTO dto) {
 
-        Locale locale = LocaleContextHolder.getLocale();
+                Locale locale = LocaleContextHolder.getLocale();
 
-        EquipmentResponse data = equipmentService.updateEquipment(id, dto);
+                EquipmentResponse data = equipmentService.updateEquipment(id, dto);
 
-        String message = messageSource.getMessage("equipment.update.success", null, locale);
+                String message = messageSource.getMessage("equipment.update.success", null, locale);
 
-        ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
-                .success(true)
-                .message(message)
-                .data(data)
-                .status(HttpStatus.OK)
-                .build();
+                ApiResponse<EquipmentResponse> response = ApiResponse.<EquipmentResponse>builder()
+                                .success(true)
+                                .message(message)
+                                .data(data)
+                                .status(HttpStatus.OK)
+                                .build();
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('EQUIPMENT_DELETE')")
-    public ResponseEntity<ApiResponse<Void>> deleteEquipment(@PathVariable Long id) {
-        Locale locale = LocaleContextHolder.getLocale();
+        @DeleteMapping("/{id}")
+        @PreAuthorize("hasAuthority('EQUIPMENT_DELETE')")
+        public ResponseEntity<ApiResponse<Void>> deleteEquipment(@PathVariable Long id) {
+                Locale locale = LocaleContextHolder.getLocale();
 
-        equipmentService.deleteEquipment(id);
-        String message = messageSource.getMessage("equipment.delete.success", null, locale);
+                equipmentService.deleteEquipment(id);
+                String message = messageSource.getMessage("equipment.delete.success", null, locale);
 
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(true)
-                .message(message)
-                .status(HttpStatus.OK)
-                .build();
+                ApiResponse<Void> response = ApiResponse.<Void>builder()
+                                .success(true)
+                                .message(message)
+                                .status(HttpStatus.OK)
+                                .build();
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    @PostMapping("/{id}/assign-room")
-    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
-    public ResponseEntity<ApiResponse<RoomEquipmentResponse>> assignToRoom(
-            @PathVariable Long id,
-            @Valid @RequestBody AssignEquipmentToRoomDTO dto) {
+        @PostMapping("/{id}/assign-room")
+        @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
+        public ResponseEntity<ApiResponse<RoomEquipmentResponse>> assignToRoom(
+                        @PathVariable Long id,
+                        @Valid @RequestBody AssignEquipmentToRoomDTO dto) {
 
-        RoomEquipmentResponse data = equipmentService.assignToRoom(id, dto);
+                RoomEquipmentResponse data = equipmentService.assignToRoom(id, dto);
 
-        ApiResponse<RoomEquipmentResponse> response = ApiResponse.<RoomEquipmentResponse>builder()
-                .success(true)
-                .message("Assign equipment to room successfully")
-                .data(data)
-                .status(HttpStatus.OK)
-                .build();
+                ApiResponse<RoomEquipmentResponse> response = ApiResponse.<RoomEquipmentResponse>builder()
+                                .success(true)
+                                .message("Assign equipment to room successfully")
+                                .data(data)
+                                .status(HttpStatus.OK)
+                                .build();
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    @DeleteMapping("/{id}/rooms/{roomId}")
-    @PreAuthorize("hasAuthority('EQUIPMENT_DELETE')")
-    public ResponseEntity<ApiResponse<Void>> removeFromRoom(
-            @PathVariable Long id,
-            @PathVariable Long roomId) {
+        @DeleteMapping("/{id}/rooms/{roomId}")
+        @PreAuthorize("hasAuthority('EQUIPMENT_DELETE')")
+        public ResponseEntity<ApiResponse<Void>> removeFromRoom(
+                        @PathVariable Long id,
+                        @PathVariable Long roomId) {
 
-        equipmentService.removeFromRoom(id, roomId);
+                equipmentService.removeFromRoom(id, roomId);
 
-        ApiResponse<Void> response = ApiResponse.<Void>builder()
-                .success(true)
-                .message("Remove equipment from room successfully")
-                .status(HttpStatus.OK)
-                .build();
+                ApiResponse<Void> response = ApiResponse.<Void>builder()
+                                .success(true)
+                                .message("Remove equipment from room successfully")
+                                .status(HttpStatus.OK)
+                                .build();
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    @GetMapping("/rooms/{roomId}")
-    @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
-    public ResponseEntity<ApiResponse<List<RoomEquipmentResponse>>> getEquipmentsByRoom(
-            @PathVariable Long roomId) {
+        @GetMapping("/rooms/{roomId}")
+        @PreAuthorize("hasAuthority('EQUIPMENT_VIEW')")
+        public ResponseEntity<ApiResponse<List<RoomEquipmentResponse>>> getEquipmentsByRoom(
+                        @PathVariable Long roomId) {
 
-        List<RoomEquipmentResponse> data = equipmentService.getEquipmentsByRoom(roomId);
+                List<RoomEquipmentResponse> data = equipmentService.getEquipmentsByRoom(roomId);
 
-        ApiResponse<List<RoomEquipmentResponse>> response = ApiResponse.<List<RoomEquipmentResponse>>builder()
-                .success(true)
-                .message("Get room equipments successfully")
-                .data(data)
-                .status(HttpStatus.OK)
-                .build();
+                ApiResponse<List<RoomEquipmentResponse>> response = ApiResponse.<List<RoomEquipmentResponse>>builder()
+                                .success(true)
+                                .message("Get room equipments successfully")
+                                .data(data)
+                                .status(HttpStatus.OK)
+                                .build();
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
-    // Upload nhiều ảnh local cho 1 thiết bị
-    @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
-    public ResponseEntity<ApiResponse<List<EquipmentImageResponse>>> uploadImages(
-            @PathVariable Long id,
-            @RequestParam("images") List<MultipartFile> images) {
+        // Upload nhiều ảnh local cho 1 thiết bị
+        @PostMapping(value = "/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
+        public ResponseEntity<ApiResponse<List<EquipmentImageResponse>>> uploadImages(
+                        @PathVariable Long id,
+                        @RequestParam("images") List<MultipartFile> images) {
 
-        List<EquipmentImageResponse> data = equipmentService.uploadImages(id, images);
+                List<EquipmentImageResponse> data = equipmentService.uploadImages(id, images);
 
-        ApiResponse<List<EquipmentImageResponse>> response = ApiResponse.<List<EquipmentImageResponse>>builder()
-                .success(true)
-                .message("Upload equipment images successfully")
-                .data(data)
-                .status(HttpStatus.CREATED)
-                .build();
+                ApiResponse<List<EquipmentImageResponse>> response = ApiResponse.<List<EquipmentImageResponse>>builder()
+                                .success(true)
+                                .message("Upload equipment images successfully")
+                                .data(data)
+                                .status(HttpStatus.CREATED)
+                                .build();
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
 
-    // THAY ĐỔI: Thêm REST API gán thiết bị vào phòng hàng loạt
-    // Nhận vào ID phòng (roomId) và danh sách thiết bị kèm số lượng (BulkAssignEquipmentDTO)
-    @PostMapping("/rooms/{roomId}/assign-bulk")
-    @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
-    public ResponseEntity<ApiResponse<List<RoomEquipmentResponse>>> assignBulkToRoom(
-            @PathVariable Long roomId,
-            @Valid @RequestBody List<BulkAssignEquipmentDTO> dtos) {
+        // THAY ĐỔI: Thêm REST API gán thiết bị vào phòng hàng loạt
+        // Nhận vào ID phòng (roomId) và danh sách thiết bị kèm số lượng
+        // (BulkAssignEquipmentDTO)
+        @PostMapping("/rooms/{roomId}/assign-bulk")
+        @PreAuthorize("hasAuthority('EQUIPMENT_UPDATE')")
+        public ResponseEntity<ApiResponse<List<RoomEquipmentResponse>>> assignBulkToRoom(
+                        @PathVariable Long roomId,
+                        @Valid @RequestBody List<BulkAssignEquipmentDTO> dtos) {
 
-        // Gọi service xử lý gán hàng loạt theo lô
-        List<RoomEquipmentResponse> data = equipmentService.assignBulkToRoom(roomId, dtos);
+                // Gọi service xử lý gán hàng loạt theo lô
+                List<RoomEquipmentResponse> data = equipmentService.assignBulkToRoom(roomId, dtos);
 
-        ApiResponse<List<RoomEquipmentResponse>> response = ApiResponse.<List<RoomEquipmentResponse>>builder()
-                .success(true)
-                .message("Assign equipments to room successfully")
-                .data(data)
-                .status(HttpStatus.OK)
-                .build();
+                ApiResponse<List<RoomEquipmentResponse>> response = ApiResponse.<List<RoomEquipmentResponse>>builder()
+                                .success(true)
+                                .message("Assign equipments to room successfully")
+                                .data(data)
+                                .status(HttpStatus.OK)
+                                .build();
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 }
