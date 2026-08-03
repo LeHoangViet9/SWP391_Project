@@ -211,6 +211,7 @@ export default function EquipmentManager() {
         if (imageFiles.length > 0) {              // nếu user có chọn ảnh mới
           await equipmentService.uploadImages(modal.editing.id, imageFiles, locale);
         }
+        notify(t('equipment.toast.updateSuccess') || t('equipment.update.success') || 'Cập nhật thiết bị thành công');
       } else {
         // --- TRƯỜNG HỢP ĐANG TẠO MỚI ---
         const created = await equipmentService.create(payload, locale); // gọi API tạo
@@ -219,6 +220,7 @@ export default function EquipmentManager() {
         if (imageFiles.length > 0 && equipmentId) { // nếu có ảnh VÀ đã tạo thành công
           await equipmentService.uploadImages(equipmentId, imageFiles, locale); // upload ảnh
         }
+        notify(t('equipment.toast.createSuccess') || t('equipment.add.success') || 'Tạo thiết bị thành công');
       }
 
       closeModal();           // đóng popup
