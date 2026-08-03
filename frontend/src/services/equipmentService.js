@@ -19,11 +19,13 @@ export const equipmentService = {
     getById: (id, locale = 'vi') =>
         apiFetch(`/equipments/${id}`, {}, locale),
 
+    // bước 1 :Dòng 22-26: Hàm tạo thiết bị
     create: (dto, locale = 'vi') =>
-        apiFetch('/equipments', {
-            method: 'POST',
-            body: JSON.stringify(dto),
+        apiFetch('/equipments', {      // gọi đến /api/v1/equipments
+            method: 'POST',              // dùng HTTP POST
+            body: JSON.stringify(dto),   // chuyển object JS thành chuỗi JSON
         }, locale),
+
 
     update: (id, dto, locale = 'vi') =>
         apiFetch(`/equipments/${id}`, {

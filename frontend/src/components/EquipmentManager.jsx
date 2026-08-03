@@ -7,6 +7,7 @@ import DataTable from './shared/DataTable';
 import Modal from './shared/Modal';
 import Toast from './shared/Toast';
 
+// Tạo một form rỗng để reset khi cần
 const EMPTY_FORM = {
   equipmentName: '',
   equipmentCode: '',
@@ -14,6 +15,7 @@ const EMPTY_FORM = {
   totalQuantity: 0,
 };
 
+// Gán nhãn và màu sắc cho từng trạng thái
 const STATUS_LABELS = {
   ACTIVE: { label: 'Hoạt động', className: 'bg-emerald-100 text-emerald-700' },
   MAINTENANCE: { label: 'Bảo trì', className: 'bg-amber-100 text-amber-700' },
@@ -21,6 +23,7 @@ const STATUS_LABELS = {
   INACTIVE: { label: 'Ngừng dùng', className: 'bg-stone-100 text-stone-600' },
 };
 
+// Hàm xử lý lỗi
 function getErrorMessage(error, fallback) {
   if (error?.status === 403) {
     return 'Bạn không có quyền thực hiện thao tác này.';
@@ -34,6 +37,7 @@ function getErrorMessage(error, fallback) {
   );
 }
 
+// Map dữ liệu từ API về dạng form
 function mapEquipmentToForm(item) {
   return {
     equipmentName: item.equipmentName || '',
@@ -43,6 +47,7 @@ function mapEquipmentToForm(item) {
   };
 }
 
+// Lấy URL ảnh
 function getImageUrl(item) {
   const imageUrl =
     item?.images?.find((img) => img.isPrimary)?.imageUrl ||
@@ -55,15 +60,18 @@ function getImageUrl(item) {
   return imageUrl;
 }
 
+// Component chính
 export default function EquipmentManager() {
   const { locale, t } = useLocale();
   const { hasPermission } = usePermission();
 
-  const canCreate = hasPermission('EQUIPMENT_CREATE');
+  /* bước 1 Dòng 62-65: Kiểm tra quyền ngay ở frontend*/
+  const canCreate = hasPermission('EQUIPMENT_CREATE'); // hoi: user co quyen tao k
   const canUpdate = hasPermission('EQUIPMENT_UPDATE');
   const canDelete = hasPermission('EQUIPMENT_DELETE');
-  const canManage = canCreate || canUpdate || canDelete;
+  const canManage = canCreate || canUpdate || canDelete; // phai co it nhat 1 quyen
 
+  // Khởi tạo state dùng để quản lý danh sách thiết bị khi gọi API 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -139,7 +147,7 @@ export default function EquipmentManager() {
     },
     [page, searchOpt, search, statusFilter, fetchDataDirect]
   );
-
+  // dùng để gọi API khi page thay đổi ví dụ người dùng bấm vào trang equipment thì lệnh này sẽ gọi API để lấy danh sách thiết bị
   useEffect(() => {
     fetchData(page);
   }, [page, statusFilter, fetchData]);
@@ -148,17 +156,17 @@ export default function EquipmentManager() {
     fetchSuggestions();
   }, [fetchSuggestions]);
 
-  /*Hàm bật Modal Popup (Không làm mới URL)*/
+  /*bước 2Hàm bật Modal Popup (Không làm mới URL) */
   const openCreate = () => {
     if (!canManage) {
       notify(t('equipment.toast.forbiddenCreate'), 'error');
       return;
     }
 
-    setForm(EMPTY_FORM);
+    setForm(EMPTY_FORM); // reset form về rỗng
     // THAY ĐỔI: Reset state tệp ảnh cũ khi mở form tạo mới
-    setImageFiles([]);
-    setModal({ open: true, editing: null });
+    setImageFiles([]);// reset danh sách ảnh về rỗng
+    setModal({ open: true, editing: null });// mở popup, editing=null = đang TẠO MỚI
   };
 
   const openEdit = (item) => {
@@ -180,57 +188,49 @@ export default function EquipmentManager() {
     setImageFiles([]);
   };
 
-  /*Hàm lấy dữ liệu dạng JSON*/
+  //bước 3: Dòng 184-189: Hàm đóng gói dữ liệu form thành JSON để gửi lên server
   const buildPayload = () => ({
-    equipmentName: form.equipmentName.trim(),
+    equipmentName: form.equipmentName.trim(),        // cắt khoảng trắng 2 đầu
     equipmentCode: form.equipmentCode.trim(),
-    description: form.description.trim() || null,
-    totalQuantity: Math.max(0, parseInt(form.totalQuantity, 10) || 0),
+    description: form.description.trim() || null,   // nếu rỗng thì gửi null
+    totalQuantity: Math.max(0, parseInt(form.totalQuantity, 10) || 0), // không cho âm
   });
-  /** Hàm lưu dữ liệu, gửi API ngầm và tải lại bảng*/
+
+  /**bước 4:Hàm lưu dữ liệu, gửi API ngầm và tải lại bảng Hàm xử lý khi bấm nút "Lưu" trong form*/
+  // Dòng 191-233: Hàm xử lý khi bấm nút "Lưu" trong form
   const handleSave = async (event) => {
-    event.preventDefault();
-    setSaving(true);
+    event.preventDefault(); // ngăn browser reload trang
+    setSaving(true);        // disable nút Lưu, hiện "Đang lưu..."
 
     try {
-      const payload = buildPayload();
+      const payload = buildPayload(); // lấy dữ liệu từ form
 
       if (modal.editing) {
+        // --- TRƯỜNG HỢP ĐANG SỬA ---
         await equipmentService.update(modal.editing.id, payload, locale);
-
-        if (imageFiles.length > 0) {
-          await equipmentService.uploadImages(
-            modal.editing.id,
-            imageFiles,
-            locale
-          );
+        if (imageFiles.length > 0) {              // nếu user có chọn ảnh mới
+          await equipmentService.uploadImages(modal.editing.id, imageFiles, locale);
         }
-
-        notify(t('equipment.toast.updateSuccess') || 'Cập nhật thiết bị thành công');
       } else {
-        const created = await equipmentService.create(payload, locale);
-        const equipmentId = created?.data?.id;
+        // --- TRƯỜNG HỢP ĐANG TẠO MỚI ---
+        const created = await equipmentService.create(payload, locale); // gọi API tạo
+        const equipmentId = created?.data?.id;   // lấy id của thiết bị vừa tạo
 
-        if (imageFiles.length > 0 && equipmentId) {
-          await equipmentService.uploadImages(
-            equipmentId,
-            imageFiles,
-            locale
-          );
+        if (imageFiles.length > 0 && equipmentId) { // nếu có ảnh VÀ đã tạo thành công
+          await equipmentService.uploadImages(equipmentId, imageFiles, locale); // upload ảnh
         }
-
-        notify(t('equipment.toast.addSuccess') || 'Thêm thiết bị thành công');
       }
 
-      closeModal();
-      fetchData(page);
-      fetchSuggestions();
+      closeModal();           // đóng popup
+      fetchData(page);        // reload lại bảng danh sách
+      fetchSuggestions();     // cập nhật lại danh sách mã gợi ý
     } catch (error) {
-      notify(getErrorMessage(error, t('equipment.toast.loadError')), 'error');
+      notify(getErrorMessage(error, '...'), 'error'); // hiện thông báo lỗi
     } finally {
-      setSaving(false);
+      setSaving(false); // luôn bật lại nút Lưu dù thành công hay lỗi
     }
   };
+
 
   const handleDelete = async (item) => {
     if (!canManage) {
