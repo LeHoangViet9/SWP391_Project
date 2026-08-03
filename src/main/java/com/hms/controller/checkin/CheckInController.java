@@ -8,13 +8,14 @@ import com.hms.repository.auth.UserRepository;
 import com.hms.service.checkin.CheckInService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/v1/checkin")
@@ -23,40 +24,35 @@ public class CheckInController {
 
     private final CheckInService checkInService;
     private final UserRepository userRepository;
+    private final MessageSource messageSource;
 
     @PostMapping
     @PreAuthorize("hasAuthority('CHECKIN_VIEW') or hasAuthority('BOOKING_UPDATE')")
-    public ResponseEntity<ApiResponse<CheckInResponseDTO>> processCheckIn(
+    public ApiResponse<CheckInResponseDTO> processCheckIn(
             @Valid @RequestBody CheckInRequestDTO request,
             @AuthenticationPrincipal String email) {
 
+        Locale locale = LocaleContextHolder.getLocale();
         Long userId = userRepository.findUserByEmail(email)
                 .map(user -> user.getId())
                 .orElse(null);
-        CheckInResponseDTO responseDTO = checkInService.processCheckIn(request, userId);
 
-        ApiResponse<CheckInResponseDTO> response = ApiResponse.<CheckInResponseDTO>builder()
-                .success(true)
-                .message("Check-in processed successfully")
-                .data(responseDTO)
-                .status(HttpStatus.OK)
-                .build();
-
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(
+                messageSource.getMessage("checkin.process.success", null, locale),
+                checkInService.processCheckIn(request, userId)
+        );
     }
 
     @GetMapping("/available-rooms/{bookingId}")
     @PreAuthorize("hasAuthority('CHECKIN_VIEW') or hasAuthority('BOOKING_VIEW') or hasAuthority('BOOKING_UPDATE')")
-    public ResponseEntity<ApiResponse<List<AvailableRoomResponseDTO>>> getAvailableRooms(@PathVariable Long bookingId) {
-        List<AvailableRoomResponseDTO> availableRooms = checkInService.getAvailableRoomsForBooking(bookingId);
+    public ApiResponse<List<AvailableRoomResponseDTO>> getAvailableRooms(
+            @PathVariable Long bookingId
+    ) {
+        Locale locale = LocaleContextHolder.getLocale();
 
-        ApiResponse<List<AvailableRoomResponseDTO>> response = ApiResponse.<List<AvailableRoomResponseDTO>>builder()
-                .success(true)
-                .message("Fetched available rooms successfully")
-                .data(availableRooms)
-                .status(HttpStatus.OK)
-                .build();
-
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(
+                messageSource.getMessage("checkin.available_rooms.success", null, locale),
+                checkInService.getAvailableRoomsForBooking(bookingId)
+        );
     }
 }
